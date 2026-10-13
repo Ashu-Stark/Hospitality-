@@ -1,0 +1,24 @@
+{
+  "python": "3.12.4",
+  "platform": "Windows-11-10.0.26300-SP0",
+  "torch": "2.11.0+cu128",
+  "cuda_available": true,
+  "torch_cuda_runtime": "12.8",
+  "device_name": "NVIDIA GeForce RTX 4050 Laptop GPU",
+  "device_memory_gb": 6.0,
+  "device_used": "cuda",
+  "nvidia_smi_before": "NVIDIA GeForce RTX 4050 Laptop GPU, 0 MiB, 6141 MiB, 0 %, 48",
+  "timesfm_device": "cuda:0",
+  "xgboost_timings": {
+    "rows_small": 871,
+    "rows_large": 87100,
+    "xgb_fit_small_cuda_s": 0.491,
+    "xgb_fit_large_cuda_s": 0.607,
+    "xgb_fit_small_cpu_s": 0.173,
+    "xgb_fit_large_cpu_s": 0.865,
+    "xgb_gpu_vs_cpu_max_pred_diff": 0.015066027641296387
+  },
+  "xgboost": "3.4.1",
+  "nvidia_smi_after": "NVIDIA GeForce RTX 4050 Laptop GPU, 3101 MiB, 6141 MiB, 24 %, 51",
+  "total_seconds": 292.8
+}

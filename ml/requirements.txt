@@ -13,3 +13,5 @@ lightgbm
 joblib
 pytest
 ruff
+# OPTIONAL, only for `python run.py realdata` (GPU benchmarks on public data): see
+# realdata/requirements-gpu.txt. Not needed by the synthetic pipeline, the tests or the API.

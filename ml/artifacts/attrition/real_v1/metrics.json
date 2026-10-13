@@ -1,0 +1,490 @@
+{
+  "ibm_hr": {
+    "dataset": "ibm_hr",
+    "rows": 1470,
+    "positives": 237,
+    "base_rate": 0.1612,
+    "features": [
+      "BusinessTravel",
+      "DailyRate",
+      "Department",
+      "DistanceFromHome",
+      "Education",
+      "EducationField",
+      "EnvironmentSatisfaction",
+      "HourlyRate",
+      "JobInvolvement",
+      "JobLevel",
+      "JobRole",
+      "JobSatisfaction",
+      "MonthlyIncome",
+      "MonthlyRate",
+      "NumCompaniesWorked",
+      "OverTime",
+      "PercentSalaryHike",
+      "PerformanceRating",
+      "RelationshipSatisfaction",
+      "StockOptionLevel",
+      "TotalWorkingYears",
+      "TrainingTimesLastYear",
+      "WorkLifeBalance",
+      "YearsAtCompany",
+      "YearsInCurrentRole",
+      "YearsSinceLastPromotion",
+      "YearsWithCurrManager"
+    ],
+    "dropped_protected": [
+      "Age",
+      "Gender",
+      "MaritalStatus"
+    ],
+    "rules_baseline": "count of: OverTime == Yes, JobSatisfaction <= 2, WorkLifeBalance <= 2",
+    "scorers": {
+      "rules": {
+        "roc_auc": {
+          "mean": 0.6532,
+          "sd": 0.0045
+        },
+        "pr_auc": {
+          "mean": 0.247,
+          "sd": 0.0043
+        },
+        "brier": {
+          "mean": 0.1289,
+          "sd": 0.0001
+        },
+        "ece": {
+          "mean": 0.0173,
+          "sd": 0.0008
+        },
+        "fit_seconds_total": 0.07,
+        "calibration_seed42": [
+          {
+            "bin": 1,
+            "rows": 294,
+            "mean_predicted": 0.0763,
+            "observed_rate": 0.0578
+          },
+          {
+            "bin": 2,
+            "rows": 294,
+            "mean_predicted": 0.11,
+            "observed_rate": 0.1259
+          },
+          {
+            "bin": 3,
+            "rows": 294,
+            "mean_predicted": 0.1504,
+            "observed_rate": 0.1701
+          },
+          {
+            "bin": 4,
+            "rows": 294,
+            "mean_predicted": 0.1746,
+            "observed_rate": 0.1667
+          },
+          {
+            "bin": 5,
+            "rows": 294,
+            "mean_predicted": 0.2948,
+            "observed_rate": 0.2857
+          }
+        ]
+      },
+      "logistic": {
+        "roc_auc": {
+          "mean": 0.8279,
+          "sd": 0.0022
+        },
+        "pr_auc": {
+          "mean": 0.6104,
+          "sd": 0.0047
+        },
+        "brier": {
+          "mean": 0.0964,
+          "sd": 0.0004
+        },
+        "ece": {
+          "mean": 0.0324,
+          "sd": 0.0025
+        },
+        "fit_seconds_total": 3.18,
+        "calibration_seed42": [
+          {
+            "bin": 1,
+            "rows": 294,
+            "mean_predicted": 0.0134,
+            "observed_rate": 0.0442
+          },
+          {
+            "bin": 2,
+            "rows": 294,
+            "mean_predicted": 0.0446,
+            "observed_rate": 0.0374
+          },
+          {
+            "bin": 3,
+            "rows": 294,
+            "mean_predicted": 0.0967,
+            "observed_rate": 0.085
+          },
+          {
+            "bin": 4,
+            "rows": 294,
+            "mean_predicted": 0.1943,
+            "observed_rate": 0.1497
+          },
+          {
+            "bin": 5,
+            "rows": 294,
+            "mean_predicted": 0.4678,
+            "observed_rate": 0.4898
+          }
+        ]
+      },
+      "lightgbm": {
+        "roc_auc": {
+          "mean": 0.8133,
+          "sd": 0.0053
+        },
+        "pr_auc": {
+          "mean": 0.5794,
+          "sd": 0.0109
+        },
+        "brier": {
+          "mean": 0.0991,
+          "sd": 0.0011
+        },
+        "ece": {
+          "mean": 0.0277,
+          "sd": 0.0009
+        },
+        "fit_seconds_total": 5.85,
+        "calibration_seed42": [
+          {
+            "bin": 1,
+            "rows": 294,
+            "mean_predicted": 0.0275,
+            "observed_rate": 0.0476
+          },
+          {
+            "bin": 2,
+            "rows": 294,
+            "mean_predicted": 0.058,
+            "observed_rate": 0.0374
+          },
+          {
+            "bin": 3,
+            "rows": 294,
+            "mean_predicted": 0.0987,
+            "observed_rate": 0.0748
+          },
+          {
+            "bin": 4,
+            "rows": 294,
+            "mean_predicted": 0.1824,
+            "observed_rate": 0.1531
+          },
+          {
+            "bin": 5,
+            "rows": 294,
+            "mean_predicted": 0.4537,
+            "observed_rate": 0.4932
+          }
+        ]
+      },
+      "xgboost": {
+        "roc_auc": {
+          "mean": 0.821,
+          "sd": 0.0046
+        },
+        "pr_auc": {
+          "mean": 0.6019,
+          "sd": 0.0087
+        },
+        "brier": {
+          "mean": 0.0962,
+          "sd": 0.001
+        },
+        "ece": {
+          "mean": 0.0237,
+          "sd": 0.004
+        },
+        "fit_seconds_total": 30.23,
+        "calibration_seed42": [
+          {
+            "bin": 1,
+            "rows": 294,
+            "mean_predicted": 0.0596,
+            "observed_rate": 0.0374
+          },
+          {
+            "bin": 2,
+            "rows": 294,
+            "mean_predicted": 0.0677,
+            "observed_rate": 0.051
+          },
+          {
+            "bin": 3,
+            "rows": 294,
+            "mean_predicted": 0.0831,
+            "observed_rate": 0.0578
+          },
+          {
+            "bin": 4,
+            "rows": 294,
+            "mean_predicted": 0.1372,
+            "observed_rate": 0.1531
+          },
+          {
+            "bin": 5,
+            "rows": 294,
+            "mean_predicted": 0.467,
+            "observed_rate": 0.5068
+          }
+        ]
+      }
+    },
+    "evaluation": "repeated stratified 5-fold CV, seeds [42, 43, 44]; Platt calibration inside each training fold",
+    "source_url": "https://raw.githubusercontent.com/IBM/employee-attrition-aif360/master/data/emp_attrition.csv",
+    "licence": "ODbL 1.0 (database) / DbCL 1.0 (contents), as stated in the IBM repo README",
+    "provenance": "fictional",
+    "sha256": "a5c31e38bd7fafc9bc333884eb181b06b41b8e5e488e8f7ccb27199fb3be7659"
+  },
+  "turnover": {
+    "dataset": "turnover",
+    "rows": 982,
+    "positives": 150,
+    "base_rate": 0.1527,
+    "features": [
+      "industry",
+      "profession",
+      "traffic",
+      "coach",
+      "greywage",
+      "way"
+    ],
+    "dropped_protected": [
+      "gender",
+      "age",
+      "head_gender",
+      "extraversion",
+      "independ",
+      "selfcontrol",
+      "anxiety",
+      "novator"
+    ],
+    "rules_baseline": "count of: greywage == grey (unofficial pay), coach == no (no probation coach)",
+    "scorers": {
+      "rules": {
+        "roc_auc": {
+          "mean": 0.552,
+          "sd": 0.0049
+        },
+        "pr_auc": {
+          "mean": 0.1741,
+          "sd": 0.0009
+        },
+        "brier": {
+          "mean": 0.1287,
+          "sd": 0.0
+        },
+        "ece": {
+          "mean": 0.0292,
+          "sd": 0.0023
+        },
+        "fit_seconds_total": 0.07,
+        "calibration_seed42": [
+          {
+            "bin": 1,
+            "rows": 197,
+            "mean_predicted": 0.1139,
+            "observed_rate": 0.1421
+          },
+          {
+            "bin": 2,
+            "rows": 197,
+            "mean_predicted": 0.1289,
+            "observed_rate": 0.1117
+          },
+          {
+            "bin": 3,
+            "rows": 196,
+            "mean_predicted": 0.1642,
+            "observed_rate": 0.1684
+          },
+          {
+            "bin": 4,
+            "rows": 196,
+            "mean_predicted": 0.1667,
+            "observed_rate": 0.1531
+          },
+          {
+            "bin": 5,
+            "rows": 196,
+            "mean_predicted": 0.1911,
+            "observed_rate": 0.1888
+          }
+        ]
+      },
+      "logistic": {
+        "roc_auc": {
+          "mean": 0.604,
+          "sd": 0.0138
+        },
+        "pr_auc": {
+          "mean": 0.2123,
+          "sd": 0.0131
+        },
+        "brier": {
+          "mean": 0.1274,
+          "sd": 0.0005
+        },
+        "ece": {
+          "mean": 0.0266,
+          "sd": 0.0032
+        },
+        "fit_seconds_total": 2.3,
+        "calibration_seed42": [
+          {
+            "bin": 1,
+            "rows": 197,
+            "mean_predicted": 0.1134,
+            "observed_rate": 0.066
+          },
+          {
+            "bin": 2,
+            "rows": 197,
+            "mean_predicted": 0.1343,
+            "observed_rate": 0.1371
+          },
+          {
+            "bin": 3,
+            "rows": 196,
+            "mean_predicted": 0.1495,
+            "observed_rate": 0.1582
+          },
+          {
+            "bin": 4,
+            "rows": 196,
+            "mean_predicted": 0.1666,
+            "observed_rate": 0.1837
+          },
+          {
+            "bin": 5,
+            "rows": 196,
+            "mean_predicted": 0.2045,
+            "observed_rate": 0.2194
+          }
+        ]
+      },
+      "lightgbm": {
+        "roc_auc": {
+          "mean": 0.6589,
+          "sd": 0.0196
+        },
+        "pr_auc": {
+          "mean": 0.3218,
+          "sd": 0.0139
+        },
+        "brier": {
+          "mean": 0.1227,
+          "sd": 0.0008
+        },
+        "ece": {
+          "mean": 0.0402,
+          "sd": 0.0044
+        },
+        "fit_seconds_total": 3.42,
+        "calibration_seed42": [
+          {
+            "bin": 1,
+            "rows": 197,
+            "mean_predicted": 0.0942,
+            "observed_rate": 0.0812
+          },
+          {
+            "bin": 2,
+            "rows": 197,
+            "mean_predicted": 0.1227,
+            "observed_rate": 0.1015
+          },
+          {
+            "bin": 3,
+            "rows": 196,
+            "mean_predicted": 0.1446,
+            "observed_rate": 0.102
+          },
+          {
+            "bin": 4,
+            "rows": 196,
+            "mean_predicted": 0.1721,
+            "observed_rate": 0.148
+          },
+          {
+            "bin": 5,
+            "rows": 196,
+            "mean_predicted": 0.2332,
+            "observed_rate": 0.3316
+          }
+        ]
+      },
+      "xgboost": {
+        "roc_auc": {
+          "mean": 0.6513,
+          "sd": 0.0196
+        },
+        "pr_auc": {
+          "mean": 0.2894,
+          "sd": 0.0132
+        },
+        "brier": {
+          "mean": 0.1234,
+          "sd": 0.0007
+        },
+        "ece": {
+          "mean": 0.0338,
+          "sd": 0.0076
+        },
+        "fit_seconds_total": 30.39,
+        "calibration_seed42": [
+          {
+            "bin": 1,
+            "rows": 197,
+            "mean_predicted": 0.115,
+            "observed_rate": 0.0863
+          },
+          {
+            "bin": 2,
+            "rows": 197,
+            "mean_predicted": 0.1254,
+            "observed_rate": 0.1066
+          },
+          {
+            "bin": 3,
+            "rows": 196,
+            "mean_predicted": 0.1382,
+            "observed_rate": 0.102
+          },
+          {
+            "bin": 4,
+            "rows": 196,
+            "mean_predicted": 0.1594,
+            "observed_rate": 0.148
+          },
+          {
+            "bin": 5,
+            "rows": 196,
+            "mean_predicted": 0.2335,
+            "observed_rate": 0.3214
+          }
+        ]
+      }
+    },
+    "evaluation": "repeated stratified 5-fold CV, seeds [42, 43, 44]; Platt calibration inside each training fold",
+    "source_url": "https://www.kaggle.com/api/v1/datasets/download/davinwijaya/employee-turnover",
+    "licence": "CC BY-NC-SA 4.0 (Kaggle listing; NON-COMMERCIAL, evaluation only)",
+    "provenance": "real (unverified provenance)",
+    "sha256": "5098600655806f73c151b30432cf6697437928a30283e88c5c0a1cffeac65ceb"
+  }
+}

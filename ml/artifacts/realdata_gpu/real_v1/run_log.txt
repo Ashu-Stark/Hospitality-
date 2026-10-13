@@ -1,0 +1,87 @@
+== Device: cuda | {'python': '3.12.4', 'platform': 'Windows-11-10.0.26300-SP0', 'torch': '2.11.0+cu128', 'cuda_available': True, 'torch_cuda_runtime': '12.8', 'device_name': 'NVIDIA GeForce RTX 4050 Laptop GPU', 'device_memory_gb': 6.0, 'device_used': 'cuda', 'nvidia_smi_before': 'NVIDIA GeForce RTX 4050 Laptop GPU, 0 MiB, 6141 MiB, 0 %, 48'} ==
+== Occupancy forecasting on REAL data (Hotel Booking Demand, CC BY 4.0) ==
+  hotels.csv: 119390 bookings, columns verified, SHA-256 7c2ae42a7353905e...
+  capacity proxy (max nightly room-nights in train window): {'City Hotel': 226.0, 'Resort Hotel': 187.0}
+  h=1: train 883 rows (2015-08-02..2016-10-31), val 124, test 368 (2017-03-01..2017-08-31)
+  h=7: train 871 rows (2015-08-08..2016-10-31), val 124, test 368 (2017-03-01..2017-08-31)
+  h=30: train 825 rows (2015-08-31..2016-10-31), val 124, test 368 (2017-03-01..2017-08-31)
+  TimesFM 2.5 loaded in 2.9s on cuda:0
+  differentiable forward vs library forecast: max abs diff 1.07e-04 room-nights
+  zero-shot: 14.0s for val + test, 3 horizons, 2 hotels
+  fine-tune: 72.1M of 231.3M parameters trainable, 699 train windows, 66 validation windows, device cuda:0
+  epoch 0 (zero-shot) validation MAE 36.358 room-nights
+  epoch 1 train pinball 0.0587  validation MAE 36.006
+  epoch 2 train pinball 0.0474  validation MAE 35.534
+  epoch 3 train pinball 0.0431  validation MAE 35.403
+  epoch 4 train pinball 0.0401  validation MAE 35.317
+  epoch 5 train pinball 0.0378  validation MAE 35.411
+  epoch 6 train pinball 0.0361  validation MAE 35.512
+  epoch 7 train pinball 0.0347  validation MAE 35.423
+  epoch 8 train pinball 0.0336  validation MAE 35.501
+  fine-tune: best epoch 4 (val MAE 35.317), 155.5s on cuda:0, peak torch memory 2.49 GB, nvidia-smi peak {'samples': 76, 'peak_memory_used_mib': 3021, 'peak_utilization_pct': 90}
+  TimesFM timings: {'inference_64_contexts_cuda_s': 0.5, 'fine_tune_3_steps_batch8_cuda_s': 0.525, 'inference_64_contexts_cpu_s': 5.765, 'fine_tune_3_steps_batch8_cpu_s': 2.583}
+  XGBoost timings: {'rows_small': 871, 'rows_large': 87100, 'xgb_fit_small_cuda_s': 0.491, 'xgb_fit_large_cuda_s': 0.607, 'xgb_fit_small_cpu_s': 0.173, 'xgb_fit_large_cpu_s': 0.865, 'xgb_gpu_vs_cpu_max_pred_diff': 0.015066027641296387}
+  plot: C:\Users\ashut\Downloads\INNOV8\ml\docs\plots\realdata_forecast.png
+| Horizon | Hotel | Model | MAPE | MAE (room-nights) | Typical error | 80% band coverage | Val MAE |
+|---|---|---|---|---|---|---|---|
+| 1d | City Hotel | xgb_pace_gpu **(chosen on validation)** | 0.9% | 1.9 | 1.4 | 96% | 3.0 |
+| 1d | City Hotel | lgbm_pace_cpu | 0.9% | 1.9 | 1.4 | 96% | 3.1 |
+| 1d | City Hotel | pickup_naive | 1.5% | 3.1 | 2.0 | 87% | 3.2 |
+| 1d | City Hotel | timesfm_fine_tuned | 3.6% | 7.2 | 4.3 | 85% | 17.9 |
+| 1d | City Hotel | timesfm_zero_shot | 3.6% | 7.3 | 4.3 | 90% | 18.4 |
+| 1d | City Hotel | lgbm_calendar_cpu | 4.1% | 8.5 | 6.3 | 93% | 19.8 |
+| 1d | City Hotel | snaive_week | 5.3% | 10.9 | 7.0 | 100% | 42.7 |
+| 1d | City Hotel | snaive_year | 7.3% | 15.4 | 9.0 | 95% | 45.2 |
+| 1d | Resort Hotel | lgbm_pace_cpu | 1.1% | 1.9 | 1.3 | 92% | 3.1 |
+| 1d | Resort Hotel | xgb_pace_gpu **(chosen on validation)** | 1.1% | 1.9 | 1.3 | 91% | 3.0 |
+| 1d | Resort Hotel | pickup_naive | 1.6% | 2.6 | 2.0 | 83% | 3.2 |
+| 1d | Resort Hotel | timesfm_zero_shot | 4.3% | 7.1 | 4.5 | 82% | 18.4 |
+| 1d | Resort Hotel | lgbm_calendar_cpu | 4.3% | 7.2 | 4.5 | 88% | 19.8 |
+| 1d | Resort Hotel | timesfm_fine_tuned | 4.4% | 7.3 | 4.3 | 75% | 17.9 |
+| 1d | Resort Hotel | snaive_week | 6.4% | 10.4 | 7.0 | 100% | 42.7 |
+| 1d | Resort Hotel | snaive_year | 6.8% | 11.3 | 5.0 | 88% | 45.2 |
+| 7d | City Hotel | xgb_pace_gpu **(chosen on validation)** | 2.5% | 5.3 | 4.1 | 96% | 8.9 |
+| 7d | City Hotel | lgbm_pace_cpu | 2.6% | 5.5 | 4.6 | 96% | 9.6 |
+| 7d | City Hotel | timesfm_zero_shot | 3.9% | 7.9 | 4.9 | 93% | 33.3 |
+| 7d | City Hotel | timesfm_fine_tuned | 4.0% | 8.2 | 4.8 | 85% | 32.5 |
+| 7d | City Hotel | lgbm_calendar_cpu | 4.2% | 8.7 | 6.4 | 99% | 34.3 |
+| 7d | City Hotel | pickup_naive | 4.3% | 9.1 | 7.5 | 88% | 11.1 |
+| 7d | City Hotel | snaive_week | 5.3% | 10.9 | 7.0 | 100% | 42.7 |
+| 7d | City Hotel | snaive_year | 7.3% | 15.4 | 9.0 | 95% | 45.2 |
+| 7d | Resort Hotel | lgbm_pace_cpu | 2.3% | 3.8 | 2.5 | 91% | 9.6 |
+| 7d | Resort Hotel | xgb_pace_gpu **(chosen on validation)** | 2.4% | 3.9 | 2.5 | 91% | 8.9 |
+| 7d | Resort Hotel | pickup_naive | 4.2% | 7.1 | 5.0 | 87% | 11.1 |
+| 7d | Resort Hotel | lgbm_calendar_cpu | 5.0% | 8.3 | 5.5 | 97% | 34.3 |
+| 7d | Resort Hotel | timesfm_zero_shot | 5.3% | 8.7 | 4.6 | 80% | 33.3 |
+| 7d | Resort Hotel | timesfm_fine_tuned | 5.6% | 9.2 | 4.3 | 72% | 32.5 |
+| 7d | Resort Hotel | snaive_week | 6.4% | 10.4 | 7.0 | 100% | 42.7 |
+| 7d | Resort Hotel | snaive_year | 6.8% | 11.3 | 5.0 | 88% | 45.2 |
+| 30d | City Hotel | lgbm_pace_cpu **(chosen on validation)** | 3.4% | 7.2 | 4.5 | 91% | 13.9 |
+| 30d | City Hotel | xgb_pace_gpu | 3.5% | 7.4 | 4.4 | 94% | 14.3 |
+| 30d | City Hotel | timesfm_zero_shot | 4.5% | 9.1 | 5.3 | 96% | 37.7 |
+| 30d | City Hotel | timesfm_fine_tuned | 4.8% | 9.9 | 5.8 | 80% | 34.1 |
+| 30d | City Hotel | lgbm_calendar_cpu | 5.2% | 11.1 | 9.4 | 95% | 35.4 |
+| 30d | City Hotel | snaive_year | 7.3% | 15.4 | 9.0 | 95% | 45.2 |
+| 30d | City Hotel | snaive_week | 8.9% | 18.5 | 9.5 | 93% | 54.5 |
+| 30d | City Hotel | pickup_naive | 8.9% | 18.7 | 15.0 | 84% | 21.8 |
+| 30d | Resort Hotel | xgb_pace_gpu | 4.1% | 6.8 | 4.4 | 92% | 14.3 |
+| 30d | Resort Hotel | lgbm_pace_cpu **(chosen on validation)** | 4.1% | 6.8 | 4.4 | 89% | 13.9 |
+| 30d | Resort Hotel | lgbm_calendar_cpu | 5.0% | 8.3 | 5.0 | 87% | 35.4 |
+| 30d | Resort Hotel | timesfm_zero_shot | 5.6% | 9.3 | 4.7 | 81% | 37.7 |
+| 30d | Resort Hotel | timesfm_fine_tuned | 5.8% | 9.6 | 4.5 | 70% | 34.1 |
+| 30d | Resort Hotel | snaive_year | 6.8% | 11.3 | 5.0 | 88% | 45.2 |
+| 30d | Resort Hotel | pickup_naive | 9.0% | 15.3 | 10.0 | 84% | 21.8 |
+| 30d | Resort Hotel | snaive_week | 9.6% | 16.1 | 8.0 | 93% | 54.5 |
+
+== Attrition on PUBLIC datasets (protected attributes dropped) ==
+  ibm_hr (fictional): 1470 rows, 237 leavers (base 0.161); dropped ['Age', 'Gender', 'MaritalStatus']
+    rules     ROC-AUC 0.653+/-0.004  PR-AUC 0.247  Brier 0.1289  ECE 0.0173  fit 0.07s
+    logistic  ROC-AUC 0.828+/-0.002  PR-AUC 0.610  Brier 0.0964  ECE 0.0324  fit 3.18s
+    lightgbm  ROC-AUC 0.813+/-0.005  PR-AUC 0.579  Brier 0.0991  ECE 0.0277  fit 5.85s
+    xgboost   ROC-AUC 0.821+/-0.005  PR-AUC 0.602  Brier 0.0962  ECE 0.0237  fit 30.23s
+  turnover (real (unverified provenance)): 982 rows, 150 leavers (base 0.153); dropped ['gender', 'age', 'head_gender', 'extraversion', 'independ', 'selfcontrol', 'anxiety', 'novator']
+    rules     ROC-AUC 0.552+/-0.005  PR-AUC 0.174  Brier 0.1287  ECE 0.0292  fit 0.07s
+    logistic  ROC-AUC 0.604+/-0.014  PR-AUC 0.212  Brier 0.1274  ECE 0.0266  fit 2.3s
+    lightgbm  ROC-AUC 0.659+/-0.020  PR-AUC 0.322  Brier 0.1227  ECE 0.0402  fit 3.42s
+    xgboost   ROC-AUC 0.651+/-0.020  PR-AUC 0.289  Brier 0.1234  ECE 0.0338  fit 30.39s
+== done in 292.8s; nvidia-smi after: NVIDIA GeForce RTX 4050 Laptop GPU, 3101 MiB, 6141 MiB, 24 %, 51 ==

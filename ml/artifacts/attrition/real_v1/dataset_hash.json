@@ -1,0 +1,10 @@
+{
+  "ibm_hr_attrition": {
+    "sha256": "a5c31e38bd7fafc9bc333884eb181b06b41b8e5e488e8f7ccb27199fb3be7659",
+    "url": "https://raw.githubusercontent.com/IBM/employee-attrition-aif360/master/data/emp_attrition.csv"
+  },
+  "employee_turnover_babushkin": {
+    "sha256": "5098600655806f73c151b30432cf6697437928a30283e88c5c0a1cffeac65ceb",
+    "url": "https://www.kaggle.com/api/v1/datasets/download/davinwijaya/employee-turnover"
+  }
+}

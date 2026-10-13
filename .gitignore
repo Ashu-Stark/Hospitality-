@@ -50,3 +50,8 @@ Thumbs.db
 !.env.example
 !**/.env.example
 credentials.local.md
+
+# Real public datasets (re-downloaded + SHA-256 verified by `python run.py realdata`) and the
+# fine-tuned TimesFM layers (~330 MB, re-created by the same command)
+ml/data/realdata/raw/
+ml/data/realdata/timesfm_finetuned/

@@ -16,6 +16,7 @@ Usage:
     python run.py eval-voice  # voice: WER + extraction accuracy per provider, demo cache
     python run.py smoke     # fresh process: forecast week, scores, Sunita rescore (exit 1 on error)
     python run.py mocks     # write data/mocks/*.json for the frontend from the real model outputs
+    python run.py realdata [--no-timesfm] [--cpu]  # REAL public data benchmarks (GPU), ml/realdata
 
 Commands run with .venv's Python when it exists (ml/.venv or the repo-root .venv), so
 activating the venv is optional. The Python package is ml/ itself (imported as `ml.*`), so
@@ -160,6 +161,11 @@ def cmd_generate_hotel(*args: str) -> int:
     return _run(["ml.generator.hotel_variant", *args[:1]])
 
 
+def cmd_realdata(*args: str) -> int:
+    """REAL public data: occupancy (Hotel Booking Demand) + attrition (public datasets), GPU."""
+    return _run(["ml.realdata.run_realdata", *args])
+
+
 def cmd_check_artifacts() -> int:
     return _run(["ml.eval.check_artifacts"])
 
@@ -180,10 +186,11 @@ COMMANDS = {
     "eval-voice": cmd_eval_voice,
     "smoke": cmd_smoke,
     "mocks": cmd_mocks,
+    "realdata": cmd_realdata,
 }
 
 
-TAKES_ARGS = {"test", "validate-seeds", "generate-hotel"}
+TAKES_ARGS = {"test", "validate-seeds", "generate-hotel", "realdata"}
 
 
 def main(argv: list[str]) -> int:

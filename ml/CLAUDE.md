@@ -636,3 +636,15 @@ HSX001.. . Seed 4243 = first seed from 4242 whose demo week fills every position
 backend/hotels/himsagar.yaml (chosen once with CP-SAT; a demo-data choice). Small ml changes for this: forecast.predict
 takes `rooms=` (booking pace is divided by the room count), attrition.explain skips empty hero files, run_skills.build
 takes a cfg. The default ml/data dataset is byte-identical. Tests: tests/test_hotel_variant.py (reproducible generation).
+
+## REAL public data (ml/realdata) - the one exception to "all data is synthetic"
+
+`python run.py realdata` re-tests the forecast and attrition approaches on PUBLIC datasets
+(Hotel Booking Demand, REAL, CC BY 4.0; IBM HR, FICTIONAL; Babushkin turnover, real but
+unverified origin, CC BY-NC-SA = evaluation only). Outputs go ONLY to
+`artifacts/{occupancy_forecast,attrition,realdata_gpu}/real_v1/`; the synthetic `v1` artifacts,
+the API and the product never read them. Raw downloads (`data/realdata/raw/`, SHA-256 checked)
+and fine-tuned TimesFM layers are gitignored. Optional deps (torch cu128, xgboost, timesfm):
+`realdata/requirements-gpu.txt`. Protected columns are dropped in `realdata/attrition.py`.
+Tests: `tests/test_realdata.py` (no download, no GPU). Results: `docs/REAL_DATA_RESULTS.md`
+(repo root) and `realdata/README.md`.

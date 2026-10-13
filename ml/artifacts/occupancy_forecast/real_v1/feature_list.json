@@ -1,0 +1,33 @@
+{
+  "calendar": [
+    "dow",
+    "month",
+    "day_of_year",
+    "is_weekend_night",
+    "is_holiday",
+    "days_to_holiday",
+    "is_resort",
+    "y_origin",
+    "y_mean_7",
+    "y_mean_28",
+    "y_last_week",
+    "y_last_year"
+  ],
+  "pace": [
+    "dow",
+    "month",
+    "day_of_year",
+    "is_weekend_night",
+    "is_holiday",
+    "days_to_holiday",
+    "is_resort",
+    "y_origin",
+    "y_mean_7",
+    "y_mean_28",
+    "y_last_week",
+    "y_last_year",
+    "otb",
+    "otb_last_year",
+    "pickup_last_year"
+  ]
+}

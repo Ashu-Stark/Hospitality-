@@ -1,0 +1,15 @@
+# OPTIONAL dependencies for ml/realdata (python run.py realdata). Installed 2026-10-13 into the
+# repo-root .venv (Python 3.12, Windows, RTX 4050 6 GB). Tests do NOT need any of these.
+#
+# 1) PyTorch with its own bundled CUDA 12.8 runtime (no separate CUDA toolkit / cuBLAS DLLs):
+#    pip install torch==2.11.0 --index-url https://download.pytorch.org/whl/cu128
+#    (pulls sympy 1.14.0, mpmath 1.3.0, networkx 3.6.1, setuptools 78.1.0)
+# 2) XGBoost (its pip wheel ships CUDA support):
+xgboost==3.4.1
+safetensors==0.8.0
+# 3) Google TimesFM (Apache-2.0), installed from a clone of github.com/google-research/timesfm
+#    at commit e51928e27119cb17bebc005be2696b75e0a9e688 (package version 3.0.2, contains the
+#    TimesFM 2.5 torch classes). The PyPI "timesfm" release may lag behind; use the repo:
+#    git clone https://github.com/google-research/timesfm && pip install --no-deps ./timesfm
+#    Weights: google/timesfm-2.5-200m-pytorch (Apache-2.0), downloaded by huggingface_hub
+#    (already a dependency) on first use into the Hugging Face cache (~0.9 GB).
