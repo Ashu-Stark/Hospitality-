@@ -1,0 +1,24 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "services": {
+    "portal": {
+      "root": "portal/",
+      "framework": "fastapi",
+      "entrypoint": "hoi_portal.main:app"
+    },
+    "website": {
+      "root": "website/"
+    }
+  },
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "has": [{ "type": "host", "value": { "pre": "hoi." } }],
+      "destination": { "service": "website" }
+    },
+    {
+      "source": "/(.*)",
+      "destination": { "service": "portal" }
+    }
+  ]
+}

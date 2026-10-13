@@ -1,0 +1,25 @@
+# Never upload secrets, local environments or runtime data to Vercel.
+.env
+**/.env
+.venv
+**/.venv
+.logs
+**/.data
+**/__pycache__
+**/.pytest_cache
+**/.ruff_cache
+
+# Services that run on Render, not Vercel (see render.yaml)
+backend
+dashboard
+platform_api
+ml
+
+# Not needed at runtime
+docs
+scripts
+Train.png
+Train (1).png
+*.docx
+portal/tests
+portal/scripts

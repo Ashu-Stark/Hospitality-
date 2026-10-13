@@ -22,3 +22,45 @@ services:
       - key: SARVAM_API_KEY               # optional: voice transcription (Sarvam)
         sync: false
       # PORT is injected by Render; backend.serve binds 0.0.0.0:$PORT.
+
+  # HOI platform API + staff phone app (/worker/) + guest QR pages (/guest/).
+  - type: web
+    name: hoi-platform-api
+    runtime: docker
+    plan: free
+    dockerfilePath: ./platform_api/Dockerfile
+    dockerContext: ./platform_api
+    healthCheckPath: /ready                # pings MongoDB
+    envVars:
+      - key: MONGODB_URI                   # secret: Atlas connection string
+        sync: false
+      - key: HOI_PLATFORM_DB
+        value: hoi_platform
+      - key: HOI_JWT_SECRET                # must be fixed, or sign-ins break on every restart
+        generateValue: true
+      - key: HOI_ENV                       # "production" refuses demo logins; keep development for the hackathon demo
+        value: development
+      - key: HOI_DEMO_LOGIN
+        value: "true"
+      - key: HOI_PUBLIC_BASE_URL           # this service's public URL (printed into room QR codes), e.g. https://hoi-platform-api.onrender.com
+        sync: false
+      - key: HOI_CORS_ORIGINS
+        value: "*"
+
+  # Streamlit manager dashboard. Calls the two APIs above over their public URLs.
+  - type: web
+    name: hoi-dashboard
+    runtime: docker
+    plan: free
+    dockerfilePath: ./dashboard/Dockerfile
+    dockerContext: ./dashboard
+    healthCheckPath: /_stcore/health
+    envVars:
+      - key: USE_MOCKS                     # the image defaults to mock data; use the live APIs
+        value: "false"
+      - key: API_BASE_URL                  # hoi-backend public URL, e.g. https://hoi-backend.onrender.com
+        sync: false
+      - key: PLATFORM_API_URL              # hoi-platform-api public URL
+        sync: false
+      - key: PLATFORM_PUBLIC_URL           # same URL; shown to staff phones and in QR links
+        sync: false
