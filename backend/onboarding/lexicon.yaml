@@ -1,0 +1,94 @@
+# Onboarding word lists for the rule-based extractor (Part C), English + Hindi (Devanagari) +
+# romanised Hinglish. DRAFT written by the developer, every entry UNVERIFIED until the HM (hotel
+# management) student reviews it (Hindi wording, Garhwali / Kumaoni variants).
+# Department keys MUST be department ids from ml/voice/glossary.yaml (checked at load time); the
+# glossary has no department-name synonyms, so they live here instead of changing the glossary.
+review:
+  status: DRAFT
+  needs_hm_review: true
+  verified_by_hm_student: false
+
+departments:
+  housekeeping: [housekeeping, house keeping, housekeeper, housekeepers, room boy, room boys,
+                 room attendant, room attendants, cleaning staff, safai wale, safai, हाउसकीपिंग,
+                 सफाई, सफ़ाई]
+  fnb_service: [f&b, fnb, f and b, food and beverage, restaurant, service staff, waiter, waiters,
+                steward, stewards, वेटर, रेस्टोरेंट]
+  kitchen: [kitchen, cook, cooks, chef, chefs, rasoi, bawarchi, किचन, रसोई, बावर्ची, कुक]
+  front_office: [front office, front desk, reception, receptionist, receptionists, desk,
+                 फ्रंट ऑफिस, रिसेप्शन, रिसेप्शनिस्ट]
+  maintenance: [maintenance, technician, technicians, electrician, plumber, mistri,
+                मेंटेनेंस, मेंटेनेन्स, मिस्त्री, इलेक्ट्रीशियन]
+  security: [security, guard, guards, chowkidar, watchman, सिक्योरिटी, गार्ड, चौकीदार]
+
+months:
+  1: [january, jan, janvari, जनवरी]
+  2: [february, feb, farvari, farwari, फरवरी, फ़रवरी]
+  3: [march, mar, मार्च]
+  4: [april, apr, aprail, अप्रैल]
+  5: [may, मई]                  # romanised "mai" is left out: it also means "I" / "in"
+  6: [june, jun, joon, जून]
+  7: [july, jul, julai, जुलाई]
+  8: [august, aug, agast, अगस्त]
+  9: [september, sep, sept, sitambar, सितंबर, सितम्बर]
+  10: [october, oct, aktubar, अक्टूबर, अक्तूबर]
+  11: [november, nov, navambar, नवंबर, नवम्बर]
+  12: [december, dec, disambar, दिसंबर, दिसम्बर]
+range_words: [to, se, till, until, tak, through, से, तक]   # "may se june" = May and June
+
+hotel_types:
+  homestay: [homestay, home stay, होमस्टे, होम स्टे]
+  small_hotel: [guest house, guesthouse, गेस्ट हाउस, small hotel, chhota hotel, छोटा होटल,
+                lodge]                              # ASSUMED: a guest house is a small hotel
+  resort: [resort, रिसॉर्ट, रिज़ॉर्ट]
+
+# Known places (Uttarakhand demo). Anything else is read from the answer to the location question.
+places: [Mussoorie, Nainital, Rishikesh, Dehradun, Haridwar, Auli, Joshimath, Almora, Kausani,
+         Ranikhet, Lansdowne, Chopta, Uttarkashi, Munsiyari, Devprayag, Pithoragarh, Bhimtal,
+         Dhanaulti, Chakrata, Badrinath, Kedarnath, Guptkashi, Tehri]
+places_hindi:
+  Mussoorie: [मसूरी]
+  Nainital: [नैनीताल]
+  Rishikesh: [ऋषिकेश]
+  Dehradun: [देहरादून]
+  Haridwar: [हरिद्वार]
+  Auli: [औली]
+  Joshimath: [जोशीमठ]
+  Almora: [अल्मोड़ा]
+  Kausani: [कौसानी]
+  Lansdowne: [लैंसडाउन]
+  Uttarkashi: [उत्तरकाशी]
+# Filler words removed from a free-text location answer ("hamara hotel Mussoorie mein hai").
+location_filler: [our, hotel, property, is, in, at, near, the, we, are, hamara, hamari, mera,
+                  meri, mein, me, hai, hain, par, pe, ke, paas, pass, located, situated, area,
+                  हमारा, हमारी, मेरा, मेरी, होटल, में, है, हैं, पर, के, पास]
+
+shift_names:
+  morning: [morning, subah, savere, सुबह, सवेरे, day]
+  afternoon: [afternoon, dopahar, दोपहर]
+  evening: [evening, shaam, sham, शाम]
+  night: [night, raat, रात]
+time_connectors: [to, se, till, until, tak, "-", से, तक]
+pm_words: [pm, p.m., shaam, raat, शाम, रात]
+am_words: [am, a.m., subah, सुबह]
+clock_words: [baje, बजे, o'clock, oclock]
+
+# Unit words that tell what a number is about.
+units:
+  rooms: [rooms, room, kamre, kamra, कमरे, कमरा, keys]
+  people: [people, staff, log, logon, persons, person, employees, लोग, स्टाफ]
+  hours: [hours, hour, hrs, hr, ghante, ghanta, ghante ka, घंटे, घंटा]
+  days: [days, day, din, दिन]
+  week: [week, weekly, hafte, hafta, saptah, हफ्ते, हफ़्ते, सप्ताह]
+  rest: [rest, aaram, araam, gap, break, आराम, गैप]
+  overtime: [overtime, ot, ओवरटाइम]
+  times: [times, x, guna, गुना]
+  "off": ["off", chhutti, chutti, holiday, leave, छुट्टी]
+  consecutive: [consecutive, continuous, in a row, lagatar, lagaatar, लगातार]
+  budget: [budget, incentive, bonus, बजट, इंसेंटिव]
+  rupees: [rupees, rupaye, rs, inr, रुपये, रुपए]
+name_markers: [named, called, naam, नाम]
+# Words that show an answer is about the busy season (months are only read with one of these,
+# or when the question asked is about peak months: "may" is also an English verb).
+season_words: [peak, busy, busiest, season, rush, crowd, bheed, bheed wale, सीजन, सीज़न, भीड़, व्यस्त]
+shift_words: [shift, shifts, शिफ्ट]

@@ -51,6 +51,26 @@ class Confidence(_Strict):
     accept_threshold: float = Field(ge=0, le=1)
 
 
+class ExtractionConfig(_Strict):
+    headcount_window_words: int = Field(ge=1)
+    shift_name_by_start_hour: dict[str, list[int]]
+    pm_shift_names: list[str]
+    earliest_unnamed_am_hour: int = Field(ge=0, le=23)
+
+
+class LlmConfig(_Strict):
+    enabled: bool
+    api_key_env: str
+    url: str
+    model: str
+    temperature: float = Field(ge=0, le=2)
+    json_mode: bool
+    reasoning_effort: str | None
+    max_tokens: int = Field(ge=1)
+    timeout_seconds: float = Field(gt=0)
+    allow_cloud_llm_for_owner_text: bool
+
+
 class OnboardingConfig(_Strict):
     review: dict[str, str | bool]
     size_bands: dict[str, Band]
@@ -61,6 +81,8 @@ class OnboardingConfig(_Strict):
     max_asks_per_field: int = Field(ge=1)
     required_order: list[str] = Field(min_length=1)
     confidence: Confidence
+    extraction: ExtractionConfig
+    llm: LlmConfig
 
     @model_validator(mode="after")
     def _types(self) -> OnboardingConfig:

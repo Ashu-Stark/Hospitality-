@@ -47,3 +47,32 @@ confidence:
   mismatch: 0.3          # brief: LLM number differs from the normaliser -> "please confirm"
   edit: 1.0              # the owner typed it into the draft table
   accept_threshold: 0.6  # below this an answer is never accepted without the owner's check
+
+# Rule-based extractor (Part C). ASSUMED.
+extraction:
+  headcount_window_words: 4      # a headcount must be within this many words of its department
+  shift_name_by_start_hour:      # a shift without a name is named by its start hour (24 h)
+    morning: [4, 11]
+    afternoon: [12, 15]
+    evening: [16, 20]
+    night: [21, 3]               # wraps past midnight
+  pm_shift_names: [afternoon, evening, night]   # "shaam 3 se 11" = 15:00-23:00
+  earliest_unnamed_am_hour: 5    # an unnamed shift starting before this hour is read as pm
+
+# LLM extractor (Part C): Groq's OpenAI-compatible chat completions, standard library only.
+# The key is read ONLY from the environment variable below, never from a file in the repo.
+# The API sends an owner's answer to the LLM only if allow_cloud_llm_for_owner_text is true AND
+# the request carries consent=true; otherwise the rule-based extractor runs (no network).
+# Free AI tiers give no privacy guarantee: never send real names, salaries or staff data.
+llm:
+  enabled: true
+  api_key_env: GROQ_API_KEY
+  url: "https://api.groq.com/openai/v1/chat/completions"   # VERIFY against Groq docs
+  model: "openai/gpt-oss-20b"     # ASSUMED (available on the team key); alternative:
+                                  # "qwen/qwen3.8-27b"
+  temperature: 0
+  json_mode: true                 # response_format {"type": "json_object"}; still validated
+  reasoning_effort: low           # gpt-oss models only; null to leave it out
+  max_tokens: 1500
+  timeout_seconds: 30
+  allow_cloud_llm_for_owner_text: false   # ASSUMED default: owner answers stay local
