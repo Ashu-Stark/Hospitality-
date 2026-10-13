@@ -49,3 +49,4 @@ Thumbs.db
 .env*
 !.env.example
 !**/.env.example
+credentials.local.md
