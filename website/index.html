@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>HOI · Hospitality Operations Intelligence</title>
-<meta name="description" content="Forecast-driven rosters, live job dispatch with photo proof, demand-aware inventory and explainable retention signals for hotels.">
+<meta name="description" content="One platform, five apps for hill hotels: super-admin and hotel admin portals, a voice-ready worker app, a QR guest concierge and a concept Uttarakhand tourism portal.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -25,7 +25,7 @@ h1,h2,h3{letter-spacing:-.04em;line-height:1.04;font-weight:600}
 .btn{display:inline-flex;align-items:center;gap:8px;border-radius:999px;padding:12px 22px;font-weight:500;font-size:.95rem;border:1.5px solid var(--ink);
   background:#fff;transition:transform .15s,box-shadow .15s,background .15s;cursor:pointer;white-space:nowrap}
 .btn:hover{transform:translateY(-1px)}
-.btn.primary{background:linear-gradient(180deg,#3b86ff,#1463e0);color:#fff;border:none;box-shadow:0 8px 20px rgba(31,111,229,.3)}
+.btn.primary{background:linear-gradient(180deg,#1f6fe5,#1257cc);color:#fff;border:none;box-shadow:0 8px 20px rgba(31,111,229,.3)}
 .btn.dark{background:var(--ink);color:#fff}
 .btn.ghost{border-color:var(--line)}
 .pillnav{display:flex;gap:4px;background:#fff;border-radius:999px;padding:5px;width:fit-content}
@@ -90,15 +90,6 @@ section{padding:72px 0 0}
 .step{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);border-radius:18px;padding:16px;backdrop-filter:blur(4px)}
 .step .n{width:32px;height:32px;border-radius:999px;background:#fff;color:var(--ink);display:grid;place-items:center;font-weight:700;margin-bottom:10px}
 .step b{display:block;font-size:1.05rem;letter-spacing:-.02em} .step span{font-size:.85rem;color:rgba(255,255,255,.8)}
-/* role offer cards */
-.roles{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(260px,1fr);gap:14px;overflow-x:auto;padding-bottom:6px;scroll-snap-type:x mandatory}
-.role{border-radius:24px;padding:22px;min-height:220px;position:relative;overflow:hidden;scroll-snap-align:start;color:var(--ink)}
-.role h3{font-size:1.9rem;margin:8px 0}
-.role p{font-size:.9rem;color:var(--ink2);max-width:240px}
-.role .tag{display:inline-block;background:var(--ink);color:#fff;border-radius:6px;padding:3px 8px;font-size:.72rem;font-weight:600}
-.role.a{background:linear-gradient(160deg,#fff4e6,#ffd9b3)} .role.b{background:linear-gradient(160deg,#e8f1ff,#c6dbff)}
-.role.c{background:linear-gradient(160deg,#ecfbea,#c9f2c4)} .role.d{background:linear-gradient(160deg,#f6f0ff,#ddd0ff)}
-.role.e{background:linear-gradient(160deg,#ff9a4d,#f05a1f);color:#fff} .role.e p{color:rgba(255,255,255,.9)} .role.e .tag{background:#fff;color:#c9481a}
 /* app banner */
 .appban{border-radius:30px;position:relative;overflow:visible;margin-top:80px;padding:60px 48px;min-height:400px;color:#fff;
   background:radial-gradient(120% 140% at 70% 100%,#e0631f 0%,#c94d16 45%,#b03f14 100%)}
@@ -146,14 +137,6 @@ th{background:#0b0b0b;color:#fff;font-weight:500}
 tr:last-child td{border-bottom:0}
 .y{color:#0a6b12;font-weight:600} .n{color:#a32020;font-weight:600} .p{color:#b06a00;font-weight:600}
 .tablewrap{overflow-x:auto;border-radius:22px}
-/* plans */
-.plans{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
-.plan{background:#fff;border-radius:24px;padding:26px;display:flex;flex-direction:column;gap:10px;transition:transform .2s}
-.plan:hover{transform:translateY(-4px)}
-.plan.hot{outline:2px solid var(--blue)}
-.plan h3{font-size:1.6rem}
-.plan li{list-style:none;display:flex;gap:8px;align-items:flex-start;font-size:.92rem}
-.plan li::before{content:"";width:18px;height:18px;flex:none;margin-top:2px;border-radius:6px;background:var(--green-soft) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%230ca30c' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 12 4 4 8-8'/%3E%3C/svg%3E") center/12px no-repeat}
 /* faq */
 details{background:#fff;border-radius:18px;padding:18px 22px;margin-bottom:10px}
 summary{cursor:pointer;font-weight:600;list-style:none;display:flex;justify-content:space-between;gap:12px}
@@ -169,6 +152,41 @@ footer{margin:80px 0 24px;background:#e9e9e6;border-radius:28px;padding:44px}
 .mail input{border:0;outline:0;flex:1;font:inherit;font-size:.88rem;background:transparent}
 .mail a{width:34px;height:34px;border-radius:999px;background:var(--blue);display:grid;place-items:center;color:#fff}
 .legal{display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-top:40px;font-size:.78rem;color:var(--ink2)}
+/* five apps */
+.apps{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:14px}
+.app{background:#fff;border-radius:24px;padding:10px 10px 18px;display:flex;flex-direction:column;transition:transform .2s,box-shadow .2s}
+.app:hover{transform:translateY(-4px);box-shadow:0 14px 30px rgba(0,0,0,.08)}
+.app .art{height:112px;border-radius:16px;display:grid;place-items:center;color:var(--ink)}
+.app .art svg{width:132px;height:84px}
+.app.a .art{background:linear-gradient(160deg,#fff4e6,#ffd9b3)} .app.b .art{background:linear-gradient(160deg,#e8f1ff,#c6dbff)}
+.app.c .art{background:linear-gradient(160deg,#ecfbea,#c9f2c4)} .app.d .art{background:linear-gradient(160deg,#f6f0ff,#ddd0ff)}
+.app.e .art{background:linear-gradient(160deg,#fff6df,#ffe2a8)}
+.app .body{padding:14px 8px 0;display:flex;flex-direction:column;gap:8px;flex:1}
+.app .tag{align-self:flex-start;background:var(--ink);color:#fff;border-radius:6px;padding:3px 8px;font-size:.72rem;font-weight:600}
+.app h3{font-size:1.3rem;letter-spacing:-.03em}
+.app ul{list-style:none;display:flex;flex-direction:column;gap:6px;font-size:.87rem;color:var(--ink2)}
+.app li{display:flex;gap:8px}
+.app li::before{content:"";width:6px;height:6px;border-radius:999px;background:var(--blue);flex:none;margin-top:.55em}
+.app .more{margin-top:auto;padding-top:8px;font-size:.85rem;font-weight:600;color:var(--blue)}
+.app .more:hover{text-decoration:underline}
+.concept{display:inline-block;align-self:flex-start;border:1.5px solid #f2cd6f;background:var(--amber-soft);color:#7a5000;border-radius:999px;padding:2px 10px;font-size:.72rem;font-weight:600}
+/* guest request flow */
+.flow{list-style:none;display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px;counter-reset:f}
+.flow li{background:#fff;border-radius:20px;padding:16px;position:relative;counter-increment:f}
+.flow li::before{content:counter(f);position:absolute;right:14px;top:14px;font-size:.75rem;font-weight:700;color:var(--muted)}
+.flow .ic{width:40px;height:40px;border-radius:999px;background:var(--blue-soft);color:var(--blue);display:grid;place-items:center;margin-bottom:10px}
+.flow b{display:block;font-size:.98rem;letter-spacing:-.02em;line-height:1.25}
+.flow span{display:block;font-size:.82rem;color:var(--ink2);margin-top:4px}
+.flow li:not(:last-child)::after{content:"";position:absolute;right:-9px;top:34px;width:8px;height:8px;border-top:2px solid var(--ink);border-right:2px solid var(--ink);transform:rotate(45deg);z-index:1}
+/* honest notes */
+.notes .status{min-width:220px}
+.notes .status .big{font-size:1.05rem}
+.notes .status p{font-size:.84rem;color:var(--ink2);margin-top:4px}
+.status.b{border-color:#9cc0f5;background:var(--blue-soft);color:#174ea6}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+/* focus */
+a:focus-visible,button:focus-visible,summary:focus-visible,input:focus-visible{outline:3px solid var(--blue);outline-offset:3px;border-radius:12px}
+.hero a:focus-visible,.appban a:focus-visible,.banner a:focus-visible{outline-color:#fff}
 /* motion */
 .reveal{opacity:0;transform:translateY(18px);transition:opacity .6s cubic-bezier(.2,.7,.2,1),transform .6s cubic-bezier(.2,.7,.2,1)}
 .reveal.in{opacity:1;transform:none}
@@ -184,6 +202,8 @@ footer{margin:80px 0 24px;background:#e9e9e6;border-radius:28px;padding:44px}
   .regions{grid-template-columns:repeat(3,1fr)} .steps{grid-template-columns:repeat(2,1fr)}
   .phones{position:relative;right:auto;justify-content:center;margin-top:30px} .appban{padding:44px 28px 0}
   .split{grid-template-columns:1fr} .fgrid{grid-template-columns:1fr 1fr} .brand small{display:none}
+  .apps{grid-template-columns:repeat(2,minmax(0,1fr))} .apps .app.e{grid-column:1/-1}
+  .flow{grid-template-columns:repeat(3,minmax(0,1fr))} .flow li::after{display:none}
 }
 @media (max-width:760px){
   .util{display:none} .menu{display:inline-flex}
@@ -191,11 +211,16 @@ footer{margin:80px 0 24px;background:#e9e9e6;border-radius:28px;padding:44px}
   .searchcard .pillnav{overflow-x:auto;max-width:100%}
   .quick{grid-template-columns:repeat(4,1fr);row-gap:14px} .quick a:nth-child(4n){border-right:0}
   .regions{grid-template-columns:repeat(2,minmax(0,1fr))} .region .art{height:170px}
-  .banner{padding:36px 22px} .steps{grid-template-columns:1fr}
-  .plans{grid-template-columns:1fr} .fgrid{grid-template-columns:1fr}
+  .banner{padding:36px 22px} .steps{grid-template-columns:repeat(2,minmax(0,1fr))} .step{padding:12px}
+  .fgrid{grid-template-columns:1fr}
   .phone{width:190px;height:380px} footer{padding:28px}
   .wrap{padding:0 16px} section{padding-top:56px}
   .sechead{flex-direction:column;align-items:flex-start}
+  .apps{grid-template-columns:minmax(0,1fr)} .apps .app.e{grid-column:auto}
+  .app{flex-direction:row;gap:12px;padding:10px} .app .art{flex:none;width:96px;height:auto;min-height:96px} .app .art svg{width:80px;height:52px}
+  .app .body{padding:4px 4px 4px 0}
+  .flow{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .notes .status{min-width:0;flex:1 1 100%}
 }
 /* photos (Wikimedia Commons, illustrative; see credits.html) */
 .hero.hasphoto{background:linear-gradient(180deg,rgba(6,12,30,.64) 0%,rgba(6,12,30,.6) 45%,rgba(6,12,30,.72) 100%),url(img/hills.jpg) center 35%/cover no-repeat,#1d2a48;animation:none}
@@ -219,8 +244,8 @@ footer{margin:80px 0 24px;background:#e9e9e6;border-radius:28px;padding:44px}
   <div class="wrap topbar">
     <a class="brand" href="#"><i><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><path d="M3 18V7"/><path d="M3 14h18v4"/><path d="M21 14v-2a3 3 0 0 0-3-3h-7v5"/><circle cx="7" cy="11" r="2"/></svg></i>HOI <small>Hospitality Operations Intelligence</small></a>
     <nav class="util" aria-label="Main">
-      <a href="#product">Product</a><a href="#loop">How it works</a><a href="#dispatch">Dispatch</a><a href="#inventory">Inventory</a>
-      <a href="#compare">Compare</a><a href="#plans">Plans</a><a href="#faq">FAQ</a>
+      <a href="#apps">Apps</a><a href="#flow">Guest requests</a><a href="#loop">How it works</a><a href="#inventory">Inventory</a>
+      <a href="#compare">Compare</a><a href="#faq">FAQ</a>
     </nav>
     <div style="display:flex;gap:8px">
       <a class="btn" data-app href="#">Sign in</a>
@@ -239,11 +264,15 @@ footer{margin:80px 0 24px;background:#e9e9e6;border-radius:28px;padding:44px}
     <div class="hero-in">
       <div class="eyebrow">For hill hotels and homestays · built in Uttarakhand</div>
       <h1>Run a calmer hotel.<br>Keep your best people.</h1>
-      <p class="lead">Forecast-driven rosters, live job dispatch with photo proof, inventory that follows demand, and early, explainable signals about who may need support.</p>
+      <p class="lead">One platform, five apps: portals for owners and managers, a phone app for staff, a QR concierge for guests, and a concept tourism portal that ties the region together.</p>
+      <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:22px">
+        <a class="btn primary" href="https://hoi-portal.vercel.app" target="_blank" rel="noopener">Try the tourism portal</a>
+        <a class="btn" style="color:var(--ink)" href="#apps">See the five apps</a>
+      </div>
       <div class="searchcard">
-        <div class="pillnav" role="tablist" id="tabs">
+        <div class="pillnav" role="tablist" aria-label="Preview a module" id="tabs">
           <button class="on" data-tab="roster">Roster</button><button data-tab="dispatch">Dispatch</button>
-          <button data-tab="inventory">Inventory</button><button data-tab="retention">Retention</button>
+          <button data-tab="inventory">Inventory</button><button data-tab="retention">Retention</button><button data-tab="guest">Guest</button>
         </div>
         <div class="panel">
           <div class="fields" id="fields"></div>
@@ -263,8 +292,53 @@ footer{margin:80px 0 24px;background:#e9e9e6;border-radius:28px;padding:44px}
     <a href="#inventory"><span class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 7l9-4 9 4v10l-9 4-9-4z"/><path d="M3 7l9 4 9-4M12 11v10"/></svg></span>Inventory</a>
     <a href="#loop"><span class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/></svg></span>Retention</a>
     <a href="#dispatch"><span class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></span>Voice to task</a>
-    <a href="#plans"><span class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 21h18M5 21V9l7-5 7 5v12M9 21v-6h6v6"/></svg></span>Multi-property</a>
+    <a href="#apps"><span class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3v3h-3zM20 14v.01M14 20h.01M17 20h4v-3"/></svg></span>Guest QR</a>
   </div>
+
+  <!-- FIVE APPS -->
+  <section id="apps">
+    <div class="sechead reveal"><div><div class="eyebrow">The suite</div><h2>One platform, five apps</h2>
+      <p>Everyone gets a screen built for their job. One platform underneath keeps each hotel group's data separate.</p></div></div>
+    <div class="apps">
+      <article class="app a reveal">
+        <div class="art"><svg viewBox="0 0 132 84" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M12 76h108"/><rect x="22" y="46" width="20" height="30" rx="2"/><rect x="50" y="34" width="22" height="42" rx="2"/><rect x="80" y="52" width="18" height="24" rx="2"/>
+          <path d="M28 54h8M28 62h8M56 42h10M56 50h10M56 58h10M85 60h8"/><path d="M18 28l24-8 18 8 22-14 24-6"/><circle cx="108" cy="8" r="3"/></svg></div>
+        <div class="body"><span class="tag">HOI TEAM</span><h3>Super-admin portal</h3>
+          <ul><li>Onboard hotel groups and their properties</li><li>Portfolio view of jobs, guest requests and feedback</li><li>Compare on-time rates and response times per hotel</li></ul></div>
+      </article>
+      <article class="app b reveal">
+        <div class="art"><svg viewBox="0 0 132 84" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <rect x="12" y="8" width="108" height="68" rx="8"/><path d="M12 22h108M40 22v54M20 32h12M20 42h12M20 52h12"/><circle cx="21" cy="15" r="1.5"/><circle cx="28" cy="15" r="1.5"/>
+          <rect x="50" y="30" width="30" height="22" rx="3"/><path d="M50 41h30M65 30v22M50 62h30M50 69h18M92 68V54M102 68V42M112 68V48"/></svg></div>
+        <div class="body"><span class="tag">OWNER · HR · DEPT HEADS</span><h3>Hotel admin portal</h3>
+          <ul><li>Fair rosters, live dispatch and the room board</li><li>Inventory with GST purchase orders</li><li>Retention signals, guest services and the hotel profile</li></ul></div>
+      </article>
+      <article class="app c reveal">
+        <div class="art"><svg viewBox="0 0 132 84" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <rect x="44" y="4" width="40" height="76" rx="8"/><path d="M58 10h12"/><rect x="58" y="22" width="12" height="20" rx="6"/><path d="M52 36a12 12 0 0 0 24 0M64 48v6M54 66h20"/>
+          <path d="M32 28q-6 10 0 20M24 22q-10 16 0 32"/><circle cx="104" cy="24" r="12"/><path d="M98 24l4 4 8-8"/></svg></div>
+        <div class="body"><span class="tag">FRONTLINE STAFF</span><h3>Worker app</h3>
+          <ul><li>Task pings to accept or decline</li><li>Before and after photo proof from the live camera</li><li>Voice commands in Hindi or English</li></ul></div>
+      </article>
+      <article class="app d reveal">
+        <div class="art"><svg viewBox="0 0 132 84" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <rect x="10" y="14" width="56" height="56" rx="6"/><rect x="18" y="22" width="14" height="14" rx="2"/><rect x="44" y="22" width="14" height="14" rx="2"/><rect x="18" y="48" width="14" height="14" rx="2"/>
+          <path d="M44 48h6v6M56 54v8h-6M44 62h1"/><path d="M80 16h38a6 6 0 0 1 6 6v20a6 6 0 0 1-6 6H96l-10 8v-8h-6a6 6 0 0 1-6-6V22a6 6 0 0 1 6-6z"/><path d="M86 28h26M86 36h16"/></svg></div>
+        <div class="body"><span class="tag">HOTEL GUESTS · NO LOGIN</span><h3>Guest concierge</h3>
+          <ul><li>Scan the room QR to explore the hotel</li><li>Ask anything by voice or text, and make requests</li><li>Express or late checkout, and feedback</li></ul></div>
+      </article>
+      <article class="app e reveal">
+        <div class="art"><svg viewBox="0 0 132 84" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M6 76h120M8 76l28-40 18 22 16-26 28 44"/><path d="M30 44l6-8 6 8"/><path d="M18 76q20-14 40-8t44-26" stroke-dasharray="3 5"/>
+          <path d="M106 40c-8-10-12-16-12-22a12 12 0 0 1 24 0c0 6-4 12-12 22z"/><circle cx="106" cy="18" r="4"/></svg></div>
+        <div class="body"><span class="tag">TOURISTS · OFFICIALS · BUSINESSES</span><h3>Uttarakhand tourism portal</h3>
+          <span class="concept">Concept, not an official site</span>
+          <ul><li>Destinations with weather, roads and crowd</li><li>Festivals, local phrases, rules and grievances</li><li>Business registration and officials' analytics</li></ul>
+          <a class="more" href="https://hoi-portal.vercel.app" target="_blank" rel="noopener">Open the portal →<span class="sr"> (opens in a new tab)</span></a></div>
+      </article>
+    </div>
+  </section>
 
   <!-- REGIONS -->
   <section>
@@ -297,15 +371,21 @@ footer{margin:80px 0 24px;background:#e9e9e6;border-radius:28px;padding:44px}
     </div>
   </section>
 
-  <!-- ROLES -->
-  <section>
-    <div class="sechead reveal"><div><div class="eyebrow">One product, five views</div><h2>The right screen for every role</h2></div></div>
-    <div class="roles reveal">
-      <div class="role a"><span class="tag">OWNER / GM</span><h3>Whole hotel</h3><p>Cost, coverage, value at stake and every module in one place.</p></div>
-      <div class="role b"><span class="tag">HR</span><h3>Retention</h3><p>Who may need support and why, what-if simulations, intervention tasks.</p></div>
-      <div class="role c"><span class="tag">DEPT HEAD</span><h3>Shift ops</h3><p>Roster, live dispatch board, supply requests for the team.</p></div>
-      <div class="role d"><span class="tag">STOREKEEPER</span><h3>Stores</h3><p>Requests, purchase orders, receipts, counts and wastage.</p></div>
-      <div class="role e"><span class="tag">EMPLOYEE</span><h3>Employee app</h3><p>My shifts, job pings, photo proof and supply requests, with no risk scores in sight.</p></div>
+  <!-- GUEST REQUEST FLOW -->
+  <section id="flow">
+    <div class="sechead reveal"><div><div class="eyebrow">Guest concierge → worker app → hotel admin</div><h2>How a guest request flows</h2></div></div>
+    <ol class="flow reveal">
+      <li><span class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></span><b>Guest asks by voice</b><span>Scans the room QR and speaks in Hindi or English.</span></li>
+      <li><span class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 5h16v11H9l-5 4z"/><path d="M8 9h8M8 12h5"/></svg></span><b>Concierge understands</b><span>Turns it into a request; the guest taps Confirm.</span></li>
+      <li><span class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M13 2 4 14h7l-1 8 9-12h-7z"/></svg></span><b>Right worker pinged</b><span>Best on-shift person; no reply in time, the next one.</span></li>
+      <li><span class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="3" y="6" width="18" height="14" rx="3"/><circle cx="12" cy="13" r="3.5"/><path d="M8 6l1.5-2h5L16 6"/></svg></span><b>Before / after photo</b><span>Live camera, server time stamp, hashed.</span></li>
+      <li><span class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/></svg></span><b>Guest sees done</b><span>Status on the room page moves to done.</span></li>
+      <li><span class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg></span><b>Manager sees the SLA</b><span>Response and completion times, per hotel.</span></li>
+    </ol>
+    <div class="statusrow notes reveal" aria-label="Honest notes">
+      <div class="status w"><div class="row"><span>Status</span></div><div class="big">Prototype · TRL 4</div><p>All data is synthetic. Not yet validated on a real hotel.</p></div>
+      <div class="status b"><div class="row"><span>AI voice and chat</span></div><div class="big">Third-party AI service</div><p>Guests are asked not to share personal details; audio is not stored.</p></div>
+      <div class="status w"><div class="row"><span>Bills and payment</span></div><div class="big">Needs a PMS integration</div><p>Not included. Bills come from the hotel's PMS.</p></div>
     </div>
   </section>
 
@@ -379,16 +459,6 @@ footer{margin:80px 0 24px;background:#e9e9e6;border-radius:28px;padding:44px}
     <p style="color:var(--muted);font-size:.8rem;margin-top:10px">Based on public vendor material and review sites, October 2026. HOI is a prototype on synthetic data (TRL 4), ready for a real-property pilot.</p>
   </section>
 
-  <!-- PLANS -->
-  <section id="plans">
-    <div class="sechead reveal"><div><div class="eyebrow">Packaging</div><h2>Plans that grow with you</h2><p>Pricing is set with pilot partners. Talk to us.</p></div></div>
-    <div class="plans">
-      <div class="plan reveal"><div class="eyebrow">For a single property</div><h3>Starter</h3><ul><li>1 property, up to 80 staff</li><li>Forecast & roster solver</li><li>Live dispatch + photo proof</li><li>Inventory & purchasing</li></ul><a class="btn ghost" href="#contact">Talk to us</a></div>
-      <div class="plan hot reveal"><div class="eyebrow">Most teams</div><h3>Growth</h3><ul><li>Up to 5 properties, 400 staff</li><li>Everything in Starter</li><li>Retention risk, what-if & closed loop</li><li>Voice to task</li></ul><a class="btn primary" href="#contact">Book a demo</a></div>
-      <div class="plan reveal"><div class="eyebrow">Hotel groups</div><h3>Chain</h3><ul><li>Unlimited properties</li><li>Everything in Growth</li><li>Your own backend / data residency</li><li>Platform admin & audit log</li></ul><a class="btn ghost" href="#contact">Talk to us</a></div>
-    </div>
-  </section>
-
   <!-- FAQ -->
   <section id="faq">
     <div class="sechead reveal"><div><div class="eyebrow">Straight answers</div><h2>Questions hotels ask</h2></div></div>
@@ -403,9 +473,10 @@ footer{margin:80px 0 24px;background:#e9e9e6;border-radius:28px;padding:44px}
   <section id="contact">
     <div class="hero cta hasphoto reveal" style="min-height:auto;padding:56px 24px 64px;text-align:center">
       <svg class="mtn" viewBox="0 0 1200 360" preserveAspectRatio="none" aria-hidden="true"><path fill="rgba(255,255,255,.14)" d="M0 360 L0 230 L160 150 L280 210 L420 110 L560 200 L700 140 L860 230 L1000 150 L1200 230 L1200 360Z"/></svg>
-      <div style="position:relative"><h2 style="font-size:clamp(2rem,4.6vw,3.6rem)">See your hotel's week in HOI</h2>
-        <p style="max-width:560px;margin:12px auto 24px;color:rgba(255,255,255,.9)">Open the live demo with one click, or write to us about a pilot.</p>
-        <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap"><a class="btn dark" data-app href="#">Open the live demo</a>
+      <div style="position:relative"><h2 style="font-size:clamp(2rem,4.6vw,3.6rem)">See the suite in action</h2>
+        <p style="max-width:560px;margin:12px auto 24px;color:rgba(255,255,255,.9)">Open the demo, try the concept tourism portal, or write to us about a pilot.</p>
+        <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap"><a class="btn dark" data-app href="#">See the demo</a>
+          <a class="btn primary" href="https://hoi-portal.vercel.app" target="_blank" rel="noopener">Try the tourism portal</a>
           <a class="btn" style="color:var(--ink)" data-mail href="#">Ask about a pilot</a></div></div>
       <a class="pcredit" href="https://commons.wikimedia.org/wiki/File:Traditional_Kumaoni_house.jpg" target="_blank" rel="noopener">Photo: Harshit SR, CC BY-SA 4.0 (Wikimedia Commons)</a>
     </div>
@@ -415,13 +486,13 @@ footer{margin:80px 0 24px;background:#e9e9e6;border-radius:28px;padding:44px}
 <div class="wrap">
   <footer>
     <div class="fgrid">
-      <div><a class="brand" href="#"><i><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M3 18V7"/><path d="M3 14h18v4"/><path d="M21 14v-2a3 3 0 0 0-3-3h-7v5"/><circle cx="7" cy="11" r="2"/></svg></i>HOI</a>
+      <div><a class="brand" href="#"><i><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" aria-hidden="true"><path d="M3 18V7"/><path d="M3 14h18v4"/><path d="M21 14v-2a3 3 0 0 0-3-3h-7v5"/><circle cx="7" cy="11" r="2"/></svg></i>HOI</a>
         <p style="color:var(--ink2);font-size:.88rem;margin-top:10px">Hospitality Operations Intelligence</p>
         <div class="mail"><input type="email" placeholder="Your email for updates" aria-label="Email"><a data-mail href="#" aria-label="Send">→</a></div></div>
-      <div><h4>Product</h4><a href="#loop">Forecast & roster</a><a href="#dispatch">Dispatch</a><a href="#dispatch">Photo proof</a><a href="#inventory">Inventory</a><a href="#loop">Retention</a></div>
-      <div><h4>For</h4><a href="#plans">Single properties</a><a href="#plans">Hotel groups</a><a href="#plans">Homestays</a></div>
+      <div><h4>Product</h4><a href="#loop">Forecast & roster</a><a href="#dispatch">Dispatch</a><a href="#flow">Guest requests</a><a href="#inventory">Inventory</a><a href="#loop">Retention</a></div>
+      <div><h4>Apps</h4><a href="#apps">Super-admin portal</a><a href="#apps">Hotel admin portal</a><a href="#apps">Worker app</a><a href="#apps">Guest concierge</a><a href="https://hoi-portal.vercel.app" target="_blank" rel="noopener">Tourism portal (concept)</a></div>
       <div><h4>Trust</h4><a href="#faq">Data we collect</a><a href="#faq">Photo verification</a><a href="#faq">Purpose limitation</a></div>
-      <div><h4>Company</h4><a href="#contact">Contact</a><a data-app href="#">Sign in</a><a href="credits.html">Photo credits</a></div>
+      <div><h4>Company</h4><a href="#contact">Contact</a><a data-app href="#">Sign in</a><a href="https://github.com/Ashu-Stark/Hospitality-" target="_blank" rel="noopener">Code on GitHub</a><a href="credits.html">Photo credits</a></div>
     </div>
     <div class="legal"><span>© 2026 HOI · AI-Tourism Hackathon 2026 · demo data is synthetic</span><span>No real person appears in the demo</span></div>
   </footer>
@@ -445,15 +516,16 @@ const TABS = {
   roster:[["cal","Week","Mon 24 – Sun 30"],["user","Busiest day","Sat · ~85% occupancy"],["bolt","Solve","CP-SAT · coverage & fairness"]],
   dispatch:[["bolt","Request","AC not cooling · room 204"],["user","Pinged","Best on-shift technician"],["cal","Proof","Before + after photo"]],
   inventory:[["box","Item","Shampoo 30 ml"],["cal","Forecast week","Busy · order +205"],["user","Flow","Request → issue → PO → GRN"]],
-  retention:[["user","Flagged for review","6 permanent staff"],["bolt","Top driver","Overtime overload"],["cal","Fix","Protected weekends"]]
+  retention:[["user","Flagged for review","6 permanent staff"],["bolt","Top driver","Overtime overload"],["cal","Fix","Protected weekends"]],
+  guest:[["user","Guest asks","“Ek extra blanket milega?”"],["bolt","Concierge","Confirms, sends to housekeeping"],["cal","Status","Open → in progress → done"]]
 };
 const fields = document.getElementById("fields");
 function show(t){
   fields.innerHTML = TABS[t].map(([i,l,v]) => `<div class="field">${ICON[i]}<div><div class="l">${l}</div><div class="v">${v}</div></div></div>`).join("")
     + `<a class="btn primary" href="${APP_URL}">Open demo</a>`;
-  document.querySelectorAll("#tabs button").forEach(b => b.classList.toggle("on", b.dataset.tab === t));
+  document.querySelectorAll("#tabs button").forEach(b => { const on = b.dataset.tab === t; b.classList.toggle("on", on); b.setAttribute("aria-selected", on); });
 }
-document.querySelectorAll("#tabs button").forEach(b => b.addEventListener("click", () => show(b.dataset.tab)));
+document.querySelectorAll("#tabs button").forEach(b => { b.setAttribute("role", "tab"); b.addEventListener("click", () => show(b.dataset.tab)); });
 show("roster");
 
 const io = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) { e.target.classList.add("in"); io.unobserve(e.target); } }),

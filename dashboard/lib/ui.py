@@ -209,3 +209,73 @@ def inr(v: float | None) -> str:
 
 def pct(v: float | None, digits: int = 0) -> str:
     return "—" if v is None else f"{float(v) * 100:.{digits}f}%"
+
+
+# ------------------------------------------------------------------ platform API calls with friendly failures
+NEEDS_API = "missing"  # returned by api() when the platform API has no such route yet
+
+
+def needs_api_banner(what: str) -> None:
+    html(
+        theme.banner(
+            f"<b>This feature needs the updated platform API.</b> The server you are connected to does not offer "
+            f"{theme.esc(what)} yet. Update and restart the platform API, then press Refresh.",
+            "amber",
+            "info",
+        )
+    )
+
+
+def api(fn: Callable[..., Any], *args, what: str = "load data", feature: str | None = None, **kwargs) -> Any:
+    """Call a lib.platform function. Missing route (404) -> amber 'needs the updated platform API' banner and NEEDS_API;
+    any other failure -> red banner and None. Never raises."""
+    try:
+        return fn(*args, **kwargs)
+    except platform.PlatformError as e:
+        if platform.feature_missing(e):
+            needs_api_banner(feature or what)
+            return NEEDS_API
+        html(theme.banner(f"<b>Could not {theme.esc(what)}.</b> {theme.esc(e.message)}", "red", "alert"))
+        return None
+
+
+def as_list(x: Any, *keys: str) -> list:
+    """Accept either a bare list or an object wrapping it under one of `keys` (API responses vary by endpoint)."""
+    if isinstance(x, list):
+        return x
+    if isinstance(x, dict):
+        for k in keys:
+            if isinstance(x.get(k), list):
+                return x[k]
+    return []
+
+
+def pick(d: Any, *paths: str, default: Any = None) -> Any:
+    """First non-None value among dotted paths, e.g. pick(h, 'jobs.on_time_pct', 'on_time_pct')."""
+    for p in paths:
+        cur = d
+        for part in p.split("."):
+            cur = cur.get(part) if isinstance(cur, dict) else None
+            if cur is None:
+                break
+        if cur is not None:
+            return cur
+    return default
+
+
+def stars(rating: Any) -> str:
+    try:
+        r = max(0, min(5, round(float(rating))))
+    except (TypeError, ValueError):
+        return "—"
+    return "★" * r + "☆" * (5 - r)
+
+
+def paginate(rows: list, key: str, per_page: int = 20) -> list:
+    """Show `per_page` rows at a time with a small page picker underneath when there are more."""
+    if len(rows) <= per_page:
+        return rows
+    pages = (len(rows) + per_page - 1) // per_page
+    n = st.number_input(f"Page (of {pages})", 1, pages, 1, key=key)
+    st.caption(f"Showing {(n - 1) * per_page + 1}–{min(n * per_page, len(rows))} of {len(rows)}")
+    return rows[(n - 1) * per_page : n * per_page]

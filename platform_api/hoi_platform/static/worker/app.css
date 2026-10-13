@@ -73,3 +73,29 @@
 .dot{position:absolute;top:4px;right:28%;width:10px;height:10px;border-radius:999px;background:#d03b3b;border:2px solid #fff}
 @media (min-width:700px){.wrap{padding-top:24px}}
 .row>.chip{flex:0 0 auto}
+
+/* voice assistant */
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.fab{position:fixed;right:16px;bottom:calc(92px + env(safe-area-inset-bottom));z-index:35;min-width:72px;height:72px;border-radius:999px;border:0;cursor:pointer;
+  color:#fff;font-size:1.5rem;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;padding:0 14px;
+  background:linear-gradient(180deg,#3b86ff,#1463e0);box-shadow:0 10px 24px rgba(31,111,229,.38)}
+.fab .fablbl{font-size:.7rem;font-weight:700;letter-spacing:.02em}
+.fab:active{transform:scale(.96)}
+.vlog{display:flex;flex-direction:column;gap:8px;max-height:34vh;overflow:auto}
+.vmsg{padding:10px 14px;border-radius:18px;max-width:90%}
+.vmsg.me{align-self:flex-end;background:var(--ink);color:#fff}
+.vmsg.bot{align-self:flex-start;background:var(--field)}
+.vmicwrap{display:flex;justify-content:center;padding:6px 0}
+.vmic{width:88px;height:88px;border-radius:50%;border:0;cursor:pointer;color:#fff;font-size:2rem;background:linear-gradient(180deg,#3b86ff,#1463e0);
+  box-shadow:0 10px 24px rgba(31,111,229,.35)}
+.vmic.rec{background:linear-gradient(180deg,#e04545,#a32020);animation:pulse 1.3s infinite}
+.vmic.busy{opacity:.55;pointer-events:none}
+.vmic[disabled]{opacity:.4}
+.vstate{min-height:1.2em}
+.vform{display:flex;gap:8px;align-items:center}
+.vform .field{flex:1;min-height:52px}
+.vform .btn.small{min-height:52px;padding:0 18px}
+.vchips{display:flex;gap:8px;flex-wrap:wrap}
+.vchips button{border:1.5px solid var(--line);background:#fff;border-radius:999px;padding:0 14px;min-height:44px;cursor:pointer}
+.vconfirm{border-radius:20px;border:2px solid #bcd4ff;background:linear-gradient(160deg,#fff,#eef4ff);padding:14px}
+.vconfirm b{display:block;margin-bottom:10px}

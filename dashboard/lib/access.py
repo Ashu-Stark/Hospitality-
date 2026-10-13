@@ -14,16 +14,19 @@ HOTEL_PAGES = [
     ("pages/6_Closed_Loop.py", "Closed loop", ":material/sync:"),
     ("pages/10_Dispatch.py", "Dispatch", ":material/bolt:"),
     ("pages/14_Rooms.py", "Rooms", ":material/bed:"),
+    ("pages/17_Guest_Services.py", "Guest services", ":material/room_service:"),
     ("pages/11_Worker_App.py", "Worker preview", ":material/smartphone:"),
     ("pages/13_Inventory.py", "Inventory", ":material/inventory_2:"),
     ("pages/7_Tasks.py", "Tasks", ":material/task_alt:"),
     ("pages/8_Voice_Ingest.py", "Voice", ":material/mic:"),
+    ("pages/16_Hotel_Profile.py", "Hotel profile", ":material/storefront:"),
     ("pages/12_Setup.py", "Setup", ":material/add_business:"),
     ("pages/15_Hotel_Setup.py", "Hotel setup (voice)", ":material/record_voice_over:"),
     ("pages/9_Admin.py", "Admin", ":material/settings:"),
 ]
 CONSOLE_PAGES = [
     ("console/1_Tenants.py", "Hotels", ":material/apartment:"),
+    ("console/3_Insights.py", "Insights", ":material/insights:"),
     ("console/2_Audit.py", "Audit log", ":material/receipt_long:"),
 ]
 EMPLOYEE_PAGES = [

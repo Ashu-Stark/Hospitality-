@@ -16,7 +16,7 @@ hoi_platform/
   ratelimit.py   per-IP / per-user sliding-window limiter for auth and guest endpoints
   seed.py        platform admin from HOI_ADMIN_PASSWORD; demo workspace (45 rooms, inventory history) when HOI_SEED_DEMO
   static/worker  staff app (PWA): shifts, live job pings, live-camera before/after photos, supplies, Hindi/English
-  static/guest   guest request page per room (QR), no personal data
+  static/guest   guest concierge per room (QR): chat + voice, hotel info, requests, checkout, feedback; no personal data
 tests/           pytest (TestClient), offline on mongomock with a fresh database per run
 ```
 
@@ -82,7 +82,11 @@ Indexes are created idempotently at startup. `GET /ready` pings the database.
 | Dispatch | `PUT/GET /dispatch/context` (on-shift snapshot from the roster), `POST/GET /dispatch/jobs`, `POST /dispatch/jobs/{id}/accept\|decline\|start\|complete\|offer\|retry\|link-task`, `POST/GET /dispatch/jobs/{id}/photos`, `GET /dispatch/photos/{id}`, `POST /dispatch/reset` |
 | Sessions | `POST /auth/refresh` (rotates), `POST /auth/logout` (revokes) |
 | Rooms | `GET/POST /rooms`, `POST /rooms/bulk`, `POST /rooms/{id}/checkout\|check-in\|inspect\|out-of-order\|back-in-service`, `GET /rooms/{id}/qr.svg` |
-| Guest (public) | `GET /public/guest/{token}`, `POST /public/guest/{token}/requests` (rate-limited per IP and per room) |
+| Guest (public) | `GET /public/guest/{token}`, `GET/POST /public/guest/{token}/requests`, `POST .../transcribe\|chat\|actions\|checkout\|feedback`, `GET/POST .../late-checkout`, `GET .../bill` (rate-limited per IP and per room) |
+| Hotel profile | `GET/PUT /hotel/profile` |
+| Guest services | `GET /guest-services/summary\|late-checkouts\|feedback?days=\|checkouts?date=`, `POST /guest-services/late-checkouts/{id}/decide` |
+| Worker voice | `POST /me/voice/transcribe\|command\|act` |
+| Insights | `GET /platform/insights?days=30` (platform admin) |
 | Staff | `GET /me/shifts`, `PUT /dispatch/roster` (managers publish the roster employees see), `GET /me/performance?days=14` (worker: own score and reasons only) |
 | Performance | `GET /dispatch/performance?days=14` (owner, hr, dept_head: own department only; 1-90 days) |
 | Inventory | `GET/POST /inventory/items\|locations\|suppliers`, `GET /inventory/stock\|moves`, `POST /inventory/receive\|issue\|waste\|transfer`, `GET/POST /inventory/requests`, `POST /inventory/requests/{id}/fulfil\|reject`, `GET/POST /inventory/pos`, `POST /inventory/pos/{id}/status\|receive`, `GET/POST /inventory/counts`, `POST /inventory/counts/{id}/post`, `GET /inventory/suggestions?rooms=&occ=`, `GET /inventory/analytics` |
@@ -109,6 +113,96 @@ Score = 100 × Σ weight × part ÷ Σ weights of the parts available. Fewer tha
 has fewer than 5. Up to three plain-language `reasons`: changes vs the person's own baseline first, then the weakest parts.
 Department heads are scoped by the `department` on their user document (the demo account `demo.housekeeping` = housekeeping),
 falling back to the staff record of their employee id; without one the endpoint answers 403.
+
+## Guest concierge, worker voice, guest services, insights
+
+Contract: [docs/HOSPITALITY_SUITE.md](../docs/HOSPITALITY_SUITE.md). Code: `services/profiles.py` (hotel profile), `services/concierge.py`
+(chat: LLM + rule-based fallback), `services/guest.py` (express/late checkout, feedback, bill placeholder, guest-services views),
+`services/voice.py` (worker voice intents), `services/insights.py` (platform insights), `services/ai.py` (OpenAI-compatible adapters).
+
+- **Chat never acts.** `/public/guest/{token}/chat` only *proposes* an action; the guest's Confirm calls `/actions`. Every LLM
+  reply is validated (Pydantic schema, action type in the request menu, HH:MM inside the profile's rules, rating 1-5), every number
+  in the reply must appear in the profile / this room's data / the guest's words, the reply must be in the guest's script, and it
+  may not claim something already happened. Anything failing, or no key / 429 / timeout, falls back to the rule-based concierge
+  (English, Hindi, Hinglish) with `source: "rules"`. After an HTTP 429 the cloud call is skipped for the `Retry-After` time.
+- **Privacy:** chat text and audio are not stored or logged (only a fallback reason). Audio is read into memory, never written by
+  us; the upload's spooled temp file is closed (deleted) in `finally`. Voice needs `consent=true`. Free-text comments/reasons are
+  length-capped and phone numbers / e-mails masked. The guest page shows the third-party-AI notice.
+- **Express checkout:** creates a front-office dispatch job at once; the room is *not* vacated until the chosen time. The first read
+  after that time (dispatch sweep) runs the normal room checkout (room → dirty, cleaning job, new stay). Times after the profile's
+  checkout time need an approved late checkout. One express checkout and one feedback per stay (`rooms.stay` counter; unique indexes).
+- **Insights:** `GET /platform/insights?days=30` (platform admin). Average worker performance is suppressed below 5 scored workers.
+
+### AI provider (any OpenAI-compatible API)
+
+| Variable | Default | Notes |
+|---|---|---|
+| `LLM_BASE_URL` | `https://api.groq.com/openai/v1` | chat completions at `{base}/chat/completions` |
+| `LLM_API_KEY` | falls back to `GROQ_API_KEY` | secret; read at call time, never logged |
+| `LLM_MODEL` | `openai/gpt-oss-20b` | |
+| `LLM_API_KEYS_BACKUP` / `STT_API_KEYS_BACKUP` | fall back to `GROQ_API_KEYS_BACKUP` | secret; comma-separated backup keys (see key failover below) |
+| `HOI_AI_KEY_COOLDOWN_MINUTES` | 10 | ASSUMED; a key that failed is skipped this long |
+| `LLM_JSON_MODE` | `true` | sends `response_format: {"type": "json_object"}`; set `false` for servers without JSON mode (replies are validated either way) |
+| `STT_BASE_URL` / `STT_API_KEY` / `STT_MODEL` | Groq / `GROQ_API_KEY` / `whisper-large-v3-turbo` | Whisper at `{base}/audio/transcriptions` |
+| `HOI_GUEST_AI_ENABLED` | `true` | `false` = rules + typing only (no cloud calls) |
+| `HOI_AI_TIMEOUT_SECONDS`, `HOI_CHAT_HISTORY_TURNS`, `HOI_CHAT_MAX_REPLY_CHARS`, `HOI_CHAT_TEMPERATURE` | 20, 6, 600, 0.3 | |
+| `HOI_STT_MAX_MB`, `HOI_STT_MAX_SECONDS` | 8, 60 | the browser stops at 60 s; the size cap is the server's hard limit |
+| `HOI_GUEST_CHAT_RATE_PER_MINUTE`, `HOI_GUEST_STT_RATE_PER_MINUTE`, `HOI_GUEST_ACTION_RATE_PER_MINUTE` | 10, 6, 10 | per room; per IP = 3x |
+| `HOI_FEEDBACK_MAX_CHARS`, `HOI_HOTEL_UTC_OFFSET_MINUTES` | 1000, 330 | hotel local time for HH:MM (IST) |
+
+**Key failover:** the primary key is tried first; the next backup key is used ONLY when a key is invalid or revoked
+(HTTP 401/403) or the provider fails (5xx, connection error, timeout). That key is then skipped for the cool-down. Logs show
+only indices ("llm key #2 failed: 401"), never keys. HTTP 429 never rotates keys: switching keys to get around a provider's
+per-account rate limit would break its terms (Groq's included). A 429 with `Retry-After` <= 2 s is retried once on the same
+key; otherwise cloud calls pause for the `Retry-After` time (max 120 s) and the rule-based concierge answers. Sarvam stays single-key.
+
+Three setups (PowerShell):
+
+```powershell
+# 1. Groq (default): only the key
+$env:GROQ_API_KEY = "<groq key>"
+
+# 2. OpenAI for both chat and speech-to-text
+$env:LLM_BASE_URL = "https://api.openai.com/v1"; $env:LLM_MODEL = "gpt-4o-mini"; $env:LLM_API_KEY = "<openai key>"
+$env:STT_BASE_URL = "https://api.openai.com/v1"; $env:STT_MODEL = "whisper-1";   $env:STT_API_KEY = "<openai key>"
+
+# 3. Local Ollama for chat (any non-empty key string); Ollama has no Whisper endpoint, so speech-to-text stays on
+#    Groq/OpenAI (STT_* or GROQ_API_KEY) or, with no STT key, voice answers 503 and the apps fall back to typing.
+$env:LLM_BASE_URL = "http://localhost:11434/v1"; $env:LLM_MODEL = "qwen2.5:7b"; $env:LLM_API_KEY = "ollama"
+$env:LLM_JSON_MODE = "true"   # Ollama supports JSON mode; set false for a server that rejects response_format
+```
+
+### Local voice (speech-to-text on this PC)
+
+`STT_PROVIDER=local` runs [faster-whisper](https://github.com/SYSTRAN/faster-whisper) on the machine running the API instead of a
+cloud Whisper. It is optional and imported lazily, so Render/Docker (which do not install it) still start.
+
+```powershell
+pip install -r requirements-local.txt          # faster-whisper (not in requirements.txt)
+$env:STT_PROVIDER = "local"
+$env:LOCAL_STT_MODEL = "small"                 # default; multilingual incl. Hindi. First run downloads it (about 460 MB)
+$env:LOCAL_STT_DEVICE = "auto"                 # auto = CUDA if ctranslate2 sees a GPU (float16), else CPU int8; CUDA failure -> CPU
+```
+
+The model is loaded once per process; each recording is written to a temporary file that is deleted right after decoding.
+Without the package, `/transcribe` answers 503 "type instead".
+
+### Spoken replies (text-to-speech)
+
+- **Browser (default, free):** `static/shared/voice.js` speaks replies with the phone's `speechSynthesis`, ranking voices for a
+  soft female Indian voice (hi-IN natural voices such as Microsoft Swara / Kalpana / "Google हिन्दी"; en-IN such as Neerja / Heera;
+  male voices last), rate 0.92, pitch 1.05, volume 0.9, sentence by sentence; users can pick another voice (remembered on the
+  device) or mute. Times, rupees and numbers are rewritten for speech first ("11:00" -> "ग्यारह बजे", "₹180" -> "एक सौ अस्सी रुपये").
+- **Sarvam Bulbul (optional, realistic Indian voices):** `TTS_PROVIDER=sarvam` + `SARVAM_API_KEY` (secret, environment only).
+  `POST /public/guest/{token}/tts` and `POST /me/voice/tts` `{text <= 500, lang}` return `audio/wav`, or 204 when the browser
+  should speak (provider browser, no key, error). Identical audio is cached in MongoDB for 24 h (`tts_cache`, TTL index) to save
+  credits. Defaults (ASSUMED, user preference: a woman's voice, soft, Indian accent, same speaker for Hindi and English):
+  `SARVAM_MODEL=bulbul:v3`, `SARVAM_SPEAKER=priya`, `SARVAM_PACE=0.9`. Sarvam's docs do not label speaker gender: listen in the
+  Sarvam dashboard and adjust; the v4-flash catalog has e.g. `ritu_hi_customer_warm`. Loudness/pitch exist only for bulbul:v2.
+  Note: cached audio is the assistant's reply text (which can echo the guest's words) and is kept for up to 24 h.
+
+Free tiers give no privacy guarantee and are rate-limited (Groq's free tier answered HTTP 429 after ~4 concierge chats in a
+minute in our test; the rules then answer). Use a paid tier or a local model for real guests.
 
 ## Production configuration
 

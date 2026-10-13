@@ -30,10 +30,21 @@ def session(username: str) -> dict:
     return state
 
 
-SESSIONS = {who: session(u) for who, u in (("platform", "platform"), ("worker", "E134"))}
+DEMO_USERS = {
+    "platform": "platform",
+    "worker": "E134",
+    "owner": "demo.owner",
+    "hr": "demo.hr",
+    "dept_head": "demo.housekeeping",
+    "storekeeper": "demo.store",
+}
+SESSIONS = {who: session(u) for who, u in DEMO_USERS.items()}
 CASES = [("login.py", None)]
 CASES += [(f, "platform") for f, _, _ in access.CONSOLE_PAGES + access.HOTEL_PAGES]
 CASES += [(f, "worker") for f, _, _ in access.EMPLOYEE_PAGES]
+# hospitality suite admin pages, rendered as each hotel role that may open them (read-only roles included)
+HP, GS, INS = "pages/16_Hotel_Profile.py", "pages/17_Guest_Services.py", "console/3_Insights.py"
+CASES += [(HP, r) for r in ("owner", "dept_head", "hr", "storekeeper")] + [(GS, r) for r in ("owner", "dept_head", "hr")]
 only = [a for a in sys.argv[1:] if not a.startswith("--")]
 failed = 0
 
@@ -48,6 +59,10 @@ for page, who in CASES:
     errs = [e.value for e in at.exception]
     banners = [m.value for m in at.markdown if "ss-banner red" in str(m.value)]
     failed += bool(errs)
+    rendered = (at.session_state["_nav"] if "_nav" in at.session_state else None) or []
+    if who and page not in [f for f, _, _ in rendered]:  # the router would fall back to another page: not a real render
+        errs.append(f"{page} is not in the {who} navigation")
+        failed += 1
     print(
         f"{'FAIL' if errs else 'ok':4} {page:34} as {who or 'anonymous':9} (markdown={len(at.markdown)}, buttons={len(at.button)}, "
         f"error-banners={len(banners)})"
@@ -131,8 +146,29 @@ if not only or any(o in "pages/15_Hotel_Setup.py" for o in only):  # the cached 
     for e in errs:
         print("     exception:", str(e)[:1500])
 
+if not only or any(o in p for o in only for p in (HP, GS, INS)):  # wrong roles are denied the new pages
+    for page, who in ((GS, "storekeeper"), (GS, "worker"), (HP, "worker"), (INS, "owner"), (INS, "hr")):
+        at = AppTest.from_file(str(ROOT / "app.py"), default_timeout=180)
+        for k, v in SESSIONS[who].items():
+            at.session_state[k] = v
+        at.session_state["_smoke_page"] = page
+        at.run()
+        nav_files = [f for f, _, _ in at.session_state["_nav"]]
+        errs = [e.value for e in at.exception]
+        ok = not errs and page not in nav_files
+        failed += not ok
+        print(f"{'ok' if ok else 'FAIL':4} access: {who} is not offered {page} (falls back to {nav_files[0]})")
+        for e in errs:
+            print("     exception:", str(e)[:1500])
+
 if not only:  # role filtering: pages outside a role's set must not be routable for that role
-    for role, must_not in (("hr", "pages/13_Inventory.py"), ("storekeeper", "pages/2_Risk_List.py"), ("worker", "pages/1_Overview.py")):
+    for role, must_not in (
+        ("hr", "pages/13_Inventory.py"),
+        ("storekeeper", "pages/2_Risk_List.py"),
+        ("worker", "pages/1_Overview.py"),
+        ("storekeeper", GS),
+        ("worker", HP),
+    ):
         visible = access.EMPLOYEE_PAGES if role == "worker" else [p for p in access.HOTEL_PAGES if role in auth.ACCESS.get(p[0], set())]
         ok = must_not not in [f for f, _, _ in visible]
         failed += not ok

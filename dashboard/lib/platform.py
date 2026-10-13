@@ -302,3 +302,41 @@ def reset_dispatch() -> None:
 # ------------------------------------------------------------------ inventory
 def inv(method: str, path: str, **kw) -> Any:
     return call(method, f"/inventory{path}", **kw)
+
+
+# ------------------------------------------------------------------ hospitality suite (docs/HOSPITALITY_SUITE.md sections 1, 4, 5)
+def feature_missing(e: PlatformError) -> bool:
+    """True when the platform API has no such route yet (FastAPI's bare 404), as opposed to a 404 for missing data."""
+    return e.status == 404 and e.message in ("Not Found", "HTTP 404")
+
+
+def platform_insights(days: int = 30) -> dict:
+    return call("GET", "/platform/insights", params={"days": int(days)}, token=_pt())
+
+
+def hotel_profile() -> dict:
+    return call("GET", "/hotel/profile")
+
+
+def save_hotel_profile(profile: dict) -> dict:
+    return call("PUT", "/hotel/profile", json=profile)
+
+
+def guest_summary() -> dict:
+    return call("GET", "/guest-services/summary")
+
+
+def late_checkouts() -> Any:
+    return call("GET", "/guest-services/late-checkouts")
+
+
+def decide_late_checkout(lid: str, approve: bool, note: str = "") -> dict:
+    return call("POST", f"/guest-services/late-checkouts/{lid}/decide", json={"approve": bool(approve), "note": note})
+
+
+def guest_feedback(days: int = 30) -> Any:
+    return call("GET", "/guest-services/feedback", params={"days": int(days)})
+
+
+def guest_checkouts(day: str | None = None) -> Any:
+    return call("GET", "/guest-services/checkouts", params={"date": day} if day else None)

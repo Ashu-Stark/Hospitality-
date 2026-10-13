@@ -21,7 +21,7 @@ from fastapi.responses import JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 
 from . import config, mongo, seed
-from .routers import auth, dispatch, inventory, me, platform, public, rooms, workspace
+from .routers import auth, dispatch, hotel, inventory, me, platform, public, rooms, workspace
 from .services.errors import DomainError
 
 STATIC = Path(__file__).resolve().parent / "static"
@@ -69,7 +69,7 @@ def create_app() -> FastAPI:
         response.headers["X-Request-ID"] = rid
         response.headers["X-Content-Type-Options"] = "nosniff"
         response.headers["Referrer-Policy"] = "no-referrer"
-        response.headers["Permissions-Policy"] = "camera=(self), microphone=(), geolocation=()"
+        response.headers["Permissions-Policy"] = "camera=(self), microphone=(self), geolocation=()"
         if request.url.path.startswith(("/worker", "/guest")):
             response.headers["Content-Security-Policy"] = CSP
             response.headers["X-Frame-Options"] = "DENY"
@@ -101,7 +101,17 @@ def create_app() -> FastAPI:
             log.warning("readiness check failed: database ping did not succeed")
             return JSONResponse({"status": "not ready"}, status_code=503)
 
-    for r in (auth.router, platform.router, workspace.router, dispatch.router, inventory.router, rooms.router, public.router, me.router):
+    for r in (
+        auth.router,
+        platform.router,
+        workspace.router,
+        dispatch.router,
+        inventory.router,
+        rooms.router,
+        public.router,
+        me.router,
+        hotel.router,
+    ):
         app.include_router(r)
 
     for name in ("worker", "guest"):

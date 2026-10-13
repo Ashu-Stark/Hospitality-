@@ -20,7 +20,14 @@ window.HOI_I18N = {
     camera_denied: "Camera blocked. Allow camera access for this site in your browser settings, then try again.",
     session_expired: "Please sign in again.", wrong: "Something went wrong. Try again.", on_shift: "On shift", off_shift: "Off shift",
     pending: "waiting", partial: "part given", issued: "given", rejected: "not approved", completed_recent: "Done today",
-    gone: "Offer moved to a colleague", qty: "Qty", try_again: "Try again", off: "off"
+    gone: "Offer moved to a colleague", qty: "Qty", try_again: "Try again", off: "off",
+    voice_label: "Voice for spoken replies", voice_mute: "Don't speak replies (text only)", speak: "Speak", voice_title: "Voice assistant", close: "Close", go: "Go", voice_type: "Type a command",
+    voice_notice: "Your voice is turned into text by a third-party AI service and is not stored. Don't say personal details.",
+    voice_consent: "Allow voice processing on this phone", voice_tick: "Tick the box above to use the mic, or type.",
+    listening: "Listening… tap again to stop", working: "Understanding…", no_catch: "Didn't catch that — try again or type.",
+    mic_denied: "Microphone blocked. Allow it in your browser settings, or type.", no_mic: "Voice isn't supported here. Please type.",
+    confirm: "Confirm", not_now: "Not now", cancelled: "Okay, nothing changed.", voice_hint: "Try: “what's next”, “accept”, “room 204 tap leaking”.",
+    voice_chips: ["What's next?", "Accept", "Start", "Done", "My shift", "Help"], voice_done: "Done.", voice_photo: "Opening the camera…"
   },
   hi: {
     offline: "आप ऑफ़लाइन हैं। इंटरनेट आने तक बदलाव सेव नहीं होंगे।",
@@ -42,6 +49,13 @@ window.HOI_I18N = {
     camera_denied: "कैमरा बंद है। ब्राउज़र सेटिंग में इस साइट को कैमरा की अनुमति दें।",
     session_expired: "कृपया फिर से साइन इन करें।", wrong: "कुछ गड़बड़ हुई। फिर कोशिश करें।", on_shift: "ड्यूटी पर", off_shift: "ड्यूटी पर नहीं",
     pending: "बाक़ी", partial: "कुछ मिला", issued: "मिल गया", rejected: "मंज़ूर नहीं", completed_recent: "आज पूरे किए",
-    gone: "काम किसी साथी को दे दिया गया", qty: "मात्रा", try_again: "फिर कोशिश करें", off: "छुट्टी"
+    gone: "काम किसी साथी को दे दिया गया", qty: "मात्रा", try_again: "फिर कोशिश करें", off: "छुट्टी",
+    voice_label: "जवाब किस आवाज़ में सुनें", voice_mute: "जवाब न बोलें (सिर्फ़ टेक्स्ट)", speak: "बोलें", voice_title: "आवाज़ सहायक", close: "बंद करें", go: "भेजें", voice_type: "कमांड लिखें",
+    voice_notice: "आपकी आवाज़ को थर्ड-पार्टी AI सेवा टेक्स्ट बनाती है; इसे सेव नहीं किया जाता। निजी जानकारी न बोलें।",
+    voice_consent: "इस फ़ोन पर आवाज़ प्रोसेसिंग की अनुमति दें", voice_tick: "माइक के लिए ऊपर का बॉक्स टिक करें, या लिखें।",
+    listening: "सुन रहा हूँ… रोकने के लिए फिर दबाएँ", working: "समझ रहा हूँ…", no_catch: "समझ नहीं आया — फिर बोलें या लिखें।",
+    mic_denied: "माइक बंद है। ब्राउज़र सेटिंग में अनुमति दें, या लिखें।", no_mic: "यहाँ आवाज़ नहीं चलती। कृपया लिखें।",
+    confirm: "पक्का करें", not_now: "अभी नहीं", cancelled: "ठीक है, कुछ नहीं बदला।", voice_hint: "बोलकर देखें: “अगला काम”, “स्वीकार”, “कमरा 204 नल लीक”।",
+    voice_chips: ["अगला काम?", "स्वीकार", "शुरू", "हो गया", "मेरी शिफ़्ट", "मदद"], voice_done: "हो गया।", voice_photo: "कैमरा खुल रहा है…"
   }
 };

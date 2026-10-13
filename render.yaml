@@ -19,6 +19,8 @@ services:
         value: hoi_ops
       - key: GROQ_API_KEY                 # optional: voice transcription (Groq Whisper)
         sync: false
+      - key: GROQ_API_KEYS_BACKUP          # secret, optional: comma-separated backup Groq keys, used only when a key is invalid/revoked or Groq fails (never on 429)
+        sync: false
       - key: SARVAM_API_KEY               # optional: voice transcription (Sarvam)
         sync: false
       # PORT is injected by Render; backend.serve binds 0.0.0.0:$PORT.
@@ -46,6 +48,10 @@ services:
         sync: false
       - key: HOI_CORS_ORIGINS
         value: "*"
+      - key: GROQ_API_KEY                  # secret: guest concierge + worker voice (Whisper STT, chat LLM); without it the rule-based fallback runs
+        sync: false
+      - key: SARVAM_API_KEY                # secret, optional: realistic Indian voices for spoken replies (also set TTS_PROVIDER=sarvam); without it the browser voice speaks
+        sync: false
 
   # Streamlit manager dashboard. Calls the two APIs above over their public URLs.
   - type: web

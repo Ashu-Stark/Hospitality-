@@ -149,6 +149,10 @@ TENANT_COLLECTIONS = (
     "inv_counts",
     "rooms",
     "roster_snapshots",
+    "hotel_profiles",
+    "guest_checkouts",
+    "late_checkouts",
+    "guest_feedback",
 )
 
 

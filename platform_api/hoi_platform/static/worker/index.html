@@ -87,6 +87,12 @@
         <div class="eyebrow" data-i18n="language">Language</div>
         <div class="row"><button class="btn" data-lang="en">English</button><button class="btn" data-lang="hi">हिंदी</button></div>
       </div>
+      <div class="card stack" id="voiceCard">
+        <div class="eyebrow" data-i18n="voice_label">Voice for spoken replies</div>
+        <label class="sr" for="voicePick" data-i18n="voice_label">Voice for spoken replies</label>
+        <select id="voicePick" class="field"></select>
+        <label class="check"><input type="checkbox" id="voiceMute"> <span data-i18n="voice_mute">Don't speak replies (text only)</span></label>
+      </div>
       <div class="banner blue" data-i18n="privacy">Your photos are stamped with the server's time and kept for proof of work. Your manager cannot see anything on your phone.</div>
       <button id="install" class="btn hidden" data-i18n="install">Add to home screen</button>
       <button id="signout" class="btn dark" data-i18n="signout">Sign out</button>
@@ -108,6 +114,22 @@
     </div>
   </div>
 
+  <!-- voice assistant (Jobs / Today) -->
+  <button id="voiceFab" class="fab" type="button" aria-label="Voice assistant"><span aria-hidden="true">🎙</span><span class="fablbl" data-i18n="speak">Speak</span></button>
+  <div id="voice" class="sheet hidden" role="dialog" aria-modal="true" aria-labelledby="vTitle">
+    <div class="sheet-in stack">
+      <div class="row"><b id="vTitle" data-i18n="voice_title">Voice assistant</b><button id="vClose" type="button" class="btn ghost small" data-i18n="close">Close</button></div>
+      <p class="muted" data-i18n="voice_notice">Your voice is turned into text by a third-party AI service and is not stored. Don't say personal details.</p>
+      <label class="check hidden" id="vConsentRow"><input id="vConsent" type="checkbox"> <span data-i18n="voice_consent">Allow voice processing on this phone</span></label>
+      <div id="vLog" class="vlog" aria-live="polite"></div>
+      <div id="vConfirm"></div>
+      <div class="vmicwrap"><button id="vMic" type="button" class="vmic" aria-label="Tap to talk"><span aria-hidden="true">🎙</span></button></div>
+      <p id="vState" class="muted center vstate" aria-live="polite"></p>
+      <form id="vForm" class="vform"><label for="vText" class="sr" data-i18n="voice_type">Type a command</label><input id="vText" class="field" maxlength="300" autocomplete="off" data-i18n-ph="voice_type" placeholder="Type a command"><button class="btn primary small" type="submit" data-i18n="go">Go</button></form>
+      <div class="vchips" id="vChips"></div>
+    </div>
+  </div>
+
   <nav class="tabbar" aria-label="Main">
     <button data-tab="today" class="on"><span class="ico">◐</span><span data-i18n="today">Today</span></button>
     <button data-tab="jobs"><span class="ico">⚡</span><span data-i18n="jobs">Jobs</span><i id="jobDot" class="dot hidden"></i></button>
@@ -115,6 +137,7 @@
     <button data-tab="me"><span class="ico">◉</span><span data-i18n="me">Me</span></button>
   </nav>
 </section>
+<script src="/shared/voice.js"></script>
 <script src="i18n.js"></script>
 <script src="app.js"></script>
 </body>

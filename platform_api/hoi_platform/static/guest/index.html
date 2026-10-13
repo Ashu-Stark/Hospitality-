@@ -3,30 +3,127 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#0b0b0b">
+<meta name="theme-color" content="#b03f14">
 <meta name="robots" content="noindex">
-<title>Room service requests</title>
+<title>Your stay · concierge</title>
+<link rel="icon" href="data:,">
 <link rel="stylesheet" href="/shared/base.css">
 <link rel="stylesheet" href="guest.css">
 </head>
 <body>
-<main class="wrap">
-  <header class="ghero" id="hero">
+<div id="offline" class="offline hidden" data-t="offline">You are offline. We'll reconnect automatically.</div>
+<header class="ghero" id="hero">
+  <div class="toprow">
     <div class="eyebrow" id="hotel">&nbsp;</div>
-    <h1><span data-t="hello">How can we help?</span></h1>
-    <p><span data-t="room">Room</span> <b id="roomNo">…</b> · <span data-t="sub">Tap a request. The right team member is notified at once.</span></p>
-    <div class="langs"><button data-lang="en" class="on">English</button><button data-lang="hi">हिंदी</button></div>
-  </header>
+    <div class="langs" role="group" aria-label="Language"><button type="button" data-lang="en" class="on">English</button><button type="button" data-lang="hi">हिंदी</button></div>
+  </div>
+  <h1><span data-t="room">Room</span> <span id="roomNo">…</span></h1>
+  <p id="welcome" class="welcome"></p>
+  <span id="demoTag" class="demotag hidden" data-t="demo">Demo hotel · synthetic data</span>
+</header>
+
+<main class="wrap">
   <div id="err" class="banner red hidden" role="alert"></div>
-  <section id="menu" class="grid" aria-label="Requests"></section>
-  <label class="lbl" for="note" data-t="note">Anything to add? (optional)</label>
-  <input id="note" class="field" maxlength="140" autocomplete="off">
-  <section class="stack">
-    <h2 data-t="status">Your requests today</h2>
-    <div id="list" class="stack"></div>
+
+  <!-- ASK -->
+  <section id="tab-ask" class="tab" aria-labelledby="t-ask">
+    <div class="asktop">
+      <h2 id="t-ask" data-t="ask_title">Ask me anything</h2>
+      <button type="button" id="mute" class="iconbtn" aria-pressed="false"><span id="muteIco" aria-hidden="true">🔊</span> <span id="muteTxt" data-t="sound_on">Sound on</span></button>
+    </div>
+    <p class="notice" data-t="ai_notice">Messages and voice are processed by a third-party AI service; please don't share personal details (names, phone, payment).</p>
+    <label class="voicepick hidden" id="voiceRow"><span data-t="voice">Voice</span> <select id="voicePick" class="field"></select></label>
+    <div id="thread" class="thread" aria-live="polite"></div>
+    <div class="dock">
+    <div id="chips" class="chips" aria-label="Suggestions"></div>
+    <div id="consent" class="card consent hidden">
+      <label class="check"><input type="checkbox" id="consentBox"> <span data-t="consent">I agree that my voice is sent to a third-party AI service to turn it into text. It is not stored.</span></label>
+      <div class="row"><button type="button" class="btn" id="consentNo" data-t="type_instead">Type instead</button><button type="button" class="btn primary" id="consentYes" data-t="allow_mic">Allow and speak</button></div>
+    </div>
+    <div class="composer">
+      <button type="button" id="mic" class="mic" aria-label="Tap to talk"><span class="micico" aria-hidden="true">🎙</span></button>
+      <form id="askForm" class="askform">
+        <label for="msg" class="sr" data-t="type_here">Type your message</label>
+        <input id="msg" class="field" maxlength="500" autocomplete="off" enterkeyhint="send" data-tph="type_here" placeholder="Type your message">
+        <button class="send" type="submit" aria-label="Send"><span aria-hidden="true">➤</span></button>
+      </form>
+    </div>
+    <p id="micState" class="muted center micstate" aria-live="polite"></p>
+    </div>
   </section>
+
+  <!-- EXPLORE -->
+  <section id="tab-explore" class="tab hidden" aria-labelledby="t-explore">
+    <h2 id="t-explore" class="sr" data-t="explore">Explore</h2>
+    <div id="explore" class="stack"></div>
+  </section>
+
+  <!-- REQUESTS -->
+  <section id="tab-requests" class="tab hidden" aria-labelledby="t-req">
+    <h2 id="t-req" data-t="status">Your requests</h2>
+    <div id="list" class="stack"></div>
+    <h2 data-t="quick_requests">Quick requests</h2>
+    <p class="muted" data-t="sub">Tap a request. The right team member is notified at once.</p>
+    <label class="lbl" for="note" data-t="note">Anything to add? (optional)</label>
+    <input id="note" class="field" maxlength="140" autocomplete="off">
+    <div id="menu" class="grid gap-top" aria-label="Requests"></div>
+  </section>
+
+  <!-- CHECKOUT -->
+  <section id="tab-checkout" class="tab hidden" aria-labelledby="t-co">
+    <h2 id="t-co" class="sr" data-t="checkout">Checkout</h2>
+    <div class="card stack" id="coCard">
+      <div class="eyebrow" data-t="express">Express checkout</div>
+      <div id="coStatus"></div>
+      <div id="coForm" class="stack">
+        <p class="muted" id="coHint"></p>
+        <label class="lbl" for="coTime" data-t="leave_time">What time will you leave?</label>
+        <input id="coTime" class="field" type="time" step="900">
+        <label class="switch"><input type="checkbox" id="coLug"> <span data-t="luggage">I'd like help with my luggage</span></label>
+        <button type="button" id="coBtn" class="btn primary" data-t="book_checkout">Book express checkout</button>
+      </div>
+    </div>
+    <div class="card stack" id="lateCard">
+      <div class="eyebrow" data-t="late">Late checkout</div>
+      <div id="lateStatus"></div>
+      <div id="lateForm" class="stack">
+        <p class="muted" id="lateHint"></p>
+        <label class="lbl" for="lateUntil" data-t="until">Until</label>
+        <select id="lateUntil" class="field"></select>
+        <label class="lbl" for="lateReason" data-t="reason">Reason (optional)</label>
+        <input id="lateReason" class="field" maxlength="200" autocomplete="off">
+        <button type="button" id="lateBtn" class="btn" data-t="ask_late">Ask for late checkout</button>
+      </div>
+    </div>
+    <div class="card stack" id="fbCard">
+      <div class="eyebrow" data-t="feedback">How was your stay?</div>
+      <div id="fbDone" class="hidden"></div>
+      <div id="fbForm" class="stack">
+        <div class="stars" role="radiogroup" aria-label="Rating" id="stars"></div>
+        <div class="fbrow">
+          <label for="fbText" class="sr" data-t="comment">Comment</label>
+          <textarea id="fbText" class="field" rows="3" maxlength="1000" data-tph="comment_ph" placeholder="Tell us more (optional)"></textarea>
+          <button type="button" id="fbMic" class="iconbtn round" aria-label="Speak your comment"><span aria-hidden="true">🎙</span></button>
+        </div>
+        <button type="button" id="fbBtn" class="btn primary" disabled data-t="send_feedback">Send feedback</button>
+      </div>
+    </div>
+    <div class="card stack billcard">
+      <div class="eyebrow" data-t="bill">Your bill</div>
+      <div id="bill"></div>
+    </div>
+  </section>
+
   <p class="muted foot" data-t="privacy">We don't ask for your name or phone number. For emergencies, call the front desk.</p>
 </main>
+
+<nav class="tabbar" aria-label="Sections">
+  <button type="button" data-tab="ask" class="on"><span class="ico" aria-hidden="true">💬</span><span data-t="ask">Ask</span></button>
+  <button type="button" data-tab="explore"><span class="ico" aria-hidden="true">🧭</span><span data-t="explore">Explore</span></button>
+  <button type="button" data-tab="requests"><span class="ico" aria-hidden="true">🛎</span><span data-t="requests">My requests</span><i id="reqDot" class="dot hidden"></i></button>
+  <button type="button" data-tab="checkout"><span class="ico" aria-hidden="true">🧳</span><span data-t="checkout">Checkout</span></button>
+</nav>
+<script src="/shared/voice.js"></script>
 <script src="guest.js"></script>
 </body>
 </html>

@@ -1,10 +1,10 @@
 """Platform console (HOI staff): onboard, configure and suspend hotel groups."""
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 
 from ..deps import Principal, platform_only
 from ..schemas import InviteIn, TenantIn, TenantPatch
-from ..services import tenants
+from ..services import insights, tenants
 
 router = APIRouter(prefix="/platform", tags=["platform"])
 
@@ -50,6 +50,12 @@ def owner_invite(tid: str, body: InviteIn, p: Principal = Depends(platform_only)
     inv = tenants.create_invite(tid, body.role)
     tenants.audit(tid, p.username, "platform.invite", body.role)
     return inv
+
+
+@router.get("/insights")
+def portfolio_insights(days: int = Query(default=30, ge=1, le=365), p: Principal = Depends(platform_only)) -> dict:
+    """Per hotel group and property: rooms, staff, jobs, guest requests, checkouts, feedback, inventory, performance (k >= 5)."""
+    return insights.compute(days)
 
 
 @router.get("/audit")

@@ -13,11 +13,11 @@ the room's random token identifies the room only, and requests are rate-limited 
 from __future__ import annotations
 
 import secrets
-from datetime import timedelta
+from datetime import UTC, datetime, timedelta
 
 from pymongo.errors import DuplicateKeyError
 
-from .. import mongo
+from .. import config, mongo
 from . import dispatch, tenants
 from .errors import Conflict, Invalid, NotFound
 
@@ -28,6 +28,7 @@ GUEST_MENU = {
     "water": {"label": "Drinking water", "label_hi": "पीने का पानी", "dept": "housekeeping", "urgency": "medium"},
     "amenities": {"label": "Toiletries / amenities", "label_hi": "टॉयलेटरीज़", "dept": "housekeeping", "urgency": "low"},
     "tea": {"label": "Tea / coffee", "label_hi": "चाय / कॉफ़ी", "dept": "fnb_service", "urgency": "medium"},
+    "food": {"label": "Food order (room service)", "label_hi": "खाना ऑर्डर (रूम सर्विस)", "dept": "fnb_service", "urgency": "medium"},
     "ac": {"label": "AC / heater not working", "label_hi": "AC / हीटर ख़राब", "dept": "maintenance", "urgency": "high"},
     "hot_water": {"label": "No hot water", "label_hi": "गरम पानी नहीं", "dept": "maintenance", "urgency": "high"},
     "electrical": {"label": "Light / socket / TV problem", "label_hi": "लाइट / सॉकेट / टीवी", "dept": "maintenance", "urgency": "medium"},
@@ -37,6 +38,8 @@ GUEST_LIMIT, GUEST_WINDOW_MIN = 5, 15
 
 
 ROOM_FIELDS = ("id", "tenant_id", "property_id", "number", "floor", "room_type", "status", "guest_token", "current_job_id", "note")
+# `stay` counts checkouts (one stay = until the next checkout); guest checkout/feedback records are keyed by it.
+# `stay_since` = time of the last checkout: the guest page shows only requests from the current stay.
 
 
 def _get(tid: str, rid: str) -> dict:
@@ -62,6 +65,8 @@ def _room_doc(tid: str, number: str, floor: int | None, room_type: str, property
         status="ready",
         guest_token=secrets.token_urlsafe(16),
         updated_at=mongo.now(),
+        stay=0,
+        stay_since=None,
     )
     return doc
 
@@ -107,6 +112,8 @@ def checkout(tid: str, rid: str, actor: str) -> dict:
     r = _get(tid, rid)
     if r["status"] not in ("occupied", "ready"):
         raise Conflict(f"Room {r['number']} is {r['status']}; only occupied rooms can be checked out.")
+    # a new stay starts: the next guest sees none of this guest's requests, checkout or feedback
+    mongo.col("rooms").update_one({"id": rid, "tenant_id": tid}, {"$inc": {"stay": 1}, "$set": {"stay_since": mongo.now()}})
     return _new_cleaning(tid, r, actor, "Checkout clean")
 
 
@@ -201,32 +208,76 @@ def by_token(token: str) -> dict:
     return r
 
 
+FRIENDLY = {
+    "new": "received",
+    "offered": "received",
+    "unassigned": "received",
+    "accepted": "on the way",
+    "in_progress": "on the way",
+    "done": "done",
+}
+STAGE = {"new": "open", "offered": "open", "unassigned": "open", "accepted": "accepted", "in_progress": "in_progress", "done": "done"}
+
+
+def _stay_start(r: dict):
+    """Requests of the current stay: since the last checkout (at most 14 days back), else the last 24 hours."""
+    now = mongo.now()
+    raw = mongo.col("rooms").find_one({"id": r["id"], "tenant_id": r["tenant_id"]}, {"stay_since": 1}) or {}
+    since = raw.get("stay_since")  # the raw UTC datetime (clean() renders it as a local-time string)
+    if isinstance(since, datetime):
+        since = since if since.tzinfo else since.replace(tzinfo=UTC)
+        return max(since, now - timedelta(days=14))
+    return now - timedelta(hours=24)
+
+
+def stay_requests(r: dict) -> list[dict]:
+    """This room's own guest requests in the current stay (never other rooms', never staff ids)."""
+    raw = (
+        mongo.col("jobs")
+        .find(
+            {"tenant_id": r["tenant_id"], "room_id": r["id"], "kind": "guest", "created_at": {"$gte": _stay_start(r)}},
+            {"id": 1, "title": 1, "status": 1, "created_at": 1, "department": 1},
+        )
+        .sort([("created_at", -1), ("_id", -1)])
+        .limit(30)
+    )
+    return [
+        {
+            "id": q["id"],
+            "title": q["title"].split(" · ")[0],
+            "status": FRIENDLY.get(q["status"], q["status"]),
+            "stage": STAGE.get(q["status"], "open"),
+            "at": mongo.iso(q["created_at"]),
+        }
+        for q in raw
+    ]
+
+
+def guest_requests(token: str) -> dict:
+    r = by_token(token)
+    dispatch.sweep(r["tenant_id"])  # settles expired offers and due express checkouts
+    return {"room": r["number"], "requests": stay_requests(by_token(token))}
+
+
 def guest_view(token: str) -> dict:
+    from . import guest, profiles  # local import: both depend on rooms
+
+    r = by_token(token)
+    dispatch.sweep(r["tenant_id"])
     r = by_token(token)
     t = tenants.get_tenant(r["tenant_id"])
-    since = mongo.now() - timedelta(hours=24)
-    reqs = mongo.find(
-        "jobs",
-        {"tenant_id": r["tenant_id"], "room_id": r["id"], "kind": "guest", "created_at": {"$gte": since}},
-        [("created_at", -1), ("_id", -1)],
-    )
-    friendly = {
-        "new": "received",
-        "offered": "received",
-        "unassigned": "received",
-        "accepted": "on the way",
-        "in_progress": "on the way",
-        "done": "done",
-    }
     return {
         "hotel": t["name"],
         "brand_color": t["brand_color"],
         "room": r["number"],
         "menu": [{"key": k, **{x: v[x] for x in ("label", "label_hi")}} for k, v in GUEST_MENU.items()],
-        "requests": [
-            {"id": q["id"], "title": q["title"].split(" · ")[0], "status": friendly.get(q["status"], q["status"]), "at": q["created_at"]}
-            for q in reqs
-        ],
+        "requests": stay_requests(r),
+        "profile": profiles.public(r["tenant_id"], r.get("property_id")),
+        "stay": guest.stay_status(r),
+        "local_time": guest.local_now().strftime("%H:%M"),
+        "today": guest.today(),
+        "synthetic": bool(t.get("is_demo")),
+        "voice": {"server_tts": config.settings.tts_provider == "sarvam"},  # else the browser speaks the replies
     }
 
 

@@ -68,6 +68,8 @@
     $$("[data-i18n]").forEach((el) => { el.textContent = t(el.dataset.i18n); });
     $$("[data-i18n-ph]").forEach((el) => { el.placeholder = t(el.dataset.i18nPh); });
     $$("[data-lang]").forEach((b) => b.classList.toggle("on", b.dataset.lang === S.lang));
+    renderVoiceChips();
+    if (typeof fillVoices === "function" && V) fillVoices();
     if (S.user) renderAll();
   }
   $$("[data-lang]").forEach((b) => b.addEventListener("click", () => { S.lang = b.dataset.lang; localStorage.setItem("hoi.lang", S.lang); applyLang(); }));
@@ -93,6 +95,7 @@
 
   async function signOut(silent) {
     clearInterval(S.poll);
+    closeVoice();
     if (S.refresh && !silent) { try { await api("POST", "/auth/logout", { refresh_token: S.refresh }); } catch (e) { /* ignore */ } }
     S.access = null; S.user = null; saveRefresh(null);
     $("#app").classList.add("hidden"); $("#login").classList.remove("hidden");
@@ -126,6 +129,7 @@
     S.tab = tab;
     $$(".tab").forEach((el) => el.classList.toggle("hidden", el.id !== "tab-" + tab));
     $$(".tabbar button").forEach((b) => b.classList.toggle("on", b.dataset.tab === tab));
+    $("#voiceFab").classList.toggle("hidden", !["today", "jobs"].includes(tab));
     if (tab === "supplies") loadRequests();
     window.scrollTo({ top: 0 });
   }
@@ -305,6 +309,126 @@
       `<span class="chip ${tone[r.status] || "gray"}">${esc(t(r.status))}</span></div>` +
       `<div class="muted">${esc(r.created_at.slice(0, 16).replace("T", " "))}${r.room ? " · " + esc(t("room")) + " " + esc(r.room) : ""}</div></div>`).join("");
   }
+
+  // ---------------------------------------------------------------- voice assistant (/me/voice/*)
+  // Speech -> /me/voice/transcribe (cloud STT, after consent) -> /me/voice/command (rules) -> spoken reply + confirm card.
+  // Nothing changes until Confirm (-> /me/voice/act). "Done" always goes through the after-photo (live camera flow).
+  const local = {
+    get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
+    set(k, v) { try { localStorage.setItem(k, v); } catch (e) { /* private mode */ } },
+  };
+  const V = { rec: null, consent: local.get("hoi.voice_consent") === "1", action: null };
+  function renderVoiceChips() {
+    const chips = t("voice_chips");
+    $("#vChips").innerHTML = (Array.isArray(chips) ? chips : []).map((c) => `<button type="button" data-vchip="${esc(c)}">${esc(c)}</button>`).join("");
+  }
+  function vState(text) { $("#vState").textContent = text || ""; }
+  function vLog(text, who) {
+    const el = document.createElement("div"); el.className = "vmsg " + who; el.textContent = text;
+    $("#vLog").appendChild(el); el.scrollIntoView({ block: "end" });
+  }
+  // Spoken replies: /shared/voice.js (server voice when configured; a 204 means the browser voice speaks).
+  async function serverVoice(text, lang) { const b = await api("POST", "/me/voice/tts", { text, lang }); return b instanceof Blob ? b : null; }
+  function vSpeak(text, lang) { if (window.HOIVoice) window.HOIVoice.speak(text, lang || S.lang, { server: serverVoice }).catch(() => {}); }
+  async function fillVoices() {
+    if (!window.HOIVoice) return;
+    const n = await window.HOIVoice.fillPicker($("#voicePick"), S.lang);
+    $("#voiceCard").classList.toggle("hidden", !n);
+    $("#voiceMute").checked = window.HOIVoice.muted;
+  }
+  $("#voiceMute").addEventListener("change", () => { if (window.HOIVoice) window.HOIVoice.setMuted($("#voiceMute").checked); });
+  function consentUi() {
+    $("#vConsentRow").classList.toggle("hidden", V.consent);
+    $("#vConsent").checked = V.consent;
+  }
+  function openVoice(autoMic) {
+    $("#voice").classList.remove("hidden"); consentUi();
+    if (!$("#vLog").children.length) vLog(t("voice_hint"), "bot");
+    if (autoMic && V.consent) startVoiceRec(); else if (!V.consent) vState(t("voice_tick"));
+  }
+  function closeVoice() {
+    stopVoiceRec(true);
+    $("#voice").classList.add("hidden"); $("#vConfirm").innerHTML = ""; V.action = null; vState("");
+    if (window.HOIVoice) window.HOIVoice.stop();
+  }
+  async function voiceCommand(text) {
+    text = (text || "").trim().slice(0, 300);
+    if (!text) return;
+    vLog(text, "me"); $("#vConfirm").innerHTML = ""; V.action = null; vState(t("working"));
+    try {
+      const r = await api("POST", "/me/voice/command", { text, lang: S.lang });
+      vState(""); vLog(r.reply, "bot"); vSpeak(r.reply, r.lang);
+      const a = r.proposed_action;
+      if (a) {
+        V.action = a;
+        $("#vConfirm").innerHTML = `<div class="vconfirm anim"><b>${esc(a.label)}</b><div class="row"><button type="button" class="btn" data-vno>${esc(t("not_now"))}</button>` +
+          `<button type="button" class="btn primary" data-vyes>${esc(t("confirm"))}</button></div></div>`;
+      }
+    } catch (err) { vState(err.message); }
+  }
+  async function voiceConfirm(yes) {
+    const a = V.action; V.action = null; $("#vConfirm").innerHTML = "";
+    if (!a) return;
+    if (!yes) { vLog(t("cancelled"), "bot"); return; }
+    if (a.action === "photo") { vLog(t("voice_photo"), "bot"); closeVoice(); show("jobs"); openCamera(a.params.job_id, a.params.kind); return; }
+    try {
+      await api("POST", "/me/voice/act", { action: a.action, params: a.params });
+      vLog(t("voice_done"), "bot"); vSpeak(t("voice_done"), S.lang); toast(t("voice_done")); await pollJobs();
+    } catch (err) { vLog(err.message.includes("no longer") ? t("gone") : err.message, "bot"); await pollJobs(); }
+  }
+  function pickMime() {
+    if (!window.MediaRecorder || !MediaRecorder.isTypeSupported) return "";
+    return ["audio/webm;codecs=opus", "audio/webm", "audio/mp4", "audio/ogg;codecs=opus"].find((m) => MediaRecorder.isTypeSupported(m)) || "";
+  }
+  async function startVoiceRec() {
+    if (V.rec) { stopVoiceRec(false); return; }
+    if (!V.consent) { vState(t("voice_tick")); consentUi(); return; }
+    if (!navigator.mediaDevices || !window.MediaRecorder) { vState(t("no_mic")); return; }
+    let stream;
+    try { stream = await navigator.mediaDevices.getUserMedia({ audio: true }); } catch (e) { vState(t("mic_denied")); return; }
+    const mime = pickMime();
+    let rec;
+    try { rec = mime ? new MediaRecorder(stream, { mimeType: mime }) : new MediaRecorder(stream); } catch (e) { stream.getTracks().forEach((x) => x.stop()); vState(t("no_mic")); return; }
+    const chunks = [], t0 = Date.now();
+    const state = { rec, cancel: false, timer: setTimeout(() => stopVoiceRec(false), 30000) };
+    V.rec = state;
+    rec.ondataavailable = (e) => { if (e.data && e.data.size) chunks.push(e.data); };
+    rec.onstop = async () => {
+      stream.getTracks().forEach((x) => x.stop());
+      $("#vMic").classList.remove("rec");
+      if (state.cancel) { vState(""); return; }
+      $("#vMic").classList.add("busy"); vState(t("working"));
+      try {
+        const blob = new Blob(chunks, { type: rec.mimeType || mime || "audio/webm" });
+        const fd = new FormData();
+        fd.append("audio", blob, "voice." + (blob.type.includes("mp4") ? "mp4" : blob.type.includes("ogg") ? "ogg" : "webm"));
+        fd.append("consent", "true"); fd.append("lang", S.lang); fd.append("seconds", String(Math.round((Date.now() - t0) / 1000)));
+        const r = await api("POST", "/me/voice/transcribe", fd, true);
+        const text = (r.text || "").trim();
+        if (!text) { vState(t("no_catch")); return; }
+        vState(""); await voiceCommand(text);
+      } catch (err) { vState(err.message || t("no_catch")); }
+      finally { $("#vMic").classList.remove("busy"); }
+    };
+    rec.start(); $("#vMic").classList.add("rec"); vState(t("listening"));
+    if (window.HOIVoice) window.HOIVoice.stop();
+  }
+  function stopVoiceRec(cancel) {
+    if (!V.rec) return;
+    const state = V.rec; V.rec = null;
+    clearTimeout(state.timer); state.cancel = !!cancel;
+    try { state.rec.stop(); } catch (e) { /* stopped */ }
+  }
+  $("#voiceFab").addEventListener("click", () => openVoice(true));
+  $("#vClose").addEventListener("click", closeVoice);
+  $("#vMic").addEventListener("click", startVoiceRec);
+  $("#vConsent").addEventListener("change", () => { V.consent = $("#vConsent").checked; local.set("hoi.voice_consent", V.consent ? "1" : "0"); vState(V.consent ? "" : t("voice_tick")); });
+  $("#vForm").addEventListener("submit", (e) => { e.preventDefault(); const v = $("#vText").value; $("#vText").value = ""; voiceCommand(v); });
+  $("#voice").addEventListener("click", (e) => {
+    const c = e.target.closest("[data-vchip]"); if (c) { voiceCommand(c.dataset.vchip); return; }
+    if (e.target.closest("[data-vyes]")) { voiceConfirm(true); return; }
+    if (e.target.closest("[data-vno]")) voiceConfirm(false);
+  });
 
   // ---------------------------------------------------------------- PWA
   let deferredPrompt = null;

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from . import config, mongo
-from .services import inventory, rooms, tenants, users
+from .services import inventory, profiles, rooms, tenants, users
 
 DEMO_ID = "org_demo"
 DEFAULT_API = "https://hospitality-management-9jdk.onrender.com"
@@ -42,5 +42,6 @@ def ensure_demo() -> None:
             rooms.add_room(DEMO_ID, f"4{i:02d}", 4)
         occupied = [r["id"] for k, r in enumerate(rooms.list_rooms(DEMO_ID)) if k % 3 != 0]
         mongo.col("rooms").update_many({"tenant_id": DEMO_ID, "id": {"$in": occupied}}, {"$set": {"status": "occupied"}})
+    profiles.seed_demo(DEMO_ID)  # SYNTHETIC hotel profile for the guest concierge
     if s.demo_login:
         users.ensure_demo_users(DEMO_ID, s.admin_password)

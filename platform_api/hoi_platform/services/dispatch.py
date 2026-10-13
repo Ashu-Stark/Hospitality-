@@ -327,7 +327,10 @@ def decline(tid: str, jid: str, emp: str, outcome: str = "declined") -> dict:
 
 
 def sweep(tid: str) -> int:
-    """Expire overdue offers and move them on. Called on every read."""
+    """Expire overdue offers and move them on; release express checkouts whose time has come. Called on every read."""
+    from . import guest  # local import: guest depends on dispatch
+
+    guest.release_due(tid)
     moved = 0
     due = mongo.col("jobs").find(
         {"tenant_id": tid, "status": "offered", "offer_expires_at": {"$lte": mongo.now()}}, {"id": 1, "offer_to": 1}

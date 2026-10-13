@@ -124,6 +124,26 @@ INDEXES: dict[str, list[tuple[list, dict]]] = {
         (_ix("tenant_id", "floor", "number"), {}),
     ],
     "roster_snapshots": [(_ix("tenant_id"), {"unique": True})],
+    # guest concierge (docs/HOSPITALITY_SUITE.md)
+    "hotel_profiles": [(_ix("tenant_id", "property_id"), {"unique": True})],
+    "guest_checkouts": [
+        (_ix("id"), {"unique": True}),
+        (_ix("tenant_id", "room_id", "stay"), {"unique": True}),  # one express checkout per stay
+        (_ix("tenant_id", "status", "due_at"), {}),
+        (_ix("tenant_id", "date"), {}),
+    ],
+    "late_checkouts": [
+        (_ix("id"), {"unique": True}),
+        (_ix("tenant_id", "status", "-created_at"), {}),
+        (_ix("tenant_id", "room_id", "stay"), {}),
+    ],
+    # spoken-reply audio cache (server TTS only): expires after 24 h
+    "tts_cache": [(_ix("key"), {"unique": True}), (_ix("created_at"), {"expireAfterSeconds": 86400})],
+    "guest_feedback": [
+        (_ix("id"), {"unique": True}),
+        (_ix("tenant_id", "room_id", "stay"), {"unique": True}),  # one feedback per stay
+        (_ix("tenant_id", "-created_at"), {}),
+    ],
 }
 
 

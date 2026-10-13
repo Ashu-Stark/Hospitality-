@@ -1,10 +1,12 @@
 """Employee self-service: my shifts and my department (used by the worker portal)."""
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, File, Form, Query, Request, Response, UploadFile
 
+from .. import config, ratelimit
 from ..deps import HOTEL_MANAGERS, Principal, roles, tenant_of
-from ..schemas import RosterPublishIn
-from ..services import dispatch, performance
+from ..schemas import RosterPublishIn, TtsIn, VoiceActIn, VoiceCommandIn
+from ..services import dispatch, performance, tts, voice
+from . import audio
 
 router = APIRouter(tags=["me"])
 
@@ -28,6 +30,50 @@ def my_performance(days: int = Query(default=14, ge=1, le=90), p: Principal = De
     out = performance.compute(tenant_of(p), days, worker=p.employee_id or p.username)
     me = out.pop("workers")[0]
     return {**out, **me}
+
+
+@router.post("/me/voice/transcribe")
+async def voice_transcribe(
+    request: Request,
+    audio_file: UploadFile = File(..., alias="audio"),
+    consent: str = Form("false"),
+    lang: str = Form(""),
+    seconds: float | None = Form(None),
+    p: Principal = Depends(roles("worker")),
+) -> dict:
+    """The worker's own voice -> text (same Groq Whisper path as guests; consent remembered per device by the app)."""
+    try:
+        tenant_of(p)
+        ratelimit.hit(f"voice-stt:{p.user_id}", 12)
+    except Exception:
+        await audio_file.close()
+        raise
+    return await audio.transcribe(audio_file, consent, lang, seconds)
+
+
+@router.post("/me/voice/command")
+def voice_command(body: VoiceCommandIn, p: Principal = Depends(roles("worker"))) -> dict:
+    """Text -> intent + reply + proposed action. Nothing is executed here."""
+    ratelimit.hit(f"voice-cmd:{p.user_id}", 30)
+    return voice.command(tenant_of(p), p.employee_id or p.username, body.text, body.lang)
+
+
+@router.post("/me/voice/tts", response_class=Response)
+def voice_tts(body: TtsIn, p: Principal = Depends(roles("worker"))) -> Response:
+    """Server voice for a reply: audio/wav, or 204 = speak it in the browser."""
+    tenant_of(p)
+    ratelimit.hit(f"voice-tts:{p.user_id}", config.settings.tts_rate_per_minute)
+    audio = tts.synth(body.text, body.lang)
+    if not audio:
+        return Response(status_code=204)
+    return Response(audio, media_type="audio/wav", headers={"Cache-Control": "no-store"})
+
+
+@router.post("/me/voice/act")
+def voice_act(body: VoiceActIn, p: Principal = Depends(roles("worker"))) -> dict:
+    """Executes a confirmed voice action as the signed-in worker (accept / decline / start / report_issue)."""
+    ratelimit.hit(f"voice-act:{p.user_id}", 20)
+    return voice.act(tenant_of(p), p.employee_id or p.username, p.username, body.action, body.params)
 
 
 @router.put("/dispatch/roster")

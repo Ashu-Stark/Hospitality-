@@ -69,26 +69,26 @@ ui.html(
 c_t1, c_t2, _ = st.columns([1, 1, 3])
 if T.get("is_demo") and c_t1.button("Start guided tour", type="primary", icon=":material/explore:", width="stretch"):
     tour.start()
-if c_t2.button("Set up my hotel", icon=":material/add_business:", width="stretch"):
+if auth.role() in ("owner", "platform_admin") and c_t2.button("Set up my hotel", icon=":material/add_business:", width="stretch"):
     st.switch_page(nav.page("pages/12_Setup.py"))
 
-with st.container(key="ss_quick"):
-    qcols = st.columns(8)
-    for qc, (f, label, ic) in zip(
-        qcols,
-        [
-            ("pages/1_Overview.py", "Overview", ":material/dashboard:"),
-            ("pages/2_Risk_List.py", "Risk list", ":material/flag:"),
-            ("pages/3_Employee_Detail.py", "Employee", ":material/person:"),
-            ("pages/4_What_If_Simulator.py", "What-if", ":material/tune:"),
-            ("pages/5_Roster.py", "Roster", ":material/calendar_month:"),
-            ("pages/6_Closed_Loop.py", "Closed loop", ":material/sync:"),
-            ("pages/10_Dispatch.py", "Live dispatch", ":material/bolt:"),
-            ("pages/11_Worker_App.py", "Worker app", ":material/smartphone:"),
-        ],
-    ):
-        with qc:
-            st.page_link(nav.page(f), label=label, icon=ic)
+QUICK = [
+    ("pages/1_Overview.py", "Overview", ":material/dashboard:"),
+    ("pages/2_Risk_List.py", "Risk list", ":material/flag:"),
+    ("pages/3_Employee_Detail.py", "Employee", ":material/person:"),
+    ("pages/4_What_If_Simulator.py", "What-if", ":material/tune:"),
+    ("pages/5_Roster.py", "Roster", ":material/calendar_month:"),
+    ("pages/6_Closed_Loop.py", "Closed loop", ":material/sync:"),
+    ("pages/10_Dispatch.py", "Live dispatch", ":material/bolt:"),
+    ("pages/11_Worker_App.py", "Worker app", ":material/smartphone:"),
+]
+mine = {f for f, _, _ in st.session_state.get("_nav", [])}
+quick = [q for q in QUICK if q[0] in mine]  # only pages this role and plan can open (others are not routable)
+if quick:
+    with st.container(key="ss_quick"):
+        for qc, (f, label, ic) in zip(st.columns(len(quick)), quick):
+            with qc:
+                st.page_link(nav.page(f), label=label, icon=ic)
 ui.html("""<style>
 .st-key-ss_quick { background:#fff; border-radius:22px; padding:16px 10px; }
 .st-key-ss_quick [data-testid="stPageLink-NavLink"] { flex-direction:column; gap:8px; align-items:center; text-align:center; border-radius:16px; padding:8px 4px; }

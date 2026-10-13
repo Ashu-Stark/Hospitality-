@@ -1,0 +1,3 @@
+# Optional, for running speech-to-text ON THIS PC (STT_PROVIDER=local). Not used on Render/Docker.
+# pip install -r requirements.txt -r requirements-local.txt
+faster-whisper

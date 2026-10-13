@@ -32,6 +32,8 @@ ACCESS = {
     "pages/6_Closed_Loop.py": {"owner", "hr"},
     "pages/10_Dispatch.py": {"owner", "dept_head"},
     "pages/14_Rooms.py": {"owner", "dept_head"},
+    "pages/17_Guest_Services.py": {"owner", "dept_head", "hr"},
+    "pages/16_Hotel_Profile.py": {"owner", "dept_head", "hr", "storekeeper"},  # hr + storekeeper read-only
     "pages/11_Worker_App.py": {"owner", "dept_head"},
     "pages/13_Inventory.py": {"owner", "dept_head", "storekeeper"},
     "pages/7_Tasks.py": {"owner", "hr", "dept_head"},
