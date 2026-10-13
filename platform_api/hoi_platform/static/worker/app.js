@@ -192,7 +192,11 @@
     }
     const shifts = S.me?.shifts || [];
     const curDay = S.me?.current_shift?.day;
-    const today = shifts.find((s) => s.date === curDay);
+    // The header chip follows the live "working now" list (what job offers use); if the published plan has no
+    // entry for today but that list says this person is working, show the live shift so both agree.
+    const cur = S.me?.current_shift;
+    const today = shifts.find((s) => s.date === curDay) ||
+      (S.me?.on_shift_now && cur?.shift ? { date: curDay || cur.day, shift: cur.shift, hours: cur.hours || 9 } : null);
     const hero = $("#todayHero");
     if (today) {
       hero.className = "todayhero anim";

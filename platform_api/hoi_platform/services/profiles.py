@@ -102,12 +102,12 @@ def public(tid: str, property_id: str | None = None) -> dict:
 
 # ------------------------------------------------------------------ demo (SYNTHETIC)
 DEMO_PROFILE = {
-    "display_name": "Himsagar Ridge Resort, Mussoorie (fictional)",
+    "display_name": "Himsagar Ridge Resort, Mussoorie (demo)",
     "logo_url": "/shared/brand/himsagar-logo.svg",
     "cover_photo_url": "/shared/photos/mussoorie.jpg",
-    "cover_photo_credit": "Photo of Mussoorie (the town, not the fictional resort): Robertyadav44, CC BY-SA 4.0, Wikimedia Commons",
+    "cover_photo_credit": "Photo: Mussoorie town. Robertyadav44, CC BY-SA 4.0, Wikimedia Commons",
     "welcome": (
-        "Namaste and welcome to Himsagar Ridge (a fictional demo resort)! Wrap up warm, enjoy the valley views and "
+        "Namaste and welcome to Himsagar Ridge! Wrap up warm, enjoy the valley views and "
         "ask me anything about your stay."
     ),
     "checkin_time": "12:00",
@@ -188,11 +188,11 @@ DEMO_PROFILE = {
 
 
 HOMESTAY_DEMO_PROFILE = {
-    "display_name": "Deodar Nest Homestay, Dhanaulti (fictional)",
+    "display_name": "Deodar Nest Homestay, Dhanaulti (demo)",
     "logo_url": None,
     "cover_photo_url": "/shared/photos/dhanaulti.jpg",
-    "cover_photo_credit": "Photo of Dhanaulti (the area, not the fictional homestay): SHUVADIP, CC BY-SA 4.0, Wikimedia Commons",
-    "welcome": "Namaste! Welcome to Deodar Nest (a fictional demo homestay). We are a small family-run home: just ask for anything.",
+    "cover_photo_credit": "Photo: Dhanaulti area. SHUVADIP, CC BY-SA 4.0, Wikimedia Commons",
+    "welcome": "Namaste! Welcome to Deodar Nest. We are a small family-run home: just ask for anything.",
     "checkin_time": "12:00",
     "checkout_time": "10:30",
     "late_checkout": {"allowed": True, "latest": "12:00", "note": "If the room is not booked the same day; your host confirms."},

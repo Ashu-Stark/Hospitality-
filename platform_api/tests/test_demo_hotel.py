@@ -18,10 +18,10 @@ PERSONAL = ("name", "gender", "age", "religion", "caste", "health", "family", "p
 
 def test_property_rooms_and_staff(client, owner):
     ws = client.get("/workspace", headers=owner).json()
-    assert "fictional" in ws["name"].lower() and "Riverside" not in json.dumps(ws)
+    assert "(demo)" in ws["name"].lower() and "Riverside" not in json.dumps(ws)
     props = client.get("/workspace/properties", headers=owner).json()
     assert [(p["name"], p["rooms"], p["floors"], p["mode"]) for p in props] == [
-        ("Himsagar Ridge Resort, Mussoorie (fictional)", 24, 3, "hotel"),
+        ("Himsagar Ridge Resort, Mussoorie (demo)", 24, 3, "hotel"),
         (seed.HOMESTAY_NAME, 6, 2, "homestay"),
     ]
     rooms = client.get("/rooms", params={"property_id": props[0]["id"]}, headers=owner).json()
@@ -69,14 +69,14 @@ def test_demo_accounts(client):
 
 def test_profile_logo_and_fictional_label(client, owner):
     p = client.get("/hotel/profile", headers=owner).json()
-    assert p["exists"] and p["logo_url"] == "/shared/brand/himsagar-logo.svg" and "fictional" in p["display_name"]
+    assert p["exists"] and p["logo_url"] == "/shared/brand/himsagar-logo.svg" and "(demo)" in p["display_name"]
     assert p["wifi"]["network"] == "Himsagar-Guest" and p["synthetic"]
     assert len(p["dining"]) >= 10 and all(d["price_inr"] for d in p["dining"])
     assert all(("approx." in n["distance_note"]) or not n["distance_note"] for n in p["nearby"])
     HotelProfileIn.model_validate(profiles.DEMO_PROFILE)
     tok = client.get("/rooms", headers=owner).json()["rooms"][0]["guest_token"]
     pub = client.get(f"/public/guest/{tok}").json()["profile"]
-    assert pub["logo_url"] == "/shared/brand/himsagar-logo.svg" and "fictional" in pub["display_name"]
+    assert pub["logo_url"] == "/shared/brand/himsagar-logo.svg" and "(demo)" in pub["display_name"]
 
 
 def test_inventory_sized_for_24_rooms():
@@ -92,7 +92,7 @@ def test_old_demo_tenant_is_rebuilt_and_others_untouched(client):
     mongo.col("properties").insert_one({"id": "prop_old", "tenant_id": seed.DEMO_ID, "name": "Riverside Retreat", "rooms": 45})
     seed.ensure_demo()
     props = tenants.properties(seed.DEMO_ID)
-    assert [p["name"] for p in props] == ["Himsagar Ridge Resort, Mussoorie (fictional)", seed.HOMESTAY_NAME]
+    assert [p["name"] for p in props] == ["Himsagar Ridge Resort, Mussoorie (demo)", seed.HOMESTAY_NAME]
     homestay = ["DN01", "DN02", "DN03"]
     assert [s["employee_id"] for s in tenants.staff(seed.DEMO_ID)] == homestay + STAFF_IDS and len(
         mongo.find("rooms", {"tenant_id": seed.DEMO_ID})

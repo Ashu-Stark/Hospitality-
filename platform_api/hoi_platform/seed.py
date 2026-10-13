@@ -22,8 +22,8 @@ from .services import inventory, profiles, rooms, tenants, users
 DEMO_ID = "org_demo"
 DEMO_VERSION = "himsagar-v2"  # bump to rebuild the demo tenant on the next start
 DEFAULT_OPS_API = "https://hoi-ops.onrender.com"  # the ML / ops backend; override with env OPS_API_URL
-HOTEL_NAME = "Himsagar Ridge Resort, Mussoorie (fictional)"
-TENANT_NAME = "Himsagar Ridge Resort (fictional demo)"
+HOTEL_NAME = "Himsagar Ridge Resort, Mussoorie (demo)"
+TENANT_NAME = "Himsagar Ridge Resort (demo)"
 REGION = "Mussoorie, Uttarakhand"
 FLOORS, ROOMS_PER_FLOOR = 3, 8  # rooms 101-108, 201-208, 301-308
 LOGO_URL = "/shared/brand/himsagar-logo.svg"
@@ -56,7 +56,7 @@ STAFF = [
 
 # Second demo property in the same demo tenant: a FICTIONAL 6-room homestay run by a small host-family team (ids and neutral
 # role titles only; SYNTHETIC). It starts in homestay mode: the simple app (Today, rooms, guest requests, staff, stock basics).
-HOMESTAY_NAME = "Deodar Nest Homestay, Dhanaulti (fictional)"
+HOMESTAY_NAME = "Deodar Nest Homestay, Dhanaulti (demo)"
 HOMESTAY_REGION = "Dhanaulti, Uttarakhand"
 HOMESTAY_ROOMS = [("DN1", 1), ("DN2", 1), ("DN3", 1), ("DN4", 2), ("DN5", 2), ("DN6", 2)]
 HOMESTAY_STAFF = [

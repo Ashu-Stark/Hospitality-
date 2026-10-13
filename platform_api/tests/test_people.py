@@ -20,7 +20,7 @@ T0 = datetime(2026, 3, 10, 6, 0, tzinfo=UTC)
 def test_demo_has_a_homestay_property_in_homestay_mode(client, owner):
     props = client.get("/workspace/properties", headers=owner).json()
     hs = next(p for p in props if p["name"] == seed.HOMESTAY_NAME)
-    assert "fictional" in hs["name"] and hs["rooms"] == 6 and hs["mode"] == "homestay"
+    assert "(demo)" in hs["name"] and hs["rooms"] == 6 and hs["mode"] == "homestay"
     assert props[0]["mode"] == "hotel"
     rooms = client.get("/rooms", params={"property_id": hs["id"]}, headers=owner).json()
     assert sorted(r["number"] for r in rooms["rooms"]) == ["DN1", "DN2", "DN3", "DN4", "DN5", "DN6"]
@@ -28,7 +28,7 @@ def test_demo_has_a_homestay_property_in_homestay_mode(client, owner):
     assert [(s["employee_id"], s["role_title"]) for s in staff] == [("DN01", "Host"), ("DN02", "Cook"), ("DN03", "Helper")]
     assert not [k for s in staff for k in s if k.lower() in ("name", "gender", "age", "phone")]
     prof = client.get("/hotel/profile", params={"property_id": hs["id"]}, headers=owner).json()
-    assert prof["exists"] and prof["display_name"] == "Deodar Nest Homestay, Dhanaulti (fictional)" and prof["synthetic"]
+    assert prof["exists"] and prof["display_name"] == "Deodar Nest Homestay, Dhanaulti (demo)" and prof["synthetic"]
     # the homestay owner demo account opens the homestay first; the helper's app is in homestay mode
     me = client.get("/auth/me", headers=auth(client, "demo.homestay")).json()["user"]
     assert me["role"] == "owner" and me["prefs"]["property_id"] == hs["id"]
