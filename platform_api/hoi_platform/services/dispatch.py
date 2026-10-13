@@ -20,7 +20,7 @@ import zlib
 from datetime import UTC, datetime, timedelta
 
 from .. import mongo
-from . import tenants
+from . import photo_proof, tenants
 from .errors import Conflict, Invalid, NotFound
 
 OPEN_STATES = ("offered", "accepted", "in_progress")
@@ -145,6 +145,7 @@ JOB_FIELDS = (
     "property_id",
     "target_minutes",
     "offer_seconds",
+    "request",
 )
 
 
@@ -152,10 +153,12 @@ def _aware(dt: datetime | None) -> datetime | None:
     return dt.replace(tzinfo=UTC) if dt is not None and dt.tzinfo is None else dt
 
 
-def _job(raw: dict) -> dict:
+def _job(raw: dict, rules: dict | None = None) -> dict:
     r = mongo.clean(raw)
     r["attempts"] = r.get("attempts") or []
     r["ranking"] = r.get("ranking") or []
+    # which photos this job needs (per-hotel photo-proof setting): the apps show a camera step only when true
+    r["photos_required"] = photo_proof.required(r, rules if rules is not None else photo_proof.rules(r["tenant_id"]))
     exp = _aware(raw.get("offer_expires_at"))
     if exp and r["status"] == "offered":
         r["seconds_left"] = max(0, int((exp - datetime.now(UTC)).total_seconds()))
@@ -195,7 +198,8 @@ def get_job(tid: str, jid: str) -> dict:
 
 def list_jobs(tid: str, statuses: list[str] | None = None, worker: str | None = None) -> list[dict]:
     sweep(tid)
-    rows = [_job(r) for r in mongo.col("jobs").find({"tenant_id": tid}).sort([("created_at", -1), ("_id", -1)])]
+    rules = photo_proof.rules(tid)
+    rows = [_job(r, rules) for r in mongo.col("jobs").find({"tenant_id": tid}).sort([("created_at", -1), ("_id", -1)])]
     if statuses:
         rows = [r for r in rows if r["status"] in statuses]
     if worker:
@@ -308,6 +312,7 @@ def create_job(
     property_id: str | None = None,
     target_minutes: int | None = None,
     offer_window: int | None = None,
+    request: str | None = None,
 ) -> dict:
     if not title.strip():
         raise Invalid("Describe the request.")
@@ -333,6 +338,7 @@ def create_job(
         property_id=property_id,
         target_minutes=target_minutes,
         offer_seconds=offer_window,
+        request=request,
         _v=0,
     )
     mongo.col("jobs").insert_one(doc)
@@ -438,7 +444,7 @@ def start(tid: str, jid: str, emp: str) -> dict:
     j = get_job(tid, jid)
     if j["status"] != "accepted" or j["assigned_to"] != emp:
         raise Conflict("Only the assigned worker can start an accepted job.")
-    if not _has_photo(tid, jid, "before"):
+    if j["photos_required"]["before"] and not _has_photo(tid, jid, "before"):
         raise Invalid("Take a before photo first.")
     if not _update(tid, jid, {"status": "in_progress", "started_at": mongo.now()}, {"status": "accepted", "assigned_to": emp}):
         raise Conflict("Only the assigned worker can start an accepted job.")
@@ -449,7 +455,7 @@ def complete(tid: str, jid: str, emp: str) -> dict:
     j = get_job(tid, jid)
     if j["status"] != "in_progress" or j["assigned_to"] != emp:
         raise Conflict("Only the assigned worker can finish a job in progress.")
-    if not _has_photo(tid, jid, "after"):
+    if j["photos_required"]["after"] and not _has_photo(tid, jid, "after"):
         raise Invalid("Take an after photo first.")
     if not _update(tid, jid, {"status": "done", "done_at": mongo.now()}, {"status": "in_progress", "assigned_to": emp}):
         raise Conflict("Only the assigned worker can finish a job in progress.")

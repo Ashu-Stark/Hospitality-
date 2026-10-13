@@ -71,6 +71,10 @@ Indexes are created idempotently at startup. `GET /ready` pings the database.
 - **Passwords:** PBKDF2-SHA256 with 200k iterations and a per-user salt, constant-time compare, the same timing for unknown users, and lockout after 5 failures for 5 minutes. Sign-up needs a single-use invite code.
 - **Privacy guard:** staff imports with personal columns (name, gender, religion, caste, health, family, phone, email, …) are rejected server-side.
 - **Photo proof:** the server timestamps (never client EXIF), stamps job and worker onto the image, stores a SHA-256, and re-verifies on read. It cannot detect a photo of a screen.
+- **Photos only where needed:** a per-hotel setting (`services/photo_proof.py`, ASSUMED defaults) says which job kinds need a
+  before / after photo: room cleaning before + after; repairs, pest control, staff damage reports and lost-and-found after;
+  deliveries, other guest requests, alerts, express checkout and other manager jobs none. Each job carries
+  `photos_required: {kind, before, after}`; Start / Done (buttons and voice) check it server-side.
 
 ## Main endpoints
 
@@ -83,7 +87,7 @@ Indexes are created idempotently at startup. `GET /ready` pings the database.
 | Sessions | `POST /auth/refresh` (rotates), `POST /auth/logout` (revokes) |
 | Rooms | `GET/POST /rooms`, `POST /rooms/bulk`, `POST /rooms/{id}/checkout\|check-in\|inspect\|out-of-order\|back-in-service`, `GET /rooms/{id}/qr.svg` |
 | Guest (public) | `GET /public/guest/{token}`, `GET/POST /public/guest/{token}/requests`, `POST .../transcribe\|chat\|actions\|checkout\|feedback`, `GET/POST .../late-checkout`, `GET .../bill` (rate-limited per IP and per room) |
-| Hotel profile | `GET/PUT /hotel/profile` |
+| Hotel profile | `GET/PUT /hotel/profile`; photo proof per job kind: `GET /hotel/settings/photo-proof` (owner, dept_head), `PUT` (owner) |
 | Guest services | `GET /guest-services/summary\|late-checkouts\|feedback?days=\|checkouts?date=`, `POST /guest-services/late-checkouts/{id}/decide` |
 | Worker voice | `POST /me/voice/transcribe\|command\|act` |
 | Insights | `GET /platform/insights?days=30` (platform admin) |

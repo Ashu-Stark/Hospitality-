@@ -81,7 +81,7 @@ def voice_tts(body: TtsIn, p: Principal = Depends(roles("worker"))) -> Response:
 
 @router.post("/me/voice/act")
 def voice_act(body: VoiceActIn, p: Principal = Depends(roles("worker"))) -> dict:
-    """Executes a confirmed voice action as the signed-in worker (accept / decline / start / report_issue)."""
+    """Executes a confirmed voice action as the signed-in worker (accept / decline / start / complete / report_issue)."""
     ratelimit.hit(f"voice-act:{p.user_id}", 20)
     return voice.act(tenant_of(p), p.employee_id or p.username, p.username, body.action, body.params)
 

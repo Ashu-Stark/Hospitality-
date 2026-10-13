@@ -28,7 +28,16 @@ def cmd(client, worker, text, lang="en"):
     return r.json()
 
 
-def test_worker_voice_flow(client, owner, worker):
+@pytest.fixture
+def photos_for_general_jobs(client, owner):
+    """This flow checks the photo routing: ask for both photos on manager-created jobs, then restore the defaults."""
+    rule = {"kinds": [{"kind": "general", "before": True, "after": True}]}
+    assert client.put("/hotel/settings/photo-proof", json=rule, headers=owner).status_code == 200
+    yield
+    client.put("/hotel/settings/photo-proof", json={"kinds": [{"kind": "general", "before": False, "after": False}]}, headers=owner)
+
+
+def test_worker_voice_flow(client, owner, worker, photos_for_general_jobs):
     _setup(client, owner)
     assert cmd(client, worker, "what's next")["intent"] == "whats_next"
     job = client.post("/dispatch/jobs", json={"title": "Extra towels", "room": "305", "department": "housekeeping"}, headers=owner).json()

@@ -423,5 +423,17 @@ class VoiceCommandIn(BaseModel):
 
 
 class VoiceActIn(BaseModel):
-    action: Literal["accept", "decline", "start", "report_issue"]
+    action: Literal["accept", "decline", "start", "complete", "report_issue"]
     params: dict = Field(default_factory=dict)
+
+
+class PhotoProofRule(BaseModel):
+    model_config = ConfigDict(extra="ignore")  # a client may send back the "label" it received
+
+    kind: str = Field(min_length=1, max_length=40)
+    before: bool
+    after: bool
+
+
+class PhotoProofIn(BaseModel):
+    kinds: list[PhotoProofRule] = Field(max_length=50)

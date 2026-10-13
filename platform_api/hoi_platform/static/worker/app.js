@@ -39,7 +39,7 @@
       if (isForm) opts.body = body; else { opts.headers["Content-Type"] = "application/json"; opts.body = JSON.stringify(body); }
     }
     let r;
-    try { r = await fetch(path, opts); } catch (e) { throw new Error(t("offline")); }
+    try { r = await window.HOINet.fetch(path, opts); } catch (e) { throw new Error(t("offline")); }  // /shared/net.js: waking pill + one retry
     if (r.status === 401 && S.refresh && path !== "/auth/refresh") {
       if (await refresh()) return api(method, path, body, isForm);
       signOut(true); throw new Error(t("session_expired"));
@@ -56,7 +56,7 @@
 
   async function refresh() {
     try {
-      const r = await fetch("/auth/refresh", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ refresh_token: S.refresh }) });
+      const r = await window.HOINet.fetch("/auth/refresh", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ refresh_token: S.refresh }) });
       if (!r.ok) return false;
       const j = await r.json();
       S.access = j.token; saveRefresh(j.refresh_token); S.user = j.user; S.tenant = j.tenant;
@@ -274,8 +274,9 @@
       oEl.querySelectorAll("[data-w]").forEach((i) => { i.style.width = i.dataset.w + "%"; });
     } else oEl.innerHTML = "";
     oEl.dataset.oid = offer ? offer.id : ""; oEl.dataset.mode = isHomestay() ? "hs" : "hotel"; oEl.dataset.lang = S.lang;
-    // Active jobs: only the job being worked on is open, with ONE next step (Start, then Done). The photo is part of
-    // that step (Start takes the before photo, Done the finish photo) and the camera opens only when it is tapped.
+    // Active jobs: only the job being worked on is open, with ONE next step (Start, then Done). When the hotel's
+    // photo-proof rule asks for a photo (job.photos_required, e.g. cleaning), it is part of that step and the camera opens
+    // only when it is tapped; otherwise (a towel run, a tea order) Start and Done are plain one-tap buttons.
     // Other accepted jobs stay as short rows; "Open" makes one the current job.
     active.sort((a, b) => (a.status === "in_progress" ? 0 : 1) - (b.status === "in_progress" ? 0 : 1));
     if (!active.some((j) => j.id === S.focus)) S.focus = active.length ? active[0].id : null;
@@ -285,13 +286,16 @@
     let html = "";
     if (cur) {
       const working = cur.status === "in_progress";
+      const need = cur.photos_required || { before: true, after: true };  // older server: photos always
+      const photo = working ? need.after : need.before;
+      const act = photo ? `data-act="photo" data-kind="${working ? "after" : "before"}"` : `data-act="${working ? "complete" : "start"}"`;
       html += `<div class="job focus s-${label(cur)} anim"><div class="jtop"><span class="sbadge s-${label(cur)}">${esc(t(label(cur)))}</span>` +
         `${cur.room ? `<span class="jroomb">${esc(t("room"))} ${esc(cur.room)}</span>` : ""}</div>` +
         `<h3>${esc(cur.title)}</h3>` +
         `<ol class="steps3" aria-label="${esc(t("steps"))}"><li class="done">${esc(t("step_accept"))}</li><li class="${working ? "done" : "now"}">${esc(t("step_start"))}</li><li class="${working ? "now" : ""}">${esc(t("step_done"))}</li></ol>` +
-        `<button class="btn primary big ${working ? "go-done" : "go-start"}" data-act="photo" data-kind="${working ? "after" : "before"}" data-id="${esc(cur.id)}">` +
+        `<button class="btn primary big ${working ? "go-done" : "go-start"}" ${act} data-id="${esc(cur.id)}">` +
         `${working ? "✓" : "▶"} ${esc(t(working ? "finish" : "start"))}</button>` +
-        `<p class="jhint"><span aria-hidden="true">📷</span> ${esc(t(working ? "done_hint" : "start_hint"))}</p></div>`;
+        (photo ? `<p class="jhint"><span aria-hidden="true">📷</span> ${esc(t(working ? "done_hint" : "start_hint"))}</p>` : "") + `</div>`;
     }
     if (rest.length) {
       html += `<h3 class="subh">${esc(t("other_jobs"))}</h3>` + rest.map((j) =>
@@ -318,6 +322,11 @@
       if (b.dataset.act === "accept") { await api("POST", `/dispatch/jobs/${encodeURIComponent(id)}/accept`, {}); }
       else if (b.dataset.act === "decline") { await api("POST", `/dispatch/jobs/${encodeURIComponent(id)}/decline`, {}); }
       else if (b.dataset.act === "photo") { openCamera(id, b.dataset.kind); }
+      else if (b.dataset.act === "start" || b.dataset.act === "complete") {  // no photo needed for this job: one tap
+        await api("POST", `/dispatch/jobs/${encodeURIComponent(id)}/${b.dataset.act}`, {});
+        const j = S.jobs.find((x) => x.id === id), after = !j || !j.photos_required || j.photos_required.after;
+        toast(t(b.dataset.act === "complete" ? "job_done" : after ? "started" : "started_plain"));
+      }
       await pollJobs();
     } catch (err) { toast(err.message.includes("no longer") ? t("gone") : err.message); await pollJobs(); }
     finally { b.disabled = false; }
@@ -412,7 +421,8 @@
 
   // ---------------------------------------------------------------- voice assistant (/me/voice/*)
   // Speech -> /me/voice/transcribe (cloud STT, after consent) -> /me/voice/command (rules) -> spoken reply + confirm card.
-  // Nothing changes until Confirm (-> /me/voice/act). "Done" always goes through the after-photo (live camera flow).
+  // Nothing changes until Confirm (-> /me/voice/act). When the job needs a photo, "start" / "done" go through the live
+  // camera flow (proposed action "photo"); otherwise they are confirmed like accept (actions "start" / "complete").
   const local = {
     get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
     set(k, v) { try { localStorage.setItem(k, v); } catch (e) { /* private mode */ } },
@@ -541,7 +551,7 @@
   // ---------------------------------------------------------------- start
   (async () => {
     applyLang();
-    try { const demos = await (await fetch("/auth/demo-accounts")).json(); if (demos.some((d) => d.username === "E134")) $("#demoBtn").classList.remove("hidden"); } catch (e) { /* offline */ }
+    try { const demos = await (await window.HOINet.fetch("/auth/demo-accounts")).json(); if (demos.some((d) => d.username === "E134")) $("#demoBtn").classList.remove("hidden"); } catch (e) { /* offline */ }
     S.refresh = localStorage.getItem("hoi.rt") || sessionStorage.getItem("hoi.rt");
     S.remember = !!localStorage.getItem("hoi.rt") || !sessionStorage.getItem("hoi.rt");
     if (S.refresh && await refresh() && S.user?.role === "worker") { await boot(); return; }

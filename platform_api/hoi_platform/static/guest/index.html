@@ -26,21 +26,26 @@
 <main class="wrap">
   <div id="err" class="banner red hidden" role="alert"></div>
 
-  <!-- ASK: assistant bar (hotel, live status, voice on/off), welcome starters, thread, sticky dock -->
+  <!-- ASK: assistant bar (hotel mark, "Ask us", live status, voice menu), quick buttons, thread, sticky dock -->
   <section id="tab-ask" class="tab" aria-labelledby="t-ask">
     <div class="abar" id="abar" data-state="idle">
-      <span class="aface" aria-hidden="true"><img src="/shared/brand/hoi/hoi-mark.svg" alt="" width="26" height="26"><i class="eq"><b></b><b></b><b></b></i></span>
+      <span class="aface" aria-hidden="true"><img id="aMark" src="/shared/brand/hotel-mark.svg" alt="" width="30" height="30"><i class="eq"><b></b><b></b><b></b></i></span>
       <div class="ameta">
-        <h2 id="t-ask" class="aname"><span id="aHotel">&nbsp;</span></h2>
-        <div class="astatus"><i class="sdot" aria-hidden="true"></i><span data-t="assistant">Assistant</span> · <span id="aStatus" aria-live="polite">Ready to help</span></div>
+        <h2 id="t-ask" class="aname" data-t="ask_us">Ask us</h2>
+        <div class="astatus"><i class="sdot" aria-hidden="true"></i><span id="aStatus" aria-live="polite">Ready to help</span></div>
       </div>
-      <button type="button" id="mute" class="spk" aria-pressed="true" aria-label="Voice replies: on"><span id="muteIco" aria-hidden="true">🔊</span><span id="muteTxt">Voice on</span></button>
+      <button type="button" id="mute" class="spk" aria-haspopup="true" aria-expanded="false" aria-controls="voiceMenu"><span id="muteIco" aria-hidden="true">🔊</span><span id="muteTxt">Voice on</span><span class="caret" aria-hidden="true">▾</span></button>
+      <div id="voiceMenu" class="vmenu hidden" role="group" aria-labelledby="vmTitle">
+        <b id="vmTitle" class="vmtitle" data-t="voice_menu">Spoken replies</b>
+        <label class="switch"><input type="checkbox" id="voiceOn"> <span data-t="speak_replies">Read replies aloud</span></label>
+        <div id="voiceRow" class="hidden"><label for="voicePick" class="lbl" data-t="voice">Choose the voice</label><select id="voicePick" class="field"></select></div>
+      </div>
     </div>
     <div id="thread" class="thread" aria-live="polite"></div>
     <div id="starter" class="starter">
+      <p class="wq" data-t="what_need">What do you need?</p>
       <div class="wgrid" id="wgrid" aria-label="Suggestions"></div>
       <p class="notice" data-t="ai_notice">Please don't share personal details like phone or card numbers.</p>
-      <details class="vset hidden" id="voiceRow"><summary data-t="voice">Choose the voice</summary><label for="voicePick" class="sr" data-t="voice">Choose the voice</label><select id="voicePick" class="field"></select></details>
     </div>
     <div class="dock" id="dock">
       <button type="button" id="stopSpeak" class="stopbtn hidden" aria-label="Stop speaking"><i class="sq" aria-hidden="true"></i><span data-t="stop">Stop speaking</span></button>
@@ -132,6 +137,7 @@
   <button type="button" data-tab="requests"><span class="ico" aria-hidden="true">🛎</span><span data-t="requests">My requests</span><i id="reqDot" class="dot hidden"></i></button>
   <button type="button" data-tab="checkout"><span class="ico" aria-hidden="true">🧳</span><span data-t="checkout">Check-out</span></button>
 </nav>
+<script src="/shared/net.js"></script>
 <script src="/shared/voice.js"></script>
 <script src="/shared/roles.js"></script>
 <script src="guest.js"></script>

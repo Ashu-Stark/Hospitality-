@@ -16,7 +16,8 @@
     en: {
       offline: "You are offline. We'll reconnect automatically.", room: "Room",
       ask: "Ask", explore: "Hotel info", requests: "My requests", checkout: "Check-out", ask_title: "Ask me anything",
-      voice: "Choose the voice", assistant: "Assistant", st_idle: "Ready to help", st_listening: "Listening…", st_thinking: "Thinking…",
+      voice: "Choose the voice", ask_us: "Ask us", what_need: "What do you need?", voice_menu: "Spoken replies",
+      speak_replies: "Read replies aloud", st_idle: "Ready to help", st_listening: "Listening…", st_thinking: "Thinking…",
       st_speaking: "Speaking…", stop: "Stop speaking", voice_on: "Voice on", voice_off: "Voice off",
       voice_on_aria: "Voice replies are on. Tap to read replies silently.", voice_off_aria: "Voice replies are off. Tap to hear replies.",
       mic_talk: "Tap to talk", mic_stop: "Listening. Tap to stop.", thinking: "Thinking",
@@ -33,7 +34,7 @@
       received: "received", "on the way": "on the way", done: "done", bad: "This QR code is not valid. Please call the front desk.",
       net: "Network problem. Please try again.", listening: "Listening… tap again to stop", working: "Understanding…",
       heard: "Heard", no_catch: "Didn't catch that — try again or type.", mic_denied: "Microphone blocked. Allow it in your browser settings, or type.",
-      no_mic: "Voice isn't supported on this browser. Please type.", hello: "Namaste! I'm here to help. Ask me about Wi-Fi, food, check-out or anything you need.",
+      no_mic: "Voice isn't supported on this browser. Please type.",
       confirm: "Confirm", not_now: "Not now", done_ok: "Done! ", cancelled: "Okay, nothing was sent.",
       problems: "Report a problem", requests_h: "Ask for something", alert_now: "Alert front desk now", call: "Call",
       alert_sent: "The front desk has been alerted. Stay calm; help is coming.",
@@ -58,7 +59,8 @@
     hi: {
       offline: "इंटरनेट नहीं है। इंटरनेट आते ही फिर जुड़ जाएगा।", room: "कमरा",
       ask: "पूछें", explore: "होटल की जानकारी", requests: "मेरी माँगें", checkout: "चेक-आउट", ask_title: "कुछ भी पूछिए",
-      voice: "आवाज़ चुनें", assistant: "सहायक", st_idle: "मदद के लिए तैयार", st_listening: "सुन रही हूँ…", st_thinking: "सोच रही हूँ…",
+      voice: "आवाज़ चुनें", ask_us: "हमसे पूछें", what_need: "आपको क्या चाहिए?", voice_menu: "बोलकर जवाब",
+      speak_replies: "जवाब बोलकर सुनाएँ", st_idle: "मदद के लिए तैयार", st_listening: "सुन रही हूँ…", st_thinking: "सोच रही हूँ…",
       st_speaking: "बोल रही हूँ…", stop: "बोलना बंद करें", voice_on: "आवाज़ चालू", voice_off: "आवाज़ बंद",
       voice_on_aria: "जवाब आवाज़ में सुनाई देंगे। चुपचाप पढ़ने के लिए दबाएँ।", voice_off_aria: "जवाब आवाज़ में नहीं आएँगे। सुनने के लिए दबाएँ।",
       mic_talk: "बोलने के लिए दबाएँ", mic_stop: "सुन रही हूँ। रोकने के लिए दबाएँ।", thinking: "सोच रही हूँ",
@@ -75,7 +77,7 @@
       received: "मिल गई", "on the way": "रास्ते में", done: "पूरा", bad: "यह QR कोड काम नहीं कर रहा। फ़्रंट डेस्क को कॉल करें।",
       net: "नेटवर्क की समस्या। फिर कोशिश करें।", listening: "सुन रही हूँ… रोकने के लिए फिर दबाएँ", working: "समझ रही हूँ…",
       heard: "सुना", no_catch: "समझ नहीं आया — फिर बोलें या टाइप करें।", mic_denied: "माइक बंद है। ब्राउज़र सेटिंग में अनुमति दें, या टाइप करें।",
-      no_mic: "इस ब्राउज़र में आवाज़ नहीं चलती। कृपया टाइप करें।", hello: "नमस्ते! मैं आपकी मदद के लिए हूँ। Wi-Fi, खाना, check-out या कुछ भी पूछिए।",
+      no_mic: "इस ब्राउज़र में आवाज़ नहीं चलती। कृपया टाइप करें।",
       confirm: "हाँ, भेज दो", not_now: "अभी नहीं", done_ok: "हो गया! ", cancelled: "ठीक है, कुछ नहीं भेजा।",
       problems: "कोई परेशानी बताएँ", requests_h: "कुछ मँगवाएँ", alert_now: "फ़्रंट डेस्क को अभी बताएँ", call: "कॉल करें",
       alert_sent: "मैंने फ़्रंट डेस्क को बता दिया है। घबराइए नहीं, मदद आ रही है।",
@@ -115,6 +117,8 @@
   }
   $("#photoCredit").addEventListener("click", (e) => { if (e.currentTarget.title) toast(e.currentTarget.title); });
   $("#hotelLogo").addEventListener("error", () => { $("#logoPlate").classList.add("hidden"); $("#hotel").classList.remove("hidden"); });
+  const NEUTRAL_MARK = "/shared/brand/hotel-mark.svg";
+  $("#aMark").addEventListener("error", () => { if ($("#aMark").getAttribute("src") !== NEUTRAL_MARK) $("#aMark").src = NEUTRAL_MARK; });
   const token = new URLSearchParams(location.search).get("t") || "";
   const base = `/public/guest/${encodeURIComponent(token)}`;
   const tr = (k) => (T[S.lang] || T.en)[k] ?? T.en[k] ?? k;
@@ -125,7 +129,8 @@
     const opts = { method, headers: {} };
     if (body !== undefined) { if (isForm) opts.body = body; else { opts.headers["Content-Type"] = "application/json"; opts.body = JSON.stringify(body); } }
     let r;
-    try { r = await fetch(base + path, opts); } catch (e) { const err = new Error(tr("net")); err.status = 0; throw err; }
+    // /shared/net.js: "waking up the server" pill after ~4 s on a sleeping server, and one retry (network error / 502 / 503)
+    try { r = await window.HOINet.fetch(base + path, opts); } catch (e) { const err = new Error(tr("net")); err.status = 0; throw err; }
     let j = null;
     try { j = await r.json(); } catch (e) { /* empty */ }
     if (!r.ok) {
@@ -151,24 +156,29 @@
     if (!S.data) return;
     const d = S.data, p = d.profile || {};
     $("#hotel").textContent = p.display_name || d.hotel;
-    $("#aHotel").textContent = p.display_name || d.hotel;
     paintLogo(window.HOI_SAFE_IMG(p.logo_url), p.display_name || d.hotel);
+    paintMark(window.HOI_SAFE_IMG(p.logo_url));
     paintCover(window.HOI_SAFE_IMG(p.cover_photo_url), p.cover_photo_credit || "");
     $("#roomNo").textContent = d.room;
     $("#welcome").textContent = p.welcome || "";
-    if (!S.started) $("#thread").innerHTML = "";  // welcome greeting follows the chosen language until the chat starts
-    if (!$("#thread").children.length) bot(tr("hello"), null, null, true);
+    // The header already welcomes the guest: the chat starts with the quick buttons ("What do you need?"), no greeting bubble.
     paintMenu(); paintRequests(); paintExplore(); paintCheckout();
   }
 
-  // Voice replies on/off (speaker button in the assistant bar). The choice is kept on this device by /shared/voice.js.
+  // Voice replies: the speaker button shows on / off and opens a small menu (read aloud on/off + choose the voice).
+  // The choices are kept on this device by /shared/voice.js.
   function paintVoiceToggle() {
     const on = !S.muted;
     $("#muteIco").textContent = on ? "🔊" : "🔇";
     $("#muteTxt").textContent = tr(on ? "voice_on" : "voice_off");
-    $("#mute").setAttribute("aria-pressed", on ? "true" : "false");
     $("#mute").setAttribute("aria-label", tr(on ? "voice_on_aria" : "voice_off_aria"));
     $("#mute").classList.toggle("off", !on);
+    $("#voiceOn").checked = on;
+    $("#voiceRow").classList.toggle("hidden", !S.voices || !on);
+  }
+  function voiceMenu(open) {
+    $("#voiceMenu").classList.toggle("hidden", !open);
+    $("#mute").setAttribute("aria-expanded", open ? "true" : "false");
   }
 
   // Assistant status in the bar: listening > thinking > speaking > ready. Also drives the Stop button.
@@ -180,6 +190,13 @@
     $("#mic").setAttribute("aria-label", tr(S.rec && S.rec.target === "chat" ? "mic_stop" : "mic_talk"));
   }
   function stopSpeaking() { if (window.HOIVoice) window.HOIVoice.stop(); S.speaking = false; status(); }
+
+  // The assistant bar shows the hotel's own square mark: the logo's "-mark" sibling (himsagar-logo.svg -> himsagar-mark.svg),
+  // else a neutral hotel icon (also when the mark file is missing).
+  function paintMark(logo) {
+    const mark = logo && /-logo\.\w+$/.test(logo) ? logo.replace(/-logo(\.\w+)$/, "-mark$1") : NEUTRAL_MARK;
+    if ($("#aMark").getAttribute("src") !== mark) $("#aMark").src = mark;
+  }
 
   // Hotel logo on a white plate (keeps the brand colours readable on the orange header); hotel name text otherwise.
   function paintLogo(url, name) {
@@ -434,7 +451,7 @@
     if (!window.HOIVoice) return;
     const n = await window.HOIVoice.fillPicker($("#voicePick"), S.lang);
     S.voices = n;
-    $("#voiceRow").classList.toggle("hidden", !n || S.muted);
+    paintVoiceToggle();
   }
   window.addEventListener("hoivoice", (e) => { S.speaking = !!(e.detail && e.detail.speaking); status(); });
 
@@ -552,16 +569,21 @@
   $("#askForm").addEventListener("submit", (e) => { e.preventDefault(); const v = $("#msg").value; $("#msg").value = ""; send(v); });
   $("#mic").addEventListener("click", () => startRec("chat"));
   $("#fbMic").addEventListener("click", () => startRec("fb"));
-  $("#mute").addEventListener("click", () => {
-    S.muted = !S.muted;
+  $("#mute").addEventListener("click", (e) => { e.stopPropagation(); voiceMenu($("#voiceMenu").classList.contains("hidden")); });
+  $("#voiceOn").addEventListener("change", () => {
+    S.muted = !$("#voiceOn").checked;
     if (window.HOIVoice) window.HOIVoice.setMuted(S.muted);  // muting also stops the current reply
     if (S.muted) stopSpeaking();
     paintVoiceToggle();
-    $("#voiceRow").classList.toggle("hidden", !S.voices || S.muted);
-    toast(tr(S.muted ? "voice_off" : "voice_on"));
   });
+  // The menu closes on a tap outside it or on Esc (Esc first closes the menu, then stops speaking).
+  document.addEventListener("click", (e) => { if (!e.target.closest("#voiceMenu, #mute")) voiceMenu(false); }, true);
   $("#stopSpeak").addEventListener("click", () => { stopSpeaking(); $("#msg").focus({ preventScroll: true }); });
-  document.addEventListener("keydown", (e) => { if (e.key === "Escape" && S.speaking) { e.preventDefault(); stopSpeaking(); } });
+  document.addEventListener("keydown", (e) => {
+    if (e.key !== "Escape") return;
+    if (!$("#voiceMenu").classList.contains("hidden")) { e.preventDefault(); voiceMenu(false); $("#mute").focus(); return; }
+    if (S.speaking) { e.preventDefault(); stopSpeaking(); }
+  });
   // Leaving the page (another app, tab switch, screen off) silences the assistant.
   document.addEventListener("visibilitychange", () => { if (document.hidden) { stopSpeaking(); stopRec(); } });
   window.addEventListener("pagehide", () => { stopSpeaking(); stopRec(); });

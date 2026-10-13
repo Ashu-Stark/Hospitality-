@@ -2,8 +2,8 @@
 
 Rule-based and deterministic (English, Hindi Devanagari, Hinglish): fast, offline, and it never guesses a job.
 Nothing happens on /me/voice/command; actions run only through /me/voice/act after the worker confirms, and reuse the
-dispatch service (accept / decline / start with the same checks as the buttons). "Done" is never executed by voice:
-the after-photo is still required, so the reply routes the worker to the photo flow.
+dispatch service (accept / decline / start / complete with the same checks as the buttons). When the hotel's photo-proof
+setting asks for a photo the job does not have yet, the reply routes the worker to the photo flow instead.
 """
 
 from __future__ import annotations
@@ -88,6 +88,11 @@ def _has_photo(tid: str, jid: str, kind: str) -> bool:
     return mongo.col("photos").count_documents({"tenant_id": tid, "job_id": jid, "kind": kind}, limit=1) > 0
 
 
+def _needs_photo(tid: str, j: dict, kind: str) -> bool:
+    """True when the hotel's photo-proof rule asks for this photo and the job does not have it yet."""
+    return bool((j.get("photos_required") or {}).get(kind)) and not _has_photo(tid, j["id"], kind)
+
+
 def parse_issue(text: str) -> dict | None:
     t = concierge.norm(text)
     m = re.search(r"(?:room|kamra|kamre|कमरा|कमरे|rm)\s*(?:no\.?|number|नंबर)?\s*(\d{3,4})", t) or re.search(r"(?<!\d)(\d{3,4})(?!\d)", t)
@@ -133,21 +138,29 @@ def command(tid: str, emp: str, text: str, lang_hint: str = "en") -> dict:
         )
     if concierge.has(t, WORDS["done"]):
         if cur and cur["status"] == "in_progress":
+            if _needs_photo(tid, cur, "after"):
+                return out(
+                    "done",
+                    _t(
+                        lang,
+                        f"Great work. To finish '{_title(cur)}', take the after photo now.",
+                        f"बढ़िया। '{_title(cur)}' पूरा करने के लिए अब बाद की फ़ोटो लें।",
+                    ),
+                    "photo",
+                    {"job_id": cur["id"], "kind": "after"},
+                    _t(lang, "Take AFTER photo", "बाद की फ़ोटो लें"),
+                )
             return out(
                 "done",
-                _t(
-                    lang,
-                    f"Great work. To finish '{_title(cur)}', take the after photo now.",
-                    f"बढ़िया। '{_title(cur)}' पूरा करने के लिए अब बाद की फ़ोटो लें।",
-                ),
-                "photo",
-                {"job_id": cur["id"], "kind": "after"},
-                _t(lang, "Take AFTER photo", "बाद की फ़ोटो लें"),
+                _t(lang, f"Great work. Mark '{_title(cur)}' as done?", f"बढ़िया। '{_title(cur)}' पूरा हुआ मार्क करें?"),
+                "complete",
+                {"job_id": cur["id"]},
+                _t(lang, f"Done: {_title(cur)}", f"पूरा: {_title(cur)}"),
             )
         return out("done", _t(lang, "You have no job in progress right now.", "अभी आपका कोई काम चालू नहीं है।"))
     if concierge.has(t, WORDS["start"]):
         if cur and cur["status"] == "accepted":
-            if not _has_photo(tid, cur["id"], "before"):
+            if _needs_photo(tid, cur, "before"):
                 return out(
                     "start",
                     _t(lang, f"Take the before photo to start '{_title(cur)}'.", f"'{_title(cur)}' शुरू करने के लिए पहले की फ़ोटो लें।"),
@@ -213,10 +226,16 @@ def command(tid: str, emp: str, text: str, lang_hint: str = "en") -> dict:
                 _t(lang, f"Accept: {_title(offer)}", f"स्वीकार: {_title(offer)}"),
             )
         if cur:
+            started = cur["status"] != "accepted"
+            photo = _needs_photo(tid, cur, "after" if started else "before")
             nxt = _t(
                 lang,
-                "take the before photo to start" if cur["status"] == "accepted" else "take the after photo when done",
-                "शुरू करने के लिए पहले की फ़ोटो लें" if cur["status"] == "accepted" else "काम पूरा होने पर बाद की फ़ोटो लें",
+                ("take the after photo when done" if photo else "say done when finished")
+                if started
+                else ("take the before photo to start" if photo else "say start when you begin"),
+                ("काम पूरा होने पर बाद की फ़ोटो लें" if photo else "काम पूरा होने पर 'हो गया' बोलें")
+                if started
+                else ("शुरू करने के लिए पहले की फ़ोटो लें" if photo else "काम शुरू करते समय 'शुरू' बोलें"),
             )
             return out(
                 "whats_next",
@@ -247,11 +266,11 @@ def _help(lang: str) -> str:
 
 def act(tid: str, emp: str, actor: str, action: str, params: dict) -> dict:
     """Execute a confirmed voice action with the same rules as the buttons."""
-    if action in ("accept", "decline", "start"):
+    if action in ("accept", "decline", "start", "complete"):
         jid = str(params.get("job_id") or "")
         if not jid:
             raise Invalid("job_id is required.")
-        fn = {"accept": dispatch.accept, "decline": dispatch.decline, "start": dispatch.start}[action]
+        fn = {"accept": dispatch.accept, "decline": dispatch.decline, "start": dispatch.start, "complete": dispatch.complete}[action]
         job = fn(tid, jid, emp)
         tenants.audit(tid, actor, f"voice.{action}", jid)
         return {"ok": True, "action": action, "job": {k: job.get(k) for k in ("id", "title", "status", "room")}}
@@ -277,6 +296,7 @@ def act(tid: str, emp: str, actor: str, action: str, params: dict) -> dict:
             room_id=r["id"],
             kind="general",
             target_minutes=hit["target_minutes"] if hit else None,
+            request=hit["type"] if hit else None,
         )
         tenants.audit(tid, actor, "voice.report_issue", f"{job['id']} room {room}")
         return {"ok": True, "action": action, "job": {k: job.get(k) for k in ("id", "title", "status", "department", "urgency", "room")}}

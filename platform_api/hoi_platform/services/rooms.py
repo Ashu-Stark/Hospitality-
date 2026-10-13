@@ -334,6 +334,7 @@ def guest_request(token: str, key: str, note: str = "") -> dict:
             kind="guest",
             target_minutes=m.get("target_minutes"),
             offer_window=m.get("offer_seconds"),
+            request=key,
         )
     if m.get("notify_manager"):
         tenants.audit(r["tenant_id"], "guest", "guest.urgent_alert", f"{key} room {r['number']}")  # shown to the duty manager

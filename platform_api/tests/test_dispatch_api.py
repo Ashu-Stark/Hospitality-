@@ -36,15 +36,17 @@ def test_offer_decline_timeout_accept_photos_complete(client, owner):
     third = job["offer_to"]
     assert third not in (first, second)
 
-    # photos are required in order, only by the assignee
-    assert client.post(f"/dispatch/jobs/{job['id']}/accept", json={"employee_id": third}, headers=owner).json()["status"] == "accepted"
-    assert client.post(f"/dispatch/jobs/{job['id']}/start", json={"employee_id": third}, headers=owner).status_code == 422
+    # a repair (maintenance department): the before photo is optional, the after photo is required; photos come in order
+    accepted = client.post(f"/dispatch/jobs/{job['id']}/accept", json={"employee_id": third}, headers=owner).json()
+    assert accepted["status"] == "accepted" and accepted["photos_required"] == {"kind": "repair", "before": False, "after": True}
     files = {"file": ("b.jpg", jpeg(), "image/jpeg")}
     r = client.post(f"/dispatch/jobs/{job['id']}/photos", data={"kind": "after", "employee_id": third}, files=files, headers=owner)
     assert r.status_code == 409  # after-photo before starting
     r = client.post(f"/dispatch/jobs/{job['id']}/photos", data={"kind": "before", "employee_id": third}, files=files, headers=owner)
     assert r.status_code == 201 and r.json()["verified"] and len(r.json()["sha256"]) == 64
     assert client.post(f"/dispatch/jobs/{job['id']}/start", json={"employee_id": third}, headers=owner).json()["status"] == "in_progress"
+    r = client.post(f"/dispatch/jobs/{job['id']}/complete", json={"employee_id": third}, headers=owner)
+    assert r.status_code == 422 and "after photo" in r.json()["detail"]
     r = client.post(
         f"/dispatch/jobs/{job['id']}/photos",
         data={"kind": "after", "employee_id": third},

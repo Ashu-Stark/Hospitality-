@@ -3,8 +3,8 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
 
 from ..deps import Principal, roles, tenant_of
-from ..schemas import DecideIn, HotelProfileIn
-from ..services import guest, profiles, tenants, users
+from ..schemas import DecideIn, HotelProfileIn, PhotoProofIn
+from ..services import guest, photo_proof, profiles, tenants, users
 
 router = APIRouter(tags=["hotel"])
 READ = ("owner", "dept_head", "hr", "storekeeper")
@@ -29,6 +29,18 @@ def put_profile(body: HotelProfileIn, property_id: str | None = PID, p: Principa
     if property_id:
         tenants.get_property(tid, property_id)
     return profiles.put(tid, body.model_dump(), p.username, property_id)
+
+
+@router.get("/hotel/settings/photo-proof")
+def get_photo_proof(p: Principal = Depends(roles("owner", "dept_head"))) -> dict:
+    """Which job kinds need a before / after photo in this hotel: {"kinds": [{kind, label, before, after}], "defaults": same}."""
+    return photo_proof.get(tenant_of(p))
+
+
+@router.put("/hotel/settings/photo-proof")
+def put_photo_proof(body: PhotoProofIn, p: Principal = Depends(roles("owner"))) -> dict:
+    """Owner only. Kinds left out keep their current rule; an unknown kind is a 422."""
+    return photo_proof.put(tenant_of(p), [r.model_dump() for r in body.kinds], p.username)
 
 
 @router.get("/guest-services/summary")
