@@ -10,7 +10,7 @@ from typing import Any
 
 import streamlit as st
 
-from . import access, auth, config, data, i18n, nav, platform, portal, tenancy, theme, tour
+from . import access, auth, config, data, i18n, nav, platform, portal, tenancy, theme, tour, wake
 from .api_client import ApiError
 from .config import current_settings
 
@@ -19,6 +19,7 @@ PAGES = access.HOTEL_PAGES  # kept for older imports
 
 def setup(page_file: str, title: str, *, employee: bool = False) -> None:
     """Every page starts here: tenant, CSS, access check, top bar, sidebar, tour."""
+    _wake()
     t = tenancy.bootstrap()
     st.markdown(theme.CSS, unsafe_allow_html=True)
     st.markdown(f"<style>:root{{--brand:{theme.esc(portal.brand_color(t))}}}</style>{portal.css()}", unsafe_allow_html=True)
@@ -65,6 +66,13 @@ def _topbar(page_file: str, t: dict, u: dict | None) -> None:
         _flat_nav(nav, page_file, u)
     else:
         _section_nav(nav, page_file, u)
+
+
+def _wake() -> None:
+    """'Waking up the server…' while a sleeping API starts (inside the page: never before st.navigation, see wake.warm)."""
+    wake.ensure_awake(platform.mode())
+    if auth.current() and not config.is_super() and not current_settings().use_mocks:
+        wake.ensure_awake(current_settings().api_base_url)
 
 
 def _link(f: str, label: str, icon: str | None = None) -> None:

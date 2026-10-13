@@ -4,7 +4,8 @@ Two parts:
   * retry rules for the low-level HTTP helpers (lib.platform._send, lib.api_client._http): one retry with a longer
     timeout on a timeout or a 502/503/504 from the host while the server boots. A request that may already have been
     processed (a POST/PUT/PATCH/DELETE that timed out while reading the answer) is NOT retried, so nothing is done twice.
-  * ensure_awake(): called once per page run (app.py) before the first real call. If a server has not answered for a
+  * warm() in app.py starts a silent background ping; ensure_awake(), called at the top of each page (ui.setup and
+    the sign-in page) before the first real call, shows the notice. If a server has not answered for a
     while it pings /health in a background thread; when the ping is slow, a fixed-position notice ("Waking up the server,
     this can take about 30 seconds…") is shown and removed again, so the page layout does not jump.
 Local and embedded servers never sleep, so nothing here runs for them (tests and offline runs are unaffected).
@@ -66,6 +67,24 @@ def request(method: str, url: str, base: str, *, timeout: float | None = None, s
     if r.status_code < 500:
         mark_ok(base)
     return r
+
+
+def warm(base: str, health_path: str = "/health") -> None:
+    """Start waking a remote server in the background and return at once (no waiting, nothing drawn).
+
+    app.py calls this before st.navigation(): drawing or blocking there makes a sign-in on a deep-linked page lose the
+    page registry (StreamlitPageNotFoundError on the menu links). The visible notice is shown by ensure_awake() inside
+    the page, once the navigation exists."""
+    if is_local(base) or recently_ok(base):
+        return
+
+    def ping() -> None:
+        try:
+            request("GET", base.rstrip("/") + health_path, base, timeout=FIRST_TIMEOUT_S)
+        except Exception:  # noqa: BLE001, S110 - only a warm-up; the page's own calls report problems
+            pass
+
+    threading.Thread(target=ping, daemon=True).start()
 
 
 def ensure_awake(base: str, health_path: str = "/health") -> None:
