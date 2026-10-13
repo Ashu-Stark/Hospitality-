@@ -1,0 +1,34 @@
+{
+  "id": 0,
+  "week_start": "2029-12-24",
+  "method": "cached",
+  "status": "infeasible",
+  "solve_seconds": 0.0,
+  "objective": null,
+  "protected_ids": [],
+  "hard_violations": [],
+  "causes": [
+    {
+      "department": "security",
+      "date": "2029-12-29",
+      "shift": "night",
+      "required": 1,
+      "available": 0,
+      "reason": "No rested guard: both are on approved leave or inside the minimum-rest window."
+    },
+    {
+      "department": "front_office",
+      "date": "2029-12-30",
+      "shift": "morning",
+      "required": 2,
+      "available": 1,
+      "reason": "Only one employee with the fo_system skill is available; skill coverage is a hard rule."
+    }
+  ],
+  "coverage": [],
+  "cost": {},
+  "people": [],
+  "violated_soft_goals": [],
+  "assignments": [],
+  "synthetic": true
+}

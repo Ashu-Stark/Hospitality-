@@ -1,0 +1,10 @@
+{
+  "synthetic": true,
+  "seed": 42,
+  "files": {
+    "occupancy_daily.csv": "979ad5f0fe9c38c48113e574c4d499a62fe89cfd80b7c4a7f96f97fc69048cb3",
+    "event_calendar.csv": "922c27077477e6ec0a0ec66869d965cb5ab49908acaaffb24a7f89f607d469d5",
+    "weather_daily.csv": "9581e41241f13cc19d0fe526848234ee51dc9862a59a42b1ad44a766b35f3101"
+  },
+  "combined_sha256": "c26733fd4a45e1432e959d7ba0398286fc224f341b2f8bec306c2af66085c848"
+}

@@ -1,0 +1,304 @@
+"""Client for the HOI platform API (platform_api/hoi_platform): tenants, accounts, dispatch, photos, inventory, audit.
+
+PLATFORM_API_URL decides where it lives:
+  embedded (default) – the same FastAPI app runs in-process (no separate server; real routing, validation and auth)
+  https://...        – a deployed platform API
+
+Every call goes over the API with the signed-in user's bearer token; the frontend never touches the database.
+"""
+
+from __future__ import annotations
+
+import os
+import sys
+from pathlib import Path
+from typing import Any
+
+import requests
+import streamlit as st
+
+BACKEND_DIR = Path(__file__).resolve().parents[2] / "platform_api"
+
+
+class PlatformError(Exception):
+    def __init__(self, message: str, status: int | None = None):
+        super().__init__(message)
+        self.message, self.status = message, status
+
+
+def mode() -> str:
+    return os.getenv("PLATFORM_API_URL", "embedded").strip() or "embedded"
+
+
+@st.cache_resource(show_spinner=False)
+def _embedded_client():
+    if str(BACKEND_DIR) not in sys.path:
+        sys.path.insert(0, str(BACKEND_DIR))
+    from fastapi.testclient import TestClient
+
+    from hoi_platform.main import create_app
+
+    return TestClient(create_app())
+
+
+def _token() -> str | None:
+    return st.session_state.get("auth_token")
+
+
+def _send(method: str, path: str, headers: dict, **kw) -> Any:
+    try:
+        if mode() == "embedded":
+            return _embedded_client().request(method, path, headers=headers, **kw)
+        return requests.request(method, mode().rstrip("/") + path, headers=headers, timeout=30, **kw)
+    except requests.exceptions.RequestException:
+        raise PlatformError(f"Platform API unreachable at {mode()}.") from None
+
+
+def try_refresh() -> bool:
+    """Use the stored refresh token to get a new access token (rotating the refresh token). Platform admins get their
+    hotel-scoped token re-issued for the hotel they had open."""
+    rt = st.session_state.get("refresh_token")
+    if not rt:
+        return False
+    r = _send("POST", "/auth/refresh", {}, json={"refresh_token": rt})
+    if r.status_code != 200:
+        for k in ("refresh_token", "auth_token", "platform_token", "user"):
+            st.session_state.pop(k, None)
+        return False
+    j = r.json()
+    st.session_state["refresh_token"] = j["refresh_token"]
+    st.session_state["user"] = j["user"]
+    st.session_state["_rt_dirty"] = True  # tells the browser-cookie writer to store the rotated token
+    if j["user"]["role"] == "platform_admin":
+        st.session_state["platform_token"] = j["token"]
+        tid = (st.session_state.get("tenant") or {}).get("id") or "org_demo"
+        imp = _send("POST", f"/auth/impersonate/{tid}", {"Authorization": f"Bearer {j['token']}"})
+        if imp.status_code == 200:
+            st.session_state["auth_token"] = imp.json()["token"]
+            st.session_state["tenant"] = imp.json()["tenant"]
+    else:
+        st.session_state["auth_token"] = j["token"]
+        st.session_state["tenant"] = j.get("tenant") or st.session_state.get("tenant")
+    return True
+
+
+def call(
+    method: str,
+    path: str,
+    *,
+    json: Any = None,
+    params: dict | None = None,
+    files: dict | None = None,
+    data: dict | None = None,
+    token: str | None = None,
+    raw: bool = False,
+    auth: bool = True,
+    _retry: bool = True,
+) -> Any:
+    tok = token or (_token() if auth else None)
+    headers = {"Authorization": f"Bearer {tok}"} if tok else {}
+    r = _send(method, path, headers, json=json, params=params, files=files, data=data)
+    if r.status_code == 401 and auth and _retry and try_refresh():  # access token expired: refresh once and retry
+        fresh = st.session_state.get("platform_token") if token and token == st.session_state.get("platform_token") else None
+        return call(method, path, json=json, params=params, files=files, data=data, token=fresh, raw=raw, auth=auth, _retry=False)
+    if r.status_code == 401 and auth:
+        st.session_state.pop("auth_token", None)
+        st.session_state.pop("user", None)
+    if r.status_code >= 400:
+        try:
+            detail = r.json().get("detail")
+        except ValueError:
+            detail = r.text[:200]
+        if isinstance(detail, list):  # pydantic validation errors
+            detail = "; ".join(f"{'.'.join(str(x) for x in e.get('loc', [])[1:])}: {e.get('msg')}" for e in detail)
+        raise PlatformError(str(detail or f"HTTP {r.status_code}"), r.status_code)
+    if r.status_code == 204:
+        return None
+    return r.content if raw else r.json()
+
+
+def logout_token(refresh_token: str) -> None:
+    try:
+        call("POST", "/auth/logout", json={"refresh_token": refresh_token}, auth=False)
+    except PlatformError:
+        pass
+
+
+def rooms() -> dict:
+    return call("GET", "/rooms")
+
+
+def room_action(rid: str, action: str, body: dict | None = None) -> dict:
+    return call("POST", f"/rooms/{rid}/{action}", json=body or {})
+
+
+def room_qr(rid: str) -> bytes:
+    return call("GET", f"/rooms/{rid}/qr.svg", raw=True)
+
+
+def publish_roster(week_start: str | None, assignments: list[dict]) -> dict:
+    return call("PUT", "/dispatch/roster", json={"week_start": week_start, "assignments": assignments})
+
+
+def public_url() -> str:
+    """Where browsers reach the platform API (worker portal, guest QR pages). Needs the API running as a service."""
+    return os.getenv("PLATFORM_PUBLIC_URL", "http://localhost:8100").rstrip("/")
+
+
+# ------------------------------------------------------------------ auth
+def login(username: str, password: str) -> dict:
+    return call("POST", "/auth/login", json={"username": username, "password": password}, auth=False)
+
+
+def register(code: str, username: str, password: str, employee_id: str | None) -> dict:
+    return call(
+        "POST", "/auth/register", json={"code": code, "username": username, "password": password, "employee_id": employee_id}, auth=False
+    )
+
+
+def demo_accounts() -> list[dict]:
+    return call("GET", "/auth/demo-accounts", auth=False)
+
+
+def demo_login(username: str) -> dict:
+    return call("POST", f"/auth/demo/{username}", auth=False)
+
+
+def me() -> dict:
+    return call("GET", "/auth/me")
+
+
+def set_prefs(prefs: dict) -> dict:
+    return call("PATCH", "/auth/me/prefs", json={"prefs": prefs})
+
+
+def impersonate(tid: str, platform_token: str) -> dict:
+    return call("POST", f"/auth/impersonate/{tid}", token=platform_token)
+
+
+# ------------------------------------------------------------------ platform console (uses the unscoped platform token)
+def _pt() -> str | None:
+    return st.session_state.get("platform_token")
+
+
+def tenants() -> list[dict]:
+    return call("GET", "/platform/tenants", token=_pt())
+
+
+def create_tenant(**body) -> dict:
+    return call("POST", "/platform/tenants", json=body, token=_pt())
+
+
+def update_tenant(tid: str, **fields) -> dict:
+    return call("PATCH", f"/platform/tenants/{tid}", json=fields, token=_pt())
+
+
+def delete_tenant(tid: str) -> None:
+    call("DELETE", f"/platform/tenants/{tid}", token=_pt())
+
+
+def platform_invite(tid: str, role: str = "owner") -> dict:
+    return call("POST", f"/platform/tenants/{tid}/invites", json={"role": role}, token=_pt())
+
+
+def platform_audit(tenant_id: str | None = None, limit: int = 500) -> list[dict]:
+    return call("GET", "/platform/audit", params={k: v for k, v in {"tenant_id": tenant_id, "limit": limit}.items() if v}, token=_pt())
+
+
+# ------------------------------------------------------------------ workspace
+def workspace() -> dict:
+    return call("GET", "/workspace")
+
+
+def update_workspace(**fields) -> dict:
+    return call("PATCH", "/workspace", json=fields)
+
+
+def properties() -> list[dict]:
+    return call("GET", "/workspace/properties")
+
+
+def add_property(name: str, region: str, rooms: int, floors: int) -> dict:
+    return call("POST", "/workspace/properties", json={"name": name, "region": region, "rooms": rooms, "floors": floors})
+
+
+def staff() -> list[dict]:
+    return call("GET", "/workspace/staff")
+
+
+def import_staff(rows: list[dict]) -> dict:
+    return call("POST", "/workspace/staff/import", json={"rows": rows})
+
+
+def users() -> list[dict]:
+    return call("GET", "/workspace/users")
+
+
+def set_user_active(uid: str, active: bool) -> dict:
+    return call("PATCH", f"/workspace/users/{uid}", json={"active": active})
+
+
+def invites() -> list[dict]:
+    return call("GET", "/workspace/invites")
+
+
+def create_invite(role: str) -> dict:
+    return call("POST", "/workspace/invites", json={"role": role})
+
+
+# ------------------------------------------------------------------ dispatch
+def set_context(day: str | None, shift: str | None, working: dict, bands: dict, floors: int = 4) -> dict:
+    return call("PUT", "/dispatch/context", json={"day": day, "shift": shift, "working": working, "bands": bands, "floors": floors})
+
+
+def get_context() -> dict:
+    return call("GET", "/dispatch/context")
+
+
+def create_job(title: str, department: str | None, room: str | None, urgency: str, source: str) -> dict:
+    return call(
+        "POST", "/dispatch/jobs", json={"title": title, "department": department, "room": room, "urgency": urgency, "source": source}
+    )
+
+
+def jobs(status: str | None = None, worker: str | None = None) -> list[dict]:
+    return call("GET", "/dispatch/jobs", params={k: v for k, v in {"status": status, "worker": worker}.items() if v})
+
+
+def job_action(jid: str, action: str, employee_id: str | None = None) -> dict:
+    return call("POST", f"/dispatch/jobs/{jid}/{action}", json={"employee_id": employee_id})
+
+
+def retry(jid: str) -> dict:
+    return call("POST", f"/dispatch/jobs/{jid}/retry")
+
+
+def link_task(jid: str, task_id: str) -> dict:
+    return call("POST", f"/dispatch/jobs/{jid}/link-task", json={"task_id": str(task_id)})
+
+
+def upload_photo(jid: str, kind: str, data: bytes, employee_id: str | None) -> dict:
+    form = {"kind": kind, **({"employee_id": employee_id} if employee_id else {})}
+    return call("POST", f"/dispatch/jobs/{jid}/photos", data=form, files={"file": ("photo.jpg", data, "image/jpeg")})
+
+
+def job_photos(jid: str) -> dict:
+    return call("GET", f"/dispatch/jobs/{jid}/photos")
+
+
+def photo_bytes(pid: str) -> bytes:
+    return call("GET", f"/dispatch/photos/{pid}", raw=True)
+
+
+def performance(days: int = 14) -> dict:
+    """Per-worker performance score vs each person's own previous period (owner / hr / dept_head; coaching aid)."""
+    return call("GET", "/dispatch/performance", params={"days": int(days)})
+
+
+def reset_dispatch() -> None:
+    call("POST", "/dispatch/reset")
+
+
+# ------------------------------------------------------------------ inventory
+def inv(method: str, path: str, **kw) -> Any:
+    return call(method, f"/inventory{path}", **kw)

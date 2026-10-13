@@ -1,0 +1,281 @@
+"""The only module that talks to the backend. Pages never import requests.
+
+Every public function serves the mock fixtures when settings.use_mocks is true,
+otherwise calls API_BASE_URL. Any failure raises ApiError with a plain-language
+message; pages show it with ui.safe_call (banner, never a stack trace).
+"""
+
+from __future__ import annotations
+
+from typing import Any
+
+import requests
+
+from . import mock_backend as mock
+from .config import Settings, current_settings
+
+_session = requests.Session()
+
+
+class ApiError(Exception):
+    def __init__(self, message: str, *, status: int | None = None, detail: Any = None, endpoint: str = ""):
+        super().__init__(message)
+        self.message, self.status, self.detail, self.endpoint = message, status, detail, endpoint
+
+
+def _detail_text(detail: Any) -> str:
+    if isinstance(detail, list):  # FastAPI validation errors
+        parts = []
+        for e in detail:
+            if isinstance(e, dict):
+                loc = ".".join(str(x) for x in e.get("loc", []) if x not in ("body", "query"))
+                parts.append(f"{loc}: {e.get('msg')}" if loc else str(e.get("msg")))
+        return "; ".join(parts) or str(detail)
+    return str(detail) if detail is not None else ""
+
+
+def _friendly(status: int, detail: Any, endpoint: str, base: str) -> str:
+    d = _detail_text(detail)
+    if status == 404:
+        return f"Not found ({endpoint}). {d}".strip()
+    if status == 422:
+        return f"The backend rejected the request as invalid: {d}"
+    if status == 501:
+        return d or "This action is not available in the current mode."
+    if status == 503:
+        return f"The backend could not complete this right now: {d}" if d else "Service temporarily unavailable."
+    if status == 403:
+        return "The request was blocked by the hosting provider (403). Check the input for unusual characters."
+    if status >= 500:
+        return f"The backend hit an internal error on {endpoint} (HTTP {status}). {d}".strip()
+    return f"HTTP {status} from {base}{endpoint}. {d}".strip()
+
+
+def _http(method: str, path: str, s: Settings, *, params: dict | None = None, json: Any = None, timeout: float | None = None) -> Any:
+    url = s.api_base_url + path
+    try:
+        r = _session.request(method, url, params=params, json=json, timeout=timeout or s.timeout_s)
+    except requests.exceptions.ConnectionError as e:
+        raise ApiError(
+            f"Backend unreachable at {s.api_base_url}. Is it running? (Switch to MOCK mode on the Admin page to demo offline.)",
+            endpoint=path,
+            detail=str(e),
+        ) from None
+    except requests.exceptions.Timeout:
+        raise ApiError(
+            f"The backend did not answer within {timeout or s.timeout_s:.0f}s on {path}. A sleeping Render instance "
+            "can take up to a minute to wake; try Refresh.",
+            endpoint=path,
+        ) from None
+    if r.status_code >= 400:
+        try:
+            detail = r.json().get("detail")
+        except ValueError:
+            detail = r.text[:300] if "<html" not in r.text[:200].lower() else None
+        raise ApiError(_friendly(r.status_code, detail, path, s.api_base_url), status=r.status_code, detail=detail, endpoint=path)
+    try:
+        return r.json()
+    except ValueError:
+        raise ApiError(f"{path} returned a non-JSON response.", status=r.status_code, endpoint=path) from None
+
+
+def _mock(fn, *args, endpoint: str = "") -> Any:
+    try:
+        return fn(*args)
+    except mock.MockError as e:
+        raise ApiError(_friendly(e.status, e.detail, endpoint, "mock"), status=e.status, detail=e.detail, endpoint=endpoint) from None
+
+
+def _s(settings: Settings | None) -> Settings:
+    return settings or current_settings()
+
+
+# ------------------------------------------------------------------ endpoints
+def health(settings: Settings | None = None) -> dict:
+    s = _s(settings)
+    return _mock(mock.load, "health.json", endpoint="/health") if s.use_mocks else _http("GET", "/health", s)
+
+
+def get_forecast(date_from: str, date_to: str, as_of: str | None = None, settings: Settings | None = None) -> dict:
+    s = _s(settings)
+    params = {"from": date_from, "to": date_to, **({"as_of": as_of} if as_of else {})}
+    return _mock(mock.forecast, params, endpoint="/forecast") if s.use_mocks else _http("GET", "/forecast", s, params=params)
+
+
+def score_attrition(week_start: str | None = None, employee_ids: list[str] | None = None, settings: Settings | None = None) -> list[dict]:
+    s = _s(settings)
+    body = {k: v for k, v in {"week_start": week_start, "employee_ids": employee_ids}.items() if v}
+    return _mock(mock.score, body, endpoint="/attrition/score") if s.use_mocks else _http("POST", "/attrition/score", s, json=body)
+
+
+def rescore_attrition(
+    employee_id: str,
+    feature_overrides: dict | None = None,
+    protected_weekends_off: int | None = None,
+    week_start: str | None = None,
+    settings: Settings | None = None,
+) -> dict:
+    s = _s(settings)
+    body: dict[str, Any] = {"employee_id": employee_id}
+    if feature_overrides:
+        body["feature_overrides"] = feature_overrides
+    if protected_weekends_off:
+        body["protected_weekends_off"] = int(protected_weekends_off)
+    if week_start:
+        body["week_start"] = week_start
+    return _mock(mock.rescore, body, endpoint="/attrition/rescore") if s.use_mocks else _http("POST", "/attrition/rescore", s, json=body)
+
+
+def generate_roster(
+    week_start: str | None = None,
+    protected_ids: list[str] | None = None,
+    use_cache: bool = True,
+    deterministic: bool = True,
+    simulate_infeasible: bool = False,
+    settings: Settings | None = None,
+) -> dict:
+    s = _s(settings)
+    body: dict[str, Any] = {"protected_ids": protected_ids or [], "use_cache": use_cache, "deterministic": deterministic}
+    if week_start:
+        body["week_start"] = week_start
+    if s.use_mocks:
+        return _mock(mock.generate_roster, {**body, "_simulate_infeasible": simulate_infeasible}, endpoint="/roster/generate")
+    return _http("POST", "/roster/generate", s, json=body, timeout=s.roster_timeout_s)
+
+
+def get_roster(roster_id: int | str, settings: Settings | None = None) -> dict:
+    s = _s(settings)
+    return _mock(mock.get_roster, roster_id, endpoint=f"/roster/{roster_id}") if s.use_mocks else _http("GET", f"/roster/{roster_id}", s)
+
+
+def create_task(
+    idempotency_key: str,
+    title: str,
+    assignee: str,
+    *,
+    supervisor: str | None = None,
+    description: str = "",
+    employee_id: str | None = None,
+    due_in_minutes: int | None = None,
+    settings: Settings | None = None,
+) -> dict:
+    s = _s(settings)
+    body = {
+        k: v
+        for k, v in {
+            "idempotency_key": idempotency_key,
+            "title": title,
+            "assignee": assignee,
+            "supervisor": supervisor,
+            "description": description,
+            "employee_id": employee_id,
+            "due_in_minutes": due_in_minutes,
+        }.items()
+        if v not in (None, "")
+    }
+    return _mock(mock.create_task, body, endpoint="/tasks") if s.use_mocks else _http("POST", "/tasks", s, json=body)
+
+
+def list_tasks(status: str | None = None, employee_id: str | None = None, settings: Settings | None = None) -> list[dict]:
+    s = _s(settings)
+    params = {k: v for k, v in {"status": status, "employee_id": employee_id}.items() if v}
+    return _mock(mock.list_tasks, status, employee_id, endpoint="/tasks") if s.use_mocks else _http("GET", "/tasks", s, params=params)
+
+
+def ack_task(task_id: int | str, settings: Settings | None = None) -> dict:
+    s = _s(settings)
+    return _mock(mock.ack_task, task_id, endpoint=f"/tasks/{task_id}/ack") if s.use_mocks else _http("POST", f"/tasks/{task_id}/ack", s)
+
+
+def done_task(task_id: int | str, settings: Settings | None = None) -> dict:
+    s = _s(settings)
+    return _mock(mock.done_task, task_id, endpoint=f"/tasks/{task_id}/done") if s.use_mocks else _http("POST", f"/tasks/{task_id}/done", s)
+
+
+def run_loop(settings: Settings | None = None) -> dict:
+    s = _s(settings)
+    return (
+        _mock(mock.run_loop, endpoint="/loop/run") if s.use_mocks else _http("POST", "/loop/run", s, timeout=max(90.0, s.roster_timeout_s))
+    )
+
+
+def list_interventions(
+    status: str = "all", employee_id: str | None = None, week_start: str | None = None, settings: Settings | None = None
+) -> list[dict]:
+    """GET /interventions: stored closed-loop interventions with their linked task status (open/acked/done/overdue)."""
+    s = _s(settings)
+    params = {k: v for k, v in {"status": status, "employee_id": employee_id, "week_start": week_start}.items() if v}
+    return _mock(mock.interventions, params, endpoint="/interventions") if s.use_mocks else _http("GET", "/interventions", s, params=params)
+
+
+def metrics_overview(replacement_cost_inr: float | None = None, settings: Settings | None = None) -> dict:
+    s = _s(settings)
+    params = {"replacement_cost_inr": replacement_cost_inr} if replacement_cost_inr else {}
+    return _mock(mock.metrics, params, endpoint="/metrics/overview") if s.use_mocks else _http("GET", "/metrics/overview", s, params=params)
+
+
+def demo_reset(settings: Settings | None = None) -> dict:
+    s = _s(settings)
+    return _mock(mock.reset, endpoint="/demo/reset") if s.use_mocks else _http("POST", "/demo/reset", s, timeout=60)
+
+
+def get_clock(settings: Settings | None = None) -> dict:
+    s = _s(settings)
+    return _mock(mock.get_clock, endpoint="/demo/clock") if s.use_mocks else _http("GET", "/demo/clock", s)
+
+
+def set_clock(multiplier: float, settings: Settings | None = None) -> dict:
+    s = _s(settings)
+    body = {"multiplier": float(multiplier)}
+    return _mock(mock.set_clock, body, endpoint="/demo/clock") if s.use_mocks else _http("POST", "/demo/clock", s, json=body)
+
+
+def voice_ingest(file: str, create_task: bool = False, settings: Settings | None = None) -> dict:
+    s = _s(settings)
+    body = {"file": file, "create_task": create_task}
+    return (
+        _mock(mock.voice_ingest, body, endpoint="/voice/ingest")
+        if s.use_mocks
+        else _http("POST", "/voice/ingest", s, json=body, timeout=60)
+    )
+
+
+# ------------------------------------------------------------------ mock-only data + raw explorer
+def heroes() -> dict:
+    """12-week hero trajectories. No API endpoint serves this; it always comes from the mock file."""
+    return _mock(mock.load, "heroes.json", endpoint="heroes.json")
+
+
+def raw_request(method: str, path: str, body: Any = None, settings: Settings | None = None) -> Any:
+    """Admin debugging: call any endpoint and return the raw JSON."""
+    s = _s(settings)
+    path = "/" + path.lstrip("/")
+    route, _, query = path.partition("?")
+    params = dict(p.split("=", 1) for p in query.split("&") if "=" in p)
+    if not s.use_mocks:
+        return _http(method.upper(), route, s, params=params or None, json=body if method.upper() != "GET" else None, timeout=60)
+    m, parts = method.upper(), route.strip("/").split("/")
+    table = {
+        ("GET", "health"): lambda: mock.load("health.json"),
+        ("GET", "forecast"): lambda: mock.forecast(params),
+        ("POST", "attrition/score"): lambda: mock.score(body or {}),
+        ("POST", "attrition/rescore"): lambda: mock.rescore(body or {}),
+        ("POST", "roster/generate"): lambda: mock.generate_roster(body or {}),
+        ("GET", "tasks"): lambda: mock.list_tasks(params.get("status"), params.get("employee_id")),
+        ("POST", "tasks"): lambda: mock.create_task(body or {}),
+        ("GET", "demo/clock"): mock.get_clock,
+        ("POST", "demo/clock"): lambda: mock.set_clock(body or {}),
+        ("POST", "demo/reset"): mock.reset,
+        ("POST", "loop/run"): mock.run_loop,
+        ("GET", "interventions"): lambda: mock.interventions(params),
+        ("GET", "metrics/overview"): lambda: mock.metrics(params),
+        ("POST", "voice/ingest"): lambda: mock.voice_ingest(body or {}),
+    }
+    key = "/".join(parts)
+    if (m, key) in table:
+        return _mock(table[(m, key)], endpoint=route)
+    if m == "GET" and len(parts) == 2 and parts[0] == "roster":
+        return _mock(mock.get_roster, parts[1], endpoint=route)
+    if m == "POST" and len(parts) == 3 and parts[0] == "tasks" and parts[2] in ("ack", "done"):
+        return _mock(mock.ack_task if parts[2] == "ack" else mock.done_task, parts[1], endpoint=route)
+    raise ApiError(f"No mock for {m} {route}.", status=404, endpoint=route)

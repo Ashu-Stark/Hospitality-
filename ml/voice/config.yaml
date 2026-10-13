@@ -1,0 +1,28 @@
+# Voice notes (Task T11). Values are ASSUMED or VERIFY-before-use; nothing here is measured.
+# Staff record a short voice note ("room 204 AC not working, urgent"); a provider transcribes
+# it and the extractor turns the transcript into room / issue / urgency / department.
+
+# Providers are tried in this order; unavailable ones (no API key, package not installed) are
+# skipped. Cloud providers only ever receive clips cleared in clips/manifest.yaml.
+provider_order: [groq, sarvam, faster_whisper]
+request_timeout_seconds: 60
+max_audio_megabytes: 20          # refuse larger files before any upload
+allowed_external_sources: [synthetic, hm_student]   # never real guest or staff audio
+
+groq:
+  api_key_env: GROQ_API_KEY
+  url: "https://api.groq.com/openai/v1/audio/transcriptions"   # VERIFY against Groq docs
+  model: "whisper-large-v3-turbo"                               # VERIFY current model name
+sarvam:
+  api_key_env: SARVAM_API_KEY
+  url: "https://api.sarvam.ai/speech-to-text"                   # VERIFY against Sarvam docs
+  model: "saarika:v2.5"                                         # VERIFY current model name
+  language_code: "unknown"                                      # auto-detect Hindi / English
+faster_whisper:                  # local; package NOT installed (ask the user before installing)
+  model_size: "small"
+  device: "cpu"
+  compute_type: "int8"
+
+# Room numbers: this many digits after a room word ("room 204", "kamra 204", "कमरा 204").
+room_digits: [3, 3]
+default_urgency: normal

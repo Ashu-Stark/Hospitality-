@@ -1,0 +1,13 @@
+[
+  "department",
+  "role",
+  "contract_type",
+  "tenure_days",
+  "load_ratio",
+  "overtime_hours",
+  "leave_days",
+  "pulse_score",
+  "pulse_roll4_mean",
+  "pulse_trend_4w",
+  "days_until_contract_end"
+]

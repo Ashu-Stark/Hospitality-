@@ -1,0 +1,13 @@
+{
+  "synthetic": true,
+  "seed": 42,
+  "files": {
+    "employee_v2.csv": "9b7f631b77ae4ec55adf54f54029c8da30723ebb11cfca3e64efb11a56ae8db8",
+    "weekly_behaviour.csv": "900c1a8a51e871e876904a5022c3ff75ca5415e3e4a9346fb43b7062151714fb",
+    "weekly_signals.csv": "86873b335e0a3fbded8b7dc81e633e74d4d237253a15e537e3c63e328da5749a",
+    "exits.csv": "d4ca34fd88895a17cac1edd6d69eb4c685544c6bed03b467255d9946072abe9f",
+    "contract_renewals.csv": "c564435643d8bccad15d61d72a8de6363925addb50b91770a40b6397e19903f6",
+    "pay_changes.csv": "2c78dbc4c1fe2b60a654fb599c3bcb68ff407e49a430c3374bc0b29aa4db6e91"
+  },
+  "combined_sha256": "41163b06e51f2408a05a4838b81a7d76071de03e62c1816905f4ddef94e13f7f"
+}

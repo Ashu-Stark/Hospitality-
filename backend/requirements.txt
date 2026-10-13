@@ -1,0 +1,11 @@
+# Backend direct dependencies (unpinned); the ML stack comes from ../ml/requirements.txt.
+# Exact versions of everything: requirements-lock.txt.
+fastapi
+uvicorn
+pymongo
+apscheduler
+ortools
+httpx
+# test / dev only: in-memory MongoDB used when MONGODB_URI is unset or "mongomock://" (the tests,
+# backend-smoke, local runs). Production sets MONGODB_URI and never imports it.
+mongomock

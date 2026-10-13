@@ -1,0 +1,6 @@
+employee_id,department,role,is_department_head,manager_id,hire_date,contract_type,contract_end_date,monthly_pay,last_raise_date
+H901,housekeeping,attendant,False,E148,2027-10-25,permanent,,13580,2029-04-24
+H902,kitchen,cook,False,E202,2027-06-25,permanent,,24000,2028-04-24
+H903,front_office,receptionist,False,E188,2028-06-24,permanent,,14760,2029-06-24
+H904,fnb_service,waiter,False,E186,2029-07-25,seasonal,2030-01-14,14000,2029-07-25
+H905,maintenance,technician,False,E066,2023-12-24,permanent,,21000,2029-08-24

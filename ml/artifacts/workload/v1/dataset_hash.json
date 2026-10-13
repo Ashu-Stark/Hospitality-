@@ -1,0 +1,14 @@
+{
+  "synthetic": true,
+  "seed": 42,
+  "files": {
+    "dept_week_load_dynamic.csv": "31057170f654dd19ac790d82b68a9262f9a60bb38ca2f2a067a5752118287aa7",
+    "event_calendar.csv": "922c27077477e6ec0a0ec66869d965cb5ab49908acaaffb24a7f89f607d469d5",
+    "employee_v2.csv": "9b7f631b77ae4ec55adf54f54029c8da30723ebb11cfca3e64efb11a56ae8db8",
+    "weekly_behaviour.csv": "900c1a8a51e871e876904a5022c3ff75ca5415e3e4a9346fb43b7062151714fb",
+    "exits.csv": "d4ca34fd88895a17cac1edd6d69eb4c685544c6bed03b467255d9946072abe9f",
+    "contract_renewals.csv": "c564435643d8bccad15d61d72a8de6363925addb50b91770a40b6397e19903f6",
+    "pay_changes.csv": "2c78dbc4c1fe2b60a654fb599c3bcb68ff407e49a430c3374bc0b29aa4db6e91"
+  },
+  "combined_sha256": "7368e24b53ea31976622860a0df8d1b046d10e8a3f7e0b8c8a816e8ca808f4fd"
+}

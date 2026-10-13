@@ -1,0 +1,48 @@
+# Hotel voice-note glossary (Task T11), English + Hindi (Devanagari and romanised Hinglish).
+# DRAFT written for the SYNTHETIC demo. Every entry is unverified until the HM (hotel
+# management) student reviews it: fix the Hindi, add local Garhwali / Kumaoni variants in
+# `local_variants` (placeholder TODO_HM_STUDENT), and set verified_by_hm_student: true.
+# Matching is case-insensitive on whole words / phrases; the first matched issue term in the
+# transcript sets issue + department.
+
+departments: [housekeeping, maintenance, front_office, fnb_service, kitchen, security]
+urgency_levels: [low, normal, high]
+
+room_words: [room, rm, kamra, कमरा, कमरे, room number, कमरा नंबर]
+
+urgency_terms:
+  high: [urgent, urgently, emergency, immediately, asap, right now, jaldi, जल्दी, abhi, अभी,
+         turant, तुरंत, इमरजेंसी]
+  low: [when free, no hurry, later, baad mein, बाद में, aaram se, आराम से]
+
+terms:
+  - {id: towel, english: [towel, towels], hindi: [तौलिया, तौलिये], romanised: [tauliya, tauliye], issue: towels_needed, department: housekeeping}
+  - {id: bedsheet, english: [bedsheet, bed sheet, linen, sheets], hindi: [चादर], romanised: [chadar, chaadar], issue: linen_change, department: housekeeping}
+  - {id: cleaning, english: [cleaning, clean the room, dirty], hindi: [सफ़ाई, सफाई, गंदा], romanised: [safai, safaai, ganda], issue: room_cleaning, department: housekeeping}
+  - {id: blanket, english: [blanket, quilt], hindi: [कंबल, रजाई], romanised: [kambal, razai], issue: extra_blanket, department: housekeeping}
+  - {id: extra_bed, english: [extra bed, mattress], hindi: [गद्दा], romanised: [gadda], issue: extra_bed, department: housekeeping}
+  - {id: water_bottle, english: [water bottle, drinking water], hindi: [पीने का पानी, पानी की बोतल], romanised: [peene ka paani, paani ki bottle], issue: water_bottle, department: housekeeping}
+  - {id: ac, english: [ac, air conditioner, aircon], hindi: [एसी], romanised: [], issue: ac_not_working, department: maintenance}
+  - {id: heater, english: [heater, room heater], hindi: [हीटर], romanised: [], issue: heater_not_working, department: maintenance}
+  - {id: geyser, english: [geyser, hot water, water heater], hindi: [गीज़र, गीजर, गरम पानी], romanised: [garam paani, garam pani], issue: no_hot_water, department: maintenance}
+  - {id: leak, english: [leak, leaking, dripping], hindi: [टपक, लीक], romanised: [tapak, tapak raha], issue: water_leak, department: maintenance}
+  - {id: flush, english: [flush, toilet, blocked drain], hindi: [फ्लश, टॉयलेट, नाली], romanised: [naali], issue: plumbing, department: maintenance}
+  - {id: light, english: [light, bulb, lights], hindi: [बत्ती, लाइट, बल्ब], romanised: [batti], issue: light_fault, department: maintenance}
+  - {id: power_cut, english: [power cut, no electricity, power outage], hindi: [बिजली], romanised: [bijli, light gayi], issue: power_cut, department: maintenance}
+  - {id: tv, english: [tv, television], hindi: [टीवी], romanised: [], issue: tv_fault, department: maintenance}
+  - {id: wifi, english: [wifi, wi-fi, internet], hindi: [वाईफ़ाई, वाईफाई, इंटरनेट], romanised: [], issue: wifi_issue, department: front_office}
+  - {id: key_card, english: [key card, room key, key], hindi: [चाबी], romanised: [chabi, chaabi], issue: key_issue, department: front_office}
+  - {id: checkout, english: [checkout, check out, late checkout], hindi: [चेकआउट], romanised: [], issue: checkout_request, department: front_office}
+  - {id: taxi, english: [taxi, cab, pickup], hindi: [टैक्सी, गाड़ी], romanised: [gaadi, gadi], issue: transport_request, department: front_office}
+  - {id: road_closed, english: [road closed, landslide, road block], hindi: [रास्ता बंद, भूस्खलन], romanised: [rasta band, raasta band], issue: travel_disruption, department: front_office}
+  - {id: food_order, english: [room service, food, order, breakfast, dinner], hindi: [खाना, नाश्ता], romanised: [khana, khaana, nashta], issue: food_order, department: fnb_service}
+  - {id: tea, english: [tea, coffee], hindi: [चाय, कॉफ़ी], romanised: [chai], issue: food_order, department: fnb_service}
+  - {id: kitchen_gas, english: [gas cylinder, gas leak, stove], hindi: [सिलेंडर, चूल्हा], romanised: [cylinder, chulha], issue: kitchen_equipment, department: kitchen}
+  - {id: noise, english: [noise, loud music, shouting], hindi: [शोर, आवाज़], romanised: [shor, awaaz], issue: noise_complaint, department: security}
+  - {id: lost_item, english: [lost, missing bag, lost and found], hindi: [खो गया, खोया], romanised: [kho gaya, khoya], issue: lost_item, department: security}
+  - {id: parking, english: [parking, car park], hindi: [पार्किंग], romanised: [], issue: parking_issue, department: security}
+
+# Applies to every term above until the HM student reviews it.
+review_defaults:
+  verified_by_hm_student: false
+  local_variants: TODO_HM_STUDENT

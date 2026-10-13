@@ -1,0 +1,47 @@
+[
+  {
+    "employee_id": "H901",
+    "display_name": "Sunita",
+    "department": "housekeeping",
+    "role": "attendant",
+    "contract_type": "permanent",
+    "story": "overtime overload and clustered-leave burnout",
+    "synthetic": true
+  },
+  {
+    "employee_id": "H902",
+    "display_name": "Rajesh",
+    "department": "kitchen",
+    "role": "cook",
+    "contract_type": "permanent",
+    "story": "stalled progression",
+    "synthetic": true
+  },
+  {
+    "employee_id": "H903",
+    "display_name": "Meena",
+    "department": "front_office",
+    "role": "receptionist",
+    "contract_type": "permanent",
+    "story": "pay gap, otherwise healthy",
+    "synthetic": true
+  },
+  {
+    "employee_id": "H904",
+    "display_name": "Arun",
+    "department": "fnb_service",
+    "role": "waiter",
+    "contract_type": "seasonal",
+    "story": "seasonal contract ending in 3 weeks",
+    "synthetic": true
+  },
+  {
+    "employee_id": "H905",
+    "display_name": "Deepak",
+    "department": "maintenance",
+    "role": "technician",
+    "contract_type": "permanent",
+    "story": "healthy control (long tenure, steady scores)",
+    "synthetic": true
+  }
+]

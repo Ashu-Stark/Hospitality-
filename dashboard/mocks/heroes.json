@@ -1,0 +1,535 @@
+{
+  "week_start": "2029-12-24",
+  "illustrative": true,
+  "note": "Trajectory is an illustrative fixture anchored to the live current score; replace with ml/data/mocks/heroes.json from the repo.",
+  "heroes": [
+    {
+      "employee_id": "H901",
+      "display_name": "Sunita",
+      "story": "Senior housekeeper with sustained overtime and weeks without a weekend off; risk has been rising.",
+      "department": "housekeeping",
+      "segment": "resignation",
+      "weeks": [
+        {
+          "week_start": "2029-10-08",
+          "risk": 0.035,
+          "overtime_hours": 4.0,
+          "weeks_since_weekend_off": 0,
+          "rank": 21,
+          "band": "low"
+        },
+        {
+          "week_start": "2029-10-15",
+          "risk": 0.0369,
+          "overtime_hours": 4.8,
+          "weeks_since_weekend_off": 0,
+          "rank": 20,
+          "band": "low"
+        },
+        {
+          "week_start": "2029-10-22",
+          "risk": 0.0401,
+          "overtime_hours": 5.7,
+          "weeks_since_weekend_off": 0,
+          "rank": 18,
+          "band": "low"
+        },
+        {
+          "week_start": "2029-10-29",
+          "risk": 0.044,
+          "overtime_hours": 6.5,
+          "weeks_since_weekend_off": 0,
+          "rank": 16,
+          "band": "low"
+        },
+        {
+          "week_start": "2029-11-05",
+          "risk": 0.0485,
+          "overtime_hours": 7.3,
+          "weeks_since_weekend_off": 0,
+          "rank": 13,
+          "band": "low"
+        },
+        {
+          "week_start": "2029-11-12",
+          "risk": 0.0534,
+          "overtime_hours": 8.1,
+          "weeks_since_weekend_off": 0,
+          "rank": 12,
+          "band": "watch",
+          "note": "Weekend offs stop"
+        },
+        {
+          "week_start": "2029-11-19",
+          "risk": 0.0588,
+          "overtime_hours": 9.0,
+          "weeks_since_weekend_off": 0,
+          "rank": 10,
+          "band": "watch"
+        },
+        {
+          "week_start": "2029-11-26",
+          "risk": 0.0645,
+          "overtime_hours": 9.8,
+          "weeks_since_weekend_off": 1,
+          "rank": 9,
+          "band": "watch"
+        },
+        {
+          "week_start": "2029-12-03",
+          "risk": 0.0705,
+          "overtime_hours": 10.6,
+          "weeks_since_weekend_off": 2,
+          "rank": 8,
+          "band": "watch"
+        },
+        {
+          "week_start": "2029-12-10",
+          "risk": 0.0769,
+          "overtime_hours": 11.4,
+          "weeks_since_weekend_off": 3,
+          "rank": 6,
+          "band": "watch"
+        },
+        {
+          "week_start": "2029-12-17",
+          "risk": 0.0836,
+          "overtime_hours": 12.3,
+          "weeks_since_weekend_off": 4,
+          "rank": 6,
+          "band": "watch",
+          "note": "Christmas / New Year rush begins"
+        },
+        {
+          "week_start": "2029-12-24",
+          "risk": 0.0905,
+          "overtime_hours": 13.1,
+          "weeks_since_weekend_off": 5,
+          "rank": 5,
+          "band": "high"
+        }
+      ]
+    },
+    {
+      "employee_id": "H902",
+      "display_name": "Rajesh",
+      "story": "Strong performer whose progression has stalled: a long time since a raise or new responsibility.",
+      "department": "kitchen",
+      "segment": "resignation",
+      "weeks": [
+        {
+          "week_start": "2029-10-08",
+          "risk": 0.0342,
+          "overtime_hours": 3.0,
+          "weeks_since_weekend_off": 1,
+          "rank": 22,
+          "band": "low"
+        },
+        {
+          "week_start": "2029-10-15",
+          "risk": 0.0347,
+          "overtime_hours": 3.0,
+          "weeks_since_weekend_off": 1,
+          "rank": 22,
+          "band": "low"
+        },
+        {
+          "week_start": "2029-10-22",
+          "risk": 0.0353,
+          "overtime_hours": 3.0,
+          "weeks_since_weekend_off": 1,
+          "rank": 21,
+          "band": "low"
+        },
+        {
+          "week_start": "2029-10-29",
+          "risk": 0.0358,
+          "overtime_hours": 3.0,
+          "weeks_since_weekend_off": 1,
+          "rank": 20,
+          "band": "low"
+        },
+        {
+          "week_start": "2029-11-05",
+          "risk": 0.0364,
+          "overtime_hours": 3.0,
+          "weeks_since_weekend_off": 1,
+          "rank": 20,
+          "band": "low"
+        },
+        {
+          "week_start": "2029-11-12",
+          "risk": 0.0369,
+          "overtime_hours": 3.0,
+          "weeks_since_weekend_off": 1,
+          "rank": 20,
+          "band": "low"
+        },
+        {
+          "week_start": "2029-11-19",
+          "risk": 0.0375,
+          "overtime_hours": 3.0,
+          "weeks_since_weekend_off": 1,
+          "rank": 20,
+          "band": "low"
+        },
+        {
+          "week_start": "2029-11-26",
+          "risk": 0.038,
+          "overtime_hours": 3.0,
+          "weeks_since_weekend_off": 1,
+          "rank": 20,
+          "band": "low"
+        },
+        {
+          "week_start": "2029-12-03",
+          "risk": 0.0386,
+          "overtime_hours": 3.0,
+          "weeks_since_weekend_off": 1,
+          "rank": 20,
+          "band": "low"
+        },
+        {
+          "week_start": "2029-12-10",
+          "risk": 0.0391,
+          "overtime_hours": 3.0,
+          "weeks_since_weekend_off": 1,
+          "rank": 19,
+          "band": "low"
+        },
+        {
+          "week_start": "2029-12-17",
+          "risk": 0.0397,
+          "overtime_hours": 3.0,
+          "weeks_since_weekend_off": 1,
+          "rank": 18,
+          "band": "low"
+        },
+        {
+          "week_start": "2029-12-24",
+          "risk": 0.0402,
+          "overtime_hours": 3.0,
+          "weeks_since_weekend_off": 1,
+          "rank": 17,
+          "band": "low"
+        }
+      ]
+    },
+    {
+      "employee_id": "H903",
+      "display_name": "Meena",
+      "story": "Paid noticeably below the role average for comparable work.",
+      "department": "front_office",
+      "segment": "resignation",
+      "weeks": [
+        {
+          "week_start": "2029-10-08",
+          "risk": 0.0396,
+          "overtime_hours": 2.5,
+          "weeks_since_weekend_off": 1,
+          "rank": 19,
+          "band": "low"
+        },
+        {
+          "week_start": "2029-10-15",
+          "risk": 0.0409,
+          "overtime_hours": 2.5,
+          "weeks_since_weekend_off": 1,
+          "rank": 18,
+          "band": "low"
+        },
+        {
+          "week_start": "2029-10-22",
+          "risk": 0.041,
+          "overtime_hours": 2.5,
+          "weeks_since_weekend_off": 1,
+          "rank": 18,
+          "band": "low"
+        },
+        {
+          "week_start": "2029-10-29",
+          "risk": 0.0398,
+          "overtime_hours": 2.5,
+          "weeks_since_weekend_off": 1,
+          "rank": 19,
+          "band": "low"
+        },
+        {
+          "week_start": "2029-11-05",
+          "risk": 0.0384,
+          "overtime_hours": 2.5,
+          "weeks_since_weekend_off": 1,
+          "rank": 20,
+          "band": "low"
+        },
+        {
+          "week_start": "2029-11-12",
+          "risk": 0.0381,
+          "overtime_hours": 2.5,
+          "weeks_since_weekend_off": 1,
+          "rank": 20,
+          "band": "low"
+        },
+        {
+          "week_start": "2029-11-19",
+          "risk": 0.0392,
+          "overtime_hours": 2.5,
+          "weeks_since_weekend_off": 1,
+          "rank": 19,
+          "band": "low"
+        },
+        {
+          "week_start": "2029-11-26",
+          "risk": 0.0406,
+          "overtime_hours": 2.5,
+          "weeks_since_weekend_off": 1,
+          "rank": 18,
+          "band": "low"
+        },
+        {
+          "week_start": "2029-12-03",
+          "risk": 0.0412,
+          "overtime_hours": 2.5,
+          "weeks_since_weekend_off": 1,
+          "rank": 18,
+          "band": "low"
+        },
+        {
+          "week_start": "2029-12-10",
+          "risk": 0.0403,
+          "overtime_hours": 2.5,
+          "weeks_since_weekend_off": 1,
+          "rank": 18,
+          "band": "low"
+        },
+        {
+          "week_start": "2029-12-17",
+          "risk": 0.0387,
+          "overtime_hours": 2.5,
+          "weeks_since_weekend_off": 1,
+          "rank": 20,
+          "band": "low"
+        },
+        {
+          "week_start": "2029-12-24",
+          "risk": 0.0396,
+          "overtime_hours": 2.5,
+          "weeks_since_weekend_off": 1,
+          "rank": 17,
+          "band": "low"
+        }
+      ]
+    },
+    {
+      "employee_id": "H904",
+      "display_name": "Arun",
+      "story": "Seasonal staff whose contract is ending: a renewal decision, not a resignation prediction.",
+      "department": "fnb_service",
+      "segment": "contract_end",
+      "weeks": [
+        {
+          "week_start": "2029-10-08",
+          "risk": 0.25,
+          "overtime_hours": 4.0,
+          "weeks_since_weekend_off": 2,
+          "rank": 4,
+          "band": "low"
+        },
+        {
+          "week_start": "2029-10-15",
+          "risk": 0.2977,
+          "overtime_hours": 4.0,
+          "weeks_since_weekend_off": 2,
+          "rank": 4,
+          "band": "low"
+        },
+        {
+          "week_start": "2029-10-22",
+          "risk": 0.3454,
+          "overtime_hours": 4.0,
+          "weeks_since_weekend_off": 2,
+          "rank": 3,
+          "band": "low"
+        },
+        {
+          "week_start": "2029-10-29",
+          "risk": 0.3932,
+          "overtime_hours": 4.0,
+          "weeks_since_weekend_off": 2,
+          "rank": 3,
+          "band": "low"
+        },
+        {
+          "week_start": "2029-11-05",
+          "risk": 0.4409,
+          "overtime_hours": 4.0,
+          "weeks_since_weekend_off": 2,
+          "rank": 3,
+          "band": "low"
+        },
+        {
+          "week_start": "2029-11-12",
+          "risk": 0.4886,
+          "overtime_hours": 4.0,
+          "weeks_since_weekend_off": 2,
+          "rank": 3,
+          "band": "low"
+        },
+        {
+          "week_start": "2029-11-19",
+          "risk": 0.5363,
+          "overtime_hours": 4.0,
+          "weeks_since_weekend_off": 2,
+          "rank": 2,
+          "band": "low"
+        },
+        {
+          "week_start": "2029-11-26",
+          "risk": 0.584,
+          "overtime_hours": 4.0,
+          "weeks_since_weekend_off": 2,
+          "rank": 2,
+          "band": "low"
+        },
+        {
+          "week_start": "2029-12-03",
+          "risk": 0.6317,
+          "overtime_hours": 4.0,
+          "weeks_since_weekend_off": 2,
+          "rank": 2,
+          "band": "low"
+        },
+        {
+          "week_start": "2029-12-10",
+          "risk": 0.6795,
+          "overtime_hours": 4.0,
+          "weeks_since_weekend_off": 2,
+          "rank": 2,
+          "band": "high",
+          "note": "Contract end inside 30-day window"
+        },
+        {
+          "week_start": "2029-12-17",
+          "risk": 0.7272,
+          "overtime_hours": 4.0,
+          "weeks_since_weekend_off": 2,
+          "rank": 1,
+          "band": "high"
+        },
+        {
+          "week_start": "2029-12-24",
+          "risk": 0.7749,
+          "overtime_hours": 4.0,
+          "weeks_since_weekend_off": 2,
+          "rank": 1,
+          "band": "high"
+        }
+      ]
+    },
+    {
+      "employee_id": "H905",
+      "display_name": "Deepak",
+      "story": "Healthy control case: balanced hours, regular offs, no active risk drivers.",
+      "department": "maintenance",
+      "segment": "resignation",
+      "weeks": [
+        {
+          "week_start": "2029-10-08",
+          "risk": 0.0234,
+          "overtime_hours": 1.0,
+          "weeks_since_weekend_off": 1,
+          "rank": 35,
+          "band": "low"
+        },
+        {
+          "week_start": "2029-10-15",
+          "risk": 0.0244,
+          "overtime_hours": 1.0,
+          "weeks_since_weekend_off": 1,
+          "rank": 33,
+          "band": "low"
+        },
+        {
+          "week_start": "2029-10-22",
+          "risk": 0.0245,
+          "overtime_hours": 1.0,
+          "weeks_since_weekend_off": 1,
+          "rank": 33,
+          "band": "low"
+        },
+        {
+          "week_start": "2029-10-29",
+          "risk": 0.0236,
+          "overtime_hours": 1.0,
+          "weeks_since_weekend_off": 1,
+          "rank": 35,
+          "band": "low"
+        },
+        {
+          "week_start": "2029-11-05",
+          "risk": 0.0225,
+          "overtime_hours": 1.0,
+          "weeks_since_weekend_off": 1,
+          "rank": 35,
+          "band": "low"
+        },
+        {
+          "week_start": "2029-11-12",
+          "risk": 0.0223,
+          "overtime_hours": 1.0,
+          "weeks_since_weekend_off": 1,
+          "rank": 35,
+          "band": "low"
+        },
+        {
+          "week_start": "2029-11-19",
+          "risk": 0.0231,
+          "overtime_hours": 1.0,
+          "weeks_since_weekend_off": 1,
+          "rank": 35,
+          "band": "low"
+        },
+        {
+          "week_start": "2029-11-26",
+          "risk": 0.0242,
+          "overtime_hours": 1.0,
+          "weeks_since_weekend_off": 1,
+          "rank": 33,
+          "band": "low"
+        },
+        {
+          "week_start": "2029-12-03",
+          "risk": 0.0246,
+          "overtime_hours": 1.0,
+          "weeks_since_weekend_off": 1,
+          "rank": 33,
+          "band": "low"
+        },
+        {
+          "week_start": "2029-12-10",
+          "risk": 0.0239,
+          "overtime_hours": 1.0,
+          "weeks_since_weekend_off": 1,
+          "rank": 34,
+          "band": "low"
+        },
+        {
+          "week_start": "2029-12-17",
+          "risk": 0.0228,
+          "overtime_hours": 1.0,
+          "weeks_since_weekend_off": 1,
+          "rank": 35,
+          "band": "low"
+        },
+        {
+          "week_start": "2029-12-24",
+          "risk": 0.0234,
+          "overtime_hours": 1.0,
+          "weeks_since_weekend_off": 1,
+          "rank": 32,
+          "band": "low"
+        }
+      ]
+    }
+  ]
+}

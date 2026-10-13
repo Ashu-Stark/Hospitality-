@@ -1,0 +1,34 @@
+{
+  "model": "workload_model",
+  "seed": 42,
+  "best_iteration": 611,
+  "val": {
+    "rows": 342,
+    "mae": 0.0611,
+    "rmse": 0.0822,
+    "r2": 0.8416
+  },
+  "test": {
+    "rows": 426,
+    "mae": 0.053,
+    "rmse": 0.0763,
+    "r2": 0.8456
+  },
+  "feature_importance_gain": {
+    "load_ratio": 13450.45,
+    "week_of_year": 7902.36,
+    "load_trend_4w": 7714.35,
+    "load_roll4_mean": 6774.78,
+    "room_nights_roll4_mean": 5905.49,
+    "occupied_room_nights": 5628.75,
+    "is_festival_week": 787.2,
+    "headcount": 717.89,
+    "next_week_is_festival": 346.84,
+    "department_security": 107.37,
+    "department_kitchen": 27.07,
+    "department_maintenance": 22.27,
+    "department_fnb_service": 14.54,
+    "department_front_office": 3.06,
+    "department_housekeeping": 0.0
+  }
+}

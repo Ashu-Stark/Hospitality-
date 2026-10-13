@@ -1,0 +1,8 @@
+{
+  "intercept": -7.3125,
+  "achieved_annual_attrition": 0.40028,
+  "target_annual_attrition": 0.4,
+  "simulations_run": 1,
+  "search_mode": "reused",
+  "config_fingerprint": "05e0aa58142f82c4"
+}

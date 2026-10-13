@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0b0b0b">
+<meta name="robots" content="noindex">
+<title>Room service requests</title>
+<link rel="stylesheet" href="/shared/base.css">
+<link rel="stylesheet" href="guest.css">
+</head>
+<body>
+<main class="wrap">
+  <header class="ghero" id="hero">
+    <div class="eyebrow" id="hotel">&nbsp;</div>
+    <h1><span data-t="hello">How can we help?</span></h1>
+    <p><span data-t="room">Room</span> <b id="roomNo">…</b> · <span data-t="sub">Tap a request. The right team member is notified at once.</span></p>
+    <div class="langs"><button data-lang="en" class="on">English</button><button data-lang="hi">हिंदी</button></div>
+  </header>
+  <div id="err" class="banner red hidden" role="alert"></div>
+  <section id="menu" class="grid" aria-label="Requests"></section>
+  <label class="lbl" for="note" data-t="note">Anything to add? (optional)</label>
+  <input id="note" class="field" maxlength="140" autocomplete="off">
+  <section class="stack">
+    <h2 data-t="status">Your requests today</h2>
+    <div id="list" class="stack"></div>
+  </section>
+  <p class="muted foot" data-t="privacy">We don't ask for your name or phone number. For emergencies, call the front desk.</p>
+</main>
+<script src="guest.js"></script>
+</body>
+</html>

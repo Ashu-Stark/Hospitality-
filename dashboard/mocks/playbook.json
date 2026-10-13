@@ -1,0 +1,125 @@
+{
+  "source": "collected from live /attrition/score actions",
+  "drivers": {
+    "overtime_overload": {
+      "title": "Overtime overload",
+      "support_level": "supported",
+      "explanation": "Sustained overtime over recent weeks, often without a weekend off.",
+      "actions": [
+        {
+          "action": "Protect two weekends off in the next roster and cap overtime at 6 h/week",
+          "owner": "department head",
+          "check_after_weeks": 2,
+          "expected_effect": "ASSUMPTION: overtime and weekend-off features return to normal within 2-4 weeks, lowering risk"
+        },
+        {
+          "action": "Add a seasonal or cross-trained cover shift in peak weeks",
+          "owner": "general manager",
+          "check_after_weeks": 4,
+          "expected_effect": "ASSUMPTION: department load ratio falls below 1.0, spreading overtime"
+        }
+      ]
+    },
+    "stalled_progression": {
+      "title": "Stalled progression",
+      "support_level": "supported",
+      "explanation": "A long time since the last raise or new responsibility while task scores stay good.",
+      "actions": [
+        {
+          "action": "Hold a growth conversation and agree a skill or role step with a date",
+          "owner": "department head",
+          "check_after_weeks": 4,
+          "expected_effect": "ASSUMPTION: pulse holds or improves; a concrete step reduces resignation intent"
+        },
+        {
+          "action": "Review raise timing at the next pay cycle",
+          "owner": "general manager",
+          "check_after_weeks": 8,
+          "expected_effect": "ASSUMPTION: months since raise resets, removing the stalled-progression driver"
+        }
+      ]
+    },
+    "low_engagement": {
+      "title": "Low engagement",
+      "support_level": "supported",
+      "explanation": "Pulse scores are low or falling against the person's own baseline.",
+      "actions": [
+        {
+          "action": "Short 1:1 check-in to hear what changed",
+          "owner": "department head",
+          "check_after_weeks": 1,
+          "expected_effect": "ASSUMPTION: the cause is identified early; pulse decline slows"
+        },
+        {
+          "action": "Recognise recent good work publicly at the shift briefing",
+          "owner": "department head",
+          "check_after_weeks": 2,
+          "expected_effect": "ASSUMPTION: small pulse improvement"
+        }
+      ]
+    },
+    "pay_gap": {
+      "title": "Pay gap",
+      "support_level": "supported",
+      "explanation": "Pay is below the average for the same role at this property.",
+      "actions": [
+        {
+          "action": "Benchmark pay against the role average and local hotels",
+          "owner": "general manager",
+          "check_after_weeks": 4,
+          "expected_effect": "ASSUMPTION: gaps above 10% are found and budgeted"
+        },
+        {
+          "action": "Close the gap with a raise or allowance (food, housing, travel)",
+          "owner": "general manager",
+          "check_after_weeks": 8,
+          "expected_effect": "ASSUMPTION: pay ratio reaches ~1.0, removing the pay-gap driver"
+        }
+      ]
+    },
+    "clustered_leave_burnout": {
+      "title": "Clustered-leave burnout",
+      "support_level": "weakly_supported",
+      "explanation": "Little leave or short clustered leave and no weekend offs. Weakly supported: the data encodes this only partially, so treat it as a hint, not a finding.",
+      "actions": [
+        {
+          "action": "Schedule a planned leave block outside the festival rush",
+          "owner": "department head",
+          "check_after_weeks": 3,
+          "expected_effect": "ASSUMPTION: weeks without leave resets; burnout risk falls"
+        },
+        {
+          "action": "Spread festival leave fairly with a rota agreed in advance",
+          "owner": "HR / front office manager",
+          "check_after_weeks": 6,
+          "expected_effect": "ASSUMPTION: fewer staff bunch all leave before festivals"
+        }
+      ]
+    },
+    "season_end_exit": {
+      "title": "Season-end exit",
+      "support_level": "supported",
+      "explanation": "Seasonal contract is ending. Banded by a contract-date rule, not by the resignation model.",
+      "actions": [
+        {
+          "action": "Decide on renewal and tell the employee at least 4 weeks before the contract ends",
+          "owner": "general manager",
+          "check_after_weeks": 1,
+          "expected_effect": "ASSUMPTION: wanted staff renew; unplanned gaps fall"
+        },
+        {
+          "action": "Offer a next-season return bonus or priority rehire",
+          "owner": "HR",
+          "check_after_weeks": 4,
+          "expected_effect": "ASSUMPTION: higher return rate of trained seasonal staff"
+        }
+      ]
+    },
+    "manager_relationship": {
+      "title": "Manager relationship",
+      "support_level": "unsupported",
+      "explanation": "Unsupported: the current data has no manager signal, so this driver cannot be detected.",
+      "actions": []
+    }
+  }
+}

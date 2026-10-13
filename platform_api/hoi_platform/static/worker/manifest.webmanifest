@@ -1,0 +1,12 @@
+{
+  "name": "HOI Staff",
+  "short_name": "HOI Staff",
+  "description": "Your shifts, job pings with photo proof, and supply requests.",
+  "start_url": "/worker/",
+  "scope": "/worker/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f2f2f0",
+  "theme_color": "#0b0b0b",
+  "icons": [{ "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }]
+}

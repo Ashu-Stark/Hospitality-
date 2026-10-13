@@ -1,0 +1,29 @@
+# Docker build context = repo root (backend/Dockerfile needs backend/ and ml/).
+.git
+.venv
+**/.venv
+**/__pycache__
+**/*.pyc
+**/.pytest_cache
+**/.ruff_cache
+# other services build from their own folders
+dashboard
+platform_api
+portal
+website
+docs
+scripts
+*.png
+# generator-only hidden traits: never shipped, never read by the app
+ml/data/internal
+# tests and voice audio are not needed at runtime
+ml/tests
+backend/tests
+ml/voice/clips/*.wav
+ml/voice/clips/*.mp3
+ml/voice/clips/*.m4a
+ml/voice/clips/*.ogg
+
+# secrets
+.env
+**/.env

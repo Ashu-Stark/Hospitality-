@@ -1,0 +1,85 @@
+# DEMO HEROES (Task T5): scripted, fictional employees for demos ONLY.
+# They live in their own files (data/demo/), are never part of training or test data, and their
+# display names are kept only in data/demo/hero_display_names.json. Every value is a scripted
+# ASSUMPTION for the demo, not data. The script covers the LAST `weeks` simulated weeks.
+# [a, b] means a straight line from a (first scripted week) to b (last scripted week).
+# leave_weeks maps a 1-based scripted week to leave days taken that week.
+# no_weekend_off_last_weeks: number of final weeks with no weekend off (others alternate).
+weeks: 12
+
+heroes:
+  H901:
+    display_name: Sunita
+    story: overtime overload and clustered-leave burnout
+    department: housekeeping
+    role: attendant
+    contract_type: permanent
+    tenure_months: 26
+    months_since_raise: 8
+    pay_ratio: 0.97
+    overtime_hours: [6, 18]
+    pulse_score: [4.1, 2.6]
+    task_score: [88, 79]
+    no_weekend_off_last_weeks: 5
+    leave_weeks: {4: 2}        # 2 days just before Diwali (2029-11-05), no other leave
+
+  H902:
+    display_name: Rajesh
+    story: stalled progression
+    department: kitchen
+    role: cook
+    contract_type: permanent
+    tenure_months: 30
+    months_since_raise: 20
+    pay_ratio: 1.0
+    overtime_hours: [2, 2]
+    pulse_score: [3.7, 3.6]
+    task_score: [93, 94]       # top-10% of the population
+    no_weekend_off_last_weeks: 0
+    leave_weeks: {3: 1, 7: 1, 11: 1}
+
+  H903:
+    display_name: Meena
+    story: pay gap, otherwise healthy
+    department: front_office
+    role: receptionist
+    contract_type: permanent
+    tenure_months: 18
+    months_since_raise: 6
+    pay_ratio: 0.82
+    overtime_hours: [1, 1]
+    pulse_score: [4.0, 4.0]
+    task_score: [80, 81]
+    no_weekend_off_last_weeks: 0
+    leave_weeks: {2: 1, 6: 1, 10: 1}
+
+  H904:
+    display_name: Arun
+    story: seasonal contract ending in 3 weeks
+    department: fnb_service
+    role: waiter
+    contract_type: seasonal
+    contract_end_in_days: 21   # counted from the last scripted week_start
+    tenure_months: 5
+    months_since_raise: 5
+    pay_ratio: 1.0
+    overtime_hours: [3, 3]
+    pulse_score: [3.8, 3.8]
+    task_score: [78, 78]
+    no_weekend_off_last_weeks: 0
+    leave_weeks: {5: 1, 9: 1}
+
+  H905:
+    display_name: Deepak
+    story: healthy control (long tenure, steady scores)
+    department: maintenance
+    role: technician
+    contract_type: permanent
+    tenure_months: 72
+    months_since_raise: 4
+    pay_ratio: 1.05
+    overtime_hours: [0.5, 0.5]
+    pulse_score: [4.2, 4.2]
+    task_score: [84, 84]
+    no_weekend_off_last_weeks: 0
+    leave_weeks: {1: 1, 5: 1, 9: 1}

@@ -1,0 +1,77 @@
+{
+  "as_of": "2029-12-23",
+  "band": "80% split-conformal interval",
+  "days": [
+    {
+      "date": "2029-12-24",
+      "horizon_days": 1,
+      "source": "model",
+      "mean": 0.7668,
+      "low": 0.7046,
+      "high": 0.8397,
+      "high_demand_alert": false,
+      "low_demand_alert": false
+    },
+    {
+      "date": "2029-12-25",
+      "horizon_days": 7,
+      "source": "model",
+      "mean": 0.7219,
+      "low": 0.6521,
+      "high": 0.8007,
+      "high_demand_alert": false,
+      "low_demand_alert": false
+    },
+    {
+      "date": "2029-12-26",
+      "horizon_days": 7,
+      "source": "model",
+      "mean": 0.7104,
+      "low": 0.6406,
+      "high": 0.7892,
+      "high_demand_alert": false,
+      "low_demand_alert": false
+    },
+    {
+      "date": "2029-12-27",
+      "horizon_days": 7,
+      "source": "model",
+      "mean": 0.6964,
+      "low": 0.6266,
+      "high": 0.7752,
+      "high_demand_alert": false,
+      "low_demand_alert": false
+    },
+    {
+      "date": "2029-12-28",
+      "horizon_days": 7,
+      "source": "model",
+      "mean": 0.7688,
+      "low": 0.6991,
+      "high": 0.8476,
+      "high_demand_alert": false,
+      "low_demand_alert": false
+    },
+    {
+      "date": "2029-12-29",
+      "horizon_days": 7,
+      "source": "model",
+      "mean": 0.8524,
+      "low": 0.7827,
+      "high": 0.9312,
+      "high_demand_alert": false,
+      "low_demand_alert": false
+    },
+    {
+      "date": "2029-12-30",
+      "horizon_days": 7,
+      "source": "model",
+      "mean": 0.8166,
+      "low": 0.7469,
+      "high": 0.8954,
+      "high_demand_alert": false,
+      "low_demand_alert": false
+    }
+  ],
+  "synthetic": true
+}

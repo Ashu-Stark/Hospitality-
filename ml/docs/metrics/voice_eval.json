@@ -1,0 +1,30 @@
+{
+  "synthetic": true,
+  "results": [
+    {
+      "provider": "reference",
+      "clips": 12,
+      "wer": 0.0,
+      "room_accuracy": 1.0,
+      "issue_accuracy": 1.0,
+      "urgency_accuracy": 1.0,
+      "department_accuracy": 1.0,
+      "all_fields_accuracy": 1.0
+    },
+    {
+      "provider": "baseline",
+      "clips": 12,
+      "wer": 1.0,
+      "room_accuracy": 0.0833,
+      "issue_accuracy": 0.0833,
+      "urgency_accuracy": 0.5833,
+      "department_accuracy": 0.3333,
+      "all_fields_accuracy": 0.0
+    }
+  ],
+  "skipped": {
+    "groq": "no audio clips in ml/voice/clips/; set GROQ_API_KEY",
+    "sarvam": "no audio clips in ml/voice/clips/; set SARVAM_API_KEY",
+    "faster_whisper": "no audio clips in ml/voice/clips/; faster-whisper not installed (ask the user before installing)"
+  }
+}

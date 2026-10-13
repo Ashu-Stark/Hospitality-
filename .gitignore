@@ -1,0 +1,43 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+build/
+dist/
+
+# Environments and secrets
+.venv/
+**/.venv/
+.env
+**/.env
+!**/.env.example
+
+# Local runtime data and logs
+**/.data/
+.logs/
+backend/data/*.db
+
+# ML data (team rules)
+ml/data/*.db
+# Generator-only hidden traits: never commit, never read from model training code.
+ml/data/internal/
+ml/data/features.csv
+ml/data/pulse_features.csv
+ml/data/workload_features.csv
+
+# Audio stays local, even scripted HM-student recordings (also onboarding uploads)
+ml/voice/clips/*.wav
+ml/voice/clips/*.mp3
+ml/voice/clips/*.m4a
+ml/voice/clips/*.ogg
+backend/onboarding/audio/
+
+# Editors / OS
+.vscode/
+.idea/
+Thumbs.db
+.DS_Store
+~$*

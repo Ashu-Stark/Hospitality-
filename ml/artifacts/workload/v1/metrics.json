@@ -1,0 +1,36 @@
+{
+  "synthetic": true,
+  "baseline": {
+    "model": "workload_naive",
+    "rule": "next_week_load_ratio = load_ratio",
+    "val": {
+      "rows": 342,
+      "mae": 0.0811,
+      "rmse": 0.1182,
+      "r2": 0.6719
+    },
+    "test": {
+      "rows": 426,
+      "mae": 0.0729,
+      "rmse": 0.1106,
+      "r2": 0.6756
+    }
+  },
+  "model": {
+    "model": "workload_model",
+    "seed": 42,
+    "best_iteration": 611,
+    "val": {
+      "rows": 342,
+      "mae": 0.0611,
+      "rmse": 0.0822,
+      "r2": 0.8416
+    },
+    "test": {
+      "rows": 426,
+      "mae": 0.053,
+      "rmse": 0.0763,
+      "r2": 0.8456
+    }
+  }
+}

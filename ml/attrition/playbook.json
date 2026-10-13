@@ -1,0 +1,140 @@
+{
+  "_note": "SYNTHETIC demo playbook. Every expected_effect is an ASSUMPTION for discussion with the HM student, not a measured result. Owners are roles, never named people.",
+  "drivers": {
+    "overtime_overload": {
+      "title": "Overtime overload",
+      "supported": true,
+      "support_level": "supported",
+      "interventions": [
+        {
+          "action": "Protect two weekends off in the next roster and cap overtime at 6 h/week",
+          "owner": "department head",
+          "check_after_weeks": 2,
+          "expected_effect": "ASSUMPTION: overtime and weekend-off features return to normal within 2-4 weeks, lowering risk"
+        },
+        {
+          "action": "Add a seasonal or cross-trained cover shift in peak weeks",
+          "owner": "general manager",
+          "check_after_weeks": 4,
+          "expected_effect": "ASSUMPTION: department load ratio falls below 1.0, spreading overtime"
+        }
+      ]
+    },
+    "stalled_progression": {
+      "title": "Stalled progression",
+      "supported": true,
+      "support_level": "supported",
+      "interventions": [
+        {
+          "action": "Hold a growth conversation and agree a skill or role step with a date",
+          "owner": "department head",
+          "check_after_weeks": 4,
+          "expected_effect": "ASSUMPTION: pulse holds or improves; a concrete step reduces resignation intent"
+        },
+        {
+          "action": "Review raise timing at the next pay cycle",
+          "owner": "general manager",
+          "check_after_weeks": 8,
+          "expected_effect": "ASSUMPTION: months since raise resets, removing the stalled-progression driver"
+        }
+      ]
+    },
+    "low_engagement": {
+      "title": "Low engagement",
+      "supported": true,
+      "support_level": "supported",
+      "interventions": [
+        {
+          "action": "Short 1:1 check-in to hear what changed",
+          "owner": "department head",
+          "check_after_weeks": 1,
+          "expected_effect": "ASSUMPTION: the cause is identified early; pulse decline slows"
+        },
+        {
+          "action": "Recognise recent good work publicly at the shift briefing",
+          "owner": "department head",
+          "check_after_weeks": 2,
+          "expected_effect": "ASSUMPTION: small pulse improvement"
+        }
+      ]
+    },
+    "clustered_leave_burnout": {
+      "title": "Clustered-leave burnout",
+      "supported": true,
+      "support_level": "weakly_supported",
+      "interventions": [
+        {
+          "action": "Schedule a planned leave block outside the festival rush",
+          "owner": "department head",
+          "check_after_weeks": 3,
+          "expected_effect": "ASSUMPTION: weeks without leave resets; burnout risk falls"
+        },
+        {
+          "action": "Spread festival leave fairly with a rota agreed in advance",
+          "owner": "HR / front office manager",
+          "check_after_weeks": 6,
+          "expected_effect": "ASSUMPTION: fewer staff bunch all leave before festivals"
+        }
+      ],
+      "support_note": "WEAKLY SUPPORTED: the synthetic generator's exit hazard has a weeks-without-leave term but no pre-festival (clustered) leave term, so this driver can only show up through weeks without leave."
+    },
+    "season_end_exit": {
+      "title": "Season-end exit",
+      "supported": true,
+      "support_level": "supported",
+      "interventions": [
+        {
+          "action": "Decide on renewal and tell the employee at least 4 weeks before the contract ends",
+          "owner": "general manager",
+          "check_after_weeks": 1,
+          "expected_effect": "ASSUMPTION: wanted staff renew; unplanned gaps fall"
+        },
+        {
+          "action": "Offer a next-season return bonus or priority rehire",
+          "owner": "HR",
+          "check_after_weeks": 4,
+          "expected_effect": "ASSUMPTION: higher return rate of trained seasonal staff"
+        }
+      ]
+    },
+    "pay_gap": {
+      "title": "Pay gap",
+      "supported": true,
+      "support_level": "supported",
+      "interventions": [
+        {
+          "action": "Benchmark pay against the role average and local hotels",
+          "owner": "general manager",
+          "check_after_weeks": 4,
+          "expected_effect": "ASSUMPTION: gaps above 10% are found and budgeted"
+        },
+        {
+          "action": "Close the gap with a raise or allowance (food, housing, travel)",
+          "owner": "general manager",
+          "check_after_weeks": 8,
+          "expected_effect": "ASSUMPTION: pay ratio reaches ~1.0, removing the pay-gap driver"
+        }
+      ]
+    },
+    "manager_relationship": {
+      "title": "Manager relationship",
+      "supported": false,
+      "support_level": "unsupported",
+      "unsupported_reason": "UNSUPPORTED: the synthetic data has a manager_id but no signal about the relationship (no manager pulse item, 1:1 records or transfer requests), so the model can never flag this driver.",
+      "interventions": [
+        {
+          "action": "Add one manager question to the weekly pulse to make this measurable",
+          "owner": "HR",
+          "check_after_weeks": 8,
+          "expected_effect": "ASSUMPTION: enables this driver in a later model version"
+        },
+        {
+          "action": "Offer a skip-level conversation with the general manager",
+          "owner": "general manager",
+          "check_after_weeks": 4,
+          "expected_effect": "ASSUMPTION: relationship issues surface earlier"
+        }
+      ]
+    }
+  }
+}

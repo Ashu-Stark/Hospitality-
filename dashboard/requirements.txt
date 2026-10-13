@@ -1,0 +1,11 @@
+streamlit>=1.45
+requests>=2.31
+pandas>=2.1
+plotly>=5.20
+python-dotenv>=1.0
+pillow>=10.0
+# platform API (runs embedded unless PLATFORM_API_URL points to a deployed instance)
+fastapi>=0.110
+pyjwt>=2.8
+python-multipart>=0.0.9
+httpx>=0.27

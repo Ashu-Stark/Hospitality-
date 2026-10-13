@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0b0b0b">
+<meta name="description" content="HOI staff app: your shifts, job pings with photo proof, and supply requests.">
+<title>HOI Staff</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon.svg">
+<link rel="stylesheet" href="/shared/base.css">
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+<div id="offline" class="offline hidden" data-i18n="offline">You are offline. Changes will fail until you reconnect.</div>
+
+<!-- sign in -->
+<section id="login" class="wrap hidden">
+  <div class="hero">
+    <div class="logo">HOI</div>
+    <h1 data-i18n="welcome">Hello! Sign in to start your shift.</h1>
+    <p data-i18n="welcome_sub">Your shifts, job pings and supply requests in one place.</p>
+  </div>
+  <form id="loginForm" class="card stack" autocomplete="on">
+    <div class="row lang"><button type="button" class="btn ghost" data-lang="en">English</button><button type="button" class="btn ghost" data-lang="hi">हिंदी</button></div>
+    <label class="lbl" for="user" data-i18n="username">Employee ID or username</label>
+    <input id="user" class="field" name="username" autocomplete="username" required autocapitalize="characters">
+    <label class="lbl" for="pin" data-i18n="pin">PIN / password</label>
+    <input id="pin" class="field" name="password" type="password" autocomplete="current-password" required>
+    <label class="check"><input id="remember" type="checkbox" checked> <span data-i18n="remember">Keep me signed in on this phone</span></label>
+    <div id="loginErr" class="banner red hidden" role="alert"></div>
+    <button class="btn primary" type="submit" data-i18n="signin">Sign in</button>
+    <button id="demoBtn" class="btn hidden" type="button" data-i18n="demo">Try the demo as employee E134</button>
+  </form>
+  <p class="muted center" data-i18n="invite_hint">New here? Ask your manager for an invite code and join from the HOI sign-in page.</p>
+</section>
+
+<!-- app -->
+<section id="app" class="hidden">
+  <header class="top">
+    <div class="who"><span class="avatar" id="avatar">?</span><div><b id="whoName"></b><div class="muted" id="whoDept"></div></div></div>
+    <span id="shiftChip" class="chip gray"></span>
+  </header>
+
+  <main class="wrap">
+    <!-- today -->
+    <div id="tab-today" class="tab stack">
+      <div id="todayHero" class="todayhero anim"></div>
+      <div class="card"><div class="eyebrow" data-i18n="this_week">This week</div><div id="week" class="week"></div><div id="weekNote" class="muted"></div></div>
+      <div class="tiles">
+        <button class="tile" data-goto="jobs"><b id="tJobs">0</b><span data-i18n="jobs">Jobs</span></button>
+        <button class="tile" data-goto="supplies"><b id="tReqs">0</b><span data-i18n="requests">Requests</span></button>
+      </div>
+    </div>
+
+    <!-- jobs -->
+    <div id="tab-jobs" class="tab stack hidden">
+      <div id="offer"></div>
+      <div id="active"></div>
+      <div id="noJobs" class="empty card"><div class="big">🔔</div><b data-i18n="no_jobs">No requests right now</b><p class="muted" data-i18n="no_jobs_sub">Keep this screen open. You will feel a buzz when a job comes in.</p></div>
+      <div id="doneList"></div>
+    </div>
+
+    <!-- supplies -->
+    <div id="tab-supplies" class="tab stack hidden">
+      <div class="card stack">
+        <h2 data-i18n="need_supplies">Need supplies?</h2>
+        <input id="itemSearch" class="field" type="search" data-i18n-ph="search_items" placeholder="Search items">
+        <div id="items" class="items"></div>
+        <label class="lbl" for="room" data-i18n="room_opt">Room (optional)</label>
+        <input id="room" class="field" inputmode="numeric" maxlength="6">
+        <button id="sendReq" class="btn primary" disabled data-i18n="send_request">Send request</button>
+      </div>
+      <h3 data-i18n="my_requests">My requests</h3>
+      <div id="reqs" class="stack"></div>
+    </div>
+
+    <!-- me -->
+    <div id="tab-me" class="tab stack hidden">
+      <div class="card stack">
+        <div class="row"><span class="muted" data-i18n="employee_id">Employee ID</span><b id="meId" class="right"></b></div>
+        <div class="row"><span class="muted" data-i18n="department">Department</span><b id="meDept" class="right"></b></div>
+        <div class="row"><span class="muted" data-i18n="hotel">Hotel</span><b id="meHotel" class="right"></b></div>
+      </div>
+      <div class="card stack">
+        <div class="eyebrow" data-i18n="language">Language</div>
+        <div class="row"><button class="btn" data-lang="en">English</button><button class="btn" data-lang="hi">हिंदी</button></div>
+      </div>
+      <div class="banner blue" data-i18n="privacy">Your photos are stamped with the server's time and kept for proof of work. Your manager cannot see anything on your phone.</div>
+      <button id="install" class="btn hidden" data-i18n="install">Add to home screen</button>
+      <button id="signout" class="btn dark" data-i18n="signout">Sign out</button>
+    </div>
+  </main>
+
+  <!-- camera sheet -->
+  <div id="camera" class="sheet hidden" role="dialog" aria-modal="true" aria-labelledby="camTitle">
+    <div class="sheet-in">
+      <div class="row"><b id="camTitle"></b><button id="camClose" class="btn ghost small" data-i18n="cancel">Cancel</button></div>
+      <video id="video" playsinline autoplay muted></video>
+      <canvas id="canvas" class="hidden"></canvas>
+      <img id="preview" class="hidden" alt="">
+      <div id="camErr" class="banner red hidden" role="alert"></div>
+      <div class="row hidden" id="camRetry"><button class="btn" type="button" data-i18n="try_again">Try again</button></div>
+      <div class="row" id="camShoot"><button id="snap" class="btn primary" data-i18n="take_photo">Take photo</button></div>
+      <div class="row hidden" id="camConfirm"><button id="retake" class="btn" data-i18n="retake">Retake</button><button id="usePhoto" class="btn primary" data-i18n="use_photo">Use photo</button></div>
+      <p class="muted" data-i18n="camera_note">Live camera only. The time on the photo comes from the server, not your phone.</p>
+    </div>
+  </div>
+
+  <nav class="tabbar" aria-label="Main">
+    <button data-tab="today" class="on"><span class="ico">◐</span><span data-i18n="today">Today</span></button>
+    <button data-tab="jobs"><span class="ico">⚡</span><span data-i18n="jobs">Jobs</span><i id="jobDot" class="dot hidden"></i></button>
+    <button data-tab="supplies"><span class="ico">▣</span><span data-i18n="supplies">Supplies</span></button>
+    <button data-tab="me"><span class="ico">◉</span><span data-i18n="me">Me</span></button>
+  </nav>
+</section>
+<script src="i18n.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

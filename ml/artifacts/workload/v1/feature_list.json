@@ -1,0 +1,12 @@
+[
+  "department",
+  "week_of_year",
+  "occupied_room_nights",
+  "load_ratio",
+  "headcount",
+  "load_roll4_mean",
+  "room_nights_roll4_mean",
+  "load_trend_4w",
+  "is_festival_week",
+  "next_week_is_festival"
+]

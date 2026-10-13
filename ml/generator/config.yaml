@@ -1,0 +1,289 @@
+# Hospitality Operations Intelligence synthetic data generator config.
+# ALL DATA PRODUCED FROM THIS CONFIG IS SYNTHETIC.
+
+# Seed for the numpy Generator used by every random draw.
+seed: 42
+
+# ASSUMED plausible values, not measured facts: a small Uttarakhand hill hotel.
+property:
+  rooms: 45
+  start: "2023-01-01"
+  end: "2029-12-31"  # Task 5b: extended from 2025-12-31 so val/test splits get more exits
+
+# ASSUMED plausible value, not a measured fact: total headcount.
+staff_target: 55
+
+# ASSUMED plausible values, not measured facts: headcount per department (must sum to staff_target).
+departments:
+  housekeeping: 16
+  fnb_service: 10
+  kitchen: 10
+  front_office: 8
+  maintenance: 6
+  security: 5
+
+# ASSUMED plausible values, not measured facts: base occupancy rate by calendar month (1 = January).
+month_base_occupancy:
+  1: 0.45
+  2: 0.30
+  3: 0.50
+  4: 0.62
+  5: 0.78  # Task 2b: was 0.90 (37% of May-Jun days sold out)
+  6: 0.75  # Task 2b: was 0.88
+  7: 0.55
+  8: 0.40
+  9: 0.45
+  10: 0.64  # Task 2c: was 0.70 (keep Char Dham the peak)
+  11: 0.55
+  12: 0.68  # Task 2c: was 0.75 (keep Char Dham the peak)
+
+# ASSUMED plausible value, not a measured fact: additive occupancy uplift on weekends.
+weekend_uplift: 0.12
+
+# ASSUMED plausible values, not measured facts: Char Dham yatra peak window (MM-DD).
+char_dham_season:
+  start_month_day: "05-01"
+  end_month_day: "06-30"
+
+# ASSUMED plausible value, not a measured fact: fraction of staff leaving per year.
+target_annual_attrition: 0.40
+
+# ASSUMED plausible value, not a measured fact: attrition label = leaves within this many days.
+label_horizon_days: 90
+
+# ASSUMED plausible values, not measured facts: occupancy simulator.
+# weekend_days uses Mon=0, so [4, 5] = Fri and Sat nights. noise_sd is the AR(1) innovation sd.
+occupancy:
+  festival_bump: 0.10
+  char_dham_bump: 0.05
+  weekend_days: [4, 5]
+  noise_sd: 0.04
+  ar1_phi: 0.6
+  min: 0.05
+  max: 1.0
+
+# ASSUMED plausible values, not measured facts: daily weather.
+# monsoon_months and heavy_rain_prob_* = P(heavy | rain day) were added in Task 2 (not in the original spec).
+weather:
+  monthly_temp_c: {1: 6, 2: 8, 3: 13, 4: 18, 5: 23, 6: 25, 7: 22, 8: 21, 9: 20, 10: 16, 11: 11, 12: 7}
+  temp_sd: 2.5
+  rain_prob_by_month: {1: 0.08, 2: 0.10, 3: 0.10, 4: 0.10, 5: 0.12, 6: 0.30, 7: 0.70, 8: 0.75, 9: 0.45, 10: 0.12, 11: 0.05, 12: 0.06}
+  heavy_rain_occupancy_penalty: 0.06
+  monsoon_months: [6, 7, 8, 9]
+  heavy_rain_prob_monsoon: 0.35
+  heavy_rain_prob_other: 0.10
+
+# ASSUMED plausible values, not measured facts: landslide / snow road closures (inclusive day range).
+road_closures:
+  per_year_mean: 4
+  monsoon_share: 0.7
+  duration_days_range: [1, 4]
+  occupancy_penalty: 0.15
+
+# ASSUMED plausible values, not measured facts: average daily rate in INR.
+adr:
+  base_by_month: {1: 3200, 2: 2800, 3: 3400, 4: 3800, 5: 5200, 6: 5000, 7: 3000, 8: 2800, 9: 3000, 10: 4200, 11: 3600, 12: 4800}
+  weekend_premium: 0.15
+  noise_sd: 0.05
+
+# ASSUMED plausible values, not measured facts: share of final rooms already booked 7 days out.
+booking_pace:
+  pickup_fraction_mean: 0.7
+  noise_sd: 0.08
+
+# ASSUMED, to be confirmed by the HM student: roles per department with headcount and
+# monthly pay in INR (normal draw, floored at 70% of pay_mean). The single role whose name
+# starts with "head" is the department head. Counts must sum to the departments block.
+roles:
+  housekeeping:
+    head: {count: 1, pay_mean: 28000, pay_sd: 3000}
+    supervisor: {count: 1, pay_mean: 20000, pay_sd: 2000}
+    attendant: {count: 14, pay_mean: 14000, pay_sd: 1500}
+  fnb_service:
+    head: {count: 1, pay_mean: 30000, pay_sd: 3000}
+    captain: {count: 2, pay_mean: 20000, pay_sd: 2000}
+    waiter: {count: 7, pay_mean: 14000, pay_sd: 1500}
+  kitchen:
+    head_chef: {count: 1, pay_mean: 45000, pay_sd: 5000}
+    cook: {count: 4, pay_mean: 24000, pay_sd: 3000}
+    helper: {count: 5, pay_mean: 13000, pay_sd: 1500}
+  front_office:
+    head: {count: 1, pay_mean: 32000, pay_sd: 3000}
+    receptionist: {count: 5, pay_mean: 18000, pay_sd: 2000}
+    concierge: {count: 2, pay_mean: 15000, pay_sd: 1500}
+  maintenance:
+    head: {count: 1, pay_mean: 30000, pay_sd: 3000}
+    technician: {count: 4, pay_mean: 20000, pay_sd: 2500}
+    helper: {count: 1, pay_mean: 13000, pay_sd: 1500}
+  security:
+    head: {count: 1, pay_mean: 24000, pay_sd: 2500}
+    guard: {count: 4, pay_mean: 13000, pay_sd: 1500}
+
+# ASSUMED, to be confirmed by the HM student: PLACEHOLDER skill lists per department.
+skills:
+  housekeeping: [room_cleaning, turndown, laundry, deep_clean]
+  fnb_service: [table_service, banquet, bar]
+  kitchen: [tandoor, continental, prep, baking]
+  front_office: [fo_system, cash_handling, form_c_reporting]
+  maintenance: [electrical, plumbing, boiler_geyser, generator]
+  security: [patrol, first_aid_fire]
+
+# ASSUMED, to be confirmed by the HM student: staff attributes.
+# Tenure is a truncated exponential with scale tenure_mean_years, truncated to [min, max].
+# Seasonal contracts end on the next of these MM-DD dates after the reference date.
+staff:
+  tenure_mean_years: 1.5
+  tenure_min_years: 0.1
+  tenure_max_years: 8
+  seasonal_share_by_role: {attendant: 0.25, waiter: 0.25, helper: 0.30}
+  seasonal_contract_end_options: ["06-30", "10-31"]
+  standard_weekly_hours: 48
+
+# ASSUMED, to be confirmed by the HM student: workload standards,
+# hours of work needed per week = base_hours + per_occupied_room_night_hours * room nights.
+# CALIBRATED PLACEHOLDERS, NOT REAL STANDARDS. Fitted so that median load_ratio is about 0.90,
+# peak season is above 1.10 and February is below 0.75. Per-room hours are inflated because
+# they absorb all occupancy-driven demand. Replace with HM student values and re-validate.
+workload:
+  housekeeping: {base_hours: 90, per_occupied_room_night_hours: 3.19}
+  fnb_service: {base_hours: 57, per_occupied_room_night_hours: 1.99}
+  kitchen: {base_hours: 57, per_occupied_room_night_hours: 1.99}
+  front_office: {base_hours: 46, per_occupied_room_night_hours: 1.59}
+  maintenance: {base_hours: 33, per_occupied_room_night_hours: 1.2}
+  security: {base_hours: 216, per_occupied_room_night_hours: 0}
+
+# ASSUMED, to be confirmed by the HM student: weekly behaviour and attrition process.
+attrition:
+  seasonal_contract_end_is_exit: true   # seasonal staff exit automatically at contract_end_date unless renewed
+  seasonal_renewal_prob: 0.4            # probability a seasonal contract is renewed instead of ending
+  vacancy_days_mean: 10                 # mean days between exit and replacement hire starting
+  vacancy_days_min: 2
+  vacancy_days_max: 30
+  overtime_hours_cap_weekly: 20
+  overtime_trigger_load_ratio: 1.0      # overtime only accrues above this load_ratio
+  pulse_load_sensitivity: -1.2          # pulse drifts down as load_ratio rises above 1
+  pulse_overtime_sensitivity: -0.05     # pulse drifts down per overtime hour
+  pulse_noise_sd: 0.3
+  leave_days_per_year_mean: 12
+  leave_days_per_year_sd: 4
+  leave_seasonal_block_weeks: []        # ISO week numbers where leave is not granted, e.g. peak season
+
+  # ASSUMED (Task T4): weekly resignation hazard = sigmoid(logit), capped at max_weekly_hazard.
+  # Coefficients = config A5, chosen on seeds 42-44 from 6 candidates and confirmed on fresh
+  # seeds 48-53 (T4b). Generator-difficulty targets, not real-world estimates.
+  # logit = intercept (calibrated to target_annual_attrition, not set here)
+  #       + coef_overtime_per_hour * max(avg overtime over overtime_window_weeks - overtime_ref_hours, 0)
+  #       + coef_no_leave_per_week * max(weeks without leave - no_leave_ref_weeks, 0)
+  #       + coef_low_pulse * max(low_pulse_ref - 4-week avg pulse, 0)
+  #       + coef_pulse_drop * max(pulse 4 weeks ago - pulse now - pulse_drop_ref, 0)
+  #       + coef_pay_gap * max(pay_ratio_ref - pay / role mean pay, 0)
+  #       + coef_stalled_per_month * max(months since last raise - stalled_ref_months, 0)
+  #       + coef_load * max(load_ratio - load_ref, 0)
+  #       + coef_peer_exit * department exits in the previous peer_exit_window_weeks
+  #       + coef_new_hire * (tenure < new_hire_years)
+  #       + coef_latent_frustration * latent_frustration   (hidden, generator-only)
+  #       + N(0, noise_sd)                                  (weekly shock)
+  # Seasonal contract ends are a separate exit route (above), not part of this hazard.
+  hazard:
+    overtime_window_weeks: 10   # ASSUMED (T4b): "sustained" overtime = average over this many weeks
+    overtime_ref_hours: 4
+    coef_overtime_per_hour: 0.5
+    no_leave_ref_weeks: 8
+    coef_no_leave_per_week: 0.25
+    low_pulse_ref: 3.2
+    coef_low_pulse: 1.2
+    pulse_drop_ref: 0.6
+    coef_pulse_drop: 1.2
+    pay_ratio_ref: 1.0
+    coef_pay_gap: 9.0
+    stalled_ref_months: 15
+    coef_stalled_per_month: 0.15
+    load_ref: 1.0
+    coef_load: 1.0
+    peer_exit_window_weeks: 8
+    coef_peer_exit: 0.15
+    new_hire_years: 1.0
+    coef_new_hire: 0.3
+    coef_latent_frustration: 1.0
+    noise_sd: 0.6
+    max_weekly_hazard: 0.5
+
+  # ASSUMED (Task T4): pay raises, so pay ratio and months-since-raise mean something.
+  raises:
+    eligible_after_months: 12           # no raise before this many months since the last one
+    weekly_prob_when_eligible: 0.03     # weekly chance of a raise once eligible
+    pct_mean: 0.06                      # raise size: N(pct_mean, pct_sd), floored at 0
+    pct_sd: 0.02
+
+  # Fixed-seed bisection search for the hazard intercept that gives target_annual_attrition.
+  calibration:
+    intercept_low: -12.0
+    intercept_high: -2.0
+    tolerance: 0.01                     # stop when annual attrition is within this of the target
+    max_iterations: 25
+    # If bisection misses the tolerance (exits reshuffle later random draws, so the rate is
+    # not perfectly monotone), scan this many evenly spaced intercepts within +/- half width
+    # of the best one and keep the closest.
+    refine_half_width: 0.5
+    refine_steps: 11
+
+  # ASSUMED: a driver counts as "visible" for an exit or an employee-week when its logit
+  # contribution is at least this large (used by validation and driver reporting).
+  visible_driver_min_logit: 0.6
+  # ASSUMED: an employee-week with at least this many visible drivers counts as "high-driver".
+  high_driver_min_count: 2
+
+# ASSUMED, to be confirmed by the HM student (Task T5): extra weekly signals, generated AFTER the
+# attrition simulation from their own random stream, so earlier outputs do not change. They do
+# not feed the exit hazard; they are observable consequences of the same overtime and leave.
+signals:
+  task_fatigue_ref_hours: 4             # sustained (window) overtime above this costs task score
+  task_fatigue_per_hour: 0.6            # task-score points lost per hour above the reference
+  task_noise_sd: 2.0
+  task_score_min: 40
+  task_score_max: 98
+  skip_weekly_off_base_logit: -3.0      # P(no weekly off) = sigmoid(base + per_hour * overtime)
+  skip_weekly_off_per_overtime_hour: 0.25
+  weekend_off_share: 0.3                # share of weekly offs that fall on a Sat/Sun (busy days)
+  festival_lookahead_days: 10           # leave within this many days before a festival counts
+
+# Task T6: occupancy forecast. Horizons and split are design choices; the alert thresholds are
+# ASSUMED, to be confirmed by the HM student.
+forecast:
+  horizons_days: [1, 7, 30]
+  train_end: "2024-12-31"               # targets up to this date train
+  test_start: "2025-01-01"              # targets in [test_start, test_end] test
+  test_end: "2025-12-31"
+  booking_pace_max_horizon_days: 7      # booking_pace_7d is known only this far ahead
+  band_quantiles: [0.1, 0.9]            # 80% uncertainty band
+  # T12 split-conformal band: a twin model trained on targets BEFORE this date is scored on
+  # [conformal_calibration_start, train_end]; its residual quantiles (finite-sample corrected)
+  # give the band around the point forecast. Design choice, not tuned.
+  conformal_calibration_start: "2024-01-01"
+  alert_high_occupancy: 0.90            # ASSUMED: forecast at or above -> high-demand alert
+  alert_low_occupancy: 0.35             # ASSUMED: forecast at or below -> low-demand alert
+
+# Task T7: attrition model. The split years are design choices; the rule thresholds and risk
+# bands are ASSUMED, to be confirmed by the HM student.
+attrition_model:
+  # Expanding-window backtest: for each test year Y, train on rows whose 90-day label window
+  # ends before 1 Jan of Y-1, calibrate + choose the threshold on year Y-1 (rows whose window
+  # ends before 1 Jan of Y), test on Y. Pooled over the test years (single years hold ~5-15
+  # leavers). The deployed model repeats this with the last data year as validation.
+  test_years: [2027, 2028, 2029]
+  festival_leave_window_weeks: 12       # window for the pre-festival leave share feature
+  rule_sustained_overtime_hours: 6      # rules baseline: sustained (window) overtime above this
+  rule_weeks_without_weekend_off: 3     # ... and at least this many weeks without a weekend off
+  rule_pulse_drop: 0.3                  # ... and pulse fell by at least this over 4 weeks
+  # Risk bands are RANK-BASED (T12), within each scoring week, among active non-hero staff of the
+  # same group (permanent / seasonal): high = ceil(band_high_share * n) slots, watch = the next
+  # ceil(band_watch_share * n) slots, low = the rest. Tied risks form a group that is never split
+  # (it takes a band only if it fits wholly in the remaining slots, else the next lower band).
+  band_high_share: 0.10                 # ASSUMED
+  band_watch_share: 0.15                # ASSUMED
+  # T12b: SEASONAL staff get a contract-date RULE band instead of a model rank (their exit is a
+  # known date, and ~96% of their model risks were tied). Chosen after seeing the ties.
+  seasonal_high_max_days: 30            # days to contract end <= this -> high (ASSUMED)
+  seasonal_watch_max_days: 60           # <= this (and > high) -> watch, else low (ASSUMED)
+  driver_min_logodds: 0.1               # a driver category must add >= this SHAP (log-odds,
+                                        # ~+10% odds) to be reported; ASSUMED

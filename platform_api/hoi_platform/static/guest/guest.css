@@ -1,0 +1,18 @@
+.ghero{border-radius:28px;padding:26px 22px;color:#fff;margin-bottom:14px;
+  background:radial-gradient(120% 140% at 85% 10%,#e0631f 0%,#c94d16 45%,#b03f14 100%)}
+.ghero .eyebrow{color:rgba(255,255,255,.9)}
+.ghero h1{font-size:2rem;margin:6px 0}
+.ghero p{color:rgba(255,255,255,.92)}
+.langs{display:flex;gap:6px;margin-top:14px}
+.langs button{border:1px solid rgba(255,255,255,.5);background:rgba(255,255,255,.15);color:#fff;border-radius:999px;padding:6px 14px;cursor:pointer}
+.langs button.on{background:#fff;color:#0b0b0b}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.opt{background:#fff;border:1.5px solid var(--line);border-radius:20px;padding:16px 14px;text-align:left;cursor:pointer;min-height:84px;
+  font-weight:600;transition:transform .12s,border-color .15s}
+.opt:active{transform:scale(.97)}
+.opt:hover{border-color:var(--ink)}
+.opt small{display:block;font-weight:400;color:var(--muted);margin-top:4px}
+.opt[disabled]{opacity:.5}
+.st{background:#fff;border-radius:18px;padding:14px 16px;display:flex;justify-content:space-between;align-items:center;gap:10px}
+h2{font-size:1.2rem;margin-top:22px}
+.foot{margin-top:20px;text-align:center}

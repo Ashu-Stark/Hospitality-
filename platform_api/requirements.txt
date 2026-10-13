@@ -1,0 +1,11 @@
+fastapi>=0.110
+uvicorn[standard]>=0.29
+pyjwt>=2.8
+python-multipart>=0.0.9
+pillow>=10.0
+httpx>=0.27
+pytest>=8.0
+segno>=1.6
+pymongo>=4.6
+# In-memory MongoDB for development and tests; also the fallback when MONGODB_URI is unset (production refuses it).
+mongomock>=4.1

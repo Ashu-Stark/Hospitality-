@@ -1,0 +1,16 @@
+{
+  "model": "pulse_naive",
+  "rule": "next_week_pulse_score = pulse_score",
+  "val": {
+    "rows": 3073,
+    "mae": 0.2505,
+    "rmse": 0.3179,
+    "r2": 0.8138
+  },
+  "test": {
+    "rows": 3826,
+    "mae": 0.2567,
+    "rmse": 0.3255,
+    "r2": 0.7924
+  }
+}

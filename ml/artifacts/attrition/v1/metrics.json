@@ -1,0 +1,351 @@
+{
+  "resignation": {
+    "segment": "resignation",
+    "contract_type": "permanent",
+    "winner": "logistic",
+    "winner_rule": "highest pooled validation PR-AUC",
+    "explain_model": "lightgbm",
+    "validation_pr_auc": {
+      "rules": 0.102,
+      "logistic": 0.221,
+      "lightgbm": 0.1567
+    },
+    "test": {
+      "rules": {
+        "rows": 6820,
+        "positives": 371,
+        "base_rate": 0.0544,
+        "roc_auc": 0.5424,
+        "pr_auc": 0.0706,
+        "precision": 0.0578,
+        "recall": 0.2695,
+        "flagged_share": 0.2538,
+        "brier": 0.0518,
+        "roc_auc_by_year": {
+          "2027": 0.5986,
+          "2028": 0.5451,
+          "2029": 0.5723
+        },
+        "leavers": 31
+      },
+      "logistic": {
+        "rows": 6820,
+        "positives": 371,
+        "base_rate": 0.0544,
+        "roc_auc": 0.6908,
+        "pr_auc": 0.1186,
+        "precision": 0.1469,
+        "recall": 0.3396,
+        "flagged_share": 0.1258,
+        "brier": 0.05085,
+        "roc_auc_by_year": {
+          "2027": 0.7736,
+          "2028": 0.6857,
+          "2029": 0.7048
+        },
+        "leavers": 31
+      },
+      "lightgbm": {
+        "rows": 6820,
+        "positives": 371,
+        "base_rate": 0.0544,
+        "roc_auc": 0.6518,
+        "pr_auc": 0.0912,
+        "precision": 0.0868,
+        "recall": 0.4501,
+        "flagged_share": 0.2821,
+        "brier": 0.0523,
+        "roc_auc_by_year": {
+          "2027": 0.751,
+          "2028": 0.6877,
+          "2029": 0.6059
+        },
+        "leavers": 31
+      }
+    },
+    "test_years": [
+      2027,
+      2028,
+      2029
+    ],
+    "skipped_test_years": [],
+    "calibration_table_winner": [
+      {
+        "bin": 0,
+        "rows": 1364,
+        "mean_predicted": 0.0071,
+        "observed_rate": 0.0198
+      },
+      {
+        "bin": 1,
+        "rows": 1364,
+        "mean_predicted": 0.0206,
+        "observed_rate": 0.0213
+      },
+      {
+        "bin": 2,
+        "rows": 1364,
+        "mean_predicted": 0.0359,
+        "observed_rate": 0.0469
+      },
+      {
+        "bin": 3,
+        "rows": 1364,
+        "mean_predicted": 0.0627,
+        "observed_rate": 0.0762
+      },
+      {
+        "bin": 4,
+        "rows": 1364,
+        "mean_predicted": 0.162,
+        "observed_rate": 0.1078
+      }
+    ],
+    "rank_bands_test": {
+      "rules": {
+        "rule": "ceil-count slots, tie groups never split",
+        "base_rate": 0.0544,
+        "high_precision": 0.0663,
+        "high_lift": 1.22,
+        "leaver_weeks_in_high_or_watch": 0.1024,
+        "band_share": {
+          "low": 0.9177,
+          "high": 0.0509,
+          "watch": 0.0314
+        },
+        "tied_share_per_week_mean": 0.9978
+      },
+      "logistic": {
+        "rule": "ceil-count slots, tie groups never split",
+        "base_rate": 0.0544,
+        "high_precision": 0.1317,
+        "high_lift": 2.42,
+        "leaver_weeks_in_high_or_watch": 0.5229,
+        "band_share": {
+          "low": 0.7292,
+          "watch": 0.1661,
+          "high": 0.1047
+        },
+        "tied_share_per_week_mean": 0.0438
+      },
+      "lightgbm": {
+        "rule": "ceil-count slots, tie groups never split",
+        "base_rate": 0.0544,
+        "high_precision": 0.1192,
+        "high_lift": 2.19,
+        "leaver_weeks_in_high_or_watch": 0.4528,
+        "band_share": {
+          "low": 0.7289,
+          "watch": 0.1666,
+          "high": 0.1045
+        },
+        "tied_share_per_week_mean": 0.0453
+      }
+    },
+    "deployed_window": {
+      "train_last_week": "2028-09-25",
+      "validation_weeks": "2029-01-01..2029-09-24"
+    },
+    "deployed_thresholds": {
+      "rules": 0.0503,
+      "logistic": 0.0822,
+      "lightgbm": 0.0675
+    }
+  },
+  "contract_end": {
+    "segment": "contract_end",
+    "contract_type": "seasonal",
+    "winner": "contract_rule",
+    "winner_rule": "highest pooled validation PR-AUC",
+    "explain_model": "lightgbm",
+    "validation_pr_auc": {
+      "rules": 0.392,
+      "logistic": 0.7208,
+      "lightgbm": 0.7482,
+      "contract_rule": 0.778
+    },
+    "test": {
+      "rules": {
+        "rows": 986,
+        "positives": 184,
+        "base_rate": 0.1866,
+        "roc_auc": 0.4233,
+        "pr_auc": 0.16,
+        "precision": 0.1887,
+        "recall": 0.8315,
+        "flagged_share": 0.8225,
+        "brier": 0.19103,
+        "roc_auc_by_year": {
+          "2027": 0.5677,
+          "2028": 0.5148,
+          "2029": 0.5149
+        },
+        "leavers": 16
+      },
+      "logistic": {
+        "rows": 986,
+        "positives": 184,
+        "base_rate": 0.1866,
+        "roc_auc": 0.7147,
+        "pr_auc": 0.2758,
+        "precision": 0.3734,
+        "recall": 0.7772,
+        "flagged_share": 0.3884,
+        "brier": 0.20056,
+        "roc_auc_by_year": {
+          "2027": 0.675,
+          "2028": 0.8526,
+          "2029": 0.7586
+        },
+        "leavers": 16
+      },
+      "lightgbm": {
+        "rows": 986,
+        "positives": 184,
+        "base_rate": 0.1866,
+        "roc_auc": 0.7291,
+        "pr_auc": 0.2925,
+        "precision": 0.3584,
+        "recall": 0.5435,
+        "flagged_share": 0.283,
+        "brier": 0.20203,
+        "roc_auc_by_year": {
+          "2027": 0.7859,
+          "2028": 0.8418,
+          "2029": 0.7812
+        },
+        "leavers": 16
+      },
+      "contract_rule": {
+        "rows": 986,
+        "positives": 184,
+        "base_rate": 0.1866,
+        "roc_auc": 0.7355,
+        "pr_auc": 0.3155,
+        "precision": 0.4588,
+        "recall": 0.6957,
+        "flagged_share": 0.283,
+        "brier": 0.19197,
+        "roc_auc_by_year": {
+          "2027": 0.8042,
+          "2028": 0.8899,
+          "2029": 0.8184
+        },
+        "leavers": 16
+      }
+    },
+    "test_years": [
+      2027,
+      2028,
+      2029
+    ],
+    "skipped_test_years": [],
+    "calibration_table_winner": [
+      {
+        "bin": 0,
+        "rows": 198,
+        "mean_predicted": 0.0404,
+        "observed_rate": 0.0253
+      },
+      {
+        "bin": 1,
+        "rows": 197,
+        "mean_predicted": 0.072,
+        "observed_rate": 0.1066
+      },
+      {
+        "bin": 2,
+        "rows": 197,
+        "mean_predicted": 0.1331,
+        "observed_rate": 0.1168
+      },
+      {
+        "bin": 3,
+        "rows": 197,
+        "mean_predicted": 0.208,
+        "observed_rate": 0.3198
+      },
+      {
+        "bin": 4,
+        "rows": 197,
+        "mean_predicted": 0.8114,
+        "observed_rate": 0.3655
+      }
+    ],
+    "rank_bands_test": {
+      "rules": {
+        "rule": "ceil-count slots, tie groups never split",
+        "base_rate": 0.1866,
+        "high_precision": 0.1852,
+        "high_lift": 0.99,
+        "leaver_weeks_in_high_or_watch": 0.163,
+        "band_share": {
+          "low": 0.8357,
+          "watch": 0.1095,
+          "high": 0.0548
+        },
+        "tied_share_per_week_mean": 0.91
+      },
+      "logistic": {
+        "rule": "ceil-count slots, tie groups never split",
+        "base_rate": 0.1866,
+        "high_precision": 0.1608,
+        "high_lift": 0.86,
+        "leaver_weeks_in_high_or_watch": 0.5272,
+        "band_share": {
+          "low": 0.5751,
+          "watch": 0.2799,
+          "high": 0.145
+        },
+        "tied_share_per_week_mean": 0.006
+      },
+      "lightgbm": {
+        "rule": "ceil-count slots, tie groups never split",
+        "base_rate": 0.1866,
+        "high_precision": 0.1608,
+        "high_lift": 0.86,
+        "leaver_weeks_in_high_or_watch": 0.5,
+        "band_share": {
+          "low": 0.5751,
+          "watch": 0.2799,
+          "high": 0.145
+        },
+        "tied_share_per_week_mean": 0.002
+      },
+      "contract_rule": {
+        "rule": "ceil-count slots, tie groups never split",
+        "base_rate": 0.1866,
+        "high_precision": 0.0,
+        "high_lift": 0.0,
+        "leaver_weeks_in_high_or_watch": 0.0,
+        "band_share": {
+          "low": 0.999,
+          "high": 0.001
+        },
+        "tied_share_per_week_mean": 0.9649
+      }
+    },
+    "contract_date_rule_bands_test": {
+      "rule": "days to contract end <= 30 high, <= 60 watch",
+      "base_rate": 0.1866,
+      "high_precision": 0.3684,
+      "high_lift": 1.97,
+      "leaver_weeks_in_high_or_watch": 0.5489,
+      "band_share": {
+        "low": 0.7789,
+        "watch": 0.1247,
+        "high": 0.0963
+      }
+    },
+    "deployed_window": {
+      "train_last_week": "2028-09-25",
+      "validation_weeks": "2029-01-01..2029-09-24"
+    },
+    "deployed_thresholds": {
+      "rules": 0.3391,
+      "logistic": 0.3093,
+      "lightgbm": 0.3143,
+      "contract_rule": 0.2207
+    }
+  }
+}

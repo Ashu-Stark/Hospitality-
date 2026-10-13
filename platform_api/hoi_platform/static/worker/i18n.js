@@ -1,0 +1,47 @@
+// UI strings for the staff app. Hindi kept short and plain; review with native-speaking staff before rollout.
+window.HOI_I18N = {
+  en: {
+    offline: "You are offline. Changes will fail until you reconnect.",
+    welcome: "Hello! Sign in to start your shift.", welcome_sub: "Your shifts, job pings and supply requests in one place.",
+    username: "Employee ID or username", pin: "PIN / password", remember: "Keep me signed in on this phone",
+    signin: "Sign in", demo: "Try the demo as employee E134", invite_hint: "New here? Ask your manager for an invite code and join from the HOI sign-in page.",
+    this_week: "This week", jobs: "Jobs", requests: "Requests", today: "Today", supplies: "Supplies", me: "Me",
+    no_jobs: "No requests right now", no_jobs_sub: "Keep this screen open. You will feel a buzz when a job comes in.",
+    need_supplies: "Need supplies?", search_items: "Search items", room_opt: "Room (optional)", send_request: "Send request",
+    my_requests: "My requests", employee_id: "Employee ID", department: "Department", hotel: "Hotel", language: "Language",
+    privacy: "Your photos are stamped with the server's time and kept for proof of work. Your manager cannot see anything on your phone.",
+    install: "Add to home screen", signout: "Sign out", cancel: "Cancel", take_photo: "Take photo", retake: "Retake", use_photo: "Use photo",
+    camera_note: "Live camera only. The time on the photo comes from the server, not your phone.",
+    new_request: "New request", accept: "Accept", decline: "Decline", seconds: "s", room: "Room", urgency_high: "Urgent",
+    urgency_medium: "Normal", urgency_low: "When free", before_photo: "Take BEFORE photo to start", after_photo: "Take AFTER photo to finish",
+    accepted: "Accepted", in_progress: "In progress", done: "Done", today_shift: "shift", day_off: "Day off", rest: "No shift today. Rest well.",
+    hours: "hours", shifts_week: "shifts this week", weekend_off: "weekend off", no_roster: "Your manager has not published this week's roster yet.",
+    sent: "Request sent to the store", job_done: "Job complete. Thank you!", started: "Started. Do the job, then take the after photo.",
+    camera_denied: "Camera blocked. Allow camera access for this site in your browser settings, then try again.",
+    session_expired: "Please sign in again.", wrong: "Something went wrong. Try again.", on_shift: "On shift", off_shift: "Off shift",
+    pending: "waiting", partial: "part given", issued: "given", rejected: "not approved", completed_recent: "Done today",
+    gone: "Offer moved to a colleague", qty: "Qty", try_again: "Try again", off: "off"
+  },
+  hi: {
+    offline: "आप ऑफ़लाइन हैं। इंटरनेट आने तक बदलाव सेव नहीं होंगे।",
+    welcome: "नमस्ते! शिफ़्ट शुरू करने के लिए साइन इन करें।", welcome_sub: "आपकी शिफ़्ट, काम की सूचना और सामान की माँग — एक ही जगह।",
+    username: "कर्मचारी ID या यूज़रनेम", pin: "PIN / पासवर्ड", remember: "इस फ़ोन पर साइन इन रखें",
+    signin: "साइन इन", demo: "डेमो देखें (कर्मचारी E134)", invite_hint: "नए हैं? अपने मैनेजर से इनवाइट कोड लें।",
+    this_week: "इस हफ़्ते", jobs: "काम", requests: "माँग", today: "आज", supplies: "सामान", me: "मैं",
+    no_jobs: "अभी कोई काम नहीं", no_jobs_sub: "यह स्क्रीन खुली रखें। नया काम आने पर फ़ोन वाइब्रेट होगा।",
+    need_supplies: "सामान चाहिए?", search_items: "सामान खोजें", room_opt: "कमरा (वैकल्पिक)", send_request: "माँग भेजें",
+    my_requests: "मेरी माँगें", employee_id: "कर्मचारी ID", department: "विभाग", hotel: "होटल", language: "भाषा",
+    privacy: "आपकी फ़ोटो पर सर्वर का समय लगता है और काम के सबूत के लिए रखी जाती है। मैनेजर आपके फ़ोन में कुछ नहीं देख सकते।",
+    install: "होम स्क्रीन पर जोड़ें", signout: "साइन आउट", cancel: "रद्द करें", take_photo: "फ़ोटो लें", retake: "फिर से लें", use_photo: "यही फ़ोटो",
+    camera_note: "सिर्फ़ लाइव कैमरा। फ़ोटो पर समय सर्वर से आता है, फ़ोन से नहीं।",
+    new_request: "नया काम", accept: "स्वीकार", decline: "मना करें", seconds: "से", room: "कमरा", urgency_high: "ज़रूरी",
+    urgency_medium: "सामान्य", urgency_low: "फ़ुर्सत में", before_photo: "शुरू करने के लिए पहले की फ़ोटो लें", after_photo: "ख़त्म करने के लिए बाद की फ़ोटो लें",
+    accepted: "स्वीकार किया", in_progress: "चल रहा है", done: "पूरा", today_shift: "शिफ़्ट", day_off: "छुट्टी", rest: "आज शिफ़्ट नहीं है। आराम करें।",
+    hours: "घंटे", shifts_week: "शिफ़्ट इस हफ़्ते", weekend_off: "वीकेंड छुट्टी", no_roster: "मैनेजर ने इस हफ़्ते का रोस्टर अभी नहीं डाला है।",
+    sent: "माँग स्टोर को भेज दी गई", job_done: "काम पूरा। धन्यवाद!", started: "शुरू हो गया। काम करें, फिर बाद की फ़ोटो लें।",
+    camera_denied: "कैमरा बंद है। ब्राउज़र सेटिंग में इस साइट को कैमरा की अनुमति दें।",
+    session_expired: "कृपया फिर से साइन इन करें।", wrong: "कुछ गड़बड़ हुई। फिर कोशिश करें।", on_shift: "ड्यूटी पर", off_shift: "ड्यूटी पर नहीं",
+    pending: "बाक़ी", partial: "कुछ मिला", issued: "मिल गया", rejected: "मंज़ूर नहीं", completed_recent: "आज पूरे किए",
+    gone: "काम किसी साथी को दे दिया गया", qty: "मात्रा", try_again: "फिर कोशिश करें", off: "छुट्टी"
+  }
+};

@@ -1,0 +1,19 @@
+[tool.pytest.ini_options]
+# This folder IS the `backend` package; its parent (the repo root) must be importable (also `ml`).
+pythonpath = [".."]
+testpaths = ["tests"]
+markers = ["slow: the 100-scenario roster test and other long runs (python run.py test --all)"]
+# starlette prefers httpx2 for its TestClient; only httpx was approved, so the notice is muted.
+filterwarnings = ["ignore:Using `httpx` with `starlette.testclient` is deprecated"]
+
+[tool.ruff]
+target-version = "py313"
+line-length = 100
+src = [".."]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP"]
+
+[tool.ruff.lint.flake8-bugbear]
+# FastAPI's dependency-injection idiom: Depends(...) / Query(...) in defaults is intended.
+extend-immutable-calls = ["fastapi.Depends", "fastapi.Query"]

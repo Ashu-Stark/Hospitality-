@@ -1,0 +1,47 @@
+{
+  "model": "pulse_model",
+  "seed": 42,
+  "best_iteration": 299,
+  "val": {
+    "rows": 3073,
+    "mae": 0.2455,
+    "rmse": 0.3091,
+    "r2": 0.824
+  },
+  "test": {
+    "rows": 3826,
+    "mae": 0.2498,
+    "rmse": 0.3143,
+    "r2": 0.8064
+  },
+  "feature_importance_gain": {
+    "pulse_score": 121183.87,
+    "pulse_roll4_mean": 46199.27,
+    "pulse_trend_4w": 2940.48,
+    "load_ratio": 2855.71,
+    "tenure_days": 1491.53,
+    "overtime_hours": 1152.06,
+    "role_head_chef": 374.77,
+    "department_housekeeping": 307.73,
+    "role_waiter": 263.36,
+    "department_maintenance": 252.37,
+    "role_technician": 237.77,
+    "role_receptionist": 231.13,
+    "role_helper": 152.94,
+    "role_captain": 149.42,
+    "days_until_contract_end": 114.03,
+    "leave_days": 90.8,
+    "department_fnb_service": 87.46,
+    "contract_type_permanent": 48.68,
+    "role_concierge": 45.85,
+    "role_attendant": 34.55,
+    "department_front_office": 29.41,
+    "department_kitchen": 25.64,
+    "department_security": 11.94,
+    "role_head": 11.74,
+    "role_cook": 11.59,
+    "role_guard": 0.0,
+    "role_supervisor": 0.0,
+    "contract_type_seasonal": 0.0
+  }
+}

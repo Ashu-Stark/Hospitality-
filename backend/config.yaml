@@ -1,0 +1,80 @@
+# Hospitality Operations Intelligence backend config. Every value is ASSUMED or a design choice unless stated; all data
+# is SYNTHETIC (from ml/).
+
+database_name: hoi_ops                  # MongoDB database (env HOI_OPS_DB overrides)
+mock_env_var: MOCK                      # MOCK=1 serves ml/data/mocks/*.json instead of models
+data_source: "ml/data (SYNTHETIC)"      # value of the `source` field for seeded documents
+
+# B2 roster (OR-Tools CP-SAT). Values ASSUMED, to be confirmed by the HM student.
+roster:
+  demo_week: "2029-12-24"               # the latest scoring week (Monday)
+  seed: 42                              # leave-day placement, greedy tie-breaks, test scenarios
+  time_limit_seconds: 10
+  num_workers: 8
+  # B4b: the demo week (closed loop + cache) is solved DETERMINISTICALLY so its before / after
+  # numbers are identical on every run: parallel workers in CP-SAT's deterministic interleaved
+  # mode, a fixed seed and a limit in deterministic work units (not wall-clock seconds).
+  # 1 worker was tried: also deterministic, but it stopped at objective 2744 / 2702 after 5-8 min
+  # vs the optimum 2242 / 2204 that the interleaved search proves in ~5 s.
+  deterministic:
+    num_workers: 8
+    interleave_search: true
+    max_deterministic_time: 60          # work units; the demo week needs ~9
+    safety_seconds: 120                 # wall-clock backstop only
+  shifts:                               # start hour, length in hours
+    morning: {start: 6, hours: 9}
+    evening: {start: 14, hours: 9}
+    night: {start: 22, hours: 9}
+  department_shifts:
+    housekeeping: [morning, evening]
+    fnb_service: [morning, evening]
+    kitchen: [morning, evening]
+    front_office: [morning, evening, night]
+    maintenance: [morning, evening]
+    security: [morning, evening, night]
+  demand_share:                         # share of a department's daily required hours per shift
+    housekeeping: {morning: 0.65, evening: 0.35}
+    fnb_service: {morning: 0.5, evening: 0.5}
+    kitchen: {morning: 0.5, evening: 0.5}
+    front_office: {morning: 0.4, evening: 0.4, night: 0.2}
+    maintenance: {morning: 0.6, evening: 0.4}
+    security: {morning: 0.34, evening: 0.33, night: 0.33}
+  min_headcount: 1                      # HARD: per department-shift-day
+  required_skill:                       # HARD: on every shift of the department
+    front_office: fo_system
+  min_rest_hours: 10                    # HARD, ASSUMED (HM student to confirm)
+  max_consecutive_days: 6               # HARD, ASSUMED
+  min_days_off: 1                       # HARD: one weekly off
+  weekend_days: [5, 6]                  # Sat, Sun (Mon = 0): matches ml signals' weekend_off
+  overtime_premium: 2.0                 # overtime hours cost this x the hourly rate
+  weights:                              # SOFT goals (integer penalties per unit)
+    understaffed_hour: 10
+    overtime_hour: 4
+    weekend_spread: 6                   # per shift of (max - min) weekend shifts in a department
+    night_spread: 6
+    protected_weekend_bonus: 120        # reward for a full Sat+Sun off for a protected employee;
+                                        # B4b: above one 9 h shift of understaffing (~90), chosen
+                                        # from 40 / 100 / 120 (see CLAUDE.md)
+
+# B3 task engine
+tasks:
+  reminder_fractions: [0.5, 0.9]        # reminders at these shares of the time to the deadline
+  escalate_at_fraction: 0.9             # escalate to the supervisor at this share
+  tick_seconds: 1.0                     # APScheduler interval (real seconds)
+  default_due_minutes: 240              # deadline when a request gives none
+  scheduler_enabled: true               # tests drive tick() directly with a fake clock
+
+# B5 metrics and demo
+metrics:
+  replacement_cost_inr: 60000           # ASSUMED cost to replace one leaver (hiring + training);
+                                        # editable per request: GET /metrics/overview?replacement_cost_inr=
+voice:
+  clips_dir: ml/voice/clips             # /voice/ingest only accepts file names inside this folder
+  urgency_due_minutes: {high: 30, normal: 240, low: 1440}
+  department_owner:                     # who receives a voice-note task
+    housekeeping: housekeeping supervisor
+    maintenance: maintenance head
+    front_office: front office manager
+    fnb_service: F&B captain
+    kitchen: head chef
+    security: security head

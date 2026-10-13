@@ -1,0 +1,24 @@
+# Render Blueprint (Infrastructure as Code) for the Hospitality Operations Intelligence (HOI)
+# backend. ALL data is SYNTHETIC. Docs: https://render.com/docs/blueprint-spec
+services:
+  - type: web
+    name: hoi-backend
+    runtime: docker                       # current key; older Blueprints used `env: docker`
+    plan: free                            # free web services support Docker (0.1 CPU, 512 MB)
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: .                      # repo root: the image needs backend/ and ml/
+    healthCheckPath: /health
+    envVars:
+      - key: MOCK                         # "1" serves ml/data/mocks/*.json instead of the models
+        value: "0"
+      - key: CORS_ORIGINS                 # comma-separated allowed origins; "*" = all (demo)
+        value: "*"
+      - key: MONGODB_URI                  # secret: Atlas connection string, set in the dashboard
+        sync: false
+      - key: HOI_OPS_DB                   # MongoDB database of this service
+        value: hoi_ops
+      - key: GROQ_API_KEY                 # optional: voice transcription (Groq Whisper)
+        sync: false
+      - key: SARVAM_API_KEY               # optional: voice transcription (Sarvam)
+        sync: false
+      # PORT is injected by Render; backend.serve binds 0.0.0.0:$PORT.

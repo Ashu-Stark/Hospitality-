@@ -1,0 +1,447 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HOI · Hospitality Operations Intelligence</title>
+<meta name="description" content="Forecast-driven rosters, live job dispatch with photo proof, demand-aware inventory and explainable retention signals for hotels.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#0b0b0b; --ink2:#52514e; --muted:#6b6a65; --page:#f2f2f0; --card:#fff; --field:#f4f4f2; --line:#e6e5e0;
+  --blue:#1f6fe5; --blue-soft:#e8f1ff; --green:#0ca30c; --green-soft:#ecfbea; --green-line:#62d36b;
+  --amber:#fab219; --amber-soft:#fff6df; --red:#d03b3b; --red-soft:#fdeceb;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{font-family:'Inter Tight',system-ui,-apple-system,'Segoe UI',sans-serif;background:var(--page);color:var(--ink);line-height:1.5;-webkit-font-smoothing:antialiased}
+a{color:inherit;text-decoration:none}
+img,svg{display:block}
+.wrap{max-width:1240px;margin:0 auto;padding:0 24px}
+h1,h2,h3{letter-spacing:-.04em;line-height:1.04;font-weight:600}
+.eyebrow{font-size:.78rem;color:var(--ink2)}
+.btn{display:inline-flex;align-items:center;gap:8px;border-radius:999px;padding:12px 22px;font-weight:500;font-size:.95rem;border:1.5px solid var(--ink);
+  background:#fff;transition:transform .15s,box-shadow .15s,background .15s;cursor:pointer;white-space:nowrap}
+.btn:hover{transform:translateY(-1px)}
+.btn.primary{background:linear-gradient(180deg,#3b86ff,#1463e0);color:#fff;border:none;box-shadow:0 8px 20px rgba(31,111,229,.3)}
+.btn.dark{background:var(--ink);color:#fff}
+.btn.ghost{border-color:var(--line)}
+.pillnav{display:flex;gap:4px;background:#fff;border-radius:999px;padding:5px;width:fit-content}
+.pillnav a,.pillnav button{border:0;background:transparent;border-radius:999px;padding:9px 18px;font:inherit;font-weight:500;color:var(--ink);cursor:pointer;
+  display:flex;align-items:center;gap:8px;white-space:nowrap}
+.pillnav .on{background:var(--ink);color:#fff}
+/* top bar */
+header.top{position:sticky;top:0;z-index:40;background:rgba(242,242,240,.82);backdrop-filter:blur(12px)}
+.topbar{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:14px 0}
+.brand{display:flex;align-items:center;gap:10px;font-weight:700;font-size:1.2rem;letter-spacing:-.03em}
+.brand i{width:38px;height:38px;border-radius:12px;background:linear-gradient(135deg,#f07a2c,#d9531a);display:grid;place-items:center;color:#fff}
+.brand small{font-weight:500;color:var(--ink2);font-size:.9rem}
+.util{display:flex;gap:18px;align-items:center;font-size:.74rem;letter-spacing:.06em;text-transform:uppercase}
+.util a:hover{color:var(--blue)}
+.menu{display:none}
+/* hero */
+.hero{position:relative;border-radius:32px;overflow:hidden;min-height:560px;margin-top:8px;color:#fff;
+  background:radial-gradient(120% 120% at 80% 0%,#e0631f 0%,#c94d16 40%,#a83b12 100%);background-size:160% 160%;animation:drift 16s ease-in-out infinite}
+.hero .mtn{position:absolute;inset:auto 0 0 0;height:62%;pointer-events:none}
+.hero-in{position:relative;text-align:center;padding:72px 24px 0}
+.hero h1{font-size:clamp(2.6rem,6.4vw,5.2rem);max-width:900px;margin:10px auto 14px}
+.hero p.lead{max-width:640px;margin:0 auto;color:rgba(255,255,255,.9);font-size:1.08rem}
+.hero .eyebrow{color:rgba(255,255,255,.9);text-transform:uppercase;letter-spacing:.08em}
+.searchcard{position:relative;margin:34px auto 0;max-width:980px}
+.searchcard .pillnav{margin:0 auto -22px;position:relative;z-index:2;box-shadow:0 10px 30px rgba(0,0,0,.12)}
+.panel{background:#fff;color:var(--ink);border-radius:26px;padding:40px 18px 18px;box-shadow:0 20px 50px rgba(0,0,0,.15)}
+.fields{display:flex;gap:10px;align-items:stretch;flex-wrap:wrap}
+.field{flex:1 1 180px;background:var(--field);border-radius:16px;padding:10px 14px;display:flex;gap:10px;align-items:center;text-align:left}
+.field .l{font-size:.72rem;color:var(--muted)} .field .v{font-weight:500}
+.field svg{flex:none;color:var(--ink2)}
+.perks{display:flex;justify-content:center;gap:18px;flex-wrap:wrap;background:#e6fbe1;color:#1f5d1f;border-radius:0 0 20px 20px;
+  margin:0 12px;padding:10px 14px;font-size:.8rem}
+.perks span{display:flex;gap:6px;align-items:center}
+/* quick row */
+.quick{background:#fff;border-radius:24px;display:grid;grid-template-columns:repeat(8,1fr);padding:18px 6px;margin-top:22px}
+.quick a{display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center;font-size:.86rem;padding:6px;border-right:1px solid var(--line)}
+.quick a:last-child{border-right:0}
+.quick .ic{width:46px;height:46px;border-radius:999px;background:var(--blue-soft);color:var(--blue);display:grid;place-items:center;transition:transform .2s}
+.quick a:hover .ic{transform:translateY(-3px)}
+/* sections */
+section{padding:72px 0 0}
+.sechead{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;margin-bottom:20px}
+.sechead h2{font-size:clamp(1.8rem,3.4vw,2.6rem)}
+.sechead p{color:var(--muted);max-width:560px;margin-top:6px}
+/* region cards */
+.regions{display:grid;grid-template-columns:repeat(5,1fr);gap:14px}
+.region{background:#fff;border-radius:22px;padding:8px;transition:transform .2s,box-shadow .2s}
+.region:hover{transform:translateY(-4px);box-shadow:0 14px 30px rgba(0,0,0,.08)}
+.region .art{height:220px;border-radius:16px;position:relative;overflow:hidden;color:#fff;display:flex;flex-direction:column;justify-content:flex-end;
+  align-items:center;padding:14px;text-align:center}
+.region .art b{font-size:1.7rem;letter-spacing:-.04em;line-height:1}
+.region .art small{letter-spacing:.2em;font-size:.68rem;opacity:.9;margin-top:6px}
+.region .art svg{position:absolute;inset:0;width:100%;height:100%}
+.region .art > *:not(svg){position:relative}
+.region .meta{display:flex;justify-content:center;gap:8px;align-items:center;padding:12px 4px 6px;font-weight:600;font-size:.9rem}
+/* loop banner */
+.banner{border-radius:30px;overflow:hidden;position:relative;color:#fff;padding:56px 48px;min-height:380px;
+  background:radial-gradient(120% 140% at 85% 0%,#5c7a5a 0%,#2c3a2c 55%,#101810 100%)}
+.banner h2{font-size:clamp(2rem,4vw,3.2rem);max-width:640px}
+.banner p{color:rgba(255,255,255,.85);max-width:560px;margin:12px 0 22px}
+.steps{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:28px}
+.step{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);border-radius:18px;padding:16px;backdrop-filter:blur(4px)}
+.step .n{width:32px;height:32px;border-radius:999px;background:#fff;color:var(--ink);display:grid;place-items:center;font-weight:700;margin-bottom:10px}
+.step b{display:block;font-size:1.05rem;letter-spacing:-.02em} .step span{font-size:.85rem;color:rgba(255,255,255,.8)}
+/* role offer cards */
+.roles{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(260px,1fr);gap:14px;overflow-x:auto;padding-bottom:6px;scroll-snap-type:x mandatory}
+.role{border-radius:24px;padding:22px;min-height:220px;position:relative;overflow:hidden;scroll-snap-align:start;color:var(--ink)}
+.role h3{font-size:1.9rem;margin:8px 0}
+.role p{font-size:.9rem;color:var(--ink2);max-width:240px}
+.role .tag{display:inline-block;background:var(--ink);color:#fff;border-radius:6px;padding:3px 8px;font-size:.72rem;font-weight:600}
+.role.a{background:linear-gradient(160deg,#fff4e6,#ffd9b3)} .role.b{background:linear-gradient(160deg,#e8f1ff,#c6dbff)}
+.role.c{background:linear-gradient(160deg,#ecfbea,#c9f2c4)} .role.d{background:linear-gradient(160deg,#f6f0ff,#ddd0ff)}
+.role.e{background:linear-gradient(160deg,#ff9a4d,#f05a1f);color:#fff} .role.e p{color:rgba(255,255,255,.9)} .role.e .tag{background:#fff;color:#c9481a}
+/* app banner */
+.appban{border-radius:30px;position:relative;overflow:visible;margin-top:80px;padding:60px 48px;min-height:400px;color:#fff;
+  background:radial-gradient(120% 140% at 70% 100%,#e0631f 0%,#c94d16 45%,#b03f14 100%)}
+.appban h2{font-size:clamp(2.2rem,4.6vw,3.8rem);max-width:560px}
+.appban p{max-width:480px;color:rgba(255,255,255,.9);margin:12px 0 24px}
+.phones{position:absolute;right:48px;bottom:0;display:flex;gap:-30px;align-items:flex-end}
+.phone{width:230px;height:450px;border-radius:38px;background:#0b0b0b;padding:10px;box-shadow:0 30px 60px rgba(0,0,0,.3)}
+.phone + .phone{margin-left:-60px;margin-bottom:-30px;transform:rotate(4deg)}
+.screen{width:100%;height:100%;border-radius:30px;background:#fff;color:var(--ink);overflow:hidden;position:relative}
+.notch{width:90px;height:22px;background:#0b0b0b;border-radius:0 0 14px 14px;margin:0 auto}
+.ping{margin:16px 12px;border-radius:20px;background:linear-gradient(160deg,#fff,#eef4ff);padding:16px;position:relative}
+.ping .t{color:var(--blue);font-size:.7rem;font-weight:700;letter-spacing:.08em}
+.ping .big{font-size:1.15rem;font-weight:600;letter-spacing:-.03em;margin:4px 0;padding-right:44px}
+.ring{position:absolute;right:12px;top:12px;width:42px;height:42px;border-radius:999px;background:var(--blue);color:#fff;display:grid;place-items:center;
+  font-weight:700;animation:pulse 1.4s infinite}
+.bar{height:6px;border-radius:999px;background:var(--blue-soft);overflow:hidden;margin-top:10px}
+.bar i{display:block;height:100%;width:62%;background:linear-gradient(90deg,#3b86ff,#1463e0);animation:count 8s linear infinite}
+.pbtns{display:flex;gap:8px;margin:0 12px}
+.pbtns span{flex:1;text-align:center;border-radius:999px;padding:10px;font-size:.85rem;border:1px solid var(--line)}
+.pbtns span.p{background:linear-gradient(180deg,#3b86ff,#1463e0);color:#fff;border:0}
+.photo{margin:14px 12px;border-radius:16px;height:120px;background:linear-gradient(135deg,#d7e6f7,#9fbfe6);position:relative;overflow:hidden}
+.photo::after{content:"AFTER · 13 Oct 14:22:05 IST · job 9f2c · E134";position:absolute;left:0;right:0;bottom:0;background:rgba(11,11,11,.75);color:#fff;
+  font-size:.6rem;padding:6px 8px;border-left:4px solid var(--green)}
+/* inventory */
+.split{display:grid;grid-template-columns:1.1fr 1fr;gap:16px}
+.card{background:#fff;border-radius:24px;padding:24px}
+.chips{display:flex;gap:8px;flex-wrap:wrap}
+.chip{display:inline-flex;align-items:center;gap:8px;border:1.5px solid var(--line);border-radius:999px;padding:8px 14px;font-size:.88rem;background:#fff}
+.status{border:1.5px solid var(--green-line);background:var(--green-soft);border-radius:16px;padding:12px 14px;min-width:150px;flex:1}
+.status.w{border-color:#f2cd6f;background:var(--amber-soft)} .status.r{border-color:#efa3a1;background:var(--red-soft)}
+.status .row{display:flex;justify-content:space-between;font-size:.8rem;color:var(--ink2)}
+.status .big{font-size:1.25rem;font-weight:600;letter-spacing:-.03em;margin:4px 0}
+.status .badge{display:inline-block;background:#fff;border-radius:999px;padding:2px 10px;font-size:.74rem;border:1px solid currentColor}
+.status{color:#0a6b12} .status.w{color:#7a5000} .status.r{color:#a32020}
+.statusrow{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
+.minichart{display:flex;align-items:flex-end;gap:6px;height:140px;margin-top:16px}
+.minichart div{flex:1;border-radius:6px 6px 2px 2px;background:#2a78d6;opacity:.9;transform-origin:bottom;animation:grow .9s cubic-bezier(.2,.7,.2,1) both}
+.minichart div.f{background:#86b6ef}
+.legend{display:flex;gap:14px;font-size:.78rem;color:var(--ink2);margin-top:8px}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:6px;vertical-align:-1px}
+/* compare */
+table{width:100%;border-collapse:separate;border-spacing:0;background:#fff;border-radius:22px;overflow:hidden;font-size:.9rem}
+th,td{padding:14px 16px;text-align:left;border-bottom:1px solid var(--line)}
+th{background:#0b0b0b;color:#fff;font-weight:500}
+tr:last-child td{border-bottom:0}
+.y{color:#0a6b12;font-weight:600} .n{color:#a32020;font-weight:600} .p{color:#b06a00;font-weight:600}
+.tablewrap{overflow-x:auto;border-radius:22px}
+/* plans */
+.plans{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.plan{background:#fff;border-radius:24px;padding:26px;display:flex;flex-direction:column;gap:10px;transition:transform .2s}
+.plan:hover{transform:translateY(-4px)}
+.plan.hot{outline:2px solid var(--blue)}
+.plan h3{font-size:1.6rem}
+.plan li{list-style:none;display:flex;gap:8px;align-items:flex-start;font-size:.92rem}
+.plan li::before{content:"";width:18px;height:18px;flex:none;margin-top:2px;border-radius:6px;background:var(--green-soft) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%230ca30c' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 12 4 4 8-8'/%3E%3C/svg%3E") center/12px no-repeat}
+/* faq */
+details{background:#fff;border-radius:18px;padding:18px 22px;margin-bottom:10px}
+summary{cursor:pointer;font-weight:600;list-style:none;display:flex;justify-content:space-between;gap:12px}
+summary::after{content:"+";font-size:1.3rem;line-height:1;transition:transform .2s} details[open] summary::after{transform:rotate(45deg)}
+details p{color:var(--ink2);margin-top:10px}
+/* footer */
+footer{margin:80px 0 24px;background:#e9e9e6;border-radius:28px;padding:44px}
+.fgrid{display:grid;grid-template-columns:1.4fr repeat(4,1fr);gap:24px}
+.fgrid h4{font-size:.9rem;margin-bottom:12px}
+.fgrid a{display:block;color:var(--ink2);font-size:.85rem;margin:6px 0}
+.fgrid a:hover{color:var(--ink)}
+.mail{display:flex;align-items:center;background:#fff;border-radius:999px;padding:6px 6px 6px 16px;margin-top:22px;max-width:320px}
+.mail input{border:0;outline:0;flex:1;font:inherit;font-size:.88rem;background:transparent}
+.mail a{width:34px;height:34px;border-radius:999px;background:var(--blue);display:grid;place-items:center;color:#fff}
+.legal{display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-top:40px;font-size:.78rem;color:var(--ink2)}
+/* motion */
+.reveal{opacity:0;transform:translateY(18px);transition:opacity .6s cubic-bezier(.2,.7,.2,1),transform .6s cubic-bezier(.2,.7,.2,1)}
+.reveal.in{opacity:1;transform:none}
+@keyframes drift{0%,100%{background-position:0% 50%}50%{background-position:100% 50%}}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(31,111,229,.55)}70%{box-shadow:0 0 0 14px rgba(31,111,229,0)}100%{box-shadow:0 0 0 0 rgba(31,111,229,0)}}
+@keyframes count{from{width:100%}to{width:0}}
+@keyframes grow{from{transform:scaleY(0)}to{transform:scaleY(1)}}
+@keyframes float{0%,100%{transform:translateY(0) rotate(4deg)}50%{transform:translateY(-8px) rotate(4deg)}}
+.phone + .phone{animation:float 6s ease-in-out infinite}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}.reveal{opacity:1;transform:none}}
+/* responsive */
+@media (max-width:1060px){
+  .regions{grid-template-columns:repeat(3,1fr)} .steps{grid-template-columns:repeat(2,1fr)}
+  .phones{position:relative;right:auto;justify-content:center;margin-top:30px} .appban{padding:44px 28px 0}
+  .split{grid-template-columns:1fr} .fgrid{grid-template-columns:1fr 1fr} .brand small{display:none}
+}
+@media (max-width:760px){
+  .util{display:none} .menu{display:inline-flex}
+  .hero{border-radius:24px;min-height:auto;padding-bottom:20px} .hero-in{padding:48px 16px 0}
+  .searchcard .pillnav{overflow-x:auto;max-width:100%}
+  .quick{grid-template-columns:repeat(4,1fr);row-gap:14px} .quick a:nth-child(4n){border-right:0}
+  .regions{grid-template-columns:repeat(2,1fr)} .region .art{height:170px}
+  .banner{padding:36px 22px} .steps{grid-template-columns:1fr}
+  .plans{grid-template-columns:1fr} .fgrid{grid-template-columns:1fr}
+  .phone{width:190px;height:380px} footer{padding:28px}
+  .wrap{padding:0 16px} section{padding-top:56px}
+  .sechead{flex-direction:column;align-items:flex-start}
+}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="wrap topbar">
+    <a class="brand" href="#"><i><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><path d="M3 18V7"/><path d="M3 14h18v4"/><path d="M21 14v-2a3 3 0 0 0-3-3h-7v5"/><circle cx="7" cy="11" r="2"/></svg></i>HOI <small>Hospitality Operations Intelligence</small></a>
+    <nav class="util" aria-label="Main">
+      <a href="#product">Product</a><a href="#loop">How it works</a><a href="#dispatch">Dispatch</a><a href="#inventory">Inventory</a>
+      <a href="#compare">Compare</a><a href="#plans">Plans</a><a href="#faq">FAQ</a>
+    </nav>
+    <div style="display:flex;gap:8px">
+      <a class="btn" data-app href="#">Sign in</a>
+      <a class="btn primary menu-hide" href="#contact">Book a demo</a>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+  <!-- HERO -->
+  <div class="hero" id="product">
+    <svg class="mtn" viewBox="0 0 1200 360" preserveAspectRatio="none" aria-hidden="true">
+      <path fill="rgba(255,255,255,.14)" d="M0 360 L0 210 L140 120 L230 180 L360 70 L470 170 L560 110 L700 210 L820 90 L940 190 L1060 120 L1200 200 L1200 360Z"/>
+      <path fill="rgba(255,255,255,.12)" d="M0 360 L0 280 L180 200 L300 250 L440 170 L600 260 L760 190 L900 260 L1040 210 L1200 270 L1200 360Z"/>
+    </svg>
+    <div class="hero-in">
+      <div class="eyebrow">For hill hotels and homestays · built in Uttarakhand</div>
+      <h1>Run a calmer hotel.<br>Keep your best people.</h1>
+      <p class="lead">Forecast-driven rosters, live job dispatch with photo proof, inventory that follows demand, and early, explainable signals about who may need support.</p>
+      <div class="searchcard">
+        <div class="pillnav" role="tablist" id="tabs">
+          <button class="on" data-tab="roster">Roster</button><button data-tab="dispatch">Dispatch</button>
+          <button data-tab="inventory">Inventory</button><button data-tab="retention">Retention</button>
+        </div>
+        <div class="panel">
+          <div class="fields" id="fields"></div>
+        </div>
+        <div class="perks"><span>✓ Works offline on demo data</span><span>✓ Staff identified by ID only</span><span>✓ Every score explained</span><span>✓ No adverse action from risk flags</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- QUICK ROW -->
+  <div class="quick reveal">
+    <a href="#loop"><span class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="m3 17 6-6 4 4 8-8"/><path d="M15 7h6v6"/></svg></span>Forecast</a>
+    <a href="#loop"><span class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/></svg></span>Roster</a>
+    <a href="#dispatch"><span class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M13 2 4 14h7l-1 8 9-12h-7z"/></svg></span>Dispatch</a>
+    <a href="#dispatch"><span class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="6" width="18" height="14" rx="3"/><circle cx="12" cy="13" r="3.5"/><path d="M8 6l1.5-2h5L16 6"/></svg></span>Photo proof</a>
+    <a href="#inventory"><span class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 7l9-4 9 4v10l-9 4-9-4z"/><path d="M3 7l9 4 9-4M12 11v10"/></svg></span>Inventory</a>
+    <a href="#loop"><span class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/></svg></span>Retention</a>
+    <a href="#dispatch"><span class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></span>Voice to task</a>
+    <a href="#plans"><span class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 21h18M5 21V9l7-5 7 5v12M9 21v-6h6v6"/></svg></span>Multi-property</a>
+  </div>
+
+  <!-- REGIONS -->
+  <section>
+    <div class="sechead reveal"><div><div class="eyebrow">Made for seasonal demand</div><h2>Built for hill hotels</h2>
+      <p>Char Dham peaks, festival weekends and winter troughs swing occupancy hard. HOI plans staff and stock around them.</p></div>
+      <a class="btn ghost" href="#loop">How it works</a></div>
+    <div class="regions">
+      <div class="region reveal"><div class="art" style="background:linear-gradient(180deg,#7fb2ff,#1d4fa8)"><svg viewBox="0 0 200 220" preserveAspectRatio="none"><path fill="rgba(255,255,255,.18)" d="M0 220 L0 120 L50 70 L90 110 L140 50 L200 120 L200 220Z"/></svg><b>Rishikesh</b><small>RIVER RETREATS</small></div><div class="meta">Peak: May–June →</div></div>
+      <div class="region reveal"><div class="art" style="background:linear-gradient(180deg,#9be2c4,#167a52)"><svg viewBox="0 0 200 220" preserveAspectRatio="none"><path fill="rgba(255,255,255,.18)" d="M0 220 L0 140 L60 80 L100 120 L150 60 L200 130 L200 220Z"/></svg><b>Mussoorie</b><small>WEEKEND HILLS</small></div><div class="meta">Weekend uplift →</div></div>
+      <div class="region reveal"><div class="art" style="background:linear-gradient(180deg,#c6b5ff,#5a3fc0)"><svg viewBox="0 0 200 220" preserveAspectRatio="none"><path fill="rgba(255,255,255,.18)" d="M0 220 L0 130 L40 90 L110 140 L160 70 L200 110 L200 220Z"/></svg><b>Nainital</b><small>LAKE TOWNS</small></div><div class="meta">Festival spikes →</div></div>
+      <div class="region reveal"><div class="art" style="background:linear-gradient(180deg,#e6f0ff,#7d93b8)"><svg viewBox="0 0 200 220" preserveAspectRatio="none"><path fill="rgba(255,255,255,.35)" d="M0 220 L0 110 L70 40 L120 100 L170 60 L200 90 L200 220Z"/></svg><b>Auli</b><small>SNOW SEASON</small></div><div class="meta">Winter peak →</div></div>
+      <div class="region reveal"><div class="art" style="background:linear-gradient(180deg,#ffc28a,#c9481a)"><svg viewBox="0 0 200 220" preserveAspectRatio="none"><path fill="rgba(255,255,255,.18)" d="M0 220 L0 150 L50 90 L100 130 L150 40 L200 120 L200 220Z"/></svg><b>Char Dham</b><small>PILGRIM ROUTES</small></div><div class="meta">Seasonal staff →</div></div>
+    </div>
+  </section>
+
+  <!-- LOOP BANNER -->
+  <section id="loop">
+    <div class="banner reveal">
+      <div class="eyebrow" style="color:rgba(255,255,255,.8);text-transform:uppercase;letter-spacing:.1em">The closed loop</div>
+      <h2>From a busy Saturday to a fair roster to a calmer team.</h2>
+      <p>Most tools either forecast and schedule, or score attrition. HOI connects the two and measures what changed.</p>
+      <a class="btn" style="color:var(--ink)" data-app href="#">See it in the demo</a>
+      <div class="steps">
+        <div class="step"><div class="n">1</div><b>Forecast</b><span>Occupancy for 1, 7 and 30 days, with an honest uncertainty band.</span></div>
+        <div class="step"><div class="n">2</div><b>Roster</b><span>Constraint solver respects leave, rest and skills, and says why a week can't be staffed.</span></div>
+        <div class="step"><div class="n">3</div><b>Flag & fix</b><span>Explainable drivers, matched actions, protected weekends in the next roster.</span></div>
+        <div class="step"><div class="n">4</div><b>Measure</b><span>Re-score under the new roster. Small effects are shown as small.</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ROLES -->
+  <section>
+    <div class="sechead reveal"><div><div class="eyebrow">One product, five views</div><h2>The right screen for every role</h2></div></div>
+    <div class="roles reveal">
+      <div class="role a"><span class="tag">OWNER / GM</span><h3>Whole hotel</h3><p>Cost, coverage, value at stake and every module in one place.</p></div>
+      <div class="role b"><span class="tag">HR</span><h3>Retention</h3><p>Who may need support and why, what-if simulations, intervention tasks.</p></div>
+      <div class="role c"><span class="tag">DEPT HEAD</span><h3>Shift ops</h3><p>Roster, live dispatch board, supply requests for the team.</p></div>
+      <div class="role d"><span class="tag">STOREKEEPER</span><h3>Stores</h3><p>Requests, purchase orders, receipts, counts and wastage.</p></div>
+      <div class="role e"><span class="tag">EMPLOYEE</span><h3>Employee app</h3><p>My shifts, job pings, photo proof and supply requests, with no risk scores in sight.</p></div>
+    </div>
+  </section>
+
+  <!-- DISPATCH APP BANNER -->
+  <div class="appban reveal" id="dispatch">
+    <h2>Every request,<br>to the right person.</h2>
+    <p>A guest asks for towels; a voice note says the AC is broken. HOI pings the best on-shift person. If they don't accept in time, the next one gets it. Before and after photos are stamped with server time and hashed.</p>
+    <div style="display:flex;gap:10px;flex-wrap:wrap">
+      <a class="btn dark" data-app href="#">Try live dispatch</a>
+      <a class="btn" style="background:transparent;color:#fff;border-color:rgba(255,255,255,.6)" href="#faq">How photos are verified</a>
+    </div>
+    <div class="phones" aria-hidden="true">
+      <div class="phone"><div class="screen"><div class="notch"></div>
+        <div style="padding:12px 14px 0;font-size:.75rem;color:var(--muted)">E134 · Housekeeping · morning</div>
+        <div class="ping"><div class="ring">20</div><div class="t">NEW REQUEST</div><div class="big">Extra towels, room 204</div>
+          <div style="font-size:.75rem;color:var(--ink2)">medium urgency · floor 2</div><div class="bar"><i></i></div></div>
+        <div class="pbtns"><span>Decline</span><span class="p">Accept</span></div>
+        <div class="photo"></div></div></div>
+      <div class="phone"><div class="screen" style="background:linear-gradient(170deg,#ff9a4d,#f05a1f);color:#fff"><div class="notch"></div>
+        <div style="padding:28px 18px"><div style="font-size:.7rem;letter-spacing:.1em;opacity:.85">WHY THIS WORKER?</div>
+          <div style="font-size:1.4rem;font-weight:600;letter-spacing:-.03em;margin:8px 0 12px">Score 88</div>
+          <div style="font-size:.78rem;line-height:1.9">100 base<br>−0 open jobs<br>−8 fairness<br>−4 distance<br>−0 retention guard</div>
+          <div style="margin-top:16px;font-size:.72rem;opacity:.85">Staff flagged for overload get fewer extra jobs.</div></div></div></div>
+    </div>
+  </div>
+
+  <!-- INVENTORY -->
+  <section id="inventory">
+    <div class="sechead reveal"><div><div class="eyebrow">Stores & purchasing</div><h2>Inventory that follows the forecast</h2>
+      <p>Static par levels miss busy weeks. HOI sizes orders from usage per occupied room and the same occupancy forecast that drives the roster.</p></div></div>
+    <div class="split">
+      <div class="card reveal">
+        <div class="chips"><span class="chip">✓ Requests → issue</span><span class="chip">✓ PO → GRN, partial receipts</span><span class="chip">✓ Stock counts & variance</span>
+          <span class="chip">✓ Wastage with reasons</span><span class="chip">✓ One ledger, no drift</span><span class="chip">✓ Cost per occupied room</span></div>
+        <div class="statusrow">
+          <div class="status"><div class="row"><span>Bath towel</span><span>3.4 par</span></div><div class="big">153</div><span class="badge">OK</span></div>
+          <div class="status w"><div class="row"><span>Shampoo 30 ml</span><span>busy week</span></div><div class="big">+205</div><span class="badge">Forecast-aware</span></div>
+          <div class="status r"><div class="row"><span>Geyser element</span><span>reorder</span></div><div class="big">2</div><span class="badge">Below point</span></div>
+        </div>
+      </div>
+      <div class="card reveal">
+        <b>Order size: static par vs forecast-aware</b>
+        <div class="minichart" aria-label="Illustrative bar chart">
+          <div style="height:10%"></div><div class="f" style="height:72%"></div>
+          <div style="height:12%"></div><div class="f" style="height:64%"></div>
+          <div style="height:62%"></div><div class="f" style="height:62%"></div>
+          <div style="height:8%"></div><div class="f" style="height:58%"></div>
+          <div style="height:60%"></div><div class="f" style="height:60%"></div>
+        </div>
+        <div class="legend"><span><i style="background:#2a78d6"></i>Static par rule</span><span><i style="background:#86b6ef"></i>Forecast-aware</span></div>
+        <p style="color:var(--muted);font-size:.8rem;margin-top:8px">Illustrative, from the demo hotel's synthetic data: amenities that look fine on par would run short in a forecast busy week.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- COMPARE -->
+  <section id="compare">
+    <div class="sechead reveal"><div><div class="eyebrow">Where HOI fits</div><h2>Compared by category</h2>
+      <p>Each category is strong at its own job. HOI's bet is connecting them. "Partial" means limited or not publicly evidenced.</p></div></div>
+    <div class="tablewrap reveal"><table>
+      <thead><tr><th>Capability</th><th>HOI</th><th>Scheduling / WFM</th><th>HR attrition analytics</th><th>Hotel task apps</th><th>Inventory tools</th></tr></thead>
+      <tbody>
+        <tr><td>Demand forecast → roster</td><td class="y">Yes</td><td class="y">Yes</td><td class="n">No</td><td class="n">No</td><td class="n">No</td></tr>
+        <tr><td>Individual, explained attrition risk</td><td class="y">Yes</td><td class="n">No</td><td class="y">Yes</td><td class="n">No</td><td class="n">No</td></tr>
+        <tr><td>Risk → action → roster → re-score loop</td><td class="y">Yes</td><td class="n">No</td><td class="p">Partial</td><td class="n">No</td><td class="n">No</td></tr>
+        <tr><td>Live dispatch with photo proof</td><td class="y">Yes</td><td class="p">Partial</td><td class="n">No</td><td class="y">Yes</td><td class="n">No</td></tr>
+        <tr><td>Forecast-aware purchasing</td><td class="y">Yes</td><td class="n">No</td><td class="n">No</td><td class="n">No</td><td class="p">Partial</td></tr>
+        <tr><td>Payroll / attendance system of record</td><td class="n">No</td><td class="p">Partial</td><td class="y">Yes</td><td class="n">No</td><td class="n">No</td></tr>
+        <tr><td>Proven on real hotel data</td><td class="n">Not yet</td><td class="y">Yes</td><td class="y">Yes</td><td class="y">Yes</td><td class="y">Yes</td></tr>
+      </tbody></table></div>
+    <p style="color:var(--muted);font-size:.8rem;margin-top:10px">Based on public vendor material and review sites, October 2026. HOI is a prototype on synthetic data (TRL 4), ready for a real-property pilot.</p>
+  </section>
+
+  <!-- PLANS -->
+  <section id="plans">
+    <div class="sechead reveal"><div><div class="eyebrow">Packaging</div><h2>Plans that grow with you</h2><p>Pricing is set with pilot partners. Talk to us.</p></div></div>
+    <div class="plans">
+      <div class="plan reveal"><div class="eyebrow">For a single property</div><h3>Starter</h3><ul><li>1 property, up to 80 staff</li><li>Forecast & roster solver</li><li>Live dispatch + photo proof</li><li>Inventory & purchasing</li></ul><a class="btn ghost" href="#contact">Talk to us</a></div>
+      <div class="plan hot reveal"><div class="eyebrow">Most teams</div><h3>Growth</h3><ul><li>Up to 5 properties, 400 staff</li><li>Everything in Starter</li><li>Retention risk, what-if & closed loop</li><li>Voice to task</li></ul><a class="btn primary" href="#contact">Book a demo</a></div>
+      <div class="plan reveal"><div class="eyebrow">Hotel groups</div><h3>Chain</h3><ul><li>Unlimited properties</li><li>Everything in Growth</li><li>Your own backend / data residency</li><li>Platform admin & audit log</li></ul><a class="btn ghost" href="#contact">Talk to us</a></div>
+    </div>
+  </section>
+
+  <!-- FAQ -->
+  <section id="faq">
+    <div class="sechead reveal"><div><div class="eyebrow">Straight answers</div><h2>Questions hotels ask</h2></div></div>
+    <details class="reveal" open><summary>Does HOI predict who will quit?</summary><p>No. It ranks who may need support this week and explains why (for example sustained overtime, no weekend off, a pay gap). Flags exist to offer help, never to punish or decide dismissals. Every reason shows how strongly the data supports it.</p></details>
+    <details class="reveal"><summary>What employee data do you need?</summary><p>Employee ID, department, skills, contract type, shifts, leave and task records. Names, gender, religion, caste, health and family status are not collected, and staff imports with such columns are rejected.</p></details>
+    <details class="reveal"><summary>How are before/after photos verified?</summary><p>Photos are taken in the app's live camera, stamped with the server's time (never the phone's), tied to the job and worker, and hashed with SHA-256 so later edits are detectable. This cannot stop someone photographing a screen; a code shown at capture time raises the bar.</p></details>
+    <details class="reveal"><summary>Is it proven on real hotels?</summary><p>Not yet. Everything shown runs on a realistic synthetic hotel. Accuracy numbers are reported beside simple baselines, and the next step is a pilot with a real property.</p></details>
+    <details class="reveal"><summary>Can each hotel group keep its own data?</summary><p>Yes. Each group is a separate workspace with its own properties, staff, jobs, inventory and data source, and can point to its own backend.</p></details>
+  </section>
+
+  <!-- CTA -->
+  <section id="contact">
+    <div class="hero reveal" style="min-height:auto;padding:56px 24px;text-align:center">
+      <svg class="mtn" viewBox="0 0 1200 360" preserveAspectRatio="none" aria-hidden="true"><path fill="rgba(255,255,255,.14)" d="M0 360 L0 230 L160 150 L280 210 L420 110 L560 200 L700 140 L860 230 L1000 150 L1200 230 L1200 360Z"/></svg>
+      <div style="position:relative"><h2 style="font-size:clamp(2rem,4.6vw,3.6rem)">See your hotel's week in HOI</h2>
+        <p style="max-width:560px;margin:12px auto 24px;color:rgba(255,255,255,.9)">Open the live demo with one click, or write to us about a pilot.</p>
+        <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap"><a class="btn dark" data-app href="#">Open the live demo</a>
+          <a class="btn" style="color:var(--ink)" data-mail href="#">Ask about a pilot</a></div></div>
+    </div>
+  </section>
+</main>
+
+<div class="wrap">
+  <footer>
+    <div class="fgrid">
+      <div><a class="brand" href="#"><i><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M3 18V7"/><path d="M3 14h18v4"/><path d="M21 14v-2a3 3 0 0 0-3-3h-7v5"/><circle cx="7" cy="11" r="2"/></svg></i>HOI</a>
+        <p style="color:var(--ink2);font-size:.88rem;margin-top:10px">Hospitality Operations Intelligence</p>
+        <div class="mail"><input type="email" placeholder="Your email for updates" aria-label="Email"><a data-mail href="#" aria-label="Send">→</a></div></div>
+      <div><h4>Product</h4><a href="#loop">Forecast & roster</a><a href="#dispatch">Dispatch</a><a href="#dispatch">Photo proof</a><a href="#inventory">Inventory</a><a href="#loop">Retention</a></div>
+      <div><h4>For</h4><a href="#plans">Single properties</a><a href="#plans">Hotel groups</a><a href="#plans">Homestays</a></div>
+      <div><h4>Trust</h4><a href="#faq">Data we collect</a><a href="#faq">Photo verification</a><a href="#faq">Purpose limitation</a></div>
+      <div><h4>Company</h4><a href="#contact">Contact</a><a data-app href="#">Sign in</a></div>
+    </div>
+    <div class="legal"><span>© 2026 HOI · AI-Tourism Hackathon 2026 · demo data is synthetic</span><span>No real person appears in the demo</span></div>
+  </footer>
+</div>
+
+<script>
+// Set these two before deploying.
+const APP_URL = "http://localhost:8501";
+const CONTACT_EMAIL = "hello@example.com"; // placeholder: replace with the team's address
+
+document.querySelectorAll("[data-app]").forEach(a => a.href = APP_URL);
+document.querySelectorAll("[data-mail]").forEach(a => a.href = "mailto:" + CONTACT_EMAIL + "?subject=HOI%20pilot");
+
+const ICON = {
+  cal:'<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>',
+  user:'<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/></svg>',
+  box:'<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 7l9-4 9 4v10l-9 4-9-4z"/></svg>',
+  bolt:'<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M13 2 4 14h7l-1 8 9-12h-7z"/></svg>'
+};
+const TABS = {
+  roster:[["cal","Week","Mon 24 – Sun 30"],["user","Busiest day","Sat · ~85% occupancy"],["bolt","Solve","CP-SAT · coverage & fairness"]],
+  dispatch:[["bolt","Request","AC not cooling · room 204"],["user","Pinged","Best on-shift technician"],["cal","Proof","Before + after photo"]],
+  inventory:[["box","Item","Shampoo 30 ml"],["cal","Forecast week","Busy · order +205"],["user","Flow","Request → issue → PO → GRN"]],
+  retention:[["user","Flagged for review","6 permanent staff"],["bolt","Top driver","Overtime overload"],["cal","Fix","Protected weekends"]]
+};
+const fields = document.getElementById("fields");
+function show(t){
+  fields.innerHTML = TABS[t].map(([i,l,v]) => `<div class="field">${ICON[i]}<div><div class="l">${l}</div><div class="v">${v}</div></div></div>`).join("")
+    + `<a class="btn primary" href="${APP_URL}">Open demo</a>`;
+  document.querySelectorAll("#tabs button").forEach(b => b.classList.toggle("on", b.dataset.tab === t));
+}
+document.querySelectorAll("#tabs button").forEach(b => b.addEventListener("click", () => show(b.dataset.tab)));
+show("roster");
+
+const io = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) { e.target.classList.add("in"); io.unobserve(e.target); } }),
+  {threshold: .12});
+document.querySelectorAll(".reveal").forEach((el, i) => { el.style.transitionDelay = (i % 5) * 60 + "ms"; io.observe(el); });
+</script>
+</body>
+</html>

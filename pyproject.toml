@@ -1,0 +1,14 @@
+[tool.ruff]
+line-length = 140
+target-version = "py312"
+extend-exclude = [".venv", "**/.venv", "dashboard/mocks/_fixtures.py", "ml", "backend"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP"]
+ignore = ["E501", "E741", "B008", "UP007", "B905", "B007"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["lib", "hoi_platform"]
+
+[tool.ruff.format]
+quote-style = "double"

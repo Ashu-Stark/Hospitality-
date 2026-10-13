@@ -1,0 +1,69 @@
+# Voice clip manifest (Task T11). Each entry is a SCRIPTED line: the HM student (or a synthetic
+# TTS voice) records it; no real guest or staff speech is ever used. Audio files go next to this
+# manifest (ml/voice/clips/<file>). `source` must be synthetic or hm_student before any cloud
+# provider may receive the clip. Expected fields are what the extractor should return.
+# status: missing until the audio file exists.
+
+demo_clip: clip_01.wav
+
+clips:
+  - file: clip_01.wav
+    source: hm_student
+    language: hinglish
+    reference: "room 204 ka AC kaam nahi kar raha, jaldi bhejo"
+    expected: {room: "204", issue: ac_not_working, urgency: high, department: maintenance}
+  - file: clip_02.wav
+    source: hm_student
+    language: english
+    reference: "room 112 needs two extra towels when free"
+    expected: {room: "112", issue: towels_needed, urgency: low, department: housekeeping}
+  - file: clip_03.wav
+    source: hm_student
+    language: hindi
+    reference: "कमरा 305 में गरम पानी नहीं आ रहा"
+    expected: {room: "305", issue: no_hot_water, urgency: normal, department: maintenance}
+  - file: clip_04.wav
+    source: hm_student
+    language: hinglish
+    reference: "kamra 210 mein chadar badalni hai"
+    expected: {room: "210", issue: linen_change, urgency: normal, department: housekeeping}
+  - file: clip_05.wav
+    source: hm_student
+    language: english
+    reference: "guest in room 118 says the wifi is not working"
+    expected: {room: "118", issue: wifi_issue, urgency: normal, department: front_office}
+  - file: clip_06.wav
+    source: hm_student
+    language: hindi
+    reference: "कमरा 221 में बाथरूम से पानी टपक रहा है, तुरंत देखो"
+    expected: {room: "221", issue: water_leak, urgency: high, department: maintenance}
+  - file: clip_07.wav
+    source: hm_student
+    language: hinglish
+    reference: "room 301 ko do chai aur nashta chahiye"
+    expected: {room: "301", issue: food_order, urgency: normal, department: fnb_service}
+  - file: clip_08.wav
+    source: hm_student
+    language: english
+    reference: "loud music from room 215, guests next door are complaining"
+    expected: {room: "215", issue: noise_complaint, urgency: normal, department: security}
+  - file: clip_09.wav
+    source: hm_student
+    language: hinglish
+    reference: "room 108 mein heater band hai, emergency hai bahut thand hai"
+    expected: {room: "108", issue: heater_not_working, urgency: high, department: maintenance}
+  - file: clip_10.wav
+    source: hm_student
+    language: hindi
+    reference: "कमरा 120 के मेहमान को कल सुबह टैक्सी चाहिए"
+    expected: {room: "120", issue: transport_request, urgency: normal, department: front_office}
+  - file: clip_11.wav
+    source: hm_student
+    language: english
+    reference: "the key card for room 102 stopped working"
+    expected: {room: "102", issue: key_issue, urgency: normal, department: front_office}
+  - file: clip_12.wav
+    source: hm_student
+    language: hinglish
+    reference: "kitchen mein gas cylinder khatam, abhi naya lagao"
+    expected: {room: null, issue: kitchen_equipment, urgency: high, department: kitchen}

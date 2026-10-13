@@ -1,0 +1,47 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# Every test runs offline on the in-memory MongoDB (mongomock); no secrets needed.
+env:
+  MONGODB_URI: "mongomock://"
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Install
+        run: |
+          pip install -r ml/requirements.txt -r backend/requirements.txt -c backend/requirements-lock.txt
+          pip install -r platform_api/requirements.txt -r portal/requirements.txt -r dashboard/requirements.txt ruff
+      - name: Lint and format check (platform API, portal, dashboard)
+        run: |
+          ruff check platform_api portal dashboard
+          ruff format --check platform_api portal dashboard
+      - name: Lint (ML and ops API, their own config)
+        run: |
+          (cd ml && ruff check .)
+          (cd backend && ruff check .)
+      - name: ML tests
+        working-directory: ml
+        run: python -m pytest -q
+      - name: ML / ops API tests
+        working-directory: backend
+        run: python -m pytest -q -m "not slow"
+      - name: Platform API tests
+        working-directory: platform_api
+        run: python -m pytest -q
+      - name: Portal tests
+        working-directory: portal
+        run: python -m pytest -q
+      - name: Dashboard smoke test (all pages, mock ML data, embedded platform API)
+        working-directory: dashboard
+        run: python tests/smoke.py

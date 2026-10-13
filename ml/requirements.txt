@@ -1,0 +1,15 @@
+# Direct dependencies (unpinned). Exact versions: requirements-lock.txt.
+# scipy is not listed: nothing imports it directly; scikit-learn and LightGBM pull it in.
+# shap is not used: LightGBM's built-in TreeSHAP (pred_contrib=True) gives identical values
+# (checked in T8: max difference 0.0), so the shap package and its numba/llvmlite stack were
+# dropped in T10.
+numpy
+pandas
+pyyaml
+pydantic
+matplotlib
+scikit-learn
+lightgbm
+joblib
+pytest
+ruff

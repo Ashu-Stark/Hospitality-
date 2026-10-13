@@ -1,0 +1,77 @@
+{
+  "1": {
+    "horizon_days": 1,
+    "test_days": 365,
+    "train_days": 730,
+    "model_mape": 0.067,
+    "baseline_mape": 0.1374,
+    "model_mae": 0.0367,
+    "baseline_mae": 0.0714,
+    "used": "model",
+    "band_method": "split_conformal",
+    "band_coverage": 0.8466,
+    "band_nominal": 0.8,
+    "band_mean_width": 0.1348,
+    "conformal_calibration_days": 366,
+    "conformal_residual_quantiles": [
+      -0.0622,
+      0.0729
+    ],
+    "quantile_regression_band_coverage": 0.7014,
+    "high_alert_days": 9,
+    "low_alert_days": 26,
+    "high_alert_precision": 0.556,
+    "high_alert_recall": 0.294,
+    "uses_booking_pace": true
+  },
+  "7": {
+    "horizon_days": 7,
+    "test_days": 365,
+    "train_days": 724,
+    "model_mape": 0.0721,
+    "baseline_mape": 0.1374,
+    "model_mae": 0.0398,
+    "baseline_mae": 0.0714,
+    "used": "model",
+    "band_method": "split_conformal",
+    "band_coverage": 0.8575,
+    "band_nominal": 0.8,
+    "band_mean_width": 0.1485,
+    "conformal_calibration_days": 366,
+    "conformal_residual_quantiles": [
+      -0.0698,
+      0.0788
+    ],
+    "quantile_regression_band_coverage": 0.6849,
+    "high_alert_days": 10,
+    "low_alert_days": 26,
+    "high_alert_precision": 0.4,
+    "high_alert_recall": 0.235,
+    "uses_booking_pace": true
+  },
+  "30": {
+    "horizon_days": 30,
+    "test_days": 365,
+    "train_days": 701,
+    "model_mape": 0.1029,
+    "baseline_mape": 0.1374,
+    "model_mae": 0.0517,
+    "baseline_mae": 0.0714,
+    "used": "model",
+    "band_method": "split_conformal",
+    "band_coverage": 0.8329,
+    "band_nominal": 0.8,
+    "band_mean_width": 0.1835,
+    "conformal_calibration_days": 366,
+    "conformal_residual_quantiles": [
+      -0.0846,
+      0.0994
+    ],
+    "quantile_regression_band_coverage": 0.5644,
+    "high_alert_days": 7,
+    "low_alert_days": 19,
+    "high_alert_precision": 0.286,
+    "high_alert_recall": 0.118,
+    "uses_booking_pace": false
+  }
+}

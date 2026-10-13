@@ -1,0 +1,17 @@
+{
+  "audio_file": "clip_01.wav",
+  "provider": "reference_transcript (no audio or provider yet)",
+  "transcript": "room 204 ka AC kaam nahi kar raha, jaldi bhejo",
+  "extraction": {
+    "room": "204",
+    "issue": "ac_not_working",
+    "department": "maintenance",
+    "urgency": "high",
+    "matched_terms": [
+      "ac"
+    ],
+    "synthetic": true
+  },
+  "fallback_used": false,
+  "synthetic": true
+}

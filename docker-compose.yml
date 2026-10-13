@@ -1,0 +1,46 @@
+# HOI full stack on MongoDB Atlas: ML/ops API, platform API (+ staff app + guest pages), tourism portal, dashboard.
+#   cp .env.example .env   # then set MONGODB_URI and the secrets
+#   docker compose up --build
+# Dashboard http://localhost:8501 · Staff app http://localhost:8100/worker/ · Portal http://localhost:8200 · ML API http://localhost:8000/docs
+# No volumes: all state lives in MongoDB (photos included).
+services:
+  ops:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    env_file: .env
+    environment:
+      PORT: "8000"
+    ports:
+      - "8000:8000"
+    restart: unless-stopped
+
+  platform:
+    build: ./platform_api
+    env_file: .env
+    ports:
+      - "8100:8100"
+    restart: unless-stopped
+
+  portal:
+    build: ./portal
+    env_file: .env
+    ports:
+      - "8200:8200"
+    restart: unless-stopped
+
+  dashboard:
+    build: ./dashboard
+    env_file: .env
+    environment:
+      USE_MOCKS: "false"
+      API_BASE_URL: http://ops:8000
+      PLATFORM_API_URL: http://platform:8100
+    depends_on:
+      ops:
+        condition: service_started
+      platform:
+        condition: service_healthy
+    ports:
+      - "8501:8501"
+    restart: unless-stopped
