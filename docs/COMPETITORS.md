@@ -2,6 +2,8 @@
 
 **Audience:** the team. **Checked:** 2026-10-13 via web search. Vendor pages are marketing; treat feature claims as unverified until a demo.
 
+**Differentiation:** distribution layers (GDS, OTAs, channel managers, PMS), Zostel/OYO/state-scheme operating models, affordability, staffing, incentives, community experiences and the prioritised roadmap are in `docs/MARKET_AND_DIFFERENTIATION.md`.
+
 ## Hotel operations / housekeeping / task platforms
 
 | Product | Publicly stated strengths | What HOI borrows |
