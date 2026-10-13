@@ -10,7 +10,7 @@ import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
 
-from lib import auth, platform, theme, ui
+from lib import auth, platform, tenancy, theme, ui
 
 ui.setup("pages/17_Guest_Services.py", "Guest services")
 REFRESH = 15  # seconds
@@ -26,13 +26,11 @@ STATUS = {  # job status -> (band tone, label guests' requests show)
 }
 LATE = {"pending": ("watch", "pending"), "approved": ("low", "approved"), "declined": ("high", "declined")}
 
-ui.html(
-    theme.section(
-        "Guest services",
-        "Front office",
-        "Everything guests asked for through the room QR page: requests, express checkouts, late checkout and feedback.",
-    )
-)
+try:  # rooms of the property this session looks at (a group can have a hotel and a homestay)
+    HERE = {str(r["number"]) for r in platform.rooms()["rooms"]} if len(tenancy.properties()) > 1 else set()
+except platform.PlatformError:
+    HERE = set()
+ui.page_head("Guest requests", "What guests asked for, checkouts today, late checkout decisions and how guests rated their stay.")
 
 # a single probe decides whether the feature exists on this platform API
 first = ui.api(platform.guest_summary, what="load guest services", feature="guest services")
@@ -62,26 +60,37 @@ def tiles() -> None:
     except platform.PlatformError as e:
         ui.html(theme.banner(theme.esc(e.message), "red", "alert"))
         return
+    urgent = [a for a in s.get("urgent_alerts", []) if not HERE or str(a.get("room")) in HERE]
+    for a in urgent:  # safety / medical alerts for the duty manager, always on top
+        ui.html(
+            theme.banner(
+                f"<b>URGENT · room {theme.esc(a['room'])}: {theme.esc(a['title'])}</b> · open {a.get('minutes_open', 0)} min · "
+                f"{theme.esc(theme.dept_label(a['department']))} {theme.esc(a['status'])}",
+                "red",
+                "alert",
+            )
+        )
     p = ui.pick
-    open_n = count(p(s, "open_requests", "requests.open", "open_guest_requests"))
+    opens = p(s, "open_requests", "requests.open", "open_guest_requests")
+    if isinstance(opens, list) and HERE:
+        opens = [q for q in opens if str(q.get("room")) in HERE]
+    open_n = count(opens)
     express = count(p(s, "checkouts_today.count", "express_checkouts_today", "checkouts_today"))
     late = count(p(s, "late_checkouts_pending", "late_pending", "late_checkouts.pending", "pending_late_checkouts"))
     avg = p(s, "feedback_30d.average", "feedback_avg_30d", "feedback.average")
     n_fb = count(p(s, "feedback_30d.count", "feedback_count_30d", "feedback.count"))
-    ui.html(
-        theme.tiles(
-            [
-                theme.tile("Open guest requests", "—" if open_n is None else str(open_n), "not done yet", "bed"),
-                theme.tile("Express checkouts today", "—" if express is None else str(express), "front office notified", "clock"),
-                theme.tile("Late checkout requests", "—" if late is None else str(late), "waiting for your decision", "flag"),
-                theme.tile(
-                    "Guest feedback (30 days)",
-                    "—" if avg is None else f"{float(avg):.1f} / 5",
-                    "no ratings yet" if not n_fb else f"from {n_fb} ratings",
-                    "check",
-                ),
-            ]
-        )
+    ui.big_numbers(
+        [
+            ("Open requests", "—" if open_n is None else open_n, "Not done yet", "warn" if open_n else "ok"),
+            ("Checkouts today", "—" if express is None else express, "Booked from the room page", "info"),
+            ("Late checkout asks", "—" if late is None else late, "Waiting for your yes or no", "warn" if late else "ok"),
+            (
+                "Guest rating",
+                "—" if avg is None else f"{float(avg):.1f}★",
+                "No ratings yet" if not n_fb else f"From {n_fb} ratings (30 days)",
+                "ok",
+            ),
+        ]
     )
     st.caption(f"Updates every {REFRESH} seconds.")
 
@@ -112,7 +121,7 @@ def live() -> None:
     if reqs is None:
         ui.empty("Your role cannot see individual requests. The owner and department heads see them here and on Dispatch.")
         return
-    reqs = [r for r in reqs if r.get("status") != "done"]
+    reqs = [r for r in reqs if r.get("status") != "done" and (not HERE or str(r.get("room") or r.get("room_number")) in HERE)]
     if not reqs:
         ui.empty("No open guest requests. New ones from room QR codes appear here within seconds.")
         return
@@ -243,12 +252,9 @@ def feedback() -> None:
                 acc[str(i.get("created_at") or i.get("at") or "")[:10]].append(float(i["rating"]))
         trend = [{"date": d, "average": sum(v) / len(v), "count": len(v)} for d, v in sorted(acc.items()) if d]
     low = sum(1 for r in ratings if r <= 2)
-    ui.html(
-        theme.section(
-            f"Guests rate their stay {avg:.1f} / 5" if avg is not None else "Guest ratings",
-            f"Last {days} days",
-            f"{len(items)} ratings" + (f"; {low} of them 2 stars or less: read those first." if low else "."),
-        )
+    ui.takeaway(
+        (f"Guests rate their stay {avg:.1f} out of 5 (last {days} days)." if avg is not None else "Guest ratings.")
+        + (f" {low} rating(s) of 2 stars or less: read those first." if low else "")
     )
     xs = [t.get("date") or t.get("day") for t in trend if isinstance(t, dict)]
     ys = [ui.pick(t, "average", "avg") for t in trend if isinstance(t, dict)]

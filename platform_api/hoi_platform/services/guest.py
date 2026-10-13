@@ -388,10 +388,16 @@ def summary(tid: str) -> dict:
                 "status": j["status"],
                 "stage": STAGE.get(j["status"], j["status"]),
                 "kind": j.get("kind"),
+                "urgency": j.get("urgency"),
                 "created_at": mongo.iso(created),
                 "minutes_open": int((now - created).total_seconds() // 60),
             }
         )
+    # safety / medical alerts for the duty manager (owner, department heads): one row per room and alert
+    urgent: dict[tuple, dict] = {}
+    for q in open_rows:
+        if q.get("urgency") == "urgent":
+            urgent.setdefault((q["room"], q["title"]), q)
     today_jobs = list(
         mongo.col("jobs").find(
             {"tenant_id": tid, "kind": "guest", "created_at": {"$gte": start, "$lt": end}}, {"created_at": 1, "accepted_at": 1}
@@ -401,6 +407,7 @@ def summary(tid: str) -> dict:
     co = checkouts(tid, day)["items"]
     fb = feedback(tid, 30)
     return {
+        "urgent_alerts": list(urgent.values()),
         "date": day,
         "open_requests": open_rows,
         "requests_today": len(today_jobs),

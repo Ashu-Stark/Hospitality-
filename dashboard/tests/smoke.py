@@ -83,6 +83,7 @@ DEMO_USERS = {
     "hr": "demo.hr",
     "dept_head": "demo.housekeeping",
     "storekeeper": "demo.store",
+    "homestay": "demo.homestay",
 }
 SESSIONS = {who: session(u) for who, u in DEMO_USERS.items()}
 HP, GS, INS = "pages/16_Hotel_Profile.py", "pages/17_Guest_Services.py", "console/3_Insights.py"
@@ -175,6 +176,26 @@ if not only:
         failed += report(nav_of(at) == [access.PICK_PAGE[0]], "portal: Exit returns the platform admin to hotel selection")
     except Exception as e:  # noqa: BLE001
         failed += report(False, f"portal: platform admin hotel selection flow ({e!r})")
+
+if not only:  # grouped navigation: at most five sections; homestay mode shows the minimal page set
+    at = run_page("home.py", SESSIONS["owner"])
+    nav = nav_of(at)
+    secs = access.sections([p for p in access.HOTEL_PAGES if p[0] in nav])
+    failed += report(
+        len(secs) <= 5 and not at.exception, f"nav: hotel owner sees {len(nav)} pages in {len(secs)} sections {[x[0] for x in secs]}"
+    )
+    for page in ["home.py", *sorted(access.HOMESTAY_PAGES - {"home.py"})]:
+        at = run_page(page, SESSIONS["homestay"])
+        errs = [e.value for e in at.exception]
+        hn = nav_of(at)
+        ok = not errs and page in hn and set(hn) <= access.HOMESTAY_PAGES
+        failed += report(ok, f"homestay: {page} renders; nav {len(hn)} pages, all in the homestay set", errs)
+    for page in ("pages/5_Roster.py", "pages/2_Risk_List.py", "pages/10_Dispatch.py"):
+        at = run_page(page, SESSIONS["homestay"])
+        failed += report(page not in nav_of(at), f"homestay: {page} is hidden")
+    at = run_page("home.py", SESSIONS["homestay"])
+    txt = " ".join(str(m.value) for m in at.markdown)
+    failed += report("Deodar Nest" in txt and "Homestay mode" in txt, "homestay: Today shows the homestay name and mode")
 
 if not only or any(o in "pages/15_Hotel_Setup.py" for o in only):  # Hotel setup (voice): a typed flow end to end
     HS = "pages/15_Hotel_Setup.py"

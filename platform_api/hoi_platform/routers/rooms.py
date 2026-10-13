@@ -3,7 +3,7 @@
 import io
 
 import segno
-from fastapi import APIRouter, Depends, Request, Response
+from fastapi import APIRouter, Depends, Query, Request, Response
 
 from .. import config
 from ..deps import HOTEL_MANAGERS, Principal, roles, tenant_of
@@ -15,12 +15,12 @@ VIEW = (*HOTEL_MANAGERS, "storekeeper")
 
 
 @router.get("")
-def list_rooms(p: Principal = Depends(roles(*VIEW))) -> dict:
+def list_rooms(property_id: str | None = Query(default=None, max_length=64), p: Principal = Depends(roles(*VIEW))) -> dict:
     tid = tenant_of(p)
-    rows = rooms.list_rooms(tid)
+    rows = rooms.list_rooms(tid, property_id)
     if p.role not in ("owner", "platform_admin"):
         rows = [{k: v for k, v in r.items() if k != "guest_token"} for r in rows]
-    return {"rooms": rows, "summary": rooms.summary(tid)}
+    return {"rooms": rows, "summary": rooms.summary(tid, property_id)}
 
 
 @router.post("", status_code=201)

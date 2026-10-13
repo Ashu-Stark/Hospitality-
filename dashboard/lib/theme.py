@@ -147,6 +147,7 @@ div[data-testid="stContainer"], div[data-testid="stLayoutWrapper"] > div[data-te
 /* Tabs as pill nav */
 .stTabs [data-baseweb="tab-list"] {{ gap: 4px; background: #fff; border-radius: 999px; padding: 5px; width: fit-content; }}
 .stTabs [data-baseweb="tab"] {{ border-radius: 999px; padding: 6px 18px; height: auto; }}
+.stTabs button[role="tab"] {{ padding: 8px 18px !important; border-radius: 999px !important; min-height: 40px; }}
 .stTabs [aria-selected="true"] {{ background: var(--ink); color: #fff !important; }}
 .stTabs [aria-selected="true"] p {{ color: #fff !important; }}
 .stTabs [data-baseweb="tab-highlight"], .stTabs [data-baseweb="tab-border"] {{ display: none; }}
@@ -187,9 +188,9 @@ button:focus-visible, a:focus-visible, [role="tab"]:focus-visible, input:focus-v
 .ss-hero .pillrow {{ display:flex; gap:8px; flex-wrap:wrap; margin-top:18px; }}
 .ss-hero .hpill {{ background:rgba(255,255,255,.18); border:1px solid rgba(255,255,255,.35); border-radius:999px; padding:6px 12px; font-size:.8rem; }}
 
-.ss-section {{ margin: 26px 0 12px; }}
+.ss-section {{ margin: 22px 0 10px; }}
 .ss-section .eyebrow {{ font-size:.74rem; color:var(--ink2); }}
-.ss-section h2 {{ font-size:1.65rem; margin:.1rem 0 0; padding:0 !important; letter-spacing:-.035em; }}
+.ss-section h2 {{ font-size:1.3rem; margin:.1rem 0 0; padding:0 !important; letter-spacing:-.035em; }}
 .ss-section {{ line-height:1.25; }}
 .ss-section .sub {{ color:var(--muted); font-size:.9rem; margin-top:4px; }}
 
@@ -287,6 +288,48 @@ button:focus-visible, a:focus-visible, [role="tab"]:focus-visible, input:focus-v
 .ss-tenant {{ display:inline-flex; align-items:center; gap:8px; text-transform:none; letter-spacing:0; font-size:.85rem; font-weight:500;
   background:#fff; border-radius:999px; padding:6px 12px; }}
 .ss-tenant i {{ width:10px; height:10px; border-radius:999px; display:inline-block; }}
+
+/* ------- section nav: second row (pages of the active section) ------- */
+.st-key-ss_subnav {{ margin:-2px 0 10px; padding:0 4px; }}
+.st-key-ss_subnav [data-testid="stHorizontalBlock"] {{ gap:4px !important; flex-wrap:wrap !important; }}
+@media (max-width: 820px) {{ .st-key-ss_subnav [data-testid="stHorizontalBlock"] {{ flex-wrap:nowrap !important; overflow-x:auto; scrollbar-width:none; }} }}
+.st-key-ss_subnav [data-testid="stColumn"] {{ width:auto !important; flex:0 0 auto !important; min-width:0 !important; }}
+.st-key-ss_subnav [data-testid="stPageLink-NavLink"] {{ border-radius:999px; padding:4px 12px; border:1px solid var(--line); background:#fff; }}
+.st-key-ss_subnav [data-testid="stPageLink-NavLink"] p {{ font-size:.84rem; white-space:nowrap; }}
+.st-key-ss_subnav [data-testid="stMarkdownContainer"], .st-key-ss_subnav [data-testid="stElementContainer"] {{ margin:0 !important; }}
+.ss-subactive {{ background:var(--blue-soft); color:#123a8a; border:1px solid #bcd4ff; border-radius:999px; padding:5px 12px; font-size:.84rem;
+  font-weight:600; white-space:nowrap; }}
+.st-key-ss_nav [data-testid="stPageLink-NavLink"] {{ min-height:40px; }}
+/* ------- simple pages: title, big numbers, takeaway, do-next ------- */
+.ss-phead h1 {{ font-size:1.8rem; margin:.2rem 0 0; padding:0 !important; }}
+.ss-phead p {{ color:var(--ink2); margin:.2rem 0 .8rem; font-size:.98rem; }}
+.ss-bigs {{ display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:12px; margin:6px 0 14px; }}
+.ss-bigs.n4 {{ grid-template-columns:repeat(4, minmax(0,1fr)); }}
+@media (max-width: 900px) {{ .ss-bigs, .ss-bigs.n4 {{ grid-template-columns:repeat(2, minmax(0,1fr)); }} }}
+.ss-big {{ background:#fff; border-radius:22px; padding:18px 20px; border-left:6px solid var(--line); min-height:150px; box-sizing:border-box; }}
+.ss-big .v {{ font-size:2.6rem; font-weight:700; letter-spacing:-.04em; line-height:1; color:var(--ink); }}
+.ss-big .l {{ font-weight:600; margin-top:8px; }}
+.ss-big .m {{ color:var(--muted); font-size:.85rem; margin-top:2px; }}
+.ss-big .assume {{ display:inline-block; margin-top:6px; font-size:.7rem; font-weight:600; color:#7a5000; background:#fff6df; border:1px solid #f2cd6f; border-radius:999px; padding:2px 8px; }}
+.ss-big.ok {{ border-left-color:#0ca30c; }} .ss-big.warn {{ border-left-color:#e3a008; }}
+.ss-big.bad {{ border-left-color:#d03b3b; }} .ss-big.info {{ border-left-color:#1f6fe5; }}
+@media (max-width: 600px) {{ .ss-bigs, .ss-bigs.n4 {{ gap:8px; }} .ss-big {{ padding:14px; min-height:140px; }} .ss-big .v {{ font-size:2rem; }} }}
+/* Today: photo header */
+.ss-photohead {{ border-radius:26px; min-height:150px; padding:26px 28px; display:flex; align-items:flex-end; gap:16px; color:#fff;
+  background:#1b315e center/cover no-repeat; margin:6px 0 2px; }}
+.ss-photohead h1 {{ color:#fff; margin:.2rem 0 0; font-size:clamp(1.5rem,3.4vw,2.4rem); line-height:1.05; padding:0 !important; }}
+.ss-photohead .eyebrow {{ font-size:.78rem; letter-spacing:.06em; text-transform:uppercase; opacity:.9; }}
+.ss-photohead .logo {{ height:56px; width:auto; background:#fff; border-radius:14px; padding:6px 8px; }}
+.ss-credit {{ color:var(--muted); font-size:.72rem; margin:0 0 8px 6px; }}
+.ss-h3 {{ font-size:1.3rem; margin:14px 0 8px; }}
+@media (max-width:600px) {{ .ss-photohead {{ min-height:120px; padding:18px; }} .ss-photohead .logo {{ height:40px; }} }}
+.ss-h3 {{ font-size:1.3rem; margin:14px 0 8px; }}
+.ss-takeaway {{ display:flex; gap:8px; align-items:center; color:var(--ink); font-weight:500; margin:10px 0 6px; }}
+.ss-takeaway svg {{ color:var(--blue); flex:none; }}
+.ss-donext {{ background:#fff; border-radius:18px; padding:14px 16px; display:flex; flex-direction:column; gap:2px; }}
+.ss-donext b {{ font-size:1.02rem; }} .ss-donext span {{ color:var(--muted); font-size:.85rem; }}
+.stButton > button, .stLinkButton > a {{ min-height:44px; }}
+div[class*="st-key-act_"] .stButton > button {{ min-height:48px; font-size:1rem; }}
 
 /* ------- motion (disabled for prefers-reduced-motion) ------- */
 @keyframes ss-rise {{ from {{ opacity:0; transform: translateY(10px); }} to {{ opacity:1; transform:none; }} }}
@@ -397,22 +440,25 @@ def hero(title: str, subtitle: str = "", eyebrow: str = "", variant: str = "oran
 
 
 def section(title: str, eyebrow: str = "", sub: str = "") -> str:
-    return (
-        f'<div class="ss-section"><div class="eyebrow">{esc(eyebrow)}</div><h2>{esc(title)}</h2>'
-        f"{f'<div class=sub>{esc(sub)}</div>' if sub else ''}</div>"
-    )
+    """A plain section heading with an optional one-line meaning (the eyebrow is kept for callers but not shown)."""
+    return f'<div class="ss-section"><h2>{esc(title)}</h2>' + (f"<div class=sub>{esc(sub)}</div>" if sub else "") + "</div>"
+
+
+TILE_TONE = {"alert": "warn", "flag": "warn", "check": "ok", "rupee": "info", "clock": "info", "bed": "info", "user": "info"}
 
 
 def tile(label: str, value: str, sub: str = "", ic: str = "info", assumption: str = "") -> str:
-    a = f'<span class="assume">ASSUMPTION: {esc(assumption)}</span>' if assumption else ""
+    """A big number with its label and a one-line meaning (same look as ui.big_numbers)."""
+    a = f'<span class="assume">ASSUMED: {esc(assumption)}</span>' if assumption else ""
     return (
-        f'<div class="ss-tile"><div class="top"><span class="ic">{icon(ic, 18)}</span>{esc(label)}</div>'
-        f'<div class="val">{esc(value)}</div><div class="sub">{esc(sub)}</div>{a}</div>'
+        f'<div class="ss-big {TILE_TONE.get(ic, "info")}"><div class="v">{esc(value)}</div><div class="l">{esc(label)}</div>'
+        f'<div class="m">{esc(sub)}</div>{a}</div>'
     )
 
 
 def tiles(items: list[str]) -> str:
-    return f'<div class="ss-tiles">{"".join(items)}</div>'
+    cls = "ss-bigs n4" if len(items) in (4, 7, 8) else "ss-bigs"
+    return f'<div class="{cls}">{"".join(items)}</div>'
 
 
 def band_chip(band: str, text: str | None = None) -> str:

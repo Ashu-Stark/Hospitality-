@@ -11,7 +11,7 @@ from __future__ import annotations
 import re
 
 from .. import mongo
-from . import concierge, dispatch, tenants
+from . import concierge, dispatch, issues, tenants
 from .errors import Invalid, NotFound
 
 URGENT = ("urgent", "jaldi", "turant", "abhi", "emergency", "ज़रूरी", "जरूरी", "जल्दी", "तुरंत", "fast", "asap")
@@ -95,11 +95,14 @@ def parse_issue(text: str) -> dict | None:
         return None
     room = m.group(1)
     issue = re.sub(r"\s+", " ", re.sub(r"(?:report|please|kripya)", "", text, flags=re.I)).strip(" .,:")[:140]
+    hit = issues.top(issue)  # same guest-issue taxonomy as the concierge (pests, leaks, locks, safety, ...)
+    urgency = hit["urgency"] if hit else ("high" if concierge.has(" " + t + " ", URGENT) else "medium")
     return {
         "room": room,
         "issue": issue,
-        "department": dispatch.infer_department(issue),
-        "urgency": "high" if concierge.has(" " + t + " ", URGENT) else "medium",
+        "department": hit["department"] if hit else dispatch.infer_department(issue),
+        "urgency": urgency,
+        "issue_type": hit["type"] if hit else None,
     }
 
 
@@ -114,7 +117,7 @@ def command(tid: str, emp: str, text: str, lang_hint: str = "en") -> dict:
         prop = {"action": action, "params": params or {}, "label": label} if action else None
         return {"intent": intent, "reply": reply, "lang": lang, "proposed_action": prop}
 
-    issue = parse_issue(text) if concierge.has(t, WORDS["issue"]) else None
+    issue = parse_issue(text) if concierge.has(t, WORDS["issue"]) or issues.top(text) else None
     if issue:
         dept_label = issue["department"].replace("_", " ")
         return out(
@@ -262,7 +265,19 @@ def act(tid: str, emp: str, actor: str, action: str, params: dict) -> dict:
             raise NotFound(f"Room {room} not found.")
         dept = params.get("department") if params.get("department") in tenants.DEPARTMENTS else dispatch.infer_department(issue)
         urgency = params.get("urgency") if params.get("urgency") in dispatch.URGENCY else "medium"
-        job = dispatch.create_job(tid, f"{issue} · room {room}", dept, room, urgency, "voice", actor, room_id=r["id"], kind="general")
+        hit = issues.top(issue)
+        job = dispatch.create_job(
+            tid,
+            f"{issue} · room {room}",
+            dept,
+            room,
+            urgency,
+            "voice",
+            actor,
+            room_id=r["id"],
+            kind="general",
+            target_minutes=hit["target_minutes"] if hit else None,
+        )
         tenants.audit(tid, actor, "voice.report_issue", f"{job['id']} room {room}")
         return {"ok": True, "action": action, "job": {k: job.get(k) for k in ("id", "title", "status", "department", "urgency", "room")}}
     raise Invalid("This action needs the app buttons.")

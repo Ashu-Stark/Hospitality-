@@ -7,15 +7,7 @@ from lib import api_client as api
 from lib import data, models, nav, theme, ui
 
 ui.setup("pages/6_Closed_Loop.py", "Closed loop")
-ui.html(
-    theme.hero(
-        "Score. Fix. Re-roster.<br>Measure.",
-        "One run: flag high-risk permanent staff, create the matched intervention tasks, re-solve the roster with "
-        "protected weekends, then re-score everyone flagged under both rosters.",
-        eyebrow="Closed-loop demo",
-        pills=["1 Score", "2 Interventions", "3 Adjust roster", "4 Re-score"],
-    )
-)
+ui.page_head("Support plan", "One run: find who needs support, create the follow-up tasks, give them protected weekends, then measure.")
 
 c1, c2 = st.columns([1, 3])
 with c1:

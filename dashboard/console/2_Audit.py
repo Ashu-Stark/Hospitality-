@@ -1,16 +1,10 @@
 import pandas as pd
 import streamlit as st
 
-from lib import platform, theme, ui
+from lib import platform, ui
 
 ui.setup("console/2_Audit.py", "Audit log")
-ui.html(
-    theme.section(
-        "Audit log",
-        "Platform console",
-        "Sign-ins, invites, plan and module changes, workspace access, dispatch, inventory and purchasing actions.",
-    )
-)
+ui.page_head("Audit log", "Every platform action, newest first.")
 
 names = {t["id"]: t["name"] for t in (ui.safe(platform.tenants, what="load hotel groups") or [])}
 c1, c2 = st.columns([2, 3])

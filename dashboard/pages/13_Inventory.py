@@ -53,17 +53,12 @@ sup_by = {s["id"]: s for s in sups}
 stk = {(r["item_id"], r["location_id"]): r["qty"] for r in stock_payload["stock"]}
 on_hand = stock_payload["on_hand"]
 
-ui.html(
-    theme.section(
-        "Inventory",
-        "Stores & purchasing",
-        "Every movement is in one ledger. Reorder quantities follow the same occupancy forecast as the roster.",
-    )
-)
+ui.page_head("Stock", "What you have, what is running low, and what to reorder.")
 if not items:
     ui.empty("No items yet. Add items in the Catalog tab" + ("" if CAN_MANAGE else " (ask your storekeeper)") + ".")
 
-tabs = st.tabs(["Overview", "Requests", "Purchasing", "Stock & moves", "Stock count", "Catalog"])
+HOMESTAY = tenancy.is_homestay()
+tabs = st.tabs(["What's low"] if HOMESTAY else ["Overview", "Requests", "Purchasing", "Stock & moves", "Stock count", "Catalog"])
 
 # ------------------------------------------------------------------ overview
 with tabs[0]:
@@ -80,32 +75,19 @@ with tabs[0]:
     cons = analytics["consumption"]
     issue_value = sum(r["value"] or 0 for r in cons)
     occ_nights = ROOMS * 28 * (sum(occ) / len(occ) if occ else 0.7)
-    ui.html(
-        theme.tiles(
-            [
-                theme.tile("Stock value", ui.inr(analytics["stock_value"]), f"{len(items)} items · {len(locs)} locations", "rupee"),
-                theme.tile("Below reorder point", str(sum(1 for s in sugg if s["low"])), "need ordering", "alert"),
-                theme.tile("Open requests", str(len(pending)), "waiting for the store", "flag"),
-                theme.tile("Open purchase orders", str(len(open_po)), "draft / approved / sent", "clock"),
-                theme.tile(
-                    "Cost per occupied room",
-                    ui.inr(issue_value / occ_nights if occ_nights else 0),
-                    "last 28 days",
-                    "bed",
-                    assumption="room-nights estimated from forecast",
-                ),
-            ]
-        )
+    n_low = sum(1 for s in sugg if s["low"])
+    ui.big_numbers(
+        [
+            ("Running low", n_low, "Items at or below their reorder level" if n_low else "Nothing to reorder", "warn" if n_low else "ok"),
+            ("Requests waiting", len(pending), "Staff asked the store for these", "warn" if pending else "ok"),
+            ("Orders open", len(open_po), "Purchase orders not received yet", "info"),
+            ("Stock value", ui.inr(analytics["stock_value"]), f"{len(items)} items", "info"),
+        ]
     )
-    a, b = st.columns([1.5, 1])
+    a = st.container()
+    b = st.expander("Where stock goes (last 28 days)") if not HOMESTAY else st.container()
     with a:
-        ui.html(
-            theme.section(
-                "Reorder suggestions",
-                "Static par vs forecast-aware",
-                f"Forecast-aware = usage per occupied room × {ROOMS} rooms × forecast occupancy over (7 days + lead time).",
-            )
-        )
+        ui.html('<h3 class="ss-h3">What to reorder</h3>')
         df = pd.DataFrame(
             [
                 {
@@ -137,7 +119,9 @@ with tabs[0]:
                         "trend",
                     )
                 )
-            st.dataframe(df.drop(columns=["_id", "_sup"]), hide_index=True, width="stretch")
+            main_cols = ["Item", "On hand", "Forecast-aware", "Unit"]
+            ui.table(df.drop(columns=["_id", "_sup"]).rename(columns={}), main_cols, key="inv_reorder")
+            st.caption(f"Order amount follows expected occupancy for {ROOMS} rooms over the next week plus delivery time.")
             if CAN_MANAGE and st.button(
                 "Create draft POs from forecast-aware suggestions", type="primary", icon=":material/shopping_cart:"
             ):
@@ -155,8 +139,7 @@ with tabs[0]:
                 st.toast(f"{len(by_sup)} draft PO(s) created", icon=":material/shopping_cart:")
                 st.rerun()
     with b:
-        ui.html(theme.section("Consumption by department", "Last 28 days"))
-        if cons:
+        if cons and not HOMESTAY:
             cd = pd.DataFrame(cons)
             byd = cd.groupby("department")["value"].sum().sort_values()
             fig = go.Figure(
@@ -171,33 +154,16 @@ with tabs[0]:
                     hovertemplate="%{y}: ₹%{x:,.0f}<extra></extra>",
                 )
             )
+            ui.takeaway(f"{theme.dept_label(byd.index[-1])} uses the most stock by value.")
             st.plotly_chart(theme.style_fig(fig, 260, legend=False), width="stretch", config={"displayModeBar": False})
-            daily = cd.groupby("d")["value"].sum()
-            fig2 = go.Figure(
-                go.Scatter(
-                    x=list(daily.index),
-                    y=list(daily.values),
-                    mode="lines",
-                    line=dict(color="#2a78d6", width=2),
-                    fill="tozeroy",
-                    fillcolor="rgba(42,120,214,.12)",
-                    hovertemplate="%{x}: ₹%{y:,.0f}<extra></extra>",
-                )
-            )
-            fig2.update_layout(title="Daily issue value")
-            st.plotly_chart(theme.style_fig(fig2, 220, legend=False), width="stretch", config={"displayModeBar": False})
-        ui.html(theme.banner(f"Wastage last 28 days: <b>{ui.inr(analytics['wastage_value'])}</b>", "gray", "alert"))
+            st.caption(f"Wastage last 28 days: {ui.inr(analytics['wastage_value'])}")
     linen = [s for s in sugg if s["category"] == "Linen"]
-    if linen:
-        ui.html(
-            theme.section(
-                "Linen par",
-                "Housekeeping",
-                f"Pieces on hand per room ({ROOMS} rooms). Hotels commonly plan around 3 par "
-                "(one in room, one in laundry, one on the shelf).",
-            )
+    if linen and not HOMESTAY:
+        lin = st.expander("Linen per room (par)")
+        lin.caption(
+            f"Pieces on hand per room ({ROOMS} rooms). Hotels plan around 3: one in the room, one in the laundry, one on the shelf."
         )
-        ui.html(
+        lin.markdown(
             '<div class="ss-statusrow">'
             + "".join(
                 theme.status_card(
@@ -209,8 +175,14 @@ with tabs[0]:
                 )
                 for s in linen
             )
-            + "</div>"
+            + "</div>",
+            unsafe_allow_html=True,
         )
+
+if HOMESTAY:
+    st.caption("Homestay mode shows stock basics. Switch to hotel mode in Settings for requests, purchasing, counts and the catalog.")
+    ui.footer()
+    st.stop()
 
 # ------------------------------------------------------------------ requests
 with tabs[1]:

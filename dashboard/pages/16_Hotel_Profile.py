@@ -39,14 +39,7 @@ TABLES = {  # section -> (columns with type, the column a row needs to count)
     "faq": ({"q": str, "a": str}, "q"),
 }
 
-ui.html(
-    theme.section(
-        "Hotel profile",
-        "Guest concierge",
-        "What the guest concierge knows about your hotel: timings, wifi, dining, policies and answers to common questions. "
-        "It answers guests only from this page, so keep it accurate.",
-    )
-)
+ui.page_head("Hotel profile", "What the guest assistant knows about your place: timings, Wi-Fi, food, rules and nearby spots.")
 
 # ------------------------------------------------------------------ load
 try:

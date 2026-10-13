@@ -14,6 +14,8 @@ PUBLIC_FIELDS = (
     "property_id",
     "display_name",
     "logo_url",
+    "cover_photo_url",
+    "cover_photo_credit",
     "welcome",
     "checkin_time",
     "checkout_time",
@@ -46,6 +48,8 @@ def default_profile(tid: str, prop: dict | None) -> dict:
         "property_id": prop["id"] if prop else None,
         "display_name": name[:80],
         "logo_url": None,
+        "cover_photo_url": None,
+        "cover_photo_credit": "",
         "welcome": "",
         "checkin_time": "12:00",
         "checkout_time": "11:00",
@@ -75,8 +79,8 @@ def get(tid: str, property_id: str | None = None) -> dict:
     return {**default_profile(tid, prop), **doc, "exists": True}
 
 
-def put(tid: str, data: dict, actor: str) -> dict:
-    prop = _property(tid)
+def put(tid: str, data: dict, actor: str, property_id: str | None = None) -> dict:
+    prop = _property(tid, property_id)
     if not prop:
         raise Invalid("Add a property first (Workspace > Properties).")
     fields = {k: v for k, v in data.items() if k in PUBLIC_FIELDS and k != "property_id"}
@@ -87,7 +91,7 @@ def put(tid: str, data: dict, actor: str) -> dict:
         upsert=True,
     )
     tenants.audit(tid, actor, "hotel_profile.updated", prop["id"])
-    return get(tid)
+    return get(tid, prop["id"])
 
 
 def public(tid: str, property_id: str | None = None) -> dict:
@@ -100,6 +104,8 @@ def public(tid: str, property_id: str | None = None) -> dict:
 DEMO_PROFILE = {
     "display_name": "Himsagar Ridge Resort, Mussoorie (fictional)",
     "logo_url": "/shared/brand/himsagar-logo.svg",
+    "cover_photo_url": "/shared/photos/mussoorie.jpg",
+    "cover_photo_credit": "Photo of Mussoorie (the town, not the fictional resort): Robertyadav44, CC BY-SA 4.0, Wikimedia Commons",
     "welcome": (
         "Namaste and welcome to Himsagar Ridge (a fictional demo resort)! Wrap up warm, enjoy the valley views and "
         "ask me anything about your stay."
@@ -181,10 +187,55 @@ DEMO_PROFILE = {
 }
 
 
-def seed_demo(tid: str) -> None:
+HOMESTAY_DEMO_PROFILE = {
+    "display_name": "Deodar Nest Homestay, Dhanaulti (fictional)",
+    "logo_url": None,
+    "cover_photo_url": "/shared/photos/dhanaulti.jpg",
+    "cover_photo_credit": "Photo of Dhanaulti (the area, not the fictional homestay): SHUVADIP, CC BY-SA 4.0, Wikimedia Commons",
+    "welcome": "Namaste! Welcome to Deodar Nest (a fictional demo homestay). We are a small family-run home: just ask for anything.",
+    "checkin_time": "12:00",
+    "checkout_time": "10:30",
+    "late_checkout": {"allowed": True, "latest": "12:00", "note": "If the room is not booked the same day; your host confirms."},
+    "wifi": {"network": "DeodarNest", "password_hint": "Ask your host."},
+    "contacts": [{"label": "Host", "extension": "1"}, {"label": "Kitchen", "extension": "2"}],
+    "amenities": [
+        {"name": "Home kitchen", "hours": "07:30-21:30", "where": "Ground floor", "note": "Home-style meals; tell us a few hours ahead"},
+        {"name": "Garden and bonfire", "hours": "18:30-21:30", "where": "Back garden", "note": "Winter evenings, weather permitting"},
+        {"name": "Parking", "hours": "24 hours", "where": "Beside the gate", "note": "Two cars"},
+    ],
+    "dining": [
+        {"item": "Breakfast (paratha, curd, tea)", "price_inr": 150, "veg": True, "hours": "07:30-10:00"},
+        {"item": "Home-style thali", "price_inr": 250, "veg": True, "hours": "12:30-14:30"},
+        {"item": "Masala chai", "price_inr": 40, "veg": True, "hours": "07:00-21:00"},
+        {"item": "Maggi noodles", "price_inr": 90, "veg": True, "hours": "08:00-21:00"},
+    ],
+    "policies": [
+        {"title": "Quiet hours", "text": "22:00-07:00. This is a family home; please keep voices low."},
+        {"title": "Smoking", "text": "No smoking inside the house. The garden is fine."},
+        {"title": "ID at check-in", "text": "Every guest shows a government photo ID at check-in."},
+    ],
+    "nearby": [
+        {"name": "Eco Park", "distance_note": "", "tip": "Deodar forest walk; go in the morning."},
+        {"name": "Surkanda Devi temple trek", "distance_note": "", "tip": "A steep walk; start early and carry water."},
+    ],
+    "faq": [
+        {"q": "Is breakfast included?", "a": "Only if your booking says so. Otherwise it is charged as on the menu."},
+        {"q": "Can you arrange a taxi?", "a": "Yes, ask your host a few hours ahead."},
+    ],
+    "languages": ["en", "hi"],
+    "synthetic": True,
+}
+
+
+def seed_demo(tid: str, property_id: str | None = None, profile: dict | None = None) -> None:
     """Idempotent: creates the SYNTHETIC demo profile only if the property has none."""
-    prop = _property(tid)
+    prop = _property(tid, property_id)
     if not prop:
         return
-    doc = {**DEMO_PROFILE, "tenant_id": tid, "property_id": prop["id"], "updated_at": mongo.now(), "updated_by": "seed"}
+    doc = {**(profile or DEMO_PROFILE), "tenant_id": tid, "property_id": prop["id"], "updated_at": mongo.now(), "updated_by": "seed"}
     mongo.col("hotel_profiles").update_one({"tenant_id": tid, "property_id": prop["id"]}, {"$setOnInsert": doc}, upsert=True)
+    src = profile or DEMO_PROFILE
+    mongo.col("hotel_profiles").update_one(
+        {"tenant_id": tid, "property_id": prop["id"], "cover_photo_url": {"$exists": False}},
+        {"$set": {"cover_photo_url": src["cover_photo_url"], "cover_photo_credit": src["cover_photo_credit"]}},
+    )

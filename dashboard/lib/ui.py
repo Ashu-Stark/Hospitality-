@@ -50,33 +50,76 @@ def _topbar(page_file: str, t: dict, u: dict | None) -> None:
     s = current_settings()
     mode_cls = "mock" if s.use_mocks else "live"
     who = ""
-    if u:
+    if u and config.is_super():  # hotel portal: the signed-in user is shown in the sidebar (a calmer top bar)
         who = f'<span class="ss-userchip">{theme.icon("user", 14)}{theme.esc(u["username"])} · {theme.esc(auth.ROLES[u["role"]].split(" (")[0])}</span>'
     if config.is_super():
         where, cls = "", "ss-topbar ss-super"
     else:
         where, cls = "", "ss-topbar ss-hotel"
         if t.get("id"):
-            where = f'<span class="ss-tenant"><i style="background:var(--brand)"></i>{theme.esc(t["name"])}</span>'
+            where += f'<span class="ss-poweredby">{portal.hoi_mark(20)}HOI</span>'
     st.markdown(
         f'<div class="{cls}">{portal.brand_html(t)}'
         f'<div class="ss-util">{who}{where}<span class="ss-mode {mode_cls}">{s.mode_label}</span></div></div>',
         unsafe_allow_html=True,
     )
     nav = st.session_state.get("_nav") or access.HOTEL_PAGES
+    if config.is_super() or len(nav) <= 1:
+        _flat_nav(nav, page_file, u)
+    else:
+        _section_nav(nav, page_file, u)
+
+
+def _link(f: str, label: str, icon: str | None = None) -> None:
+    st.page_link(st.session_state.get("_page_by_file", {}).get(f, f), label=label, icon=icon)  # Page objects: robust deep links
+
+
+def _signout(col) -> None:
+    with col:
+        if st.button("Sign out", key="signout", type="tertiary"):
+            auth.logout()
+            st.rerun()
+
+
+def _flat_nav(nav: list, page_file: str, u: dict | None) -> None:
+    """Super-admin portal (four pages) and single-page states: one pill row."""
     with st.container(key="ss_nav"):
         cols = st.columns(len(nav) + (1 if u else 0), gap="small")
-        for col, (f, label, ic) in zip(cols, nav):
+        for col, (f, label, _ic) in zip(cols, nav):
             with col:
                 if f == page_file:
                     st.markdown(f'<div class="ss-navactive">{label}</div>', unsafe_allow_html=True)
-                else:  # Page objects avoid path resolution (robust for deep-linked sessions)
-                    st.page_link(st.session_state.get("_page_by_file", {}).get(f, f), label=label)
+                else:
+                    _link(f, label)
         if u:
-            with cols[-1]:
-                if st.button("Sign out", key="signout", type="tertiary"):
-                    auth.logout()
-                    st.rerun()
+            _signout(cols[-1])
+
+
+def _section_nav(nav: list, page_file: str, u: dict | None) -> None:
+    """Hotel portal: at most five sections on top; the active section's pages underneath (only when it has more than one)."""
+    secs = access.sections(nav)
+    active = access.section_of(page_file) or (secs[0][0] if secs else None)
+    with st.container(key="ss_nav"):
+        cols = st.columns(len(secs) + (1 if u else 0), gap="small")
+        for col, (name, ic, pages) in zip(cols, secs):
+            with col:
+                if name == active:
+                    st.markdown(f'<div class="ss-navactive">{theme.esc(name)}</div>', unsafe_allow_html=True)
+                else:
+                    _link(pages[0][0], name, ic)
+        if u:
+            _signout(cols[-1])
+    sub = next((pages for name, _, pages in secs if name == active), [])
+    sub = [p for p in sub if p[0] not in access.HIDDEN_IN_NAV or p[0] == page_file]
+    if len(sub) > 1:
+        with st.container(key="ss_subnav"):
+            scols = st.columns(len(sub), gap="small")
+            for col, (f, label, _ic) in zip(scols, sub):
+                with col:
+                    if f == page_file:
+                        st.markdown(f'<div class="ss-subactive">{theme.esc(label)}</div>', unsafe_allow_html=True)
+                    else:
+                        _link(f, label)
 
 
 def _sidebar(t: dict, u: dict | None) -> None:
@@ -119,12 +162,13 @@ def _sidebar(t: dict, u: dict | None) -> None:
                 portal.exit_hotel()
         else:
             html(
-                f'<div class="ss-card" style="padding:12px 14px"><div style="color:#6b6a65;font-size:.75rem">Workspace</div>'
-                f"<b>{theme.esc(t['name'])}</b></div>"
+                f'<div class="ss-card" style="padding:12px 14px"><div style="color:#6b6a65;font-size:.75rem">Signed in</div>'
+                f"<b>{theme.esc(u['username'] if u else '')}</b> · {theme.esc(auth.ROLES.get((u or {}).get('role'), '').split(' (')[0])}"
+                f'<div style="color:#6b6a65;font-size:.8rem;margin-top:4px">{theme.esc(t["name"])}</div></div>'
             )
         st.markdown(f'<span class="ss-mode {"mock" if s.use_mocks else "live"}">{s.mode_label}</span>', unsafe_allow_html=True)
         st.caption("Demo data (captured from the API)." if s.use_mocks else f"Backend: {s.api_base_url}")
-        anchor = ensure_demo_week()
+        anchor = None if tenancy.is_homestay() else ensure_demo_week()  # homestay: no scoring week, no risk model
         if anchor:
             opts = data.week_options(anchor)
             cur = st.session_state.get("week_start", anchor)
@@ -141,13 +185,15 @@ def _sidebar(t: dict, u: dict | None) -> None:
         if c1.button("Refresh", icon=":material/refresh:", width="stretch"):
             data.clear()
             st.rerun()
-        if t.get("is_demo") and (u is None or u["role"] in ("owner", "platform_admin")):
+        if t.get("is_demo") and not tenancy.is_homestay() and (u is None or u["role"] in ("owner", "platform_admin")):
             if c2.button("Tour", icon=":material/explore:", width="stretch"):
                 tour.start()
         st.divider()
         st.markdown(
             theme.banner(
-                "All data is <b>synthetic</b>. Risk flags exist to <b>offer support</b>, never for adverse action. "
+                "All data is <b>synthetic</b>. Thank-you points and check-ins exist to <b>support</b> people, never for discipline."
+                if tenancy.is_homestay()
+                else "All data is <b>synthetic</b>. Risk flags exist to <b>offer support</b>, never for adverse action. "
                 "Bands are rankings, not predictions that someone will leave.",
                 "gray",
                 "shield",
@@ -360,3 +406,54 @@ def paginate(rows: list, key: str, per_page: int = 20) -> list:
     n = st.number_input(f"Page (of {pages})", 1, pages, 1, key=key)
     st.caption(f"Showing {(n - 1) * per_page + 1}–{min(n * per_page, len(rows))} of {len(rows)}")
     return rows[(n - 1) * per_page : n * per_page]
+
+
+# ------------------------------------------------------------------ simple-page building blocks (summary first)
+def property_picker(key: str = "prop_pick", label: str = "Property") -> None:
+    """Switch between the group's properties (only shown when there is more than one). The mode follows the property."""
+    props = tenancy.properties()
+    if len(props) < 2:
+        return
+    ids = [p["id"] for p in props]
+    cur = tenancy.property_id()
+    names = {p["id"]: f"{p['name']} · {'homestay' if p.get('mode') == 'homestay' else 'hotel'}" for p in props}
+    pick = st.selectbox(label, ids, index=ids.index(cur) if cur in ids else 0, format_func=names.get, key=key)
+    if pick != cur:
+        tenancy.set_property(pick)
+        data.clear()
+        st.rerun()
+
+
+def page_head(title: str, sub: str = "") -> None:
+    """Plain page title + one line of meaning."""
+    html(f'<div class="ss-phead"><h1>{theme.esc(title)}</h1>' + (f"<p>{theme.esc(sub)}</p>" if sub else "") + "</div>")
+
+
+def big_numbers(items: list[tuple[str, Any, str, str]]) -> None:
+    """Big numbers with one-line meanings: (label, value, meaning, tone in ok|warn|bad|info)."""
+    cells = "".join(
+        f'<div class="ss-big {theme.esc(tone)}"><div class="v">{theme.esc(v)}</div><div class="l">{theme.esc(label)}</div>'
+        f'<div class="m">{theme.esc(meaning)}</div></div>'
+        for label, v, meaning, tone in items
+    )
+    cls = "ss-bigs n4" if len(items) in (4, 7, 8) else "ss-bigs"
+    html(f'<div class="{cls}">{cells}</div>')
+
+
+def takeaway(text: str) -> None:
+    """The one-line plain takeaway shown above a chart."""
+    html(f'<div class="ss-takeaway">{theme.icon("info", 16)}<span>{theme.esc(text)}</span></div>')
+
+
+def table(df, main: list[str], *, key: str, height: int | None = None, column_config: dict | None = None) -> None:
+    """A table with only the main columns; technical columns behind a 'Details' toggle."""
+    import pandas as pd  # local: keeps lib.ui import light
+
+    if not isinstance(df, pd.DataFrame) or df.empty:
+        empty("Nothing to show yet.")
+        return
+    extra = [c for c in df.columns if c not in main]
+    show_all = bool(extra) and st.toggle("Details", key=f"{key}_details", help="Show the technical columns too")
+    cols = [c for c in df.columns if c in main or show_all]
+    kw = {"height": height} if height else {}
+    st.dataframe(df[cols], hide_index=True, width="stretch", column_config=column_config or {}, **kw)

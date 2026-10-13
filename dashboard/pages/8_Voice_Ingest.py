@@ -5,13 +5,7 @@ from lib import data, nav, platform, theme, ui
 from lib.api_client import ApiError
 
 ui.setup("pages/8_Voice_Ingest.py", "Voice")
-ui.html(
-    theme.section(
-        "Voice note to task",
-        "Voice ingest (prototype)",
-        "A Hindi/Hinglish voice note becomes a transcript, then a structured, department-routed task after you confirm it.",
-    )
-)
+ui.page_head("Voice note", "Turn a spoken note into a task.")
 
 DEMO_CLIP = "clip_01.wav"
 

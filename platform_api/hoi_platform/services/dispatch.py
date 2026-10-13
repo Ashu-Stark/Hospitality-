@@ -8,7 +8,9 @@ Who is on shift comes from the tenant's shift snapshot (dispatch_context), publi
 
 Ranking (higher is better; every part is returned so 'why this worker' is explainable):
   100 − 25·open_jobs − 8·done_this_shift − 6·floor_distance − (15 if band=high, 6 if watch)
-Hard filters: on shift, same department, has not declined/timed out on this job.
+Hard filters: on shift, same department, same property, has not declined/timed out on this job.
+Homestay properties (small host-family teams, no roster): every staff member of that property counts as available;
+same department first, and when nobody in that department exists anyone in the team may be offered the job.
 """
 
 from __future__ import annotations
@@ -22,7 +24,7 @@ from . import tenants
 from .errors import Conflict, Invalid, NotFound
 
 OPEN_STATES = ("offered", "accepted", "in_progress")
-URGENCY = ("high", "medium", "low")
+URGENCY = ("urgent", "high", "medium", "low")  # urgent = safety / medical alerts from guests
 DEPT_KEYWORDS = {
     "maintenance": [
         "ac",
@@ -140,6 +142,9 @@ JOB_FIELDS = (
     "room_id",
     "kind",
     "inspection",
+    "property_id",
+    "target_minutes",
+    "offer_seconds",
 )
 
 
@@ -198,6 +203,34 @@ def list_jobs(tid: str, statuses: list[str] | None = None, worker: str | None = 
     return rows
 
 
+def job_property(tid: str, job: dict, props: list[dict] | None = None) -> dict | None:
+    """The property a job belongs to: its room's property, else its own property_id, else the tenant's first property."""
+    props = props if props is not None else tenants.properties(tid)
+    if not props:
+        return None
+    pid = job.get("property_id")
+    if job.get("room_id") or job.get("room"):
+        by = {"id": job["room_id"]} if job.get("room_id") else {"number": str(job["room"]).strip()}
+        r = mongo.col("rooms").find_one({"tenant_id": tid, **by}, {"property_id": 1})
+        pid = (r or {}).get("property_id") or pid
+    return next((p for p in props if p["id"] == pid), props[0])
+
+
+def _pool(tid: str, job: dict, ctx: dict) -> dict[str, str]:
+    """Candidates (employee -> department) for this job: on-shift staff of the job's property; for a homestay, the whole team."""
+    props = tenants.properties(tid)
+    prop = job_property(tid, job, props)
+    if prop is None:
+        return dict(ctx["working"])
+    first = props[0]["id"]
+    where = tenants.staff_property_map(tid)
+    if prop.get("mode") == "homestay":
+        team = {s["employee_id"]: s["department"] for s in tenants.staff(tid) if (s.get("property_id") or first) == prop["id"]}
+        same = {e: d for e, d in team.items() if d == job["department"]}
+        return same or {e: job["department"] for e in team}  # small team: anyone can help when the department has nobody
+    return {e: d for e, d in ctx["working"].items() if where.get(e, first) == prop["id"]}
+
+
 def rank(tid: str, job: dict, ctx: dict) -> list[dict]:
     excluded = {a["employee_id"] for a in job.get("attempts", []) if a.get("outcome") in ("declined", "timeout")}
     proj = {"id": 1, "status": 1, "assigned_to": 1, "offer_to": 1, "done_at": 1, "room": 1}
@@ -217,7 +250,7 @@ def rank(tid: str, job: dict, ctx: dict) -> list[dict]:
         last_room[j["assigned_to"]] = j.get("room")
     target = floor_of_room(job.get("room"))
     out = []
-    for emp, dept in ctx["working"].items():
+    for emp, dept in _pool(tid, job, ctx).items():
         if dept != job["department"] or emp in excluded:
             continue
         cur = floor_of_room(last_room.get(emp)) or home_floor(emp, ctx.get("floors", 4))
@@ -249,7 +282,7 @@ def _offer_next(tid: str, job: dict, ranking: list[dict], cond: dict | None = No
     else:
         top = ranking[0]
         attempts.append({"employee_id": top["employee_id"], "offered_at": mongo.now(), "outcome": "pending"})
-        exp = mongo.now() + timedelta(seconds=offer_seconds(tid))
+        exp = mongo.now() + timedelta(seconds=int(job.get("offer_seconds") or offer_seconds(tid)))  # urgent jobs: shorter window
         fields = {
             "status": "offered",
             "offer_to": top["employee_id"],
@@ -272,6 +305,9 @@ def create_job(
     actor: str,
     room_id: str | None = None,
     kind: str = "general",
+    property_id: str | None = None,
+    target_minutes: int | None = None,
+    offer_window: int | None = None,
 ) -> dict:
     if not title.strip():
         raise Invalid("Describe the request.")
@@ -294,6 +330,9 @@ def create_job(
         ranking=[],
         room_id=room_id,
         kind=kind,
+        property_id=property_id,
+        target_minutes=target_minutes,
+        offer_seconds=offer_window,
         _v=0,
     )
     mongo.col("jobs").insert_one(doc)

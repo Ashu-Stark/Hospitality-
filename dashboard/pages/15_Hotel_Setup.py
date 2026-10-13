@@ -15,13 +15,8 @@ from lib.api_client import ApiError
 
 PAGE = "pages/15_Hotel_Setup.py"
 ui.setup(PAGE, "Hotel setup (voice)")
-ui.html(
-    theme.section(
-        "Set up a hotel by voice",
-        "Hotel setup (voice)",
-        "Answer a few questions in Hindi, English or Hinglish, by voice or by typing. Hospitality Operations Intelligence "
-        "fills the rest from a size-based template and shows a draft. This is separate from Setup, which creates your workspace.",
-    )
+ui.page_head(
+    "Setup by voice", "Answer a few questions by voice or typing (Hindi, English or Hinglish); nothing is saved until you confirm."
 )
 
 LANGS = {"English": "en", "हिन्दी (Hindi)": "hi"}

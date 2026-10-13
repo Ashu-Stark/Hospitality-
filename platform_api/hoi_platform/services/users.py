@@ -170,6 +170,8 @@ DEMO_ACCOUNTS = [
     ("HS09", "worker", "HS09", "Front office associate (HS09)", "Employee app: shifts, jobs, supplies"),
     ("HS12", "worker", "HS12", "Restaurant server (HS12)", "Employee app: shifts, jobs, supplies"),
     ("HS18", "worker", "HS18", "Maintenance technician (HS18)", "Employee app: shifts, jobs, supplies"),
+    ("demo.homestay", "owner", None, "Homestay owner (Deodar Nest)", "Homestay mode: the simple app for a 6-room homestay"),
+    ("DN03", "worker", "DN03", "Homestay helper (DN03)", "Homestay mode: a simple task list"),
 ]
 LEGACY_DEMO_USERS = ("E134",)  # worker account of the former demo hotel: removed from the demo tenant
 
@@ -192,7 +194,7 @@ def has_platform_admin() -> bool:
     return mongo.col("users").count_documents({"role": "platform_admin"}, limit=1) > 0
 
 
-def ensure_demo_users(demo_tenant: str, admin_password: str | None) -> None:
+def ensure_demo_users(demo_tenant: str, admin_password: str | None, default_property: dict[str, str] | None = None) -> None:
     legacy = [
         u["id"]
         for u in mongo.col("users").find(
@@ -208,6 +210,10 @@ def ensure_demo_users(demo_tenant: str, admin_password: str | None) -> None:
                 create(username, secrets.token_urlsafe(18), role, demo_tenant, emp)  # random password: one-click demo only
             except Invalid:  # created concurrently by another process
                 pass
+    for username, pid in (default_property or {}).items():  # e.g. the homestay owner opens the homestay first
+        u = by_username(username)
+        if u and not mongo.from_pairs(u.get("prefs")).get("property_id"):
+            set_prefs(u["id"], {"property_id": pid})
     for username, dept in DEMO_DEPARTMENTS.items():  # idempotent: also fixes accounts created before departments existed
         mongo.col("users").update_one({"_username_lc": username, "department": {"$exists": False}}, {"$set": {"department": dept}})
     if not has_platform_admin():

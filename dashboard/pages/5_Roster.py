@@ -1,51 +1,62 @@
 from collections import Counter
-from datetime import date, timedelta
+from datetime import date
 
 import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
 
 from lib import api_client as api
-from lib import data, models, theme, ui
+from lib import auth, data, models, nav, theme, ui
 from lib.config import current_settings
 
 ui.setup("pages/5_Roster.py", "Roster")
-ui.html(
-    theme.section(
-        "Weekly duty roster",
-        "Roster",
-        "CP-SAT solver with hard rules (leave, rest, weekly off, skills) and soft goals (coverage, overtime, fairness).",
-    )
+ui.page_head(
+    "Weekly roster", "Who works which shift this week. The solver keeps rest, leave, weekly offs and skills; you see any gaps first."
 )
+
+
+def shortage_prefill(dept: str | None, day: str | None, hours: float = 8.0, source: str = "roster_shortage") -> dict:
+    """Fill the Extra staff form from a roster gap: department, that day, about one person per 8 hours short (ASSUMED)."""
+    d = day or date.today().isoformat()
+    return {
+        "department": dept or "housekeeping",
+        "date_from": d,
+        "date_to": d,
+        "openings": max(1, round(hours / 8)),
+        "note": f"Roster short by about {hours:.0f} h on {d}.",
+        "source": source,
+    }
+
+
+def request_staff_button(pre: dict, key: str) -> None:
+    if auth.can_open("pages/20_Extra_Staff.py") and st.button("Request staff", key=key, type="primary", icon=":material/group_add:"):
+        st.session_state["staffing_prefill"] = pre
+        st.switch_page(nav.page("pages/20_Extra_Staff.py"))
+
 
 week0 = data.demo_week() or ui.ensure_demo_week()
 s = current_settings()
 
 # ------------------------------------------------------------------ controls (search-bar card)
 with st.container(key="card_controls"):
-    c1, c2, c3, c4 = st.columns([1.4, 1.6, 1.4, 1])
+    c1, c4 = st.columns([3, 1], vertical_alignment="bottom")
     with c1:
         opts = data.week_options(week0) if week0 else []
         wk = st.selectbox("Week starting (Monday)", opts, index=0, help="Defaults to the cached demo week.") if opts else None
-    with c2:
+    with c4:
+        gen = st.button("Make roster", type="primary", icon=":material/auto_awesome:", width="stretch")
+    with st.expander("Options"):
         protect = st.toggle(
-            "Protect weekends for flagged staff",
+            "Give flagged staff a weekend off",
             value=False,
             help="Passes the high-band permanent staff as protected_ids, so the solver gives them a weekend off.",
         )
-    with c3:
         infeasible = st.toggle(
-            "Simulate an infeasible week",
+            "Practice: show a week that cannot be staffed",
             value=False,
             disabled=not s.use_mocks,
-            help="MOCK only: rehearse how the UI reports a week that cannot be staffed under the hard rules.",
+            help="MOCK only: rehearse how the page reports a week that cannot be staffed under the hard rules.",
         )
-    with c4:
-        ui.html('<div style="height:26px"></div>')
-        gen = st.button("Generate roster", type="primary", icon=":material/search:", width="stretch")
-    if wk:
-        d0 = date.fromisoformat(wk)
-        ui.html(theme.day_strip([{"date": (d0 + timedelta(days=i)).isoformat()} for i in range(7)]))
 
 if gen:
     protected = []
@@ -67,7 +78,7 @@ if ro is None:
     if rid is not None:
         ro = ui.safe(data.roster, rid, what=f"load roster {rid}")
 if ro is None:
-    ui.empty("No roster yet. Press Generate roster.")
+    ui.empty("No roster yet. Press Make roster.")
     ui.footer()
     st.stop()
 
@@ -93,39 +104,62 @@ if not ro.feasible:
             "alert",
         )
     )
+    c0 = next((c for c in ro.causes if isinstance(c, dict)), {})
+    gap = float(c0.get("required") or 1) - float(c0.get("available") or 0)
+    request_staff_button(shortage_prefill(c0.get("department"), c0.get("date"), max(8.0, 8 * gap)), "req_staff_infeasible")
     ui.footer()
     st.stop()
 
-# ------------------------------------------------------------------ summary tiles
+# ------------------------------------------------------------------ summary first
 cost = ro.cost
 fair = [p.get("fairness_score") for p in ro.people if p.get("fairness_score") is not None]
-ui.html(
-    theme.tiles(
-        [
-            theme.tile("Coverage", ui.pct(ro.coverage_ratio, 1), "scheduled ÷ required hours", "check"),
-            theme.tile("Total cost", ui.inr(cost.get("total_cost_inr")), f"overtime {ui.inr(cost.get('overtime_cost_inr'))}", "rupee"),
-            theme.tile(
-                "Overtime",
-                f"{cost.get('overtime_hours', 0):,.0f} h",
-                f"{sum(1 for p in ro.people if p.get('overtime_hours'))} people",
-                "clock",
-            ),
-            theme.tile(
-                "Understaffed shifts", f"{cost.get('understaffed_shifts', 0)}", f"{cost.get('understaffed_hours', 0):,.0f} h short", "alert"
-            ),
-            theme.tile("Solve", f"{(ro.solve_seconds or 0):.1f} s", f"{ro.method} · {ro.status} · #{ro.id}", "settings"),
-        ]
-    )
+short_n = int(cost.get("understaffed_shifts", 0) or 0)
+ui.big_numbers(
+    [
+        (
+            "Shifts covered",
+            ui.pct(ro.coverage_ratio, 0),
+            "of the hours the forecast needs",
+            "ok" if (ro.coverage_ratio or 0) >= 0.97 else "warn",
+        ),
+        (
+            "Short shifts",
+            short_n,
+            f"{cost.get('understaffed_hours', 0):,.0f} hours without enough people" if short_n else "Every shift has enough people",
+            "bad" if short_n else "ok",
+        ),
+        (
+            "Overtime",
+            f"{cost.get('overtime_hours', 0):,.0f} h",
+            f"{sum(1 for p in ro.people if p.get('overtime_hours'))} people work extra",
+            "warn" if cost.get("overtime_hours") else "ok",
+        ),
+        ("Week cost", ui.inr(cost.get("total_cost_inr")), f"incl. overtime {ui.inr(cost.get('overtime_cost_inr'))}", "info"),
+    ]
 )
+if short_n:
+    worst = max(ro.short_by_cell().items(), key=lambda kv: kv[1], default=None)
+    if worst:
+        (wd, wi, wsh), wh = worst
+        wday = ro.dates[wi] if 0 <= wi < len(ro.dates) else None
+        ui.html(
+            theme.banner(
+                f"<b>Short: {theme.esc(theme.dept_label(wd))}</b>, {theme.esc(wday or '')} {theme.esc(wsh)} shift, about {wh:.0f} h. "
+                "You can ask local staffing partners for help.",
+                "amber",
+                "alert",
+            )
+        )
+        request_staff_button(shortage_prefill(wd, wday, wh), "req_staff_short")
 if ro.protected_ids:
-    ui.html(
-        '<div style="margin-top:10px">'
-        + theme.banner("Protected weekends for: " + ", ".join(theme.esc(ui.short_name(e)) for e in ro.protected_ids), "blue", "shield")
-        + "</div>"
-    )
+    st.caption("Weekend off protected for: " + ", ".join(ui.short_name(e) for e in ro.protected_ids))
+with st.expander("Solver details"):
+    st.caption(f"{ro.method} · {ro.status} · roster #{ro.id} · solved in {(ro.solve_seconds or 0):.1f} s")
 
 # ------------------------------------------------------------------ grid
-ui.html(theme.section("Coverage grid", "Department × day", "Each cell: staff assigned; red/amber when the solver reports hours short."))
+ui.takeaway(
+    "Each cell = people assigned. Red or amber cells are short of hours." if short_n else "Every department is fully covered this week."
+)
 shift = st.segmented_control("Shift", ["All shifts"] + models.SHIFT_ORDER, default="All shifts")
 dates = ro.dates
 people = ro.cell_people()
@@ -155,7 +189,7 @@ ui.html(
     )
 )
 
-with st.container(key="card_cell"):
+with st.expander("Look inside one shift"):
     a, b, c = st.columns(3)
     with a:
         cd = st.selectbox("Department", depts, format_func=theme.dept_label)
@@ -173,101 +207,105 @@ with st.container(key="card_cell"):
         + "</div>"
     )
 
-# ------------------------------------------------------------------ fairness + soft goals
-f1, f2 = st.columns([1.2, 1])
-with f1:
-    ui.html(theme.section("Fairness distribution", "Per person", "Weekend & night duty spread vs department average (1 = fairest)."))
-    if fair:
-        fig = go.Figure(
-            go.Histogram(
-                x=fair,
-                nbinsx=12,
-                marker=dict(color="#2a78d6", line=dict(color="#fff", width=2), cornerradius=4),
-                hovertemplate="score %{x}<br>%{y} people<extra></extra>",
+# ------------------------------------------------------------------ fairness + soft goals (secondary)
+with st.expander("Fairness and trade-offs"):
+    f1, f2 = st.columns([1.2, 1])
+    with f1:
+        ui.html(theme.section("Fairness distribution", "Per person", "Weekend & night duty spread vs department average (1 = fairest)."))
+        if fair:
+            fig = go.Figure(
+                go.Histogram(
+                    x=fair,
+                    nbinsx=12,
+                    marker=dict(color="#2a78d6", line=dict(color="#fff", width=2), cornerradius=4),
+                    hovertemplate="score %{x}<br>%{y} people<extra></extra>",
+                )
             )
-        )
-        st.plotly_chart(theme.style_fig(fig, 260, legend=False), width="stretch", config={"displayModeBar": False})
-    else:
-        ui.empty("No fairness scores returned.")
-with f2:
-    ui.html(theme.section("Soft goals not fully met", "Trade-offs"))
-    labels = {
-        "understaffed": "shifts understaffed",
-        "overtime": "people with overtime",
-        "weekend_spread": "departments with uneven weekend duty",
-        "night_spread": "departments with uneven night duty",
-        "protected_weekend_off": "protected people who could not get a full weekend off",
-    }
-    counts = Counter(g.get("goal") for g in ro.violated_soft_goals)
-    if not counts:
-        ui.html(theme.banner("All soft goals met.", "blue", "check"))
-    for goal, n in counts.most_common():
-        ui.html(
-            f'<div class="ss-card" style="padding:12px 16px;margin-bottom:8px;display:flex;justify-content:space-between">'
-            f"<span>{theme.esc(labels.get(goal, models.pretty(goal)))}</span><b>{n}</b></div>"
-        )
-    over = [g for g in ro.violated_soft_goals if g.get("goal") == "protected_weekend_off"]
-    if over:
-        st.caption("Could not protect: " + ", ".join(ui.short_name(g.get("employee_id")) for g in over))
-    if ro.hard_violations:
-        ui.html(theme.banner(f"{len(ro.hard_violations)} hard-rule violations reported.", "red", "alert"))
+            st.plotly_chart(theme.style_fig(fig, 260, legend=False), width="stretch", config={"displayModeBar": False})
+        else:
+            ui.empty("No fairness scores returned.")
+    with f2:
+        ui.html(theme.section("Soft goals not fully met", "Trade-offs"))
+        labels = {
+            "understaffed": "shifts understaffed",
+            "overtime": "people with overtime",
+            "weekend_spread": "departments with uneven weekend duty",
+            "night_spread": "departments with uneven night duty",
+            "protected_weekend_off": "protected people who could not get a full weekend off",
+        }
+        counts = Counter(g.get("goal") for g in ro.violated_soft_goals)
+        if not counts:
+            ui.html(theme.banner("All soft goals met.", "blue", "check"))
+        for goal, n in counts.most_common():
+            ui.html(
+                f'<div class="ss-card" style="padding:12px 16px;margin-bottom:8px;display:flex;justify-content:space-between">'
+                f"<span>{theme.esc(labels.get(goal, models.pretty(goal)))}</span><b>{n}</b></div>"
+            )
+        over = [g for g in ro.violated_soft_goals if g.get("goal") == "protected_weekend_off"]
+        if over:
+            st.caption("Could not protect: " + ", ".join(ui.short_name(g.get("employee_id")) for g in over))
+        if ro.hard_violations:
+            ui.html(theme.banner(f"{len(ro.hard_violations)} hard-rule violations reported.", "red", "alert"))
 
-# ------------------------------------------------------------------ baseline vs protected
-ui.html(theme.section("Baseline vs protected", "Compare", "Rosters from the closed loop, or any two roster IDs."))
-loop = st.session_state.get("loop_raw") or {}
-c1, c2, c3 = st.columns([1, 1, 1])
-with c1:
-    base_id = st.number_input("Baseline roster ID", min_value=0, step=1, value=int(loop.get("baseline_roster_id") or 0))
-with c2:
-    prot_id = st.number_input("Protected roster ID", min_value=0, step=1, value=int(loop.get("protected_roster_id") or 0))
-with c3:
-    ui.html('<div style="height:26px"></div>')
-    compare = st.button("Compare", icon=":material/compare_arrows:", disabled=not (base_id and prot_id))
-if not loop:
-    st.caption("Tip: run the Closed loop page once and the two roster IDs are filled in for you.")
-if compare or (loop and base_id and prot_id):
-    rb = ui.safe(data.roster, base_id, what=f"load roster {base_id}")
-    rp = ui.safe(data.roster, prot_id, what=f"load roster {prot_id}")
-    if rb and rp:
-        rows = []
-        for label, r in (("Baseline", rb), ("Protected", rp)):
-            rows.append(
-                {
-                    "Roster": f"{label} #{r.id}",
-                    "Coverage": r.coverage_ratio,
-                    "Total cost ₹": r.cost.get("total_cost_inr"),
-                    "Overtime h": r.cost.get("overtime_hours"),
-                    "Understaffed shifts": r.cost.get("understaffed_shifts"),
-                    "Protected": len(r.protected_ids),
-                }
-            )
-        st.dataframe(pd.DataFrame(rows).style.format({"Coverage": "{:.1%}", "Total cost ₹": "{:,.0f}"}), hide_index=True, width="stretch")
-        ab = {(a["employee_id"], a["date"]): a["shift"] for a in rb.assignments}
-        ap = {(a["employee_id"], a["date"]): a["shift"] for a in rp.assignments}
-        changes = []
-        for k in sorted(set(ab) | set(ap)):
-            if ab.get(k) != ap.get(k):
-                changes.append(
+# ------------------------------------------------------------------ baseline vs protected (secondary)
+with st.expander("Compare two rosters"):
+    ui.html(theme.section("Baseline vs protected", "Compare", "Rosters from the closed loop, or any two roster IDs."))
+    loop = st.session_state.get("loop_raw") or {}
+    c1, c2, c3 = st.columns([1, 1, 1])
+    with c1:
+        base_id = st.number_input("Baseline roster ID", min_value=0, step=1, value=int(loop.get("baseline_roster_id") or 0))
+    with c2:
+        prot_id = st.number_input("Protected roster ID", min_value=0, step=1, value=int(loop.get("protected_roster_id") or 0))
+    with c3:
+        ui.html('<div style="height:26px"></div>')
+        compare = st.button("Compare", icon=":material/compare_arrows:", disabled=not (base_id and prot_id))
+    if not loop:
+        st.caption("Tip: run the Closed loop page once and the two roster IDs are filled in for you.")
+    if compare or (loop and base_id and prot_id):
+        rb = ui.safe(data.roster, base_id, what=f"load roster {base_id}")
+        rp = ui.safe(data.roster, prot_id, what=f"load roster {prot_id}")
+        if rb and rp:
+            rows = []
+            for label, r in (("Baseline", rb), ("Protected", rp)):
+                rows.append(
                     {
-                        "Role": ui.avatar_uri(rp.dept_of.get(k[0]) or rb.dept_of.get(k[0])),
-                        "Employee": ui.short_name(k[0]),
-                        "Date": k[1],
-                        "Baseline": ab.get(k, "off"),
-                        "Protected": ap.get(k, "off"),
-                        "Protected person": "yes" if k[0] in rp.protected_ids else "",
+                        "Roster": f"{label} #{r.id}",
+                        "Coverage": r.coverage_ratio,
+                        "Total cost ₹": r.cost.get("total_cost_inr"),
+                        "Overtime h": r.cost.get("overtime_hours"),
+                        "Understaffed shifts": r.cost.get("understaffed_shifts"),
+                        "Protected": len(r.protected_ids),
                     }
                 )
-        st.markdown(
-            f"**{len(changes)} shift changes** between the two rosters"
-            + (f", {sum(1 for c in changes if c['Protected person'])} of them for protected people." if changes else ".")
-        )
-        if changes:
             st.dataframe(
-                pd.DataFrame(changes),
-                hide_index=True,
-                width="stretch",
-                height=300,
-                column_config={"Role": st.column_config.ImageColumn("Role", width="small")},
+                pd.DataFrame(rows).style.format({"Coverage": "{:.1%}", "Total cost ₹": "{:,.0f}"}), hide_index=True, width="stretch"
             )
+            ab = {(a["employee_id"], a["date"]): a["shift"] for a in rb.assignments}
+            ap = {(a["employee_id"], a["date"]): a["shift"] for a in rp.assignments}
+            changes = []
+            for k in sorted(set(ab) | set(ap)):
+                if ab.get(k) != ap.get(k):
+                    changes.append(
+                        {
+                            "Role": ui.avatar_uri(rp.dept_of.get(k[0]) or rb.dept_of.get(k[0])),
+                            "Employee": ui.short_name(k[0]),
+                            "Date": k[1],
+                            "Baseline": ab.get(k, "off"),
+                            "Protected": ap.get(k, "off"),
+                            "Protected person": "yes" if k[0] in rp.protected_ids else "",
+                        }
+                    )
+            st.markdown(
+                f"**{len(changes)} shift changes** between the two rosters"
+                + (f", {sum(1 for c in changes if c['Protected person'])} of them for protected people." if changes else ".")
+            )
+            if changes:
+                st.dataframe(
+                    pd.DataFrame(changes),
+                    hide_index=True,
+                    width="stretch",
+                    height=300,
+                    column_config={"Role": st.column_config.ImageColumn("Role", width="small")},
+                )
 
 ui.footer()

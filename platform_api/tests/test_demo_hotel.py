@@ -20,8 +20,11 @@ def test_property_rooms_and_staff(client, owner):
     ws = client.get("/workspace", headers=owner).json()
     assert "fictional" in ws["name"].lower() and "Riverside" not in json.dumps(ws)
     props = client.get("/workspace/properties", headers=owner).json()
-    assert [(p["name"], p["rooms"], p["floors"]) for p in props] == [("Himsagar Ridge Resort, Mussoorie (fictional)", 24, 3)]
-    rooms = client.get("/rooms", headers=owner).json()
+    assert [(p["name"], p["rooms"], p["floors"], p["mode"]) for p in props] == [
+        ("Himsagar Ridge Resort, Mussoorie (fictional)", 24, 3, "hotel"),
+        (seed.HOMESTAY_NAME, 6, 2, "homestay"),
+    ]
+    rooms = client.get("/rooms", params={"property_id": props[0]["id"]}, headers=owner).json()
     assert sorted(r["number"] for r in rooms["rooms"]) == ROOMS and rooms["summary"]["total"] == 24
     # other test files import extra test staff into the demo tenant: check the seeded HS ids
     staff = [s for s in client.get("/workspace/staff", headers=owner).json() if s["employee_id"] in STAFF_IDS]
@@ -89,10 +92,11 @@ def test_old_demo_tenant_is_rebuilt_and_others_untouched(client):
     mongo.col("properties").insert_one({"id": "prop_old", "tenant_id": seed.DEMO_ID, "name": "Riverside Retreat", "rooms": 45})
     seed.ensure_demo()
     props = tenants.properties(seed.DEMO_ID)
-    assert [p["name"] for p in props] == ["Himsagar Ridge Resort, Mussoorie (fictional)"]
-    assert [s["employee_id"] for s in tenants.staff(seed.DEMO_ID)] == STAFF_IDS and len(
+    assert [p["name"] for p in props] == ["Himsagar Ridge Resort, Mussoorie (fictional)", seed.HOMESTAY_NAME]
+    homestay = ["DN01", "DN02", "DN03"]
+    assert [s["employee_id"] for s in tenants.staff(seed.DEMO_ID)] == homestay + STAFF_IDS and len(
         mongo.find("rooms", {"tenant_id": seed.DEMO_ID})
-    ) == 24
+    ) == 24 + 6
     assert [p["name"] for p in tenants.properties(other["id"])] == ["Other property"]
     assert auth(client, "demo.owner")  # demo accounts recreated
 

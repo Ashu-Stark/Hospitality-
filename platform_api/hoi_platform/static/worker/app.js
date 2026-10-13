@@ -14,6 +14,12 @@
   const dept = (k) => (DEPTS[S.lang] || DEPTS.en)[k] || k || "";
   const roleImg = (d) => `<img class="javatar" src="${esc(window.HOI_AVATAR(d))}" alt="" width="28" height="28">`;
   const shiftName = (k) => (SHIFTS[S.lang] || SHIFTS.en)[k] || k;
+  const REC = {
+    en: { on_time_job: "Finish a job on time", after_photo: "Add the after photo", inspection_pass: "Room passes inspection first time", guest_feedback_good: "Guest gives 4-5 stars after your request" },
+    hi: { on_time_job: "काम समय पर पूरा करें", after_photo: "बाद की फ़ोटो लगाएँ", inspection_pass: "कमरा पहली बार में जाँच पास करे", guest_feedback_good: "आपके काम के बाद मेहमान 4-5 स्टार दे" },
+  };
+  const fill = (s, o) => s.replace(/\{(\w+)\}/g, (_, k) => esc(o[k] ?? ""));
+  const isHomestay = () => S.me?.mode === "homestay";
   // Local calendar date as YYYY-MM-DD. Converting through UTC would shift Indian (UTC+5:30) dates back by one day.
   const ymd = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 
@@ -108,6 +114,7 @@
     $("#login").classList.add("hidden"); $("#app").classList.remove("hidden");
     try { S.me = await api("GET", "/me/shifts"); } catch (e) { S.me = { shifts: [], department: null }; }
     try { S.items = await api("GET", "/inventory/items"); } catch (e) { S.items = []; }
+    await loadRecognition();
     renderAll();
     await pollJobs();
     clearInterval(S.poll);
@@ -128,7 +135,34 @@
     $("#shiftChip").textContent = S.me?.on_shift_now ? t("on_shift") : t("off_shift");
     $("#meId").textContent = emp; $("#meDeptTxt").textContent = dept(S.me?.department) || "—"; $("#meHotel").textContent = S.tenant?.name || "";
     if (S.tenant?.brand_color) document.documentElement.style.setProperty("--brand", S.tenant.brand_color);
-    renderToday(); renderJobs(); renderItems(); loadRequests();
+    document.body.classList.toggle("homestay", isHomestay());
+    if (S.me?.property?.name) $("#meHotel").textContent = S.me.property.name;
+    renderToday(); renderJobs(); renderItems(); loadRequests(); renderRecognition();
+  }
+
+  // ---------------------------------------------------------------- recognition (own points only; positive only)
+  async function loadRecognition() {
+    try { S.rec = await api("GET", "/me/recognition"); } catch (e) { S.rec = null; }
+  }
+  function renderRecognition() {
+    const el = $("#recCard"), r = S.rec;
+    if (!r) { el.classList.add("hidden"); return; }
+    el.classList.remove("hidden");
+    const labels = REC[S.lang] || REC.en;
+    const money = (v) => "₹" + Number(v || 0).toLocaleString("en-IN");
+    let est;
+    if (!r.budget_set) est = `<p class="muted">${esc(t("rec_no_budget"))}</p>`;
+    else if (!r.eligible) est = `<p class="muted">${fill(t("rec_min"), { n: r.min_jobs, d: r.jobs_done })}</p>`;
+    else est = `<div class="recest"><span>${esc(t("rec_est"))}</span><b>${esc(money(r.estimated_reward_inr))}</b></div><p class="muted small">${esc(t("rec_est_note"))}</p>`;
+    const how = r.breakdown.map((b) => `<li><span>${esc(labels[b.key] || b.label)}</span><b>+${esc(b.points_each)}</b>${b.count ? `<em>${esc(b.count)}×</em>` : ""}</li>`).join("");
+    const team = r.team || {};
+    const board = r.leaderboard ? `<div class="eyebrow">${esc(t("rec_top"))}</div><ol class="recboard">${r.leaderboard.map((x) => `<li${x.employee_id === r.employee_id ? ' class="me"' : ""}><span>${esc(x.employee_id)}</span><b>${esc(x.points)}</b></li>`).join("")}</ol>` : "";
+    el.innerHTML = `<div class="eyebrow">${esc(t("rec_title"))} · ${esc(r.month)}</div>` +
+      `<div class="recpts"><b>${esc(r.points)}</b><span>${esc(t("rec_points"))}</span></div>` +
+      (r.capped ? `<p class="muted">${esc(t("rec_capped"))}</p>` : "") + est +
+      `<details class="rechow"><summary>${esc(t("rec_how"))}</summary><ul>${how}</ul></details>` +
+      `<div class="recteam"><span class="eyebrow">${esc(t("rec_team"))}</span><div>${fill(t("rec_team_line"), { p: team.people_with_points, m: team.members, t: team.total_points })}</div></div>` +
+      board + `<p class="recnever">✓ ${esc(t("rec_never"))}</p>`;
   }
 
   // ---------------------------------------------------------------- tabs
@@ -145,6 +179,17 @@
 
   // ---------------------------------------------------------------- today
   function renderToday() {
+    if (isHomestay()) {  // homestay: no roster; the week card (same size, no layout shift) explains the small-team way of working
+      const me = S.user.employee_id || S.user.username;
+      const open = (S.jobs || []).filter((j) => (j.status === "offered" && j.offer_to === me) || (["accepted", "in_progress"].includes(j.status) && j.assigned_to === me)).length;
+      const hero = $("#todayHero");
+      hero.className = "todayhero anim";
+      hero.innerHTML = `<div class="eyebrow">${esc(t("today"))} · ${esc(S.me?.property?.name || "")}</div><h2>${esc(t("hs_tasks"))}: ${esc(open)}</h2>`;
+      $("#week").innerHTML = `<p class="hsnote">${esc(t("hs_tasks_sub"))}</p>`;
+      $("#weekNote").textContent = "";
+      $("#weekCard .eyebrow").textContent = t("your_team");
+      return;
+    }
     const shifts = S.me?.shifts || [];
     const curDay = S.me?.current_shift?.day;
     const today = shifts.find((s) => s.date === curDay);
@@ -186,6 +231,10 @@
     if (!offer) S.lastOfferId = null;
     $("#jobDot").classList.toggle("hidden", !offer);
     $("#tJobs").textContent = S.jobs.filter((j) => j.status !== "done").length;
+    const doneNow = S.jobs.filter((j) => j.status === "done").length;
+    if (S.doneSeen !== undefined && doneNow !== S.doneSeen) { await loadRecognition(); renderRecognition(); }
+    S.doneSeen = doneNow;
+    if (isHomestay()) renderToday();
     renderJobs();
   }
 
@@ -195,7 +244,12 @@
     const active = S.jobs.filter((j) => ["accepted", "in_progress"].includes(j.status) && j.assigned_to === me);
     const done = S.jobs.filter((j) => j.status === "done" && j.assigned_to === me).slice(0, 5);
     const oEl = $("#offer");
-    if (offer) {
+    if (offer && isHomestay()) {  // homestay: a plain task card, no countdown ring or timer bar
+      oEl.innerHTML = `<div class="offer simple anim"><div class="t">${esc(t("new_task"))}</div>` +
+        `<h2>${esc(offer.title)}</h2><div class="muted jmeta">${roleImg(offer.department)}<span>${offer.room ? esc(t("room")) + " " + esc(offer.room) + " · " : ""}${esc(t("urgency_" + offer.urgency))}</span></div>` +
+        `<div class="row"><button class="btn" data-act="decline" data-id="${esc(offer.id)}">${esc(t("not_now_task"))}</button>` +
+        `<button class="btn primary" data-act="accept" data-id="${esc(offer.id)}">${esc(t("take_it"))}</button></div></div>`;
+    } else if (offer) {
       const left = offer.seconds_left || 0, total = Math.max(left, 30);
       oEl.innerHTML = `<div class="offer anim"><div class="ring" aria-live="polite">${left}</div><div class="t">${esc(t("new_request"))}</div>` +
         `<h2>${esc(offer.title)}</h2><div class="muted jmeta">${roleImg(offer.department)}<span>${offer.department ? esc(dept(offer.department)) + " · " : ""}${offer.room ? esc(t("room")) + " " + esc(offer.room) + " · " : ""}${esc(t("urgency_" + offer.urgency))}</span></div>` +

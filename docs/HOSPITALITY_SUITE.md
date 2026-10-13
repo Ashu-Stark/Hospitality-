@@ -121,3 +121,23 @@ All paths and request bodies above are implemented unchanged. Additions (no rena
   sentence-by-sentence, Hindi number/time normalisation) or, with `TTS_PROVIDER=sarvam` + `SARVAM_API_KEY`, Sarvam Bulbul via
   `POST /public/guest/{token}/tts` and `POST /me/voice/tts` `{text <= 500, lang}` → `audio/wav` or 204 (= browser speaks);
   24 h audio cache. `GET /public/guest/{token}` adds `voice: {server_tts}`.
+
+## 8. Added 13 Oct (late): homestay mode, recognition points, staffing requests, guest issue taxonomy
+
+- **Property mode** `mode: hotel | homestay` on each property (`GET /workspace/properties`; owner `PATCH /workspace/properties/{id}`
+  `{mode, incentive_monthly_budget_cap, recognition_leaderboard_opt_in, recognition{weights,max_points_per_worker,min_jobs,max_share}, portal_api_key}`).
+  New properties with ≤ 10 rooms start as homestays (ASSUMED threshold). `portal_api_key` is write-only (`portal_key_set: bool`).
+  Demo tenant gains the FICTIONAL "Deodar Nest Homestay, Dhanaulti" (6 rooms DN1-DN6, staff DN01 host / DN02 cook / DN03 helper,
+  demo accounts `demo.homestay`, `DN03`). Homestay jobs go to the homestay's own team (no roster needed); `/rooms` and
+  `/hotel/profile` take `?property_id=`.
+- **Recognition points** (positive only, never for discipline): `GET /me/recognition` (worker: own points + team totals),
+  `GET /recognition/summary?month=&property_id=` (owner, HR, department heads: per-person rows by id, not ranked; a leaderboard only
+  when the owner opts in). Rules and ASSUMED weights: `platform_api/hoi_platform/services/recognition.py`.
+- **Staffing requests**: `POST/GET /staffing/requests`, `POST /staffing/requests/{id}/send` (retry). Forwarded to
+  `POST {PORTAL_API_URL}/api/v1/ingest/staffing-request` (default `https://hoi-portal.vercel.app`) with header `X-API-Key: <property key>`
+  and body `{external_id, department, skill, date_from, date_to, openings, note}`; on failure the request stays `pending_send`.
+- **Guest issue taxonomy** `platform_api/hoi_platform/guest_issues.yaml` (ASSUMED, for HM review): pest_control, water_leak,
+  lock_or_door, cleanliness, noise_complaint, lost_item, wifi_problem, safety_alert and medical_help (urgency `urgent`: jobs for
+  front office + security, 15 s offer window, emergency numbers 112/108 on the guest page). Rule-based understanding v2 in
+  `services/issues.py` (EN / Devanagari / Hinglish, whole words, negation, priority); the LLM's answer is re-checked against it.
+  `GET /guest-services/summary` adds `urgent_alerts`.

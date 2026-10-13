@@ -21,7 +21,7 @@ from fastapi.responses import JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 
 from . import config, mongo, seed
-from .routers import auth, dispatch, hotel, inventory, me, platform, public, rooms, workspace
+from .routers import auth, dispatch, hotel, inventory, me, people, platform, public, rooms, workspace
 from .services.errors import DomainError
 
 STATIC = Path(__file__).resolve().parent / "static"
@@ -111,6 +111,7 @@ def create_app() -> FastAPI:
         public.router,
         me.router,
         hotel.router,
+        people.router,
     ):
         app.include_router(r)
 

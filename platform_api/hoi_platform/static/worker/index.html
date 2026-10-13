@@ -7,8 +7,8 @@
 <meta name="description" content="HOI staff app: your shifts, job pings with photo proof, and supply requests.">
 <title>HOI Staff</title>
 <link rel="manifest" href="manifest.webmanifest">
-<link rel="icon" href="icon.svg" type="image/svg+xml">
-<link rel="apple-touch-icon" href="icon.svg">
+<link rel="icon" href="/shared/brand/hoi/hoi-icon-32.png" type="image/png">
+<link rel="apple-touch-icon" href="/shared/brand/hoi/hoi-icon-180.png">
 <link rel="stylesheet" href="/shared/base.css">
 <link rel="stylesheet" href="app.css">
 </head>
@@ -18,7 +18,7 @@
 <!-- sign in -->
 <section id="login" class="wrap hidden">
   <div class="hero">
-    <div class="logo">HOI</div>
+    <img class="logo" src="/shared/brand/hoi/hoi-mark.svg" alt="HOI" width="64" height="64">
     <h1 data-i18n="welcome">Hello! Sign in to start your shift.</h1>
     <p data-i18n="welcome_sub">Your shifts, job pings and supply requests in one place.</p>
   </div>
@@ -47,11 +47,13 @@
     <!-- today -->
     <div id="tab-today" class="tab stack">
       <div id="todayHero" class="todayhero anim"></div>
-      <div class="card"><div class="eyebrow" data-i18n="this_week">This week</div><div id="week" class="week"></div><div id="weekNote" class="muted"></div></div>
+      <div class="card" id="weekCard"><div class="eyebrow" data-i18n="this_week">This week</div><div id="week" class="week"></div><div id="weekNote" class="muted"></div></div>
       <div class="tiles">
         <button class="tile" data-goto="jobs"><b id="tJobs">0</b><span data-i18n="jobs">Jobs</span></button>
         <button class="tile" data-goto="supplies"><b id="tReqs">0</b><span data-i18n="requests">Requests</span></button>
       </div>
+      <!-- recognition: own points only, positive only, never used for discipline -->
+      <div id="recCard" class="card rec hidden" aria-live="polite"></div>
     </div>
 
     <!-- jobs -->
@@ -96,6 +98,7 @@
       <div class="banner blue" data-i18n="privacy">Your photos are stamped with the server's time and kept for proof of work. Your manager cannot see anything on your phone.</div>
       <button id="install" class="btn hidden" data-i18n="install">Add to home screen</button>
       <button id="signout" class="btn dark" data-i18n="signout">Sign out</button>
+      <p class="muted center poweredby"><img src="/shared/brand/hoi/hoi-mark.svg" alt="" width="18" height="18"> HOI staff app</p>
     </div>
   </main>
 

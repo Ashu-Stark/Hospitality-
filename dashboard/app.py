@@ -13,19 +13,21 @@ Router only. What a visitor sees depends on the portal and on who is signed in:
 
 import streamlit as st
 
-from lib import access, auth, config, tenancy
+from lib import access, auth, config, portal, tenancy
 
 auth.restore()  # "stay signed in": refresh-token cookie -> new session after a browser refresh
 if config.is_super():
-    title, icon = "HOI Platform Admin", ":material/admin_panel_settings:"
+    title = "HOI Platform Admin"
 else:
     t = tenancy.active()
     title = f"{t['name']} · Hotel admin" if t.get("id") else "HOI Hotel Admin"
-    icon = ":material/hotel:"
     if hotel := st.query_params.get("hotel"):  # "Open in hotel portal" link from the platform console
         st.session_state["want_hotel"] = str(hotel)[:64]
-st.set_page_config(page_title=title, page_icon=icon, layout="wide", initial_sidebar_state="auto")
+st.set_page_config(page_title=title, page_icon=portal.page_icon(), layout="wide", initial_sidebar_state="auto")
+st.logo(str(portal.BRAND_DIR / "hoi-icon-192.png"), size="large")  # HOI platform mark (sidebar / collapsed header)
 
+if auth.current() and not config.is_super():
+    tenancy.bootstrap()  # loads the properties, so the navigation follows the property's mode (homestay / hotel)
 nav = access.visible_pages()
 st.session_state["_nav"] = nav
 routable = nav if auth.current() else nav + access.portal_pages()

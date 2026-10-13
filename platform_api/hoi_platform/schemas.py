@@ -62,6 +62,42 @@ class PropertyIn(BaseModel):
     region: str = ""
     rooms: int = Field(ge=1, le=5000)
     floors: int = Field(default=3, ge=1, le=200)
+    mode: str | None = Field(default=None, pattern="^(hotel|homestay)$")  # None: homestay up to 10 rooms (ASSUMED)
+
+
+class RecognitionConfigIn(BaseModel):
+    """Recognition points settings (positive only). Unset fields keep the ASSUMED defaults in services/recognition.py."""
+
+    model_config = ConfigDict(extra="forbid")
+    weights: dict[str, Annotated[int, Field(ge=0, le=1000)]] | None = None
+    max_points_per_worker: int | None = Field(default=None, ge=1, le=100_000)
+    min_jobs: int | None = Field(default=None, ge=0, le=1000)
+    max_share: float | None = Field(default=None, gt=0, le=1)
+
+
+class PropertySettingsIn(BaseModel):
+    """Owner settings per property. portal_api_key is write-only ("" removes it); it is never returned or logged."""
+
+    model_config = ConfigDict(extra="forbid")
+    mode: str | None = Field(default=None, pattern="^(hotel|homestay)$")
+    incentive_monthly_budget_cap: int | None = Field(default=None, ge=0, le=10_000_000)
+    recognition_leaderboard_opt_in: bool | None = None
+    recognition: RecognitionConfigIn | None = None
+    portal_api_key: str | None = Field(default=None, max_length=200)
+
+
+class StaffingRequestIn(BaseModel):
+    """Ask the tourism portal's staffing partners for extra hands (no personal data: department/skill, dates, count)."""
+
+    model_config = ConfigDict(extra="forbid")
+    property_id: str | None = Field(default=None, max_length=64)
+    department: str = Field(min_length=2, max_length=40, pattern=r"^[a-z_]+$")
+    skill: str = Field(default="", max_length=60)
+    date_from: str = Field(pattern=r"^\d{4}-\d{2}-\d{2}$")
+    date_to: str = Field(pattern=r"^\d{4}-\d{2}-\d{2}$")
+    openings: int = Field(ge=1, le=50)
+    note: str = Field(default="", max_length=500)
+    source: str = Field(default="manual", pattern="^(manual|roster_shortage)$")
 
 
 class StaffImportIn(BaseModel):
@@ -90,6 +126,7 @@ class JobIn(BaseModel):
     room: str | None = Field(default=None, max_length=12)
     urgency: str = "medium"
     source: str = "manual"
+    property_id: str | None = Field(default=None, max_length=64)
 
 
 class ActAs(BaseModel):
@@ -297,6 +334,9 @@ class Faq(_Strict):
 class HotelProfileIn(_Strict):
     display_name: Short = Field(min_length=1)
     logo_url: str | None = Field(default=None, max_length=200, pattern=r"^(/|https://)[A-Za-z0-9._~/-]+$")
+    # cover photo for the guest page and the admin header: a same-origin path or https URL, with its licence credit line
+    cover_photo_url: str | None = Field(default=None, max_length=200, pattern=r"^(/|https://)[A-Za-z0-9._~/-]+$")
+    cover_photo_credit: str = Field(default="", max_length=240)
     welcome: Long = ""
     checkin_time: str = Field(default="12:00", pattern=HHMM)
     checkout_time: str = Field(default="11:00", pattern=HHMM)

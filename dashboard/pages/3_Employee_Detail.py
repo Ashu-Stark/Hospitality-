@@ -86,72 +86,74 @@ if s.contract_type == "seasonal":
         )
     )
 
-# ------------------------------------------------------------------ trajectory
-ui.html(theme.section("Last 12 weeks", "Trajectory"))
-if hero and hero.weeks:
-    if hero.illustrative:
-        st.caption("Illustrative trajectory from heroes.json, anchored to today's live score. The API serves only the current week.")
-    xs = [w.week_start for w in hero.weeks]
-    t1, t2 = st.columns(2)
-    with t1:
-        fig = go.Figure(
-            go.Scatter(
-                x=xs,
-                y=[w.risk for w in hero.weeks],
-                mode="lines+markers",
-                name="risk",
-                line=dict(color="#2a78d6", width=2),
-                marker=dict(size=9, color=[theme.BAND_COLOR[w.band] for w in hero.weeks], line=dict(color="#fff", width=2)),
-                customdata=[[w.band, w.rank] for w in hero.weeks],
-                hovertemplate="%{x}<br>risk %{y:.3f}<br>band %{customdata[0]} · rank %{customdata[1]}<extra></extra>",
-            )
-        )
-        for w in hero.weeks:
-            if w.note:
-                fig.add_annotation(
-                    x=w.week_start,
-                    y=w.risk,
-                    text=w.note,
-                    showarrow=True,
-                    arrowhead=0,
-                    ay=-36,
-                    ax=-10,
-                    font=dict(size=11, color="#52514e"),
-                    bgcolor="#fff",
-                    bordercolor="#e6e5e0",
+# ------------------------------------------------------------------ trajectory (secondary)
+with st.expander("Last 12 weeks"):
+    if hero and hero.weeks:
+        if hero.illustrative:
+            st.caption("Illustrative trajectory from heroes.json, anchored to today's live score. The API serves only the current week.")
+        xs = [w.week_start for w in hero.weeks]
+        t1, t2 = st.columns(2)
+        with t1:
+            fig = go.Figure(
+                go.Scatter(
+                    x=xs,
+                    y=[w.risk for w in hero.weeks],
+                    mode="lines+markers",
+                    name="risk",
+                    line=dict(color="#2a78d6", width=2),
+                    marker=dict(size=9, color=[theme.BAND_COLOR[w.band] for w in hero.weeks], line=dict(color="#fff", width=2)),
+                    customdata=[[w.band, w.rank] for w in hero.weeks],
+                    hovertemplate="%{x}<br>risk %{y:.3f}<br>band %{customdata[0]} · rank %{customdata[1]}<extra></extra>",
                 )
-        fig.update_layout(title="Risk score (marker color = band that week)")
-        st.plotly_chart(theme.style_fig(fig, 300, legend=False), width="stretch", config={"displayModeBar": False})
-    with t2:
-        fig = go.Figure(
-            go.Scatter(
-                x=xs,
-                y=[w.rank for w in hero.weeks],
-                mode="lines+markers",
-                line=dict(color="#52514e", width=2, shape="hv"),
-                marker=dict(size=8, color="#52514e", line=dict(color="#fff", width=2)),
-                hovertemplate="%{x}<br>rank %{y}<extra></extra>",
             )
+            for w in hero.weeks:
+                if w.note:
+                    fig.add_annotation(
+                        x=w.week_start,
+                        y=w.risk,
+                        text=w.note,
+                        showarrow=True,
+                        arrowhead=0,
+                        ay=-36,
+                        ax=-10,
+                        font=dict(size=11, color="#52514e"),
+                        bgcolor="#fff",
+                        bordercolor="#e6e5e0",
+                    )
+            fig.update_layout(title="Risk score (marker color = band that week)")
+            st.plotly_chart(theme.style_fig(fig, 300, legend=False), width="stretch", config={"displayModeBar": False})
+        with t2:
+            fig = go.Figure(
+                go.Scatter(
+                    x=xs,
+                    y=[w.rank for w in hero.weeks],
+                    mode="lines+markers",
+                    line=dict(color="#52514e", width=2, shape="hv"),
+                    marker=dict(size=8, color="#52514e", line=dict(color="#fff", width=2)),
+                    hovertemplate="%{x}<br>rank %{y}<extra></extra>",
+                )
+            )
+            fig.update_layout(title=f"Rank within group (1 = highest risk, of {s.group_size})")
+            theme.style_fig(fig, 300, legend=False)
+            fig.update_yaxes(autorange="reversed")
+            st.plotly_chart(fig, width="stretch", config={"displayModeBar": False})
+        if any(w.overtime_hours is not None for w in hero.weeks):
+            last = hero.weeks[-1]
+            first = hero.weeks[0]
+            st.caption(
+                f"Overtime moved from {first.overtime_hours} h/week to {last.overtime_hours} h/week over the period; "
+                f"weeks since a weekend off: {last.weeks_since_weekend_off}."
+            )
+    else:
+        ui.empty(
+            "No weekly history is available for this employee. The API serves the current week only; trajectories exist "
+            "for the five demo heroes."
         )
-        fig.update_layout(title=f"Rank within group (1 = highest risk, of {s.group_size})")
-        theme.style_fig(fig, 300, legend=False)
-        fig.update_yaxes(autorange="reversed")
-        st.plotly_chart(fig, width="stretch", config={"displayModeBar": False})
-    if any(w.overtime_hours is not None for w in hero.weeks):
-        last = hero.weeks[-1]
-        first = hero.weeks[0]
-        st.caption(
-            f"Overtime moved from {first.overtime_hours} h/week to {last.overtime_hours} h/week over the period; "
-            f"weeks since a weekend off: {last.weeks_since_weekend_off}."
-        )
-else:
-    ui.empty(
-        "No weekly history is available for this employee. The API serves the current week only; trajectories exist "
-        "for the five demo heroes."
-    )
 
 # ------------------------------------------------------------------ drivers
-ui.html(theme.section("Why this person is flagged", "Drivers", "Contribution to the model's log-odds; bars right of zero push risk up."))
+ui.html('<h3 class="ss-h3">Why this person may need support</h3>')
+if s.drivers:
+    ui.takeaway(f"Biggest reason: {max(s.drivers, key=lambda d: d.contribution_logodds).title}. Bars to the right push the score up.")
 pb = data.playbook()
 d1, d2 = st.columns([1.4, 1])
 with d1:
@@ -179,7 +181,8 @@ with d2:
     )
 
 # ------------------------------------------------------------------ interventions
-ui.html(theme.section("Suggested interventions", "Playbook", "Top 2 actions per active driver. Each creates a task for the owner."))
+ui.html('<h3 class="ss-h3">What could help</h3>')
+st.caption("Up to two actions per reason. Each one creates a follow-up task.")
 actions = []
 for d in s.drivers:
     acts = [a for a in s.actions if a.driver == d.category]

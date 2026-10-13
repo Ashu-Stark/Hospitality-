@@ -83,6 +83,7 @@ def on_tenant_change() -> None:
         "whatif_history",
         "selected_employee",
         "ctx_sig",
+        "property_id",
     ):
         st.session_state.pop(k, None)
     st.cache_data.clear()
@@ -99,11 +100,54 @@ def active_settings() -> dict:
     return settings_of(active())
 
 
+# ------------------------------------------------------------------ current property (a hotel group can have several)
+def properties() -> list[dict]:
+    return active().get("properties") or []
+
+
+def current_property() -> dict | None:
+    """The property this browser session looks at: the session choice, else the user's saved preference, else the first."""
+    props = properties()
+    if not props:
+        return None
+    want = st.session_state.get("property_id") or ((st.session_state.get("user") or {}).get("prefs") or {}).get("property_id")
+    return next((p for p in props if p["id"] == want), props[0])
+
+
+def property_id() -> str | None:
+    p = current_property()
+    return p["id"] if p else None
+
+
+def mode() -> str:
+    """'homestay' (simple app, plain words) or 'hotel' (everything) for the current property."""
+    p = current_property()
+    if not p:
+        return "hotel"
+    m = p.get("mode")
+    return m if m in ("hotel", "homestay") else ("homestay" if int(p.get("rooms") or 0) <= 10 else "hotel")
+
+
+def is_homestay() -> bool:
+    return mode() == "homestay"
+
+
+def set_property(pid: str) -> None:
+    st.session_state["property_id"] = pid
+    try:
+        platform.set_prefs({"property_id": pid})
+        u = st.session_state.get("user")
+        if u is not None:
+            u["prefs"] = {**(u.get("prefs") or {}), "property_id": pid}
+    except platform.PlatformError:
+        pass
+
+
 def rooms() -> int:
-    props = active().get("properties") or []
-    return int(props[0]["rooms"]) if props else 45
+    p = current_property()
+    return int(p["rooms"]) if p else 45
 
 
 def floors() -> int:
-    props = active().get("properties") or []
-    return int(props[0].get("floors") or 4) if props else 4
+    p = current_property()
+    return int(p.get("floors") or 4) if p else 4

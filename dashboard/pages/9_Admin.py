@@ -8,7 +8,7 @@ from lib.config import current_settings, env_settings
 from lib.mock_backend import source_of
 
 ui.setup("pages/9_Admin.py", "Admin")
-ui.html(theme.section("Admin & demo controls", "Admin", "For the demo operator and for debugging. Not part of the judge-facing story."))
+ui.page_head("Data & system", "Where the numbers come from, model versions and the demo reset. For the demo operator.")
 
 s = current_settings()
 env = env_settings()

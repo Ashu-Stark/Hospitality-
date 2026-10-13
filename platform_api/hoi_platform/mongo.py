@@ -137,6 +137,7 @@ INDEXES: dict[str, list[tuple[list, dict]]] = {
         (_ix("tenant_id", "status", "-created_at"), {}),
         (_ix("tenant_id", "room_id", "stay"), {}),
     ],
+    "staffing_requests": [(_ix("id"), {"unique": True}), (_ix("tenant_id", "-created_at"), {}), (_ix("tenant_id", "property_id"), {})],
     # spoken-reply audio cache (server TTS only): expires after 24 h
     "tts_cache": [(_ix("key"), {"unique": True}), (_ix("created_at"), {"expireAfterSeconds": 86400})],
     "guest_feedback": [

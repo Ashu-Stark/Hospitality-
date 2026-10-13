@@ -15,14 +15,7 @@ STATUS = {  # label, band tone (reuses the reserved status colours), what happen
     "out_of_order": ("Out of order", "high", "Maintenance job raised"),
 }
 
-ui.html(
-    theme.section(
-        "Room status board",
-        "Housekeeping",
-        "Checkout automatically creates a cleaning job for the best on-shift housekeeper; when it is done the room waits for "
-        "inspection. Guests can request service by scanning the QR code in their room.",
-    )
-)
+ui.page_head("Rooms", "Which rooms are ready, being cleaned or need attention. Checkout creates the cleaning job for you.")
 data.ops_inputs()  # make sure the dispatch engine knows who is on shift
 
 payload = ui.safe(platform.rooms, what="load rooms")
@@ -33,24 +26,28 @@ rooms, summary = payload["rooms"], payload["summary"]
 if not rooms:
     ui.empty("No rooms yet." + (" Add them below." if IS_OWNER else " Ask the owner to add rooms."))
 
-ui.html(
-    theme.tiles(
-        [
-            theme.tile("Ready", str(summary.get("ready", 0)), "to sell or check in", "check"),
-            theme.tile("Occupied", str(summary.get("occupied", 0)), f"of {summary.get('total', 0)} rooms", "bed"),
-            theme.tile("To clean", str(summary.get("dirty", 0) + summary.get("cleaning", 0)), "dirty or being cleaned", "clock"),
-            theme.tile("Inspection", str(summary.get("inspection", 0)), "waiting for a supervisor", "flag"),
-            theme.tile("Out of order", str(summary.get("out_of_order", 0)), "not sellable", "alert"),
-        ]
-    )
+to_clean = summary.get("dirty", 0) + summary.get("cleaning", 0)
+ui.big_numbers(
+    [
+        ("Ready", summary.get("ready", 0), "Clean and free for the next guest", "ok"),
+        ("Guests in", summary.get("occupied", 0), f"of {summary.get('total', 0)} rooms", "info"),
+        ("To clean", to_clean, "Someone is on it or will be asked" if to_clean else "All clean", "warn" if to_clean else "ok"),
+        (
+            "To check",
+            summary.get("inspection", 0) + summary.get("out_of_order", 0),
+            "Waiting for inspection or out of order",
+            "warn" if summary.get("inspection", 0) else "ok",
+        ),
+    ]
 )
 
 # ------------------------------------------------------------------ board
+floors_all = sorted({r["floor"] for r in rooms if r["floor"] is not None})
 f1, f2 = st.columns([2, 1])
 with f1:
     show = st.segmented_control("Show", ["All"] + [v[0] for v in STATUS.values()], default="All", key="room_filter")
 with f2:
-    floor = st.selectbox("Floor", ["All"] + sorted({r["floor"] for r in rooms if r["floor"] is not None}), key="room_floor")
+    floor = st.selectbox("Floor", ["All", *floors_all], key="room_floor") if len(floors_all) > 1 else "All"
 visible = [r for r in rooms if (show in (None, "All") or STATUS[r["status"]][0] == show) and (floor == "All" or r["floor"] == floor)]
 
 ui.html(
@@ -68,13 +65,14 @@ ui.html(
 .ss-room.cleaning,.ss-room.inspection{background:#fff6df;border-color:#f2cd6f}
 </style>"""
 )
-ui.html(" ".join(theme.band_chip(tone, f"{label}: {hint}") for label, tone, hint in STATUS.values()))
+with st.expander("What the colours mean"):
+    ui.html(" ".join(theme.band_chip(tone, f"{label}: {hint}") for label, tone, hint in STATUS.values()))
 
 # ------------------------------------------------------------------ attention queue (most frequent supervisor actions)
 waiting = [r for r in rooms if r["status"] == "inspection"]
 busy = [r for r in rooms if r["status"] in ("dirty", "cleaning")]
 if waiting or busy:
-    ui.html(theme.section("Needs your attention", "Supervisor queue"))
+    ui.html('<h3 class="ss-h3">Needs you</h3>')
     try:
         jobs = {j["id"]: j for j in platform.jobs()}
     except platform.PlatformError:
@@ -105,7 +103,7 @@ if waiting or busy:
         )
 
 # ------------------------------------------------------------------ act on a room
-ui.html(theme.section("Update a room", "Actions"))
+ui.html('<h3 class="ss-h3">Update a room</h3>')
 if visible:
     with st.container(key="card_room_act"):
         c1, c2 = st.columns([1, 3])
@@ -149,17 +147,12 @@ if visible:
                     if st.button("Mark out of order", key=f"ooo_go_{r['id']}") and reason:
                         go("out-of-order", {"reason": reason, "create_job": mj}, "Marked out of order")
 
-# ------------------------------------------------------------------ guest QR codes
-ui.html(
-    theme.section(
-        "Guest requests by QR",
-        "Guest self-service",
-        "Print each room's code. Guests scan it and tap a request; nothing personal is asked. Needs the platform API running as a service.",
-    )
-)
+# ------------------------------------------------------------------ guest QR codes (secondary)
 base = platform.public_url()
-if IS_OWNER and rooms:
-    c1, c2 = st.columns([1, 2])
+qr_box = st.expander("Room QR codes for guests") if IS_OWNER and rooms else None
+if qr_box is not None:
+    qr_box.caption("Print each room's code. Guests scan it to ask for things; nothing personal is asked.")
+    c1, c2 = qr_box.columns([1, 2])
     with c1:
         qr_room = st.selectbox(
             "Room", [r["id"] for r in rooms], format_func=lambda i: next(r["number"] for r in rooms if r["id"] == i), key="qr_room"
@@ -181,9 +174,5 @@ if IS_OWNER and rooms:
         )
 elif not IS_OWNER:
     st.caption("The owner can print room QR codes from this page.")
-ui.html(
-    theme.banner(
-        f"Staff use their own app at <b>{theme.esc(base)}/worker/</b>: shifts, job pings, live-camera photos, supplies.", "blue", "info"
-    )
-)
+st.caption(f"Staff use their own app on their phone: {base}/worker/")
 ui.footer()

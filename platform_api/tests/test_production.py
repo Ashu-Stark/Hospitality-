@@ -81,7 +81,9 @@ def _ctx(client, h):
 def test_room_turnaround_flow(client, owner):
     client.post("/dispatch/reset", headers=owner)
     _ctx(client, owner)
-    data = client.get("/rooms", headers=owner).json()
+    assert client.get("/rooms", headers=owner).json()["summary"]["total"] == 24 + 6  # hotel + demo homestay
+    first = client.get("/workspace/properties", headers=owner).json()[0]["id"]
+    data = client.get("/rooms", params={"property_id": first}, headers=owner).json()
     assert data["summary"]["total"] == 24
     room = next(r for r in data["rooms"] if r["status"] == "occupied")
     r = client.post(f"/rooms/{room['id']}/checkout", headers=owner).json()

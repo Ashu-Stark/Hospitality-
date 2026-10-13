@@ -1,0 +1,35 @@
+{
+ "note": "Illustrative photos of the hill towns (not of the fictional demo properties), from Wikimedia Commons, used under their stated licences. Copied from portal/hoi_portal/static/img/photos.",
+ "images": [
+  {
+   "id": "mussoorie",
+   "kind": "destination",
+   "file": "mussoorie.jpg",
+   "file_sm": "mussoorie_sm.jpg",
+   "width": 1280,
+   "height": 853,
+   "title": "Mussoorie-6530427.jpg",
+   "alt": "Mussoorie ridge and hills at dawn",
+   "author": "Robertyadav44",
+   "license": "CC BY-SA 4.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+   "source_url": "https://commons.wikimedia.org/wiki/File:Mussoorie-6530427.jpg",
+   "modified": "resized and compressed"
+  },
+  {
+   "id": "dhanaulti",
+   "kind": "destination",
+   "file": "dhanaulti.jpg",
+   "file_sm": "dhanaulti_sm.jpg",
+   "width": 1280,
+   "height": 720,
+   "title": "Pine forest at Dhanaulti,Uttarakhand 1.jpg",
+   "alt": "Pine and deodar trees with mountains at Dhanaulti",
+   "author": "SHUVADIP",
+   "license": "CC BY-SA 4.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+   "source_url": "https://commons.wikimedia.org/wiki/File:Pine_forest_at_Dhanaulti,Uttarakhand_1.jpg",
+   "modified": "resized and compressed"
+  }
+ ]
+}

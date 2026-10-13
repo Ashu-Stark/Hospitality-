@@ -118,3 +118,24 @@ select.field{min-height:52px;appearance:auto}
 #tab-checkout .card+.card,#tab-explore .card+.card{margin-top:12px}
 .voicepick{display:flex;align-items:center;gap:10px;margin-top:8px;font-size:.85rem;color:var(--ink2)}
 .voicepick select{flex:1;min-height:48px;padding:8px 12px;font-size:.85rem}
+
+/* property photo header + credit; HOI platform mark in the footer */
+.ghero.photo{background-size:cover;background-position:center}
+.photocredit{font-size:.68rem;color:var(--muted);margin:6px 18px 0;line-height:1.3}
+.poweredby{display:flex;align-items:center;justify-content:center;gap:8px;color:var(--muted);font-size:.78rem;margin:6px 0 90px}
+.poweredby img{border-radius:6px}
+
+/* request menu groups; urgent alert card (one big button + tap-to-call numbers) */
+.mgroup{font-size:1rem;margin:14px 0 8px}
+.opt.urgent{border-color:#efa3a1;background:#fff7f7}
+.confirm.urgent{border-color:#d03b3b;background:#fff4f4}
+.confirm .btn.alert{width:100%;min-height:58px;font-size:1.08rem;font-weight:700;background:#c62828;color:#fff;border:0;border-radius:999px}
+.confirm .tels{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.confirm .tel{flex:1 1 120px;text-align:center;border:1.5px solid #d03b3b;color:#a51d1d;border-radius:999px;padding:10px 12px;font-weight:700;text-decoration:none;min-height:44px}
+/* CLS: reserve the header's final size from the first paint (photo, logo plate, welcome text arrive with the data) */
+.ghero{min-height:274px;box-sizing:border-box;display:flex;flex-direction:column}
+.hotelid{min-height:52px;display:flex;align-items:center}
+.welcome{min-height:2.6em}
+@media (min-width:700px){.ghero{min-height:250px}}
+.photocredit{min-height:34px}
+.photocredit.hidden{display:block;visibility:hidden}

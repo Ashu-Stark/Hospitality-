@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 
 from ..deps import Principal, roles, tenant_of
 from ..schemas import DecideIn, HotelProfileIn
-from ..services import guest, profiles, users
+from ..services import guest, profiles, tenants, users
 
 router = APIRouter(tags=["hotel"])
 READ = ("owner", "dept_head", "hr", "storekeeper")
@@ -12,14 +12,23 @@ GUEST_VIEW = ("owner", "dept_head", "hr")
 LATE_DEPTS = ("front_office", "housekeeping")
 
 
+PID = Query(default=None, max_length=64, description="Property id (default: the first property)")
+
+
 @router.get("/hotel/profile")
-def get_profile(p: Principal = Depends(roles(*READ))) -> dict:
-    return profiles.get(tenant_of(p))
+def get_profile(property_id: str | None = PID, p: Principal = Depends(roles(*READ))) -> dict:
+    tid = tenant_of(p)
+    if property_id:
+        tenants.get_property(tid, property_id)  # 404 for another tenant's / unknown property
+    return profiles.get(tid, property_id)
 
 
 @router.put("/hotel/profile")
-def put_profile(body: HotelProfileIn, p: Principal = Depends(roles("owner", "dept_head"))) -> dict:
-    return profiles.put(tenant_of(p), body.model_dump(), p.username)
+def put_profile(body: HotelProfileIn, property_id: str | None = PID, p: Principal = Depends(roles("owner", "dept_head"))) -> dict:
+    tid = tenant_of(p)
+    if property_id:
+        tenants.get_property(tid, property_id)
+    return profiles.put(tid, body.model_dump(), p.username, property_id)
 
 
 @router.get("/guest-services/summary")

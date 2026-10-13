@@ -32,7 +32,9 @@ def get_context(p: Principal = Depends(roles(*HOTEL_MANAGERS, "worker"))) -> dic
 
 @router.post("/jobs", status_code=201)
 def create_job(body: JobIn, p: Principal = Depends(roles(*HOTEL_MANAGERS))) -> dict:
-    return dispatch.create_job(tenant_of(p), body.title, body.department, body.room, body.urgency, body.source, p.username)
+    tid = tenant_of(p)
+    pid = tenants.get_property(tid, body.property_id)["id"] if body.property_id else None
+    return dispatch.create_job(tid, body.title, body.department, body.room, body.urgency, body.source, p.username, property_id=pid)
 
 
 @router.get("/jobs")

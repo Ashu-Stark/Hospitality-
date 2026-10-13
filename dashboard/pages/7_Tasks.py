@@ -7,13 +7,7 @@ from lib import models, theme, ui
 from lib.api_client import ApiError
 
 ui.setup("pages/7_Tasks.py", "Tasks")
-ui.html(
-    theme.section(
-        "Task board",
-        "Interventions & operations",
-        "Reminders fire at 50% and 90% of the time to deadline; unacknowledged tasks escalate to the supervisor.",
-    )
-)
+ui.page_head("Tasks", "Follow-up tasks and how close each one is to its deadline.")
 
 # ------------------------------------------------------------------ demo clock (demo-only control)
 with st.container(key="card_clock"):

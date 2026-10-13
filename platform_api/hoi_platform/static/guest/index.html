@@ -6,7 +6,8 @@
 <meta name="theme-color" content="#b03f14">
 <meta name="robots" content="noindex">
 <title>Your stay · concierge</title>
-<link rel="icon" href="data:,">
+<link rel="icon" href="/shared/brand/hoi/hoi-icon-32.png" type="image/png">
+<link rel="apple-touch-icon" href="/shared/brand/hoi/hoi-icon-180.png">
 <link rel="stylesheet" href="/shared/base.css">
 <link rel="stylesheet" href="guest.css">
 </head>
@@ -21,6 +22,7 @@
   <p id="welcome" class="welcome"></p>
   <span id="demoTag" class="demotag hidden" data-t="demo">Demo hotel · synthetic data</span>
 </header>
+<p id="photoCredit" class="photocredit hidden"></p>
 
 <main class="wrap">
   <div id="err" class="banner red hidden" role="alert"></div>
@@ -66,7 +68,7 @@
     <p class="muted" data-t="sub">Tap a request. The right team member is notified at once.</p>
     <label class="lbl" for="note" data-t="note">Anything to add? (optional)</label>
     <input id="note" class="field" maxlength="140" autocomplete="off">
-    <div id="menu" class="grid gap-top" aria-label="Requests"></div>
+    <div id="menu" class="gap-top" aria-label="Requests"></div>
   </section>
 
   <!-- CHECKOUT -->
@@ -115,6 +117,7 @@
   </section>
 
   <p class="muted foot" data-t="privacy">We don't ask for your name or phone number. For emergencies, call the front desk.</p>
+  <p class="poweredby"><img src="/shared/brand/hoi/hoi-mark.svg" alt="" width="20" height="20"><span>Concierge by HOI</span></p>
 </main>
 
 <nav class="tabbar" aria-label="Sections">

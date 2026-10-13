@@ -1,5 +1,6 @@
 """Demo workspace: the FICTIONAL "Himsagar Ridge Resort, Mussoorie" (SYNTHETIC data), its 24 rooms, 20 staff (ids
-and role titles only), demo accounts, hotel profile and four weeks of inventory history.
+and role titles only), demo accounts, hotel profile and four weeks of inventory history; plus a second FICTIONAL property,
+"Deodar Nest Homestay, Dhanaulti" (6 rooms, 3 staff DN01-DN03, homestay mode, own profile).
 
 The staff list matches the backend's SYNTHETIC hotel dataset (ml/data/hotels/himsagar/hotel.json: ids, departments,
 contract types and skills of the demo week). Ids only: no names or personal attributes. Every value is ASSUMED.
@@ -53,6 +54,20 @@ STAFF = [
 ]
 
 
+# Second demo property in the same demo tenant: a FICTIONAL 6-room homestay run by a small host-family team (ids and neutral
+# role titles only; SYNTHETIC). It starts in homestay mode: the simple app (Today, rooms, guest requests, staff, stock basics).
+HOMESTAY_NAME = "Deodar Nest Homestay, Dhanaulti (fictional)"
+HOMESTAY_REGION = "Dhanaulti, Uttarakhand"
+HOMESTAY_ROOMS = [("DN1", 1), ("DN2", 1), ("DN3", 1), ("DN4", 2), ("DN5", 2), ("DN6", 2)]
+HOMESTAY_STAFF = [
+    ("DN01", "front_office", "Host", "permanent", "fo_system cash_handling"),
+    ("DN02", "kitchen", "Cook", "permanent", "prep"),
+    ("DN03", "housekeeping", "Helper", "permanent", "room_cleaning laundry"),
+]
+# Monthly recognition budgets (INR, ASSUMED demo values; the owner sets the real one in Settings or at onboarding).
+DEMO_INCENTIVE_BUDGET = {"hotel": 6000, "homestay": 1500}
+
+
 def slug(title: str) -> str:
     """Avatar key = role slug ("F&B supervisor" -> "fnb-supervisor"); the images live under /shared/."""
     return re.sub(r"[^a-z0-9]+", "-", title.lower().replace("&", "n")).strip("-")
@@ -62,6 +77,34 @@ def staff_rows() -> list[dict]:
     return [
         {"employee_id": e, "department": d, "role_title": t, "avatar": slug(t), "contract_type": c, "skills": s} for e, d, t, c, s in STAFF
     ]
+
+
+def homestay_staff_rows(property_id: str) -> list[dict]:
+    return [
+        {"employee_id": e, "department": d, "role_title": t, "avatar": slug(t), "contract_type": c, "skills": s, "property_id": property_id}
+        for e, d, t, c, s in HOMESTAY_STAFF
+    ]
+
+
+def ensure_homestay() -> dict:
+    """Idempotent: add the SYNTHETIC homestay property, its 3 staff, 6 rooms and profile to the demo tenant if missing."""
+    prop = next((p for p in tenants.properties(DEMO_ID) if p["name"] == HOMESTAY_NAME), None)
+    if prop is None:
+        prop = tenants.add_property(DEMO_ID, HOMESTAY_NAME, HOMESTAY_REGION, len(HOMESTAY_ROOMS), 2, mode="homestay")
+    tenants.import_staff(DEMO_ID, homestay_staff_rows(prop["id"]))
+    have = {r["number"] for r in rooms.list_rooms(DEMO_ID)}
+    for number, floor in HOMESTAY_ROOMS:
+        if number not in have:
+            r = rooms.add_room(DEMO_ID, number, floor, "standard", prop["id"])
+            if number in ("DN1", "DN2", "DN4", "DN5"):  # 4 of 6 occupied when first created (synthetic)
+                mongo.col("rooms").update_one({"id": r["id"]}, {"$set": {"status": "occupied"}})
+    profiles.seed_demo(DEMO_ID, prop["id"], profiles.HOMESTAY_DEMO_PROFILE)
+    for p in tenants.properties(DEMO_ID):  # demo budgets only where none is set yet
+        mongo.col("properties").update_one(
+            {"tenant_id": DEMO_ID, "id": p["id"], "incentive_monthly_budget_cap": {"$exists": False}},
+            {"$set": {"incentive_monthly_budget_cap": DEMO_INCENTIVE_BUDGET[p["mode"]]}},
+        )
+    return prop
 
 
 def ops_api_url() -> str:
@@ -120,8 +163,9 @@ def ensure_demo() -> None:
         _create_demo()
     inventory.seed_demo(DEMO_ID, rooms=FLOORS * ROOMS_PER_FLOOR)
     profiles.seed_demo(DEMO_ID)  # SYNTHETIC hotel profile for the guest concierge
+    homestay = ensure_homestay()
     if s.demo_login:
-        users.ensure_demo_users(DEMO_ID, s.admin_password)
+        users.ensure_demo_users(DEMO_ID, s.admin_password, {"demo.homestay": homestay["id"]})
 
 
 def main(argv: list[str]) -> int:

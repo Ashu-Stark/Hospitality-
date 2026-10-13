@@ -10,10 +10,9 @@ left, right = st.columns([1, 1.25])
 with right:
     ui.html(
         theme.section(
-            "What the worker sees",
-            "Worker app (manager preview)",
-            "Employees sign in to their own app. Here a manager can act as any on-shift worker to demo the flow; "
-            "every action is recorded in the audit log as 'acting as'.",
+            "What a staff member sees",
+            "Staff app preview",
+            "Act as any on-shift worker to try the flow; every action is logged as acting as.",
         )
     )
     try:

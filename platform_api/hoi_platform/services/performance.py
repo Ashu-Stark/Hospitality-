@@ -33,7 +33,7 @@ from . import dispatch
 
 WEIGHTS = {"on_time": 0.35, "speed": 0.20, "quality": 0.25, "responsiveness": 0.10, "reliability": 0.10}
 MIN_JOBS = 5
-TARGET_MINUTES = {"high": 30, "medium": 60, "low": 120}  # ASSUMED, accept -> done
+TARGET_MINUTES = {"urgent": 15, "high": 30, "medium": 60, "low": 120}  # ASSUMED, accept -> done
 FAST_ACCEPT_S = 10  # ASSUMED: accepting within 10 s earns full responsiveness
 LABELS = {
     "on_time": "On time",

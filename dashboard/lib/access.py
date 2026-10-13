@@ -9,25 +9,70 @@ from __future__ import annotations
 from . import auth, config, tenancy
 
 HOTEL_PAGES = [
-    ("home.py", "Home", ":material/home:"),
-    ("pages/1_Overview.py", "Overview", ":material/dashboard:"),
-    ("pages/2_Risk_List.py", "Risk", ":material/flag:"),
+    ("home.py", "Today", ":material/today:"),
+    ("pages/10_Dispatch.py", "Live jobs", ":material/bolt:"),
+    ("pages/7_Tasks.py", "Tasks", ":material/task_alt:"),
+    ("pages/1_Overview.py", "Week numbers", ":material/dashboard:"),
+    ("pages/8_Voice_Ingest.py", "Voice note", ":material/mic:"),
+    ("pages/19_Staff.py", "Staff on shift", ":material/badge:"),
+    ("pages/5_Roster.py", "Roster", ":material/calendar_month:"),
+    ("pages/18_Recognition.py", "Recognition", ":material/workspace_premium:"),
+    ("pages/20_Extra_Staff.py", "Extra staff", ":material/group_add:"),
+    ("pages/2_Risk_List.py", "Check-ins", ":material/volunteer_activism:"),
     ("pages/3_Employee_Detail.py", "Employee", ":material/person:"),
     ("pages/4_What_If_Simulator.py", "What-if", ":material/tune:"),
-    ("pages/5_Roster.py", "Roster", ":material/calendar_month:"),
-    ("pages/6_Closed_Loop.py", "Closed loop", ":material/sync:"),
-    ("pages/10_Dispatch.py", "Dispatch", ":material/bolt:"),
+    ("pages/6_Closed_Loop.py", "Support plan", ":material/sync:"),
     ("pages/14_Rooms.py", "Rooms", ":material/bed:"),
-    ("pages/17_Guest_Services.py", "Guest services", ":material/room_service:"),
-    ("pages/11_Worker_App.py", "Worker preview", ":material/smartphone:"),
-    ("pages/13_Inventory.py", "Inventory", ":material/inventory_2:"),
-    ("pages/7_Tasks.py", "Tasks", ":material/task_alt:"),
-    ("pages/8_Voice_Ingest.py", "Voice", ":material/mic:"),
+    ("pages/17_Guest_Services.py", "Guest requests", ":material/room_service:"),
     ("pages/16_Hotel_Profile.py", "Hotel profile", ":material/storefront:"),
-    ("pages/12_Setup.py", "Setup", ":material/add_business:"),
-    ("pages/15_Hotel_Setup.py", "Hotel setup (voice)", ":material/record_voice_over:"),
-    ("pages/9_Admin.py", "Admin", ":material/settings:"),
+    ("pages/11_Worker_App.py", "Staff app preview", ":material/smartphone:"),
+    ("pages/13_Inventory.py", "Stock", ":material/inventory_2:"),
+    ("pages/12_Setup.py", "Settings", ":material/settings:"),
+    ("pages/15_Hotel_Setup.py", "Setup by voice", ":material/record_voice_over:"),
+    ("pages/9_Admin.py", "Data & system", ":material/dns:"),
 ]
+# The hotel portal's navigation: at most five sections (top row), each with its pages (second row).
+# Pages in HIDDEN_IN_NAV stay routable (drill-downs) but get no button of their own.
+SECTIONS = [
+    (
+        "Today",
+        ":material/today:",
+        ["home.py", "pages/10_Dispatch.py", "pages/7_Tasks.py", "pages/1_Overview.py", "pages/8_Voice_Ingest.py"],
+    ),
+    (
+        "People",
+        ":material/groups:",
+        [
+            "pages/19_Staff.py",
+            "pages/5_Roster.py",
+            "pages/18_Recognition.py",
+            "pages/20_Extra_Staff.py",
+            "pages/2_Risk_List.py",
+            "pages/3_Employee_Detail.py",
+            "pages/4_What_If_Simulator.py",
+            "pages/6_Closed_Loop.py",
+        ],
+    ),
+    (
+        "Rooms & guests",
+        ":material/bed:",
+        ["pages/14_Rooms.py", "pages/17_Guest_Services.py", "pages/16_Hotel_Profile.py", "pages/11_Worker_App.py"],
+    ),
+    ("Stock", ":material/inventory_2:", ["pages/13_Inventory.py"]),
+    ("Settings", ":material/settings:", ["pages/12_Setup.py", "pages/15_Hotel_Setup.py", "pages/9_Admin.py"]),
+]
+HIDDEN_IN_NAV = {"pages/3_Employee_Detail.py"}
+# Homestay mode (small properties): a minimal app with plain words. Everything else is hidden (not routable).
+HOMESTAY_PAGES = {
+    "home.py",
+    "pages/19_Staff.py",
+    "pages/14_Rooms.py",
+    "pages/17_Guest_Services.py",
+    "pages/16_Hotel_Profile.py",
+    "pages/13_Inventory.py",
+    "pages/12_Setup.py",
+}
+HOMESTAY_LABELS = {"pages/19_Staff.py": "Our team", "pages/13_Inventory.py": "Stock basics"}
 CONSOLE_PAGES = [
     ("console/1_Tenants.py", "Hotels", ":material/apartment:"),
     ("console/3_Insights.py", "Insights", ":material/insights:"),
@@ -45,8 +90,8 @@ LOGIN_PAGE = ("login.py", "Sign in", ":material/login:")
 
 MODULE_PAGES = {
     "retention": {"pages/2_Risk_List.py", "pages/3_Employee_Detail.py", "pages/4_What_If_Simulator.py", "pages/6_Closed_Loop.py"},
-    "roster": {"pages/5_Roster.py"},
-    "dispatch": {"pages/10_Dispatch.py", "pages/11_Worker_App.py", "pages/14_Rooms.py"},
+    "roster": {"pages/5_Roster.py", "pages/20_Extra_Staff.py"},
+    "dispatch": {"pages/10_Dispatch.py", "pages/11_Worker_App.py", "pages/14_Rooms.py", "pages/18_Recognition.py"},
     "inventory": {"pages/13_Inventory.py"},
     "voice": {"pages/8_Voice_Ingest.py"},
 }
@@ -89,4 +134,22 @@ def visible_pages() -> list[tuple[str, str, str]]:
     if auth.needs_hotel():
         return [PICK_PAGE]
     t = tenancy.active()
-    return [p for p in HOTEL_PAGES if auth.can_open(p[0]) and (r == "platform_admin" or page_enabled(p[0], t))]
+    pages = [p for p in HOTEL_PAGES if auth.can_open(p[0]) and (r == "platform_admin" or page_enabled(p[0], t))]
+    if tenancy.mode() == "homestay":
+        pages = [(f, HOMESTAY_LABELS.get(f, label), ic) for f, label, ic in pages if f in HOMESTAY_PAGES]
+    return pages
+
+
+def sections(nav: list[tuple[str, str, str]]) -> list[tuple[str, str, list[tuple[str, str, str]]]]:
+    """Group a visible page list into the (at most five) navigation sections; empty sections are dropped."""
+    by = {f: (f, label, ic) for f, label, ic in nav}
+    out = []
+    for name, ic, files in SECTIONS:
+        pages = [by[f] for f in files if f in by]
+        if pages:
+            out.append((name, ic, pages))
+    return out
+
+
+def section_of(page_file: str) -> str | None:
+    return next((name for name, _, files in SECTIONS if page_file in files), None)

@@ -132,7 +132,7 @@ def test_insights_scoping_and_shape(client, platform, owner):
         "properties",
     ):
         assert k in demo
-    assert demo["rooms"] == 24 and demo["properties"][0]["rooms"] == 24
+    assert demo["rooms"] == 24 + 6 and [p["rooms"] for p in demo["properties"]] == [24, 6]  # hotel + demo homestay
     assert demo["inventory"]["stock_value"] > 0
     assert demo["performance"]["suppressed"] is True and demo["performance"]["average_score"] is None  # < 5 scored workers
 

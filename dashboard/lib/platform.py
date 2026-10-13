@@ -129,8 +129,20 @@ def logout_token(refresh_token: str) -> None:
         pass
 
 
+def _pid() -> str | None:
+    """The property this session looks at (lib.tenancy.current_property); None = the API's default (first property)."""
+    from . import tenancy  # local import: tenancy imports this module
+
+    return tenancy.property_id()
+
+
+def _pid_params() -> dict:
+    pid = _pid()
+    return {"property_id": pid} if pid else {}
+
+
 def rooms() -> dict:
-    return call("GET", "/rooms")
+    return call("GET", "/rooms", params=_pid_params())
 
 
 def room_action(rid: str, action: str, body: dict | None = None) -> dict:
@@ -145,6 +157,7 @@ def publish_roster(week_start: str | None, assignments: list[dict]) -> dict:
     return call("PUT", "/dispatch/roster", json={"week_start": week_start, "assignments": assignments})
 
 
+@st.cache_data(ttl=3600, show_spinner=False)
 @st.cache_data(ttl=3600, show_spinner=False)
 def asset_data_uri(path: str) -> str | None:
     """A small static asset served by the platform API (e.g. a hotel logo at /shared/brand/...) as a data: URI, fetched
@@ -279,9 +292,8 @@ def get_context() -> dict:
 
 
 def create_job(title: str, department: str | None, room: str | None, urgency: str, source: str) -> dict:
-    return call(
-        "POST", "/dispatch/jobs", json={"title": title, "department": department, "room": room, "urgency": urgency, "source": source}
-    )
+    body = {"title": title, "department": department, "room": room, "urgency": urgency, "source": source, **_pid_params()}
+    return call("POST", "/dispatch/jobs", json=body)
 
 
 def jobs(status: str | None = None, worker: str | None = None) -> list[dict]:
@@ -338,11 +350,33 @@ def platform_insights(days: int = 30) -> dict:
 
 
 def hotel_profile() -> dict:
-    return call("GET", "/hotel/profile")
+    return call("GET", "/hotel/profile", params=_pid_params())
 
 
 def save_hotel_profile(profile: dict) -> dict:
-    return call("PUT", "/hotel/profile", json=profile)
+    return call("PUT", "/hotel/profile", json=profile, params=_pid_params())
+
+
+# ------------------------------------------------------------------ property settings, recognition, staffing requests
+def update_property(pid: str, **fields) -> dict:
+    """Owner: mode (hotel|homestay), incentive_monthly_budget_cap, recognition_leaderboard_opt_in, recognition, portal_api_key."""
+    return call("PATCH", f"/workspace/properties/{pid}", json=fields)
+
+
+def recognition_summary(month: str | None = None) -> dict:
+    return call("GET", "/recognition/summary", params={**_pid_params(), **({"month": month} if month else {})})
+
+
+def staffing_requests() -> list[dict]:
+    return call("GET", "/staffing/requests", params=_pid_params())
+
+
+def create_staffing_request(**body) -> dict:
+    return call("POST", "/staffing/requests", json={**_pid_params(), **body})
+
+
+def resend_staffing_request(rid: str) -> dict:
+    return call("POST", f"/staffing/requests/{rid}/send")
 
 
 def guest_summary() -> dict:

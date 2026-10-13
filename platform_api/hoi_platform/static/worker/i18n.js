@@ -13,7 +13,7 @@ window.HOI_I18N = {
     install: "Add to home screen", signout: "Sign out", cancel: "Cancel", take_photo: "Take photo", retake: "Retake", use_photo: "Use photo",
     camera_note: "Live camera only. The time on the photo comes from the server, not your phone.",
     new_request: "New request", accept: "Accept", decline: "Decline", seconds: "s", room: "Room", urgency_high: "Urgent",
-    urgency_medium: "Normal", urgency_low: "When free", before_photo: "Take BEFORE photo to start", after_photo: "Take AFTER photo to finish",
+    urgency_urgent: "URGENT (safety / medical)", urgency_medium: "Normal", urgency_low: "When free", before_photo: "Take BEFORE photo to start", after_photo: "Take AFTER photo to finish",
     accepted: "Accepted", in_progress: "In progress", done: "Done", today_shift: "shift", day_off: "Day off", rest: "No shift today. Rest well.",
     hours: "hours", shifts_week: "shifts this week", weekend_off: "weekend off", no_roster: "Your manager has not published this week's roster yet.",
     sent: "Request sent to the store", job_done: "Job complete. Thank you!", started: "Started. Do the job, then take the after photo.",
@@ -27,7 +27,14 @@ window.HOI_I18N = {
     listening: "Listening… tap again to stop", working: "Understanding…", no_catch: "Didn't catch that — try again or type.",
     mic_denied: "Microphone blocked. Allow it in your browser settings, or type.", no_mic: "Voice isn't supported here. Please type.",
     confirm: "Confirm", not_now: "Not now", cancelled: "Okay, nothing changed.", voice_hint: "Try: “what's next”, “accept”, “room 204 tap leaking”.",
-    voice_chips: ["What's next?", "Accept", "Start", "Done", "My shift", "Help"], voice_done: "Done.", voice_photo: "Opening the camera…"
+    voice_chips: ["What's next?", "Accept", "Start", "Done", "My shift", "Help"], voice_done: "Done.", voice_photo: "Opening the camera…",
+    rec_title: "My recognition", rec_points: "points this month", rec_est: "Estimated reward", rec_est_note: "Your share of this month's thank-you budget. The owner confirms it at month end.",
+    rec_no_budget: "Your owner has not set a thank-you budget yet. Your points still count.", rec_min: "Finish {n} jobs this month to get a reward share. So far: {d}.",
+    rec_how: "How to earn", rec_team: "Your team this month", rec_team_line: "{p} of {m} people earned points · {t} points together",
+    rec_never: "Points only go up. They are never used to punish or cut pay.", rec_capped: "You reached this month's points limit. Take it easy: more work does not add more.",
+    rec_top: "Team board (your owner turned this on)",
+    your_team: "Your team", hs_tasks: "Your tasks", hs_tasks_sub: "Small team: pick up what comes in. No shift roster needed.", hs_none: "Nothing to do right now.",
+    new_task: "New task", take_it: "I'll do it", not_now_task: "Not now"
   },
   hi: {
     offline: "आप ऑफ़लाइन हैं। इंटरनेट आने तक बदलाव सेव नहीं होंगे।",
@@ -42,7 +49,7 @@ window.HOI_I18N = {
     install: "होम स्क्रीन पर जोड़ें", signout: "साइन आउट", cancel: "रद्द करें", take_photo: "फ़ोटो लें", retake: "फिर से लें", use_photo: "यही फ़ोटो",
     camera_note: "सिर्फ़ लाइव कैमरा। फ़ोटो पर समय सर्वर से आता है, फ़ोन से नहीं।",
     new_request: "नया काम", accept: "स्वीकार", decline: "मना करें", seconds: "से", room: "कमरा", urgency_high: "ज़रूरी",
-    urgency_medium: "सामान्य", urgency_low: "फ़ुर्सत में", before_photo: "शुरू करने के लिए पहले की फ़ोटो लें", after_photo: "ख़त्म करने के लिए बाद की फ़ोटो लें",
+    urgency_urgent: "बहुत ज़रूरी (सुरक्षा / मेडिकल)", urgency_medium: "सामान्य", urgency_low: "फ़ुर्सत में", before_photo: "शुरू करने के लिए पहले की फ़ोटो लें", after_photo: "ख़त्म करने के लिए बाद की फ़ोटो लें",
     accepted: "स्वीकार किया", in_progress: "चल रहा है", done: "पूरा", today_shift: "शिफ़्ट", day_off: "छुट्टी", rest: "आज शिफ़्ट नहीं है। आराम करें।",
     hours: "घंटे", shifts_week: "शिफ़्ट इस हफ़्ते", weekend_off: "वीकेंड छुट्टी", no_roster: "मैनेजर ने इस हफ़्ते का रोस्टर अभी नहीं डाला है।",
     sent: "माँग स्टोर को भेज दी गई", job_done: "काम पूरा। धन्यवाद!", started: "शुरू हो गया। काम करें, फिर बाद की फ़ोटो लें।",
@@ -56,6 +63,13 @@ window.HOI_I18N = {
     listening: "सुन रहा हूँ… रोकने के लिए फिर दबाएँ", working: "समझ रहा हूँ…", no_catch: "समझ नहीं आया — फिर बोलें या लिखें।",
     mic_denied: "माइक बंद है। ब्राउज़र सेटिंग में अनुमति दें, या लिखें।", no_mic: "यहाँ आवाज़ नहीं चलती। कृपया लिखें।",
     confirm: "पक्का करें", not_now: "अभी नहीं", cancelled: "ठीक है, कुछ नहीं बदला।", voice_hint: "बोलकर देखें: “अगला काम”, “स्वीकार”, “कमरा 204 नल लीक”।",
-    voice_chips: ["अगला काम?", "स्वीकार", "शुरू", "हो गया", "मेरी शिफ़्ट", "मदद"], voice_done: "हो गया।", voice_photo: "कैमरा खुल रहा है…"
+    voice_chips: ["अगला काम?", "स्वीकार", "शुरू", "हो गया", "मेरी शिफ़्ट", "मदद"], voice_done: "हो गया।", voice_photo: "कैमरा खुल रहा है…",
+    rec_title: "मेरी शाबाशी", rec_points: "पॉइंट इस महीने", rec_est: "अनुमानित इनाम", rec_est_note: "इस महीने के धन्यवाद बजट में आपका हिस्सा। महीने के अंत में मालिक पक्का करेंगे।",
+    rec_no_budget: "मालिक ने अभी धन्यवाद बजट तय नहीं किया है। आपके पॉइंट फिर भी गिने जा रहे हैं।", rec_min: "इनाम के लिए इस महीने {n} काम पूरे करें। अभी तक: {d}।",
+    rec_how: "पॉइंट कैसे मिलते हैं", rec_team: "इस महीने आपकी टीम", rec_team_line: "{m} में से {p} लोगों को पॉइंट मिले · कुल {t} पॉइंट",
+    rec_never: "पॉइंट सिर्फ़ बढ़ते हैं। इनसे कभी सज़ा या वेतन कटौती नहीं होती।", rec_capped: "इस महीने की पॉइंट सीमा पूरी हो गई। आराम से काम करें: ज़्यादा काम से ज़्यादा पॉइंट नहीं मिलते।",
+    rec_top: "टीम बोर्ड (मालिक ने चालू किया है)",
+    your_team: "आपकी टीम", hs_tasks: "आपके काम", hs_tasks_sub: "छोटी टीम: जो काम आए, उठा लें। शिफ़्ट रोस्टर की ज़रूरत नहीं।", hs_none: "अभी कोई काम नहीं।",
+    new_task: "नया काम", take_it: "मैं कर दूँगा/दूँगी", not_now_task: "अभी नहीं"
   }
 };

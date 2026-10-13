@@ -5,15 +5,7 @@ from lib import access, platform, portal, tenancy, theme, ui
 from lib.config import DEFAULT_API
 
 ui.setup("console/1_Tenants.py", "Hotels")
-ui.html(
-    theme.hero(
-        "Hotel groups on HOI",
-        "Onboard a hotel group, set its plan and modules, hand the owner a one-time invite, and "
-        "suspend or reactivate access. Every action here is audited.",
-        eyebrow="Platform console",
-        variant="dark",
-    )
-)
+ui.page_head("Hotels", "Onboard, configure and pause hotel groups.")
 
 ts = ui.safe(platform.tenants, what="load hotel groups") or []
 ui.html(

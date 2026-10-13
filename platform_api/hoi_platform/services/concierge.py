@@ -22,7 +22,7 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
 from .. import config
-from . import ai, guest, profiles, rooms
+from . import ai, guest, issues, profiles, rooms
 from .errors import DomainError
 
 log = logging.getLogger("hoi.platform.concierge")
@@ -232,7 +232,15 @@ def proposal(action: str, params: dict, ctx: dict) -> dict:
             raise Proposal(f"request type {typ!r} is not in the menu")
         note = guest.scrub(params.get("note") or "", 140)
         m = rooms.GUEST_MENU[typ]
-        return {"action": "request", "params": {"type": typ, "note": note}, "label": m["label"], "label_hi": m["label_hi"]}
+        out = {"action": "request", "params": {"type": typ, "note": note}, "label": m["label"], "label_hi": m["label_hi"]}
+        if m["urgency"] == "urgent":  # safety / medical: one big button, emergency numbers shown as tappable links
+            out.update(
+                urgent=True,
+                label="Alert front desk now",
+                label_hi="फ़्रंट डेस्क को अभी अलर्ट करें",
+                emergency=issues.emergency_numbers(typ),
+            )
+        return out
     if action == "checkout":
         time = guest.parse_hhmm(str(params.get("time") or ""))
         lug = bool(params.get("luggage_help"))
@@ -538,6 +546,15 @@ STOP = {
     "open",
     "this",
     "that",
+    "room",
+    "rooms",
+    "kamra",
+    "kamre",
+    "कमरा",
+    "कमरे",
+    "pls",
+    "plz",
+    "kindly",
 }
 
 
@@ -605,6 +622,44 @@ def _front_ext(prof: dict) -> str:
     return f" (ext. {c['extension']})" if c else ""
 
 
+def _room_change_ok(prof: dict) -> bool:
+    """Offer a room change only when the hotel's own profile says rooms can be changed (FAQ or policy)."""
+    text = " ".join(f"{x.get('q', '')} {x.get('a', '')}" for x in prof.get("faq") or []) + " ".join(
+        f"{x.get('title', '')} {x.get('text', '')}" for x in prof.get("policies") or []
+    )
+    t = norm(text)
+    return ("change" in t and "room" in t) or "another room" in t
+
+
+def _hi_oblique(word: str) -> str:
+    """चूहा -> चूहे ("चूहे के लिए"); other words unchanged."""
+    return word[:-1] + "े" if word.endswith("ा") and re.search("[ऀ-ॿ]", word) else word
+
+
+def problem_reply(message: str, lang: str, ctx: dict) -> dict | None:
+    """A reported problem -> an empathetic template reply (who is coming, roughly when) + the matching request action."""
+    hits = issues.classify(message)
+    if not hits:
+        return None
+    h = hits[0]
+    word = _hi_oblique(h["word"]) if lang == "hi" else h["word"]
+    reply = issues.reply(
+        h["type"],
+        lang,
+        room=ctx["room"],
+        word=word,
+        room_change=_room_change_ok(ctx["profile"]),
+        also=[x["type"] for x in hits[1:2]],
+    )
+    if not h["urgent"]:  # urgent alerts already say "tap the button"
+        reply += _t(lang, " Tap Confirm to send.", " भेजने के लिए Confirm दबाइए।", " Confirm dabaiye.")
+    try:
+        prop = proposal("request", {"type": h["type"], "note": message}, ctx)
+    except (Proposal, DomainError):
+        prop = None
+    return {"reply": reply, "proposed_action": prop}
+
+
 def rules(message: str, lang: str, ctx: dict) -> dict:
     """Deterministic concierge: always answers, never invents (every fact comes from the profile)."""
     t = " " + norm(message) + " "
@@ -631,7 +686,20 @@ def rules(message: str, lang: str, ctx: dict) -> dict:
                 f"Main sirf aapke room {room} aur hotel ki general jaankari mein madad kar sakta hoon. Bataiye, kya karun?",
             )
         )
-    # 2. feedback
+    # 2. problems (safety > medical > pest > leak > lock > ...): rule-based understanding v2, before anything else
+    prob = problem_reply(message, lang, ctx)
+    if prob is not None:
+        return prob
+    if issues.only_stopwords(message):  # "room", "kamra", "hotel please": never an intent on their own
+        return out(
+            _t(
+                lang,
+                "How can I help with your room? Tell me what you need or what is wrong.",
+                "कमरे के लिए क्या मदद करूँ? बताइए क्या चाहिए या क्या परेशानी है।",
+                "Room ke liye kya madad karun? Bataiye kya chahiye ya kya problem hai.",
+            )
+        )
+    # 3. feedback
     rating = parse_rating(message)
     if rating or has(t, ("feedback", "review", "rating", "फीडबैक", "फ़ीडबैक", "रेटिंग")):
         if ctx["stay"].get("feedback_given"):
@@ -964,6 +1032,12 @@ ACTIONS
 - feedback: only when the guest gives a star rating; rating integer 1-5; comment = their words.
 - For questions that need no action, "action" is null.
 - Name the right team from the menu list (e.g. AC and hot water go to maintenance, towels to housekeeping, tea and food to room service).
+- PROBLEMS: use the specific id, never "other", when one fits: pest_control (rats, cockroaches, bedbugs, lizards, ants, mosquitoes),
+  water_leak, lock_or_door, cleanliness (dirty linen, bad smell, dirty bathroom), noise_complaint, lost_item, wifi_problem,
+  safety_alert (smoke, burning or gas smell, fire, sparks) and medical_help (unwell, doctor, injury, chest pain).
+- For safety_alert and medical_help: reply immediately and calmly, say the front desk is being alerted, mention 112 (and 108 for an
+  ambulance), and never give medical advice.
+- Start with a short apology for any problem and say which team will come.
 
 EXAMPLES (room {room})
 Guest: towels please -> {{"reply": "Of course. Shall I ask housekeeping to bring fresh towels to room {room}? Tap Confirm to send.", "lang": "en", "action": {{"type": "request", "request_type": "towels", "note": "towels please"}}}}
@@ -984,13 +1058,65 @@ def _compact(v):  # noqa: ANN001, ANN202 - drop empty values: a smaller prompt f
     return v
 
 
-TEAM = {"housekeeping": "housekeeping", "maintenance": "maintenance", "fnb_service": "room service", "front_office": "front desk"}
+TEAM = {
+    "housekeeping": "housekeeping",
+    "maintenance": "maintenance",
+    "fnb_service": "room service",
+    "front_office": "front desk",
+    "security": "security",
+}
+# words a reply uses to name a team (English, Hindi, Hinglish): used to catch "maintenance will come" + action "other"
+TEAM_WORDS = {
+    "housekeeping": ("housekeeping", "हाउसकीपिंग"),
+    "maintenance": ("maintenance", "मेंटेनेंस", "मेंटेनेन्स", "technician", "electrician", "plumber"),
+    "fnb_service": ("room service", "रूम सर्विस", "kitchen", "किचन"),
+    "front_office": ("front desk", "reception", "फ़्रंट डेस्क", "फ्रंट डेस्क", "रिसेप्शन"),
+    "security": ("security", "सिक्योरिटी", "guard", "गार्ड"),
+}
+
+
+def _named_teams(reply: str) -> set[str]:
+    t = norm(reply)
+    return {d for d, ws in TEAM_WORDS.items() if any(norm(w) in t for w in ws)}
+
+
+def consistent(message: str, lang: str, ctx: dict, reply: str, prop: dict | None) -> tuple[str, dict | None, str]:
+    """Server-side checks on an LLM answer against the v2 rules: (reply, action, note).
+    - a specific problem found by the rules beats "other", no action, or a different type when the problem is urgent;
+    - the team named in the reply must match the action's departments, else the reply comes from the type's template."""
+    hit = issues.top(message)
+    typ = (prop or {}).get("params", {}).get("type") if (prop or {}).get("action") == "request" else None
+    if hit and (typ in (None, "other") and (prop is None or prop.get("action") == "request") or (hit["urgent"] and typ != hit["type"])):
+        fixed = problem_reply(message, lang, ctx)
+        return fixed["reply"], fixed["proposed_action"], f"reclassified {typ or 'none'} -> {hit['type']}"
+    if typ and typ in rooms.GUEST_MENU:
+        named = _named_teams(reply)
+        want = set(rooms.GUEST_MENU[typ]["departments"])
+        if named and not named & want:
+            if typ in issues.taxonomy()["types"]:
+                return issues.reply(typ, lang, room=ctx["room"]), prop, "team mismatch: template reply"
+            m = rooms.GUEST_MENU[typ]
+            team_name = issues.team(m["dept"], lang)
+            return (
+                _t(
+                    lang,
+                    f"Sorry about that. I'll ask {team_name} to help in room {ctx['room']}. Tap Confirm to send.",
+                    f"माफ़ कीजिए। मैं {team_name} से कमरे {ctx['room']} में मदद करवाता हूँ। Confirm दबाइए।",
+                    f"Sorry. Main {team_name} se room {ctx['room']} mein madad karwata hoon. Confirm dabaiye.",
+                ),
+                prop,
+                "team mismatch: generic reply",
+            )
+    return reply, prop, ""
 
 
 def build_prompt(ctx: dict, message: str, history: list[dict]) -> tuple[str, list[dict]]:
     prof = ctx["profile"]
     lc = prof.get("late_checkout") or {}
-    menu = ", ".join(f"{k} ({v['label']} -> {TEAM.get(rooms.GUEST_MENU[k]['dept'], 'front desk')})" for k, v in ctx["menu"].items())
+    menu = ", ".join(
+        f"{k} ({v['label']} -> {' + '.join(TEAM.get(d, d.replace('_', ' ')) for d in rooms.GUEST_MENU[k]['departments'])})"
+        for k, v in ctx["menu"].items()
+    )
     system = SYSTEM.format(
         room=ctx["room"],
         menu=menu,
@@ -1085,7 +1211,8 @@ def grounded(reply: str, ctx: dict, message: str, history: list[dict]) -> bool:
     src = json.dumps(ctx, ensure_ascii=False) + " " + message + " " + " ".join(h["text"] for h in history if h["role"] != "assistant")
     allowed = _ints(src)
     allowed |= {h % 12 for h in allowed if 13 <= h <= 23} | {h + 12 for h in allowed if 1 <= h <= 11}
-    allowed |= {0, 1, 2, 3, 4, 5, 12, 24}
+    allowed |= {0, 1, 2, 3, 4, 5, 12, 24, 108, 112}  # 108 ambulance, 112 emergency (India)
+    allowed |= {int(m["target_minutes"]) for m in rooms.GUEST_MENU.values() if m.get("target_minutes")}
     return _ints(reply) <= allowed
 
 
@@ -1133,6 +1260,9 @@ def llm(ctx: dict, message: str, history: list[dict]) -> tuple[dict | None, str]
         return None, f"llm reply rejected: not in the guest's language ({want})"
     if _claims(reply):
         return None, "llm reply rejected: claims an action already happened"
+    reply, prop, fix = consistent(message, want, ctx, reply, prop)
+    if fix:
+        log.info("concierge llm answer corrected: %s", fix)
     return {"reply": reply, "lang": want, "proposed_action": prop}, "ok"
 
 

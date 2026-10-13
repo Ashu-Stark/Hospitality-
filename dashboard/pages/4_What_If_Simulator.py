@@ -6,15 +6,7 @@ from lib import data, models, theme, ui
 from lib.config import current_settings
 
 ui.setup("pages/4_What_If_Simulator.py", "What-if")
-ui.html(
-    theme.hero(
-        "What if we changed the roster?",
-        "Re-score one person with different working conditions. This is a simulation on the model's learned relationships, "
-        "not a causal guarantee.",
-        eyebrow="What-if simulator",
-        variant="dark",
-    )
-)
+ui.page_head("What-if", "Try different working conditions for one person and see how their score moves. A simulation, not a promise.")
 
 scores = ui.safe(data.scores, ui.week(), what="load risk scores")
 if not scores:

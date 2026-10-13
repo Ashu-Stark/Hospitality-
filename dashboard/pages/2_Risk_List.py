@@ -4,12 +4,9 @@ import streamlit as st
 from lib import charts, data, theme, ui
 
 ui.setup("pages/2_Risk_List.py", "Risk list")
-ui.html(
-    theme.section(
-        "Attrition risk overview",
-        "Retention",
-        "Bands rank people within this week's scores. They flag who to check in with; they do not predict who will resign.",
-    )
+ui.page_head(
+    "People to check in with",
+    "A ranking for supportive conversations this week. It is not a prediction that anyone will leave, and never grounds for action against them.",
 )
 
 scores = ui.safe(data.scores, ui.week(), what="score employees")
@@ -24,44 +21,27 @@ if not scores:
 depts = data.dept_map()
 
 
-# ------------------------------------------------------------------ summary strip (outline status cards)
-def strip(group: list, label: str) -> str:
-    n = len(group) or 1
-    cards = [
-        theme.status_card(
-            label, f"{sum(1 for s in group if s.band == b) / n:.0%}", f"{sum(1 for s in group if s.band == b)}", theme.BAND[b]["label"], b
-        )
-        for b in theme.BAND_ORDER
+# ------------------------------------------------------------------ summary first
+n_by = {b: sum(1 for x in scores if x.band == b) for b in ("high", "watch", "low")}
+ui.big_numbers(
+    [
+        ("Check in this week", n_by["high"], "Highest band: a friendly conversation first", "warn" if n_by["high"] else "ok"),
+        ("Keep an eye on", n_by["watch"], "Middle band", "info"),
+        ("Doing fine", n_by["low"], "Lowest band", "ok"),
     ]
-    return "".join(cards)
-
-
-perm = [s for s in scores if s.contract_type == "permanent"]
-seas = [s for s in scores if s.contract_type == "seasonal"]
-c1, c2 = st.columns([3, 2])
-with c1:
-    ui.html(
-        f'<div class="ss-card"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">'
-        f'<b>Permanent · {len(perm)} staff</b>{theme.basis_tag("model_rank")}</div><div class="ss-statusrow">{strip(perm, "Permanent")}</div></div>'
-    )
-with c2:
-    ui.html(
-        f'<div class="ss-card"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">'
-        f'<b>Seasonal · {len(seas)} staff</b>{theme.basis_tag("contract_date")}</div><div class="ss-statusrow">{strip(seas, "Seasonal")}</div></div>'
-    )
+)
 
 # ------------------------------------------------------------------ filters
-ui.html('<div style="height:14px"></div>')
-f1, f2, f3, f4 = st.columns([2, 2, 2, 1.2])
+f1, f4 = st.columns([2, 2])
 dept_opts = sorted({depts.get(s.employee_id, "unknown") for s in scores})
 with f1:
     sel_depts = st.multiselect("Department", dept_opts, default=[], format_func=theme.dept_label, placeholder="All departments")
-with f2:
-    sel_bands = st.multiselect("Band", theme.BAND_ORDER, default=[], format_func=lambda b: theme.BAND[b]["label"], placeholder="All bands")
-with f3:
-    ctype = st.segmented_control("Contract", ["All", "Permanent", "Seasonal"], default="All")
 with f4:
-    q = st.text_input("Search ID / hero", placeholder="E134, Sunita")
+    q = st.text_input("Search ID / name", placeholder="E134, Sunita")
+with st.expander("More filters"):
+    g1, g2 = st.columns(2)
+    sel_bands = g1.multiselect("Band", theme.BAND_ORDER, default=[], format_func=lambda b: theme.BAND[b]["label"], placeholder="All bands")
+    ctype = g2.segmented_control("Contract", ["All", "Permanent", "Seasonal"], default="All")
 
 names = data.hero_names()
 rows = []
@@ -98,7 +78,7 @@ order = {"High": 0, "Watch": 1, "Low": 2, "n/a": 3}
 if not df.empty:
     df = df.sort_values(["Contract", "Band", "Rank"], key=lambda c: c.map(order) if c.name == "Band" else c).reset_index(drop=True)
 
-ui.html(theme.section(f"{len(df)} employees", "Results", "Click a row to see the driver breakdown."))
+ui.takeaway(f"{len(df)} people. Tap a row to see why, and what support may help.")
 if df.empty:
     ui.empty("No employees match these filters.")
 else:
@@ -108,9 +88,13 @@ else:
         b = theme.BAND[key]
         return f"background-color:{b['bg']};color:{b['fg']};font-weight:600"
 
+    details = st.toggle("Details", key="risk_details", help="Show rank, ties, basis, contract and the raw score")
+    main = ["Role", "Employee", "Department", "Band", "Top driver"]
     show = df.drop(columns=["employee_id", "_band"])
+    if not details:
+        show = show[main]
     ev = st.dataframe(
-        show.style.map(band_style, subset=["Band"]).format({"Risk (90d)": "{:.3f}"}),
+        show.style.map(band_style, subset=["Band"]).format({"Risk (90d)": "{:.3f}"} if details else {}),
         hide_index=True,
         width="stretch",
         on_select="rerun",

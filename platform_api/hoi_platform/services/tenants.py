@@ -36,7 +36,7 @@ SENSITIVE_COLUMNS = [
     "pan",
 ]
 DEPARTMENTS = ["housekeeping", "maintenance", "fnb_service", "front_office", "security", "kitchen"]
-OPTIONAL_STAFF_FIELDS = ("role_title", "avatar")
+OPTIONAL_STAFF_FIELDS = ("role_title", "avatar", "property_id")
 INVITE_ROLES = {"owner", "hr", "dept_head", "storekeeper", "worker"}
 
 
@@ -163,6 +163,7 @@ TENANT_COLLECTIONS = (
     "guest_checkouts",
     "late_checkouts",
     "guest_feedback",
+    "staffing_requests",
 )
 
 
@@ -182,11 +183,107 @@ def delete_tenant(tid: str) -> None:
 
 
 # ------------------------------------------------------------------ properties / staff
+# Property mode: "homestay" shows a small, plain-language app (few rooms, a host family team, no dispatch details);
+# "hotel" shows everything. ASSUMED: properties with up to HOMESTAY_MAX_ROOMS rooms start as homestays (owner can switch).
+MODES = ("hotel", "homestay")
+HOMESTAY_MAX_ROOMS = 10
+PROPERTY_SETTINGS = ("mode", "incentive_monthly_budget_cap", "recognition_leaderboard_opt_in")
+
+
+def default_mode(rooms: int) -> str:
+    return "homestay" if int(rooms or 0) <= HOMESTAY_MAX_ROOMS else "hotel"
+
+
+def _prop_out(p: dict) -> dict:
+    """API copy of a property. The portal API key is stored as `_portal_key` (never returned; mongo.clean drops `_` fields)."""
+    p = dict(p)
+    p["mode"] = p.get("mode") if p.get("mode") in MODES else default_mode(p.get("rooms") or 0)
+    p["incentive_monthly_budget_cap"] = int(p.get("incentive_monthly_budget_cap") or 0)
+    p["recognition_leaderboard_opt_in"] = bool(p.get("recognition_leaderboard_opt_in"))
+    p["recognition"] = p.get("recognition") or {}
+    return p
+
+
+def _key_set(tid: str) -> set[str]:
+    return {r["id"] for r in mongo.col("properties").find({"tenant_id": tid, "_portal_key": {"$nin": [None, ""]}}, {"id": 1})}
+
+
 def properties(tid: str) -> list[dict]:
-    return mongo.find("properties", {"tenant_id": tid}, [("created_at", 1), ("_id", 1)])
+    keyed = _key_set(tid)
+    return [
+        {**_prop_out(p), "portal_key_set": p["id"] in keyed}
+        for p in mongo.find("properties", {"tenant_id": tid}, [("created_at", 1), ("_id", 1)])
+    ]
 
 
-def add_property(tid: str, name: str, region: str, rooms: int, floors: int = 3) -> dict:
+def get_property(tid: str, property_id: str | None = None) -> dict:
+    """One property of the tenant; without an id (or an unknown one) the first property. NotFound when there is none."""
+    props = properties(tid)
+    if not props:
+        raise NotFound("This hotel group has no property yet.")
+    if property_id:
+        hit = next((p for p in props if p["id"] == property_id), None)
+        if hit is None:
+            raise NotFound("Property not found.")
+        return hit
+    return props[0]
+
+
+def update_property(tid: str, property_id: str, **fields) -> dict:
+    """Owner settings per property: mode, incentive budget cap, leaderboard opt-in, and the tourism-portal API key
+    (write-only: stored as `_portal_key`, never returned or logged; an empty string removes it)."""
+    get_property(tid, property_id)
+    sets: dict = {}
+    if fields.get("mode") is not None:
+        if fields["mode"] not in MODES:
+            raise Invalid(f"Mode must be one of {MODES}")
+        sets["mode"] = fields["mode"]
+    if fields.get("incentive_monthly_budget_cap") is not None:
+        cap = int(fields["incentive_monthly_budget_cap"])
+        if not 0 <= cap <= 10_000_000:
+            raise Invalid("The monthly incentive budget must be between 0 and 1,00,00,000.")
+        sets["incentive_monthly_budget_cap"] = cap
+    if fields.get("recognition_leaderboard_opt_in") is not None:
+        sets["recognition_leaderboard_opt_in"] = bool(fields["recognition_leaderboard_opt_in"])
+    if fields.get("recognition") is not None:  # validated by services.recognition.validate_config in the router
+        sets["recognition"] = fields["recognition"]
+    if fields.get("portal_api_key") is not None:
+        key = str(fields["portal_api_key"]).strip()
+        if key and (len(key) > 200 or not all(c.isalnum() or c in "-_." for c in key)):
+            raise Invalid("That does not look like a portal API key (letters, digits, - _ . only).")
+        sets["_portal_key"] = key or None
+    if sets:
+        mongo.col("properties").update_one({"tenant_id": tid, "id": property_id}, {"$set": sets})
+    return get_property(tid, property_id)
+
+
+def portal_key(tid: str, property_id: str) -> str | None:
+    """The property's tourism-portal business API key (secret: callers must never log or return it)."""
+    r = mongo.col("properties").find_one({"tenant_id": tid, "id": property_id}, {"_portal_key": 1})
+    return (r or {}).get("_portal_key") or None
+
+
+def property_of_staff(tid: str, employee_id: str | None) -> dict | None:
+    """The property an employee works at: the staff record's property_id, else the tenant's first property."""
+    props = properties(tid)
+    if not props:
+        return None
+    s = mongo.col("staff").find_one({"tenant_id": tid, "employee_id": employee_id}, {"property_id": 1}) if employee_id else None
+    pid = (s or {}).get("property_id")
+    return next((p for p in props if p["id"] == pid), props[0])
+
+
+def staff_property_map(tid: str) -> dict[str, str | None]:
+    """employee_id -> property id (first property when the staff record has none)."""
+    props = mongo.find("properties", {"tenant_id": tid}, [("created_at", 1), ("_id", 1)])
+    first = props[0]["id"] if props else None
+    return {
+        s["employee_id"]: s.get("property_id") or first
+        for s in mongo.col("staff").find({"tenant_id": tid}, {"employee_id": 1, "property_id": 1})
+    }
+
+
+def add_property(tid: str, name: str, region: str, rooms: int, floors: int = 3, mode: str | None = None) -> dict:
     t = get_tenant(tid)
     limit = PLANS[t["plan"]]["properties"]
     if limit and mongo.col("properties").count_documents({"tenant_id": tid}) >= limit:
@@ -200,10 +297,11 @@ def add_property(tid: str, name: str, region: str, rooms: int, floors: int = 3) 
         "region": region,
         "rooms": int(rooms),
         "floors": int(floors),
+        "mode": mode if mode in MODES else default_mode(rooms),
         "created_at": mongo.now(),
     }
     mongo.col("properties").insert_one(doc)
-    return mongo.clean(doc)
+    return _prop_out(mongo.clean(doc))
 
 
 def staff(tid: str) -> list[dict]:
@@ -220,6 +318,10 @@ def import_staff(tid: str, rows: list[dict]) -> int:
         if not str(r.get("employee_id", "")).strip() or not str(r.get("department", "")).strip():
             raise Invalid("Every row needs employee_id and department.")
     t = get_tenant(tid)
+    pids = {p["id"] for p in mongo.col("properties").find({"tenant_id": tid}, {"id": 1})}
+    bad_props = sorted({str(r["property_id"]) for r in rows if str(r.get("property_id") or "").strip() and r["property_id"] not in pids})
+    if bad_props:
+        raise Invalid(f"Unknown property {bad_props[0]} for this hotel group.")
     limit = PLANS[t["plan"]]["staff"]
     after = {s["employee_id"] for s in staff(tid)} | {str(r["employee_id"]).strip().upper() for r in rows}
     if limit and len(after) > limit:

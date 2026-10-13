@@ -1,0 +1,191 @@
+# Guest issue taxonomy: what a guest can report, who gets it, how fast, and what the concierge says.
+# Every value here is ASSUMED (target minutes, urgencies, wording) and needs review by the hospitality-management student
+# before a real pilot. Used by services/issues.py (rule-based understanding v2), services/concierge.py (rules + LLM checks),
+# services/rooms.py (jobs: one per department, urgency, target time) and services/voice.py (worker "report issue").
+#
+# Matching: whole words only (Latin and Devanagari-safe boundaries), after removing STOPWORDS-only messages.
+# Order of `types` = priority: when one message mentions several problems, the first type found here wins and the
+# reply mentions the next one. `negatable: true` = "no rat now" / "chuha nahi hai" does NOT trigger the type.
+
+teams:  # how the reply names each department
+  front_office: {en: "the front desk", hi: "फ़्रंट डेस्क", hinglish: "front desk"}
+  security: {en: "security", hi: "सिक्योरिटी", hinglish: "security"}
+  housekeeping: {en: "housekeeping", hi: "हाउसकीपिंग", hinglish: "housekeeping"}
+  maintenance: {en: "the maintenance team", hi: "मेंटेनेंस टीम", hinglish: "maintenance team"}
+  fnb_service: {en: "room service", hi: "रूम सर्विस", hinglish: "room service"}
+  kitchen: {en: "the kitchen", hi: "किचन", hinglish: "kitchen"}
+
+# Words that never trigger anything on their own ("there is a rat in the room" must not answer about room service).
+stopwords: [room, rooms, my room, the room, hotel, please, pls, plz, kindly, sir, madam, hi, hello, kamra, kamre, kamare, kamrey,
+  कमरा, कमरे, कमरें, होटल, प्लीज़, कृपया, bhai, bhaiya, ji, जी, hai, है, mein, में, there, is, a, the, in, of, and]
+
+# "wifi" alone is a question (password); only with one of these is it a problem report
+problem_words: ["not working", "isn't working", "doesn't work", "does not work", "not connecting", "can't connect", "cannot connect",
+  "no signal", slow, down, broken, "kharab", "kharaab", "nahi chal", "nahin chal", "nahi chal raha", "nahi aa raha", "kaam nahi",
+  "chal nahi", "connect nahi", "नहीं चल", "काम नहीं", "ख़राब", "खराब", "कनेक्ट नहीं", "बंद है", "band hai"]
+
+negations: ["no", "not", never, "no more", "not anymore", "isn't", "aren't", "wasn't", nahi, nahin, nai, "nahi hai", na, नहीं, न, नही, "अब नहीं"]
+
+emergency_numbers:
+  safety_alert: [{label: "112 Emergency", tel: "112"}]
+  medical_help: [{label: "108 Ambulance", tel: "108"}, {label: "112 Emergency", tel: "112"}]
+
+types:
+  safety_alert:
+    departments: [front_office, security]
+    urgency: urgent
+    target_minutes: 5
+    offer_seconds: 15
+    menu: problem
+    label: {en: "Safety concern (smoke, fire, gas)", hi: "सुरक्षा ख़तरा (धुआँ, आग, गैस)"}
+    negatable: true
+    exclude: ["fire place", fireplace, "fire pit", firepit, bonfire, campfire, "fire extinguisher", "fire exit", "smoking area",
+      "smoking room", "smoke free", "no smoking"]
+    keywords:
+      en: [smoke, smoky, "smoke smell", "smell of smoke", "smoky smell", "burning smell", "smell of burning", "something burning", fire, flames, "gas smell", "smell of gas", "gas leak",
+        "leaking gas", sparks, spark, sparking, "short circuit", electrocuted, "electric shock", explosion]
+      hi: [आग, धुआँ, धुआं, धुंआ, "जलने की बदबू", "जलने की गंध", "गैस की बदबू", "गैस लीक", चिंगारी, "शॉर्ट सर्किट", "करंट लगा"]
+      hinglish: [aag, "dhuan ki smell", "dhuen ki smell", "smoke ki smell", dhuan, dhuaan, dhua, dhuva, "jalne ki smell", "jalne ki badbu", "gas ki smell", "gas ki badbu", "gas leak",
+        chingari, "short circuit", "current laga", "current lag"]
+    reply:
+      en: "I'm alerting {team} right now. If there is fire or smoke near you, leave the room calmly and call 112. Tap the button to alert them."
+      hi: "मैं अभी {team} को अलर्ट कर रहा हूँ। अगर पास में आग या धुआँ है, तो शांति से कमरे से बाहर निकलें और 112 पर कॉल करें। अलर्ट भेजने के लिए बटन दबाइए।"
+      hinglish: "Main abhi {team} ko alert kar raha hoon. Agar paas mein aag ya dhuan hai, toh shanti se room se bahar niklein aur 112 call karein. Alert ke liye button dabaiye."
+  medical_help:
+    departments: [front_office]
+    notify_manager: true
+    urgency: urgent
+    target_minutes: 5
+    offer_seconds: 15
+    menu: problem
+    label: {en: "Medical help", hi: "डॉक्टर / मेडिकल मदद"}
+    negatable: true
+    keywords:
+      en: [unwell, "not well", "feel sick", "feeling sick", sick, doctor, "need a doctor", ambulance, "chest pain", "can't breathe",
+        "cannot breathe", "breathing problem", fainted, fainting, unconscious, injury, injured, bleeding, "fell down", fever, vomiting,
+        "heart attack", "allergic reaction", emergency, "medical help", "not feeling well", "feeling unwell", "feeling dizzy", dizzy]
+      hi: [डॉक्टर, डाक्टर, "तबीयत ख़राब", "तबीयत खराब", "तबियत खराब", बीमार, "सीने में दर्द", बेहोश, चोट, "खून बह", बुखार, उल्टी,
+        एम्बुलेंस, एंबुलेंस, "दवा चाहिए", "साँस नहीं", "सांस नहीं"]
+      hinglish: [doctor, "doctor chahiye", daktar, "tabiyat kharab", "tabiyat theek nahi", "tabiyat thik nahi", "tabeeyat kharab", bimar,
+        beemar, "seene mein dard", behosh, chot, "khoon beh", bukhar, ulti, ambulance, "dawai chahiye", "saans nahi"]
+    reply:
+      en: "I'm alerting {team} right now, and the duty manager will come to room {room}. If it is serious, call 108 for an ambulance or 112. Tap the button to alert them."
+      hi: "मैं अभी {team} को अलर्ट कर रहा हूँ, और ड्यूटी मैनेजर कमरे {room} में आएँगे। अगर हालत गंभीर है तो एम्बुलेंस के लिए 108 या 112 पर कॉल करें। अलर्ट के लिए बटन दबाइए।"
+      hinglish: "Main abhi {team} ko alert kar raha hoon, aur duty manager room {room} mein aayenge. Agar serious hai toh ambulance ke liye 108 ya 112 call karein. Alert ke liye button dabaiye."
+  pest_control:
+    departments: [housekeeping, maintenance]
+    urgency: high
+    target_minutes: 20
+    room_change: true
+    menu: problem
+    label: {en: "Pest problem (rat, cockroach, bedbugs)", hi: "कीड़े / चूहे की समस्या"}
+    negatable: true
+    keywords:
+      en: [rat, rats, mouse, mice, rodent, cockroach, cockroaches, cockroch, roach, roaches, bedbug, bedbugs, "bed bug", "bed bugs",
+        lizard, lizards, lizzard, lizard, ant, ants, mosquito, mosquitoes, mosquitos, insect, insects, bug, bugs, pest, pests, termite, termites,
+        spider, spiders, flies, fleas]
+      hi: [चूहा, चूहे, चुहा, चुहे, कॉकरोच, काकरोच, कोकरोच, तिलचट्टा, तिलचट्टे, खटमल, छिपकली, छिपकलियाँ, चींटी, चींटियाँ, चींटियां,
+        मच्छर, कीड़ा, कीड़े, कीडे, मकड़ी, मक्खी, मक्खियाँ]
+      hinglish: [chuha, chuhe, chooha, choohe, chuhaa, kakroach, kakrochh, kokroch, cokroach, tilchatta, khatmal, khatmalon, chipkali,
+        chhipkali, chipkli, chiti, chinti, cheenti, chintiyan, machhar, machar, macchar, machchar, keeda, keede, kida, kide, makdi,
+        makkhi, makhi]
+    reply:
+      en: "Sorry about the {thing}, that's not okay. I'll send {team} to room {room} now; someone should reach you within about {minutes} minutes.{room_change}"
+      hi: "{thing} के लिए माफ़ी चाहते हैं, ऐसा नहीं होना चाहिए। मैं अभी {team} को कमरे {room} में भेज रहा हूँ; लगभग {minutes} मिनट में कोई पहुँच जाएगा।{room_change}"
+      hinglish: "{thing} ke liye sorry, aisa nahi hona chahiye. Main abhi {team} ko room {room} bhej raha hoon; lagbhag {minutes} minute mein koi pahunch jayega.{room_change}"
+  water_leak:
+    departments: [maintenance]
+    urgency: high
+    target_minutes: 20
+    room_change: true
+    menu: problem
+    label: {en: "Water leak", hi: "पानी टपक / लीक"}
+    keywords:
+      en: [leak, leaks, leaking, leaky, leakage, seepage, seeping, dripping, drips, "water on the floor", flooding, flooded, overflow,
+        overflowing, "pipe burst", "burst pipe"]
+      hi: [लीक, टपक, टपकना, टपक रहा, "पानी टपक", "पानी भर", "पानी गिर", सीलन, रिसाव]
+      hinglish: [tapak, "paani tapak", "pani tapak", "paani gir", "pani gir", "paani bhar", "pani bhar", seelan, rissav, leak]
+    reply:
+      en: "Sorry about the leak. I'll send {team} to room {room} now; they should reach you within about {minutes} minutes.{room_change}"
+      hi: "लीक के लिए माफ़ी चाहते हैं। मैं अभी {team} को कमरे {room} में भेज रहा हूँ; लगभग {minutes} मिनट में पहुँच जाएँगे।{room_change}"
+      hinglish: "Leak ke liye sorry. Main abhi {team} ko room {room} bhej raha hoon; lagbhag {minutes} minute mein pahunch jayenge.{room_change}"
+  lock_or_door:
+    departments: [maintenance, security]
+    urgency: high
+    target_minutes: 15
+    menu: request
+    label: {en: "Door or lock problem", hi: "दरवाज़ा / ताला ख़राब"}
+    keywords:
+      en: [lock, locks, "door lock", "lock is broken", "door won't close", "door wont close", "door doesn't close", "door does not close",
+        "door won't lock", "can't lock", "cannot lock", "key card", keycard, "lost key", "locked out", latch, "door handle"]
+      hi: [ताला, तालाः, कुंडी, "दरवाज़ा बंद नहीं", "दरवाजा बंद नहीं", "दरवाज़ा नहीं", "दरवाजा नहीं", "चाबी खो", "चाबी नहीं"]
+      hinglish: [tala, taala, kundi, "darwaza band nahi", "darwaja band nahi", "darwaza nahi", "darwaza kharab", "darwaja kharab",
+        "chabi kho", "chaabi kho", "chabi nahi", "lock kharab"]
+    reply:
+      en: "Sorry, a door that won't lock isn't safe. I'll send {team} to room {room} now; someone should reach you within about {minutes} minutes."
+      hi: "माफ़ कीजिए, ठीक से बंद न होने वाला दरवाज़ा सुरक्षित नहीं है। मैं अभी {team} को कमरे {room} में भेज रहा हूँ; लगभग {minutes} मिनट में कोई पहुँच जाएगा।"
+      hinglish: "Sorry, darwaza theek se band na ho toh safe nahi hai. Main abhi {team} ko room {room} bhej raha hoon; lagbhag {minutes} minute mein koi pahunch jayega."
+  cleanliness:
+    departments: [housekeeping]
+    urgency: high
+    target_minutes: 30
+    menu: problem
+    label: {en: "Dirty room, linen or bad smell", hi: "गंदगी / बदबू / गंदी चादर"}
+    keywords:
+      en: [dirty, filthy, stain, stains, stained, smelly, smells, stinks, stinking, "bad smell", "foul smell", odour, odor, "not clean",
+        unclean, "bathroom dirty", "toilet dirty", "toilet is dirty", "bedsheet dirty", "dirty bedsheet", "dirty sheets", "dirty linen",
+        hair, mould, mold, "toilet blocked", "toilet clogged", "toilet not flushing", "flush not working", "drain blocked"]
+      hi: [गंदा, गंदी, गंदे, गन्दा, बदबू, दाग, "साफ़ नहीं", "साफ नहीं", "चादर गंदी", "टॉयलेट गंदा", "बाथरूम गंदा", "फ्लश नहीं"]
+      hinglish: [ganda, gandi, gande, badbu, badboo, daag, "saaf nahi", "saf nahi", "chadar gandi", "toilet ganda", "bathroom ganda",
+        "flush nahi", smell]
+    reply:
+      en: "Sorry, that's not the standard you should get. I'll send {team} to room {room} now; they should be with you within about {minutes} minutes."
+      hi: "माफ़ कीजिए, ऐसा नहीं होना चाहिए। मैं अभी {team} को कमरे {room} में भेज रहा हूँ; लगभग {minutes} मिनट में पहुँच जाएँगे।"
+      hinglish: "Sorry, aisa nahi hona chahiye. Main abhi {team} ko room {room} bhej raha hoon; lagbhag {minutes} minute mein pahunch jayenge."
+  noise_complaint:
+    departments: [front_office]
+    urgency: medium
+    target_minutes: 15
+    menu: problem
+    label: {en: "Noise complaint", hi: "शोर की शिकायत"}
+    negatable: true
+    keywords:
+      en: [noise, noisy, loud, "too loud", shouting, "loud music", party, disturbing, disturbance, barking]
+      hi: [शोर, "तेज़ आवाज़", "तेज आवाज", "बहुत आवाज़", चिल्ला, "गाना बहुत"]
+      hinglish: [shor, "tez awaaz", "tez awaz", "bahut awaaz", chilla, "gaana bahut", "music bahut"]
+    reply:
+      en: "Sorry about the noise. I'll ask {team} to look into it now; you should hear back within about {minutes} minutes."
+      hi: "शोर के लिए माफ़ी चाहते हैं। मैं अभी {team} से इसे देखने को कहता हूँ; लगभग {minutes} मिनट में जवाब मिलेगा।"
+      hinglish: "Shor ke liye sorry. Main abhi {team} se dekhne ko kehta hoon; lagbhag {minutes} minute mein jawab milega."
+  lost_item:
+    departments: [front_office]
+    urgency: medium
+    target_minutes: 30
+    menu: request
+    label: {en: "Lost or found item", hi: "खोया / मिला सामान"}
+    keywords:
+      en: [lost, "left behind", "left my", "forgot my", "can't find", "cannot find", "lost and found"]
+      hi: [खो, "खो गया", "खो गई", "भूल गया", "भूल गई", "नहीं मिल रहा", "नहीं मिल रही", गुम]
+      hinglish: ["kho gaya", "kho gayi", "bhool gaya", "bhool gayi", "nahi mil raha", "nahi mil rahi"]
+    reply:
+      en: "Sorry to hear that. I'll ask {team} to help look for it; they should get back to you within about {minutes} minutes."
+      hi: "यह सुनकर अफ़सोस हुआ। मैं {team} से इसे ढूँढने में मदद करने को कहता हूँ; लगभग {minutes} मिनट में बताएँगे।"
+      hinglish: "Sunke afsos hua. Main {team} se dhoondhne mein madad karne ko kehta hoon; lagbhag {minutes} minute mein batayenge."
+  wifi_problem:
+    departments: [front_office]
+    urgency: medium
+    target_minutes: 20
+    menu: none
+    label: {en: "Wi-Fi not working", hi: "वाई-फ़ाई नहीं चल रहा"}
+    requires_problem: true   # only "wifi not working", never a Wi-Fi password question
+    keywords:
+      en: [wifi, "wi-fi", "wi fi", internet]
+      hi: [वाईफाई, वाई-फाई, "वाई फाई", इंटरनेट]
+      hinglish: [wifi, net, internet]
+    reply:
+      en: "Sorry the Wi-Fi is giving trouble. I'll ask {team} to check it; they should get back to you within about {minutes} minutes."
+      hi: "वाई-फ़ाई की परेशानी के लिए माफ़ी। मैं {team} से इसे देखने को कहता हूँ; लगभग {minutes} मिनट में बताएँगे।"
+      hinglish: "Wi-Fi ki problem ke liye sorry. Main {team} se check karne ko kehta hoon; lagbhag {minutes} minute mein batayenge."
+
+# Existing request menu items (rooms.GUEST_MENU): only their target times live here. Their departments and labels stay in code.
+targets: {towels: 30, cleaning: 45, water: 20, amenities: 30, tea: 20, food: 40, ac: 30, hot_water: 30, electrical: 30, other: 20}

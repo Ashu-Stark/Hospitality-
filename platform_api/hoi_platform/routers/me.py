@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, File, Form, Query, Request, Response, Up
 from .. import config, ratelimit
 from ..deps import HOTEL_MANAGERS, Principal, roles, tenant_of
 from ..schemas import RosterPublishIn, TtsIn, VoiceActIn, VoiceCommandIn
-from ..services import dispatch, performance, tts, voice
+from ..services import dispatch, performance, recognition, tts, voice
 from . import audio
 
 router = APIRouter(tags=["me"])
@@ -19,9 +19,19 @@ def my_shifts(p: Principal = Depends(roles("worker"))) -> dict:
     out["department"] = ctx["working"].get(p.employee_id or "") or next(
         (s["department"] for s in dispatch.tenants.staff(tid) if s["employee_id"] == p.employee_id), None
     )
-    out["on_shift_now"] = (p.employee_id or "") in ctx["working"]
+    prop = dispatch.tenants.property_of_staff(tid, p.employee_id)
+    out["property"] = {"id": prop["id"], "name": prop["name"], "mode": prop["mode"]} if prop else None
+    out["mode"] = prop["mode"] if prop else "hotel"
+    # homestay teams have no roster: everyone of the property counts as available
+    out["on_shift_now"] = (p.employee_id or "") in ctx["working"] or out["mode"] == "homestay"
     out["current_shift"] = {"day": ctx.get("day"), "shift": ctx.get("shift")}
     return out
+
+
+@router.get("/me/recognition")
+def my_recognition(month: str | None = Query(default=None, pattern=r"^\d{4}-\d{2}$"), p: Principal = Depends(roles("worker"))) -> dict:
+    """The signed-in worker's own recognition points and reward estimate, plus team totals (never colleagues' points)."""
+    return recognition.for_worker(tenant_of(p), p.employee_id or p.username, month)
 
 
 @router.get("/me/performance")

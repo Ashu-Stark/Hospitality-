@@ -18,7 +18,7 @@ from datetime import UTC, datetime, timedelta
 from pymongo.errors import DuplicateKeyError
 
 from .. import config, mongo
-from . import dispatch, tenants
+from . import dispatch, issues, tenants
 from .errors import Conflict, Invalid, NotFound
 
 STATUSES = ("ready", "occupied", "dirty", "cleaning", "inspection", "out_of_order")
@@ -34,6 +34,15 @@ GUEST_MENU = {
     "electrical": {"label": "Light / socket / TV problem", "label_hi": "लाइट / सॉकेट / टीवी", "dept": "maintenance", "urgency": "medium"},
     "other": {"label": "Something else (front desk will call)", "label_hi": "कुछ और", "dept": "front_office", "urgency": "medium"},
 }
+# Problem reports from the guest-issue taxonomy (hoi_platform/guest_issues.yaml): pests, leaks, locks, cleanliness, noise,
+# lost items, Wi-Fi, safety and medical alerts. "other" stays last.
+_other = GUEST_MENU.pop("other")
+GUEST_MENU.update({k: v for k, v in issues.menu_entries().items() if k not in GUEST_MENU})
+GUEST_MENU["other"] = _other
+for _k, _v in GUEST_MENU.items():
+    _v.setdefault("group", "request")
+    _v.setdefault("departments", [_v["dept"]])
+    _v.setdefault("target_minutes", issues.target_minutes(_k))
 GUEST_LIMIT, GUEST_WINDOW_MIN = 5, 15
 
 
@@ -49,8 +58,19 @@ def _get(tid: str, rid: str) -> dict:
     return r
 
 
-def list_rooms(tid: str) -> list[dict]:
-    return mongo.find("rooms", {"tenant_id": tid}, [("floor", 1), ("number", 1)])
+def list_rooms(tid: str, property_id: str | None = None) -> list[dict]:
+    """All rooms of the tenant, or one property's rooms (rooms without a property belong to the first property)."""
+    flt: dict = {"tenant_id": tid}
+    order = {
+        p["id"]: i for i, p in enumerate(mongo.col("properties").find({"tenant_id": tid}, {"id": 1}).sort([("created_at", 1), ("_id", 1)]))
+    }
+    first = next(iter(order), None)
+    if property_id:
+        flt["property_id"] = {"$in": [property_id, None]} if property_id == first else property_id
+    rows = mongo.find("rooms", flt, [("floor", 1), ("number", 1)])
+    if len(order) > 1:  # one property after the other (stable: floor/number order kept inside a property)
+        rows.sort(key=lambda r: order.get(r.get("property_id") or first, 0))
+    return rows
 
 
 def _room_doc(tid: str, number: str, floor: int | None, room_type: str, property_id: str | None) -> dict:
@@ -194,8 +214,8 @@ def on_job_progress(tid: str, job: dict) -> None:
             _set(tid, r["id"], "inspection", job.get("assigned_to") or "system", job_id=job["id"])
 
 
-def summary(tid: str) -> dict:
-    rows = list_rooms(tid)
+def summary(tid: str, property_id: str | None = None) -> dict:
+    rows = list_rooms(tid, property_id)
     return {s: sum(1 for r in rows if r["status"] == s) for s in STATUSES} | {"total": len(rows)}
 
 
@@ -271,7 +291,12 @@ def guest_view(token: str) -> dict:
         "hotel": t["name"],
         "brand_color": t["brand_color"],
         "room": r["number"],
-        "menu": [{"key": k, **{x: v[x] for x in ("label", "label_hi")}} for k, v in GUEST_MENU.items()],
+        "menu": [
+            {"key": k, **{x: v[x] for x in ("label", "label_hi", "group")}, "urgent": v["urgency"] == "urgent"}
+            for k, v in GUEST_MENU.items()
+            if v["group"] != "none"
+        ],
+        "emergency_numbers": {k: issues.emergency_numbers(k) for k in ("safety_alert", "medical_help")},
         "requests": stay_requests(r),
         "profile": profiles.public(r["tenant_id"], r.get("property_id")),
         "stay": guest.stay_status(r),
@@ -290,20 +315,26 @@ def guest_request(token: str, key: str, note: str = "") -> dict:
     recent = mongo.col("jobs").count_documents(
         {"tenant_id": r["tenant_id"], "room_id": r["id"], "kind": "guest", "created_at": {"$gte": since}}
     )
-    if recent >= GUEST_LIMIT:
+    if recent >= GUEST_LIMIT and GUEST_MENU[key]["urgency"] != "urgent":  # never rate-limit a safety or medical alert
         raise Conflict("You have sent several requests. The team is on it; for anything urgent please call the front desk.")
     m = GUEST_MENU[key]
     note = note.strip()[:140]
-    title = m["label"] + (f": {note}" if note else "")
-    dispatch.create_job(
-        r["tenant_id"],
-        f"{title} · room {r['number']}",
-        m["dept"],
-        r["number"],
-        m["urgency"],
-        "guest",
-        "guest",
-        room_id=r["id"],
-        kind="guest",
-    )
+    title = m["label"].split(" (")[0] + (f": {note}" if note else "")
+    # one job per department (e.g. safety: front office AND security); urgent alerts get the shortest offer window
+    for dept in m["departments"]:
+        dispatch.create_job(
+            r["tenant_id"],
+            f"{title} · room {r['number']}",
+            dept,
+            r["number"],
+            m["urgency"],
+            "guest",
+            "guest",
+            room_id=r["id"],
+            kind="guest",
+            target_minutes=m.get("target_minutes"),
+            offer_window=m.get("offer_seconds"),
+        )
+    if m.get("notify_manager"):
+        tenants.audit(r["tenant_id"], "guest", "guest.urgent_alert", f"{key} room {r['number']}")  # shown to the duty manager
     return guest_view(token)

@@ -12,17 +12,79 @@ ui.setup("pages/12_Setup.py", "Setup")
 T = tenancy.refresh()
 STEPS = ["Organization", "Property", "Staff", "Data source", "Team", "Done"]
 
-ui.html(
-    theme.hero(
-        "Set up your hotel group",
-        "Add properties, import staff by ID, connect your data and invite your team. Takes about five minutes.",
-        eyebrow="Onboarding",
-        variant="blue",
-        pills=["Multi-property", "Your own data source", "Privacy-checked import", "Role invites"],
-    )
-)
+ui.page_head("Settings", "How this property works, your thank-you budget, and the link to the tourism portal.")
+IS_OWNER = auth.role() in ("owner", "platform_admin")
+HOMESTAY = tenancy.is_homestay()
+tab_prop, tab_ob, tab_team, tab_plan = st.tabs(["This property", "Setup steps", "Team & access", "Plan"])
 
-tab_ob, tab_team, tab_plan = st.tabs(["Onboarding", "Team & access", "Plan"])
+# ------------------------------------------------------------------ this property: mode, budget, recognition, portal key
+with tab_prop:
+    ui.property_picker(key="prop_pick_settings", label="Property")
+    P = tenancy.current_property()
+    if not P:
+        ui.empty("Add a property first (Setup steps).")
+    else:
+        with st.container(key="card_mode"):
+            st.markdown("**How should the app look?**")
+            choice = st.radio(
+                "Mode",
+                ["homestay", "hotel"],
+                index=0 if P.get("mode") == "homestay" else 1,
+                horizontal=True,
+                format_func=lambda m: (
+                    "Homestay: simple, only the basics" if m == "homestay" else "Hotel: everything (roster, analytics, dispatch)"
+                ),
+                disabled=not IS_OWNER,
+                key="mode_pick",
+            )
+            st.caption("Small places (up to 10 rooms) start as a homestay. You can switch any time; no data is lost.")
+            if choice != P.get("mode") and st.button("Switch mode", type="primary", key="act_mode", disabled=not IS_OWNER):
+                if ui.safe(platform.update_property, P["id"], mode=choice, what="switch the mode"):
+                    tenancy.refresh()
+                    st.rerun()
+        with st.container(key="card_budget"):
+            st.markdown("**Thank-you budget (recognition)**")
+            a, b = st.columns(2)
+            cap = a.number_input(
+                "Monthly budget (₹)", 0, 10_000_000, int(P.get("incentive_monthly_budget_cap") or 0), step=500, disabled=not IS_OWNER
+            )
+            board = b.toggle(
+                "Show a team board to staff",
+                value=bool(P.get("recognition_leaderboard_opt_in")),
+                disabled=not IS_OWNER,
+                help="Off by default: each person sees only their own points plus team totals.",
+            )
+            st.caption(
+                "Points are positive only and never used for discipline. Each person's reward = their share of points × this budget (capped)."
+            )
+            if st.button("Save budget", key="act_budget", disabled=not IS_OWNER):
+                if ui.safe(
+                    platform.update_property,
+                    P["id"],
+                    incentive_monthly_budget_cap=int(cap),
+                    recognition_leaderboard_opt_in=board,
+                    what="save",
+                ):
+                    tenancy.refresh()
+                    st.toast("Saved")
+                    st.rerun()
+        with st.container(key="card_portal"):
+            st.markdown("**Uttarakhand tourism portal**")
+            st.caption(
+                ("A key is saved. " if P.get("portal_key_set") else "No key saved yet. ")
+                + "Paste the business API key from your portal account so Extra staff requests can be sent. It is never shown again."
+            )
+            key = st.text_input("Portal API key", type="password", key="portal_key_in", disabled=not IS_OWNER)
+            c1, c2 = st.columns(2)
+            if c1.button("Save key", key="act_key", disabled=not IS_OWNER or not key.strip()):
+                if ui.safe(platform.update_property, P["id"], portal_api_key=key.strip(), what="save the key"):
+                    tenancy.refresh()
+                    st.toast("Key saved")
+                    st.rerun()
+            if P.get("portal_key_set") and c2.button("Remove key", key="act_key_rm", disabled=not IS_OWNER):
+                if ui.safe(platform.update_property, P["id"], portal_api_key="", what="remove the key"):
+                    tenancy.refresh()
+                    st.rerun()
 
 
 def go(n: int) -> None:

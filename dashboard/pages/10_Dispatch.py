@@ -10,18 +10,11 @@ ui.setup("pages/10_Dispatch.py", "Dispatch")
 cfg = tenancy.active_settings()
 SECONDS = int(cfg.get("offer_seconds", 30))
 
-ui.html(
-    theme.section(
-        "Live dispatch",
-        "Auto-assign",
-        "Requests are offered to the best on-shift worker with a timed ping. Decline or no answer moves the offer on. "
-        "Offers expire on the server, so the timing is the same for everyone.",
-    )
-)
+ui.page_head("Live jobs", "Requests go to the best free person on shift automatically. You only step in when nobody takes a job.")
 
 ro, working, bands, day0, shift0 = data.ops_inputs()
 with st.container(key="card_ops"):
-    c1, c2, c3, c4 = st.columns([1.4, 1.3, 1.2, 1.4])
+    c1, c2 = st.columns([1.4, 1.3])
     with c1:
         days = ro.dates if ro else []
         day = (
@@ -36,6 +29,7 @@ with st.container(key="card_ops"):
         )
     with c2:
         shift = st.segmented_control("Shift", models.SHIFT_ORDER, default=shift0, key="ops_shift") or shift0
+    c3, c4 = st.expander("Dispatch settings").columns(2)
     with c3:
         auto = st.toggle(
             "Auto-assign",
@@ -239,7 +233,6 @@ live()
 
 def performance_section() -> None:
     """Performance score per worker (plan 4.1) from the platform API: own-baseline delta, parts, reasons."""
-    ui.html(theme.section("Performance", "Coaching", "Score 0-100 from dispatch jobs, compared with each person's own previous period."))
     st.caption("A coaching aid compared with each person's own baseline; not for disciplinary use.")
     days = st.selectbox("Period", [7, 14, 28], index=1, format_func=lambda d: f"Last {d} days", key="perf_days")
     try:
@@ -272,6 +265,9 @@ def performance_section() -> None:
     df = pd.DataFrame(rows)
     ok = df.pop("_ok")
     grey = lambda r: [("" if ok[r.name] else "color:#9b9a96;background:#f6f6f4")] * len(r)  # noqa: E731
+    main = ["Role", "Employee", "Score", "Δ vs own baseline", "Reasons"]
+    if not st.toggle("Details", key="perf_details", help="Show each part of the score"):
+        df = df[main]
     st.dataframe(
         df.style.apply(grey, axis=1).format(
             {
@@ -293,5 +289,6 @@ def performance_section() -> None:
     )
 
 
-performance_section()
+with st.expander("Performance (coaching aid)"):
+    performance_section()
 ui.footer()

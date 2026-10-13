@@ -5,6 +5,9 @@ Both portals run from the same code; lib.config.portal() decides which one this 
 
 from __future__ import annotations
 
+import base64
+import functools
+from pathlib import Path
 from urllib.parse import urlencode
 
 import streamlit as st
@@ -26,12 +29,16 @@ SUPER_CSS = f"""<style>
   font-weight:600; letter-spacing:.06em; text-transform:uppercase; white-space:nowrap; }}
 .ss-super .ss-portal-badge {{ background:#e6edff; color:{NAVY}; }}
 .ss-navactive {{ background:{NAVY} !important; }}
+.ss-hoi-mark {{ border-radius:11px; display:block; flex:none; }}
 </style>"""
 
 HOTEL_CSS = """<style>
 .ss-portal-badge { display:inline-flex; align-items:center; gap:6px; border-radius:999px; padding:4px 10px; font-size:.72rem;
   font-weight:600; letter-spacing:.06em; text-transform:uppercase; white-space:nowrap; background:var(--brand); color:#fff; }
 .ss-hotel-logo { height:44px; width:auto; display:block; }
+.ss-hoi-mark { border-radius:11px; display:block; flex:none; }
+.ss-poweredby { display:inline-flex; align-items:center; gap:6px; text-transform:none; letter-spacing:0; font-size:.78rem; color:var(--muted); }
+.ss-poweredby img { border-radius:6px; }
 .ss-imp { display:flex; align-items:center; gap:10px; background:#fff4e0; border:1.5px solid #d48a00; color:#5a3b00;
   border-radius:16px; padding:10px 14px; font-size:.9rem; }
 </style>"""
@@ -53,27 +60,54 @@ def logo_src(t: dict) -> str | None:
     return platform.asset_data_uri(url) if url.startswith("/") else None
 
 
+BRAND_DIR = Path(__file__).resolve().parent.parent / "static" / "brand"
+
+
+@functools.cache
+def hoi_mark_uri() -> str:
+    """The HOI platform logo (blue-violet tile, white mountain-wave mark) as a data: URI."""
+    try:
+        return "data:image/svg+xml;base64," + base64.b64encode((BRAND_DIR / "hoi-mark.svg").read_bytes()).decode()
+    except OSError:
+        return ""
+
+
+def hoi_mark(size: int = 36) -> str:
+    uri = hoi_mark_uri()
+    if not uri:
+        return f'<span class="ss-brand-mark">{theme.icon("shield", 20, "#fff")}</span>'
+    return f'<img class="ss-hoi-mark" src="{uri}" alt="HOI" width="{size}" height="{size}">'
+
+
+def page_icon() -> str:
+    """Browser-tab icon for both portals (the HOI logo PNG)."""
+    p = BRAND_DIR / "hoi-icon-32.png"
+    return str(p) if p.exists() else ":material/hotel:"
+
+
 def brand_html(t: dict) -> str:
-    """Left side of the top bar."""
+    """Left side of the top bar. HOI mark = platform brand; a hotel's own logo stays the hotel brand on its pages."""
     if config.is_super():
         return (
-            f'<div class="ss-brand"><span class="ss-brand-mark">{theme.icon("shield", 20, "#fff")}</span>'
+            f'<div class="ss-brand">{hoi_mark()}'
             '<span>HOI <span class="ss-brand-long">Platform Admin</span></span>'
             f'<span class="ss-portal-badge">{theme.icon("shield", 13)}Platform admin</span></div>'
         )
     if t.get("id"):
-        src = logo_src(t)
+        props = tenancy.properties()
+        prop = tenancy.current_property() or {}
+        other = len(props) > 1 and prop.get("id") != props[0]["id"]  # a second property (e.g. the homestay): its own name, no group logo
+        src = None if other else logo_src(t)
+        name = prop.get("name") if other else t["name"]
         mark = (
-            f'<img class="ss-hotel-logo" src="{theme.esc(src)}" alt="{theme.esc(t["name"])}">'
+            f'<img class="ss-hotel-logo" src="{theme.esc(src)}" alt="{theme.esc(name)}">'
             if src
             else f'<span class="ss-brand-mark" style="background:var(--brand)">{theme.icon("bed", 20, "#fff")}</span>'
-            f"<span>{theme.esc(t['name'])}</span>"
+            f"<span>{theme.esc(name)}</span>"
         )
-        return f'<div class="ss-brand">{mark}<span class="ss-portal-badge">Hotel admin</span></div>'
-    return (
-        f'<div class="ss-brand"><span class="ss-brand-mark">{theme.icon("bed", 20, "#fff")}</span>'
-        '<span>HOI <span style="font-weight:500">Hotel Admin</span></span></div>'
-    )
+        badge = "Homestay" if tenancy.is_homestay() else "Hotel admin"
+        return f'<div class="ss-brand">{mark}<span class="ss-portal-badge">{badge}</span></div>'
+    return f'<div class="ss-brand">{hoi_mark()}<span>HOI <span style="font-weight:500">Hotel Admin</span></span></div>'
 
 
 def link(url: str) -> str:

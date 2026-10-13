@@ -3,8 +3,8 @@
 from fastapi import APIRouter, Depends, HTTPException
 
 from ..deps import Principal, principal, roles, tenant_of
-from ..schemas import ActiveIn, InviteIn, PropertyIn, StaffImportIn, WorkspacePatch
-from ..services import tenants, users
+from ..schemas import ActiveIn, InviteIn, PropertyIn, PropertySettingsIn, StaffImportIn, WorkspacePatch
+from ..services import recognition, tenants, users
 
 router = APIRouter(prefix="/workspace", tags=["workspace"])
 
@@ -38,8 +38,22 @@ def list_properties(p: Principal = Depends(principal)) -> list[dict]:
 @router.post("/properties", status_code=201)
 def add_property(body: PropertyIn, p: Principal = Depends(roles("owner"))) -> dict:
     tid = tenant_of(p)
-    prop = tenants.add_property(tid, body.name, body.region, body.rooms, body.floors)
-    tenants.audit(tid, p.username, "property.added", body.name)
+    prop = tenants.add_property(tid, body.name, body.region, body.rooms, body.floors, body.mode)
+    tenants.audit(tid, p.username, "property.added", f"{body.name} mode={prop['mode']}")
+    return prop
+
+
+@router.patch("/properties/{pid}")
+def update_property(pid: str, body: PropertySettingsIn, p: Principal = Depends(roles("owner"))) -> dict:
+    """Owner: homestay/hotel mode, incentive budget cap, leaderboard opt-in, tourism-portal API key (write-only)."""
+    tid = tenant_of(p)
+    fields = body.model_dump(exclude_none=True)
+    if "recognition" in fields:
+        current = tenants.get_property(tid, pid).get("recognition") or {}
+        fields["recognition"] = {**current, **recognition.validate_config(fields["recognition"])}
+    prop = tenants.update_property(tid, pid, **fields)
+    # never log the key itself: only which settings changed
+    tenants.audit(tid, p.username, "property.settings", f"{pid} " + ",".join(sorted(fields)))
     return prop
 
 

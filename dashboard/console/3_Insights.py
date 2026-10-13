@@ -9,14 +9,7 @@ import streamlit as st
 from lib import platform, portal, tenancy, theme, ui
 
 ui.setup("console/3_Insights.py", "Insights")
-ui.html(
-    theme.hero(
-        "Portfolio insights",
-        "How each hotel group is using HOI: rooms, jobs on time, guest requests, feedback and stock. Pick a hotel below to see the detail.",
-        eyebrow="Platform console",
-        variant="dark",
-    )
-)
+ui.page_head("Insights", "How each hotel is doing, in a few numbers. Open a hotel for the detail.")
 
 days = st.segmented_control("Period", [7, 30, 90], default=30, format_func=lambda d: f"Last {d} days", key="ins_days") or 30
 raw = ui.api(platform.platform_insights, days, what="load portfolio insights", feature="portfolio insights")
@@ -102,22 +95,13 @@ active = sum(1 for h in hotels if h["status"] != "suspended")
 rooms_t, occ_t = total(("rooms",), "rooms"), total(("occupied_now", "occupied"), "occupied")
 on_time_t = as_pct(ui.pick(tot, "jobs.on_time_pct", "on_time_pct")) or weighted("on_time", "jobs_done")
 fb_t = num(ui.pick(tot, "feedback_average", "feedback.average")) or weighted("fb_avg", "fb_count")
-ui.html(
-    theme.tiles(
-        [
-            theme.tile("Hotels", f"{active} active", f"{len(hotels) - active} suspended", "home"),
-            theme.tile(
-                "Rooms", fmt(rooms_t), f"{fmt(occ_t)} occupied now" + (f" ({occ_t / rooms_t:.0%})" if rooms_t and occ_t else ""), "bed"
-            ),
-            theme.tile("Staff", fmt(total(("staff",), "staff")), "on HOI rosters", "users"),
-            theme.tile("Jobs on time", fmt(on_time_t, "%"), f"{fmt(total(('jobs.count', 'jobs'), 'jobs'))} jobs in {days} days", "clock"),
-            theme.tile("Guest requests", fmt(total(("guest_requests.count", "guest_requests"), "requests")), f"last {days} days", "info"),
-            theme.tile("Guest feedback", fmt(fb_t, " / 5", 1), f"{fmt(total(('feedback',), 'fb_count'))} ratings", "check"),
-        ]
-    ).replace('class="ss-tiles"', 'class="ss-tiles ins6"')
-    + "<style>.ss-tiles.ins6{grid-template-columns:repeat(6,minmax(0,1fr))}"
-    "@media (max-width:1100px){.ss-tiles.ins6{grid-template-columns:repeat(3,minmax(0,1fr))}}"
-    "@media (max-width:640px){.ss-tiles.ins6{grid-template-columns:repeat(2,minmax(0,1fr))}}</style>"
+ui.big_numbers(
+    [
+        ("Hotels live", active, f"{len(hotels) - active} paused", "info"),
+        ("Rooms full now", fmt(occ_t), f"of {fmt(rooms_t)} rooms" + (f" ({occ_t / rooms_t:.0%})" if rooms_t and occ_t else ""), "info"),
+        ("Jobs on time", fmt(on_time_t, "%"), f"{fmt(total(('jobs.count', 'jobs'), 'jobs'))} jobs in {days} days", "ok"),
+        ("Guest rating", fmt(fb_t, "★", 1), f"{fmt(total(('feedback',), 'fb_count'))} ratings", "ok"),
+    ]
 )
 if not hotels:
     ui.empty("No hotel groups yet. Onboard one on the Hotels page.")
@@ -125,7 +109,7 @@ if not hotels:
     st.stop()
 
 # ------------------------------------------------------------------ per-hotel table
-ui.html(theme.section("Hotels at a glance", "Compare", "Click a column header to sort. Red status = suspended."))
+ui.html(theme.section("Hotels at a glance"))
 f1, f2, f3 = st.columns([2, 1.2, 1.6])
 needle = f1.text_input("Search", placeholder="Hotel name", key="ins_q")
 status_f = f2.segmented_control("Status", ["All", "Active", "Suspended"], default="All", key="ins_status") or "All"
@@ -160,10 +144,14 @@ else:
     )
     pill = {"Active": f"color:{theme.BAND['low']['fg']};background:{theme.BAND['low']['bg']}"}
     pill["Suspended"] = f"color:{theme.BAND['high']['fg']};background:{theme.BAND['high']['bg']}"
+    if not st.toggle("Details", key="ins_details", help="Show plan, on-time, response time, stock and last activity"):
+        df = df[["Hotel", "Status", "Rooms", "Occupancy %", "Feedback (avg / 5)"]]
     st.dataframe(
         df.style.map(lambda v: pill.get(v, ""), subset=["Status"])
         .format(
-            precision=0, na_rep="—", subset=["Rooms", "Occupancy %", "On-time %", "Request response (median min)", "Items below reorder"]
+            precision=0,
+            na_rep="—",
+            subset=[c for c in ("Rooms", "Occupancy %", "On-time %", "Request response (median min)", "Items below reorder") if c in df],
         )
         .format(precision=1, na_rep="—", subset=["Feedback (avg / 5)"]),
         hide_index=True,
@@ -178,7 +166,7 @@ else:
     )
 
 # ------------------------------------------------------------------ drill-down
-ui.html(theme.section("One hotel in detail", "Drill down"))
+ui.html(theme.section("One hotel in detail"))
 pool = shown or hotels
 ids = [h["id"] for h in pool]
 sel = st.selectbox("Hotel", ids, format_func=lambda i: next(h["name"] for h in pool if h["id"] == i), key="ins_pick")
@@ -234,11 +222,8 @@ with t_guests:
     xs, ys = bar_by_day(h["per_day"], ("count", "requests", "n"))
     if xs and any(y for y in ys if y):
         busiest = max(zip(ys, xs), key=lambda t: t[0] or 0)
-        ui.html(
-            theme.section(
-                f"{fmt(sum(y or 0 for y in ys))} guest requests in {days} days; busiest day {str(busiest[1])[:10]} ({fmt(busiest[0])})",
-                "Requests per day",
-            )
+        ui.takeaway(
+            f"{fmt(sum(y or 0 for y in ys))} guest requests in {days} days; busiest day {str(busiest[1])[:10]} ({fmt(busiest[0])})."
         )
         fig = go.Figure(
             go.Bar(x=xs, y=ys, marker=dict(color="#2a78d6", cornerradius=4), hovertemplate="%{x}<br>%{y} requests<extra></extra>")
@@ -252,13 +237,12 @@ with t_guests:
     st.caption(f"Median response: {fmt(h['median_response'], ' min')} from request to a worker accepting.")
 
     xs, ys = bar_by_day(h["fb_trend"], ("average", "avg", "rating"))
+    fbx = st.expander("Feedback trend")
     if xs and any(y is not None for y in ys):
         last = next((y for y in reversed(ys) if y is not None), None)
         first = next((y for y in ys if y is not None), None)
         word = "steady" if first is None or last is None or abs(last - first) < 0.2 else ("up" if last > first else "down")
-        ui.html(
-            theme.section(f"Feedback is {word}: average {fmt(h['fb_avg'], ' / 5', 1)} from {fmt(h['fb_count'])} ratings", "Feedback trend")
-        )
+        fbx.markdown(f"Feedback is **{word}**: average {fmt(h['fb_avg'], ' / 5', 1)} from {fmt(h['fb_count'])} ratings.")
         fig = go.Figure(
             go.Scatter(
                 x=xs,
@@ -273,9 +257,9 @@ with t_guests:
         fig.update_layout(margin=dict(t=12))
         fig.update_xaxes(tickformat="%d %b", dtick=86400000 * (1 if len(xs) <= 31 else 7))  # day or week ticks, never hours
         fig.update_yaxes(range=[0.8, 5.2], dtick=1)
-        st.plotly_chart(fig, width="stretch", config={"displayModeBar": False})
+        fbx.plotly_chart(fig, width="stretch", config={"displayModeBar": False})
     else:
-        ui.empty(f"Feedback: average {fmt(h['fb_avg'], ' / 5', 1)} from {fmt(h['fb_count'])} ratings; no trend to chart yet.")
+        fbx.caption(f"Feedback: average {fmt(h['fb_avg'], ' / 5', 1)} from {fmt(h['fb_count'])} ratings; no trend to chart yet.")
     if h["comments"]:
         ui.html(theme.section("Latest comments", "In guests' words"))
         for c in h["comments"][:5]:

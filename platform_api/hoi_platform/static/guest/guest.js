@@ -28,6 +28,8 @@
       heard: "Heard", no_catch: "Didn't catch that — try again or type.", mic_denied: "Microphone blocked. Allow it in your browser settings, or type.",
       no_mic: "Voice isn't supported on this browser. Please type.", hello: "Namaste! I'm your digital concierge. Ask me about Wi-Fi, meals, checkout or anything you need.",
       confirm: "Confirm", not_now: "Not now", done_ok: "Done! ", cancelled: "Okay, nothing was sent.",
+      problems: "Report a problem", requests_h: "Ask for something", alert_now: "Alert front desk now", call: "Call",
+      alert_sent: "The front desk has been alerted. Stay calm; help is coming.",
       chips: ["Wi-Fi?", "Breakfast time?", "Towels please", "Late checkout", "Checkout time?", "Nearby places"],
       express: "Express checkout", leave_time: "What time will you leave?", luggage: "I'd like help with my luggage", book_checkout: "Book express checkout",
       co_hint: "Checkout is at {t}. The front desk gets everything ready; your room is released at the time you choose.",
@@ -58,6 +60,8 @@
       heard: "सुना", no_catch: "समझ नहीं आया — फिर बोलें या टाइप करें।", mic_denied: "माइक बंद है। ब्राउज़र सेटिंग में अनुमति दें, या टाइप करें।",
       no_mic: "इस ब्राउज़र में आवाज़ नहीं चलती। कृपया टाइप करें।", hello: "नमस्ते! मैं आपका डिजिटल कंसीयर्ज हूँ। वाई-फ़ाई, खाना, चेकआउट या कुछ भी पूछिए।",
       confirm: "पक्का करें", not_now: "अभी नहीं", done_ok: "हो गया! ", cancelled: "ठीक है, कुछ नहीं भेजा।",
+      problems: "कोई परेशानी बताएँ", requests_h: "कुछ मँगवाएँ", alert_now: "फ़्रंट डेस्क को अभी अलर्ट करें", call: "कॉल करें",
+      alert_sent: "फ़्रंट डेस्क को अलर्ट भेज दिया गया है। घबराइए नहीं, मदद आ रही है।",
       chips: ["वाई-फ़ाई?", "नाश्ता कब है?", "तौलिये चाहिए", "लेट चेकआउट", "चेकआउट कब है?", "आसपास घूमने की जगह"],
       express: "एक्सप्रेस चेकआउट", leave_time: "आप कितने बजे निकलेंगे?", luggage: "सामान में मदद चाहिए", book_checkout: "एक्सप्रेस चेकआउट बुक करें",
       co_hint: "चेकआउट {t} बजे है। फ़्रंट डेस्क सब तैयार रखेगा; आपके चुने समय पर कमरा खाली माना जाएगा।",
@@ -126,6 +130,7 @@
     const d = S.data, p = d.profile || {};
     $("#hotel").textContent = p.display_name || d.hotel;
     paintLogo(window.HOI_SAFE_IMG(p.logo_url), p.display_name || d.hotel);
+    paintCover(window.HOI_SAFE_IMG(p.cover_photo_url), p.cover_photo_credit || "");
     $("#roomNo").textContent = d.room;
     $("#welcome").textContent = p.welcome || "";
     $("#demoTag").classList.toggle("hidden", !d.synthetic && !p.synthetic);
@@ -142,9 +147,20 @@
     plate.classList.remove("hidden"); $("#hotel").classList.add("hidden");
   }
 
+  // Property photo behind the header (licensed photo of the area; credit line shown under the header).
+  function paintCover(url, credit) {
+    const hero = $("#hero");
+    if (!url) { hero.classList.remove("photo"); hero.style.backgroundImage = ""; $("#photoCredit").classList.add("hidden"); return; }
+    hero.classList.add("photo");
+    hero.style.backgroundImage = `linear-gradient(180deg,rgba(10,20,40,.35),rgba(10,20,40,.78)),url("${url}")`;
+    $("#photoCredit").textContent = credit; $("#photoCredit").classList.toggle("hidden", !credit);
+  }
+
   function paintMenu() {
-    $("#menu").innerHTML = S.data.menu.map((m) =>
-      `<button type="button" class="opt" data-key="${esc(m.key)}">${esc(S.lang === "hi" ? m.label_hi : m.label)}<small>${esc(S.lang === "hi" ? m.label : m.label_hi)}</small></button>`).join("");
+    const opt = (m) => `<button type="button" class="opt${m.urgent ? " urgent" : ""}" data-key="${esc(m.key)}">${esc(S.lang === "hi" ? m.label_hi : m.label)}<small>${esc(S.lang === "hi" ? m.label : m.label_hi)}</small></button>`;
+    const reqs = S.data.menu.filter((m) => m.group !== "problem"), probs = S.data.menu.filter((m) => m.group === "problem");
+    $("#menu").innerHTML = `<h3 class="mgroup">${esc(tr("requests_h"))}</h3><div class="grid">${reqs.map(opt).join("")}</div>` +
+      (probs.length ? `<h3 class="mgroup">${esc(tr("problems"))}</h3><div class="grid">${probs.map(opt).join("")}</div>` : "");
   }
 
   function paintRequests() {
@@ -257,7 +273,12 @@
   function me(text, cls) { const el = document.createElement("div"); el.className = "msg " + (cls || "me"); el.textContent = text; $("#thread").appendChild(el); scrollThread(); return el; }
   function bot(text, action, lang, silent) {
     const el = document.createElement("div"); el.className = "msg bot"; el.textContent = text; $("#thread").appendChild(el);
-    if (action) {
+    if (action && action.urgent) {  // safety / medical: one big button + emergency numbers (tap to call)
+      const c = document.createElement("div"); c.className = "confirm urgent";
+      const nums = (action.emergency || []).filter((n) => /^\d{3,4}$/.test(n.tel)).map((n) => `<a class="tel" href="tel:${esc(n.tel)}">${esc(tr("call"))} ${esc(n.label)}</a>`).join("");
+      c.innerHTML = `<button type="button" class="btn alert" data-yes>${esc(tr("alert_now"))}</button><div class="tels">${nums}</div>`;
+      c._action = action; $("#thread").appendChild(c);
+    } else if (action) {
       const c = document.createElement("div"); c.className = "confirm";
       c.innerHTML = `<b>${esc(S.lang === "hi" && action.label_hi ? action.label_hi : action.label)}</b><div class="row"><button type="button" class="btn" data-no>${esc(tr("not_now"))}</button><button type="button" class="btn primary" data-yes>${esc(tr("confirm"))}</button></div>`;
       c._action = action; $("#thread").appendChild(c);
@@ -292,8 +313,9 @@
       if (action.action === "feedback") params.lang = S.lang;
       await api("POST", "/actions", { action: action.action, params });
       card.classList.add("done");
-      card.querySelector(".row").remove();
-      const msg = { request: tr("sent"), checkout: fmt("co_booked", { t: params.time, l: params.luggage_help ? tr("co_lug") : "" }), late_checkout: fmt("late_pending", { t: params.until }), feedback: tr("fb_thanks") }[action.action];
+      const row = card.querySelector(".row") || card.querySelector(".alert");
+      if (row) row.remove();
+      const msg = action.urgent ? tr("alert_sent") : { request: tr("sent"), checkout: fmt("co_booked", { t: params.time, l: params.luggage_help ? tr("co_lug") : "" }), late_checkout: fmt("late_pending", { t: params.until }), feedback: tr("fb_thanks") }[action.action];
       bot(tr("done_ok") + msg, null, S.lang);
       await load();
     } catch (e) { card.querySelectorAll("button").forEach((b) => { b.disabled = false; }); bot(e.message, null, null, true); }

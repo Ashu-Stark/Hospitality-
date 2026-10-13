@@ -2,18 +2,10 @@
 
 import streamlit as st
 
-from lib import config, nav, platform, portal, theme, ui
+from lib import config, platform, portal, theme, ui
 
 ui.setup("console/0_Home.py", "Home")
-ui.html(
-    theme.hero(
-        "HOI platform console",
-        "Onboard hotel groups, set plans and modules, follow how each hotel uses HOI, and review the audit log. Hotel teams work "
-        "in the separate hotel admin portal.",
-        eyebrow="Platform admin",
-        variant="dark",
-    )
-)
+ui.page_head("Platform home", "All hotel groups at a glance.")
 
 ts = ui.safe(platform.tenants, what="load hotel groups") or []
 active = [t for t in ts if t["status"] != "suspended"]
@@ -27,19 +19,6 @@ ui.html(
         ]
     )
 )
-
-quick = [p for p in st.session_state.get("_nav", []) if p[0] != "console/0_Home.py"]
-with st.container(key="ss_quick"):
-    for col, (f, label, ic) in zip(st.columns(max(len(quick), 1)), quick):
-        with col:
-            st.page_link(nav.page(f), label=label, icon=ic)
-ui.html("""<style>
-.st-key-ss_quick { background:#fff; border-radius:22px; padding:16px 10px; margin-top:12px; }
-.st-key-ss_quick [data-testid="stPageLink-NavLink"] { flex-direction:column; gap:8px; align-items:center; text-align:center; border-radius:16px; padding:8px 4px; }
-.st-key-ss_quick [data-testid="stPageLink-NavLink"]:hover { background:#f4f4f2; }
-.st-key-ss_quick [data-testid="stPageLink-NavLink"] span[data-testid="stIconMaterial"] { display:flex !important; align-items:center; justify-content:center;
-  width:48px !important; min-width:48px; height:48px; border-radius:999px; background:#e6edff; color:#0f1f3d; font-size:24px !important; }
-</style>""")
 
 c1, c2 = st.columns([1.4, 1])
 with c1:
