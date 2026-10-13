@@ -2,7 +2,7 @@ import plotly.graph_objects as go
 import streamlit as st
 
 from lib import api_client as api
-from lib import charts, data, theme, ui
+from lib import charts, data, privacy, theme, ui
 from lib.models import PLAIN_REASON
 
 ui.setup("pages/3_Employee_Detail.py", "Employee")
@@ -14,6 +14,11 @@ if not scores:
     ui.footer()
     st.stop()
 
+scores, my_dept = privacy.team_scope(scores, data.dept_map())  # department heads: their own department only
+if not scores:
+    ui.empty("No one in your department to show." if my_dept else "Your account is not linked to a department yet. Ask the owner.")
+    ui.footer()
+    st.stop()
 by_id = {s.employee_id: s for s in scores}
 names = data.hero_names()
 heroes = [e for e in names if e in by_id]
@@ -33,11 +38,12 @@ st.session_state["selected_employee"] = emp
 with c_hint:
     ui.html(
         '<div style="height:26px"></div>'
-        + " ".join(f'<span class="ss-tag" style="margin-right:4px">{theme.esc(n)}</span>' for n in names.values())
+        + " ".join(f'<span class="ss-tag" style="margin-right:4px">{theme.esc(n)}</span>' for n in (names[e] for e in heroes))
         + '<span style="color:#6b6a65;font-size:.78rem;margin-left:6px">example people · everyone else is shown by ID only</span>'
     )
 
 s = by_id[emp]
+DRIVERS = privacy.drivers(s.drivers)  # pay reasons -> "Private: ask HR" for roles other than owner / HR
 dept = data.dept_map().get(emp)
 hero = next((h for h in (ui.safe(data.heroes, what="load the last 12 weeks") or []) if h.employee_id == emp), None)
 
@@ -50,7 +56,7 @@ with st.container(key="card_head"):
             f'{theme.esc(ui.display_name(emp))}</div><div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap">'
             f"{theme.band_chip(s.band)}"
             f"{theme.basis_tag(s.band_basis)}{theme.contract_tag(s.contract_type)}</div>"
-            f'<div style="color:#52514e;font-size:.88rem;margin-top:8px;max-width:420px">{theme.esc(hero.story if hero else "")}</div></div></div>'
+            f'<div style="color:#52514e;font-size:.88rem;margin-top:8px;max-width:420px">{theme.esc(privacy.text(hero.story) if hero else "")}</div></div></div>'
         )
     with b:
         ui.html(
@@ -101,7 +107,7 @@ with ui.details("Details: last 12 weeks"):
                     fig.add_annotation(
                         x=w.week_start,
                         y=w.risk,
-                        text=w.note,
+                        text=privacy.text(w.note),
                         showarrow=True,
                         arrowhead=0,
                         ay=-36,
@@ -140,13 +146,13 @@ with ui.details("Details: last 12 weeks"):
 
 # ------------------------------------------------------------------ drivers
 ui.html('<h3 class="ss-h3">Why this person may need support</h3>')
-if s.drivers:
-    ui.takeaway(f"Biggest reason: {max(s.drivers, key=lambda d: d.contribution_logodds).title}.")
+if DRIVERS:
+    ui.takeaway(f"Biggest reason: {max(DRIVERS, key=lambda d: d.contribution_logodds).title}.")
 pb = data.playbook()
 if not s.drivers:
     ui.empty("No reasons to show." if s.contract_type == "permanent" else "Season contract: grouped by when it ends, no list of reasons.")
-for d in sorted(s.drivers, key=lambda d: -d.contribution_logodds):
-    expl = (pb.get(d.category) or {}).get("explanation", "")
+for d in sorted(DRIVERS, key=lambda d: -d.contribution_logodds):
+    expl = "" if d.title.startswith(privacy.PRIVATE) else privacy.text((pb.get(d.category) or {}).get("explanation", ""))
     ui.html(
         f'<div class="ss-card" style="padding:14px 16px;margin-bottom:8px"><div style="display:flex;justify-content:space-between;gap:8px">'
         f"<b>{theme.esc(d.title)}</b>{theme.support_chip(d.support_level)}</div>"
@@ -162,7 +168,7 @@ if s.drivers:
     with ui.details("Details: how much each reason counts"):
         st.caption(theme.SUPPORT_HELP)
         st.plotly_chart(
-            charts.driver_bars(s.drivers, height=max(260, 80 * len(s.drivers) + 80)), width="stretch", config={"displayModeBar": False}
+            charts.driver_bars(DRIVERS, height=max(260, 80 * len(DRIVERS) + 80)), width="stretch", config={"displayModeBar": False}
         )
 
 # ------------------------------------------------------------------ interventions
@@ -211,18 +217,21 @@ if not actions:
 created = st.session_state.setdefault("created_tasks", {})
 for i, (d, a) in enumerate(actions):
     key = f"ui:{emp}:{a.driver}:{i}"
+    private = not privacy.sees_pay() and (a.driver in privacy.PAY_CATEGORIES or privacy.about_pay(a.action))
     with st.container(key=f"card_act_{i}"):
         x, y = st.columns([4, 1.2])
         with x:
             done = key in created
             ui.html(
                 f'<div style="display:flex;gap:10px;align-items:flex-start">{theme.icon("check" if done else "flag", 20, "#0ca30c" if done else "#1f6fe5")}'
-                f'<div><b>{theme.esc(a.action)}</b><div style="font-size:.8rem;color:#6b6a65">'
-                f"{theme.esc(PLAIN_REASON.get(a.driver) or theme.dept_label(a.driver))} · who: "
+                f'<div><b>{theme.esc(privacy.PRIVATE if private else a.action)}</b><div style="font-size:.8rem;color:#6b6a65">'
+                f"{theme.esc(privacy.PRIVATE if private else PLAIN_REASON.get(a.driver) or theme.dept_label(a.driver))} · who: "
                 f"{theme.esc(a.owner)}{f' · check again in {a.check_after_weeks} weeks' if a.check_after_weeks else ''}</div></div></div>"
             )
         with y:
-            if key in created:
+            if private:
+                st.caption("HR handles this")
+            elif key in created:
                 st.button(f"Task #{created[key]} created", key=f"b_{key}", disabled=True)
             elif st.button("Create task", key=f"b_{key}", type="primary", icon=":material/add_task:"):
                 t = ui.safe(

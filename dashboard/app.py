@@ -13,8 +13,9 @@ Router only. What a visitor sees depends on the portal and on who is signed in:
 
 import streamlit as st
 
-from lib import access, auth, config, portal, tenancy
+from lib import access, auth, config, platform, portal, tenancy, wake
 
+wake.ensure_awake(platform.mode())  # a sleeping (Render free tier) platform API: 'Waking up the server…' while it starts
 auth.restore()  # "stay signed in": refresh-token cookie -> new session after a browser refresh
 if config.is_super():
     title = "HOI Platform Admin"
@@ -28,6 +29,8 @@ st.logo(str(portal.BRAND_DIR / "hoi-icon-192.png"), size="large")  # HOI platfor
 
 if auth.current() and not config.is_super():
     tenancy.bootstrap()  # loads the properties, so the navigation follows the property's mode (homestay / hotel)
+    if not config.current_settings().use_mocks:
+        wake.ensure_awake(config.current_settings().api_base_url)  # the ML API sleeps too
 nav = access.visible_pages()
 st.session_state["_nav"] = nav
 routable = nav if auth.current() else nav + access.portal_pages()

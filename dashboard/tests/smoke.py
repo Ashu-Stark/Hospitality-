@@ -95,6 +95,9 @@ else:
     CASES += [(f, "worker") for f, _, _ in access.EMPLOYEE_PAGES]
     # hospitality suite admin pages, rendered as each hotel role that may open them (read-only roles included)
     CASES += [(HP, r) for r in ("owner", "dept_head", "hr", "storekeeper")] + [(GS, r) for r in ("owner", "dept_head", "hr")]
+    # check-in pages: department heads see their own team, pay reasons hidden; Settings as the owner (photo proof section)
+    CASES += [("pages/2_Risk_List.py", r) for r in ("owner", "dept_head")] + [("pages/3_Employee_Detail.py", "dept_head")]
+    CASES += [("pages/12_Setup.py", "owner"), ("home.py", "owner")]
 only = [a for a in sys.argv[1:] if not a.startswith("--")]
 failed = 0
 
@@ -263,6 +266,29 @@ if not only or any(o in p for o in only for p in (HP, GS, INS)):  # wrong roles 
         nav_files = nav_of(at)
         errs = [e.value for e in at.exception]
         failed += report(not errs and page not in nav_files, f"access: {who} is not offered {page} (falls back to {nav_files[0]})", errs)
+
+if not only:  # pay is private: only the owner and HR see pay reasons
+    from lib import privacy
+    from lib.models import Driver
+
+    ds = [
+        Driver("pay_gap", "Paid less than others", "Paid 91% of the role average", 0.4, "supported"),
+        Driver("stalled_progression", "No growth in the job", "20 months since the last raise", 0.3, "supported"),
+        Driver("overtime_overload", "Too much overtime", "Averaging 9 h a week", 0.2, "supported"),
+    ]
+    head, own = privacy.drivers(ds, role="dept_head"), privacy.drivers(ds, role="owner")
+    ok = (
+        [d.title for d in head] == [privacy.PRIVATE, "No growth in the job", "Too much overtime"]
+        and head[1].reason == privacy.PRIVATE
+        and head[2].reason == ds[2].reason
+        and own == ds
+        and privacy.drivers(ds, role="hr") == ds
+        and privacy.text("Review raise timing at the next pay cycle", role="dept_head") == privacy.PRIVATE
+    )
+    failed += report(ok, "privacy: pay reasons are 'Private: ask HR' for a department head, visible to owner and HR")
+    at = run_page("pages/2_Risk_List.py", SESSIONS["dept_head"])
+    txt = " ".join(str(m.value) for m in at.markdown) + " ".join(str(c.value) for c in at.caption)
+    failed += report(not at.exception and "Paid less than others" not in txt, "privacy: the dept_head check-in list shows no pay reason")
 
 if not only:  # role filtering: pages outside a role's set must not be routable for that role
     for role, must_not in (

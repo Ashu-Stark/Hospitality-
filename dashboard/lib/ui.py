@@ -10,7 +10,7 @@ from typing import Any
 
 import streamlit as st
 
-from . import access, auth, config, data, nav, platform, portal, tenancy, theme, tour
+from . import access, auth, config, data, i18n, nav, platform, portal, tenancy, theme, tour
 from .api_client import ApiError
 from .config import current_settings
 
@@ -73,7 +73,7 @@ def _link(f: str, label: str, icon: str | None = None) -> None:
 
 def _signout(col) -> None:
     with col:
-        if st.button("Sign out", key="signout", type="tertiary"):
+        if st.button(i18n.t("Sign out"), key="signout", type="tertiary"):
             auth.logout()
             st.rerun()
 
@@ -97,14 +97,16 @@ def _section_nav(nav: list, page_file: str, u: dict | None) -> None:
     secs = access.sections(nav)
     active = access.section_of(page_file) or (secs[0][0] if secs else None)
     with st.container(key="ss_nav"):
-        cols = st.columns(len(secs) + (1 if u else 0), gap="small")
+        cols = st.columns(len(secs) + (2 if u else 0), gap="small")
         for col, (name, ic, pages) in zip(cols, secs):
             with col:
                 if name == active:
-                    st.markdown(f'<div class="ss-navactive">{theme.esc(name)}</div>', unsafe_allow_html=True)
+                    st.markdown(f'<div class="ss-navactive">{theme.esc(i18n.t(name))}</div>', unsafe_allow_html=True)
                 else:
-                    _link(pages[0][0], name, ic)
+                    _link(pages[0][0], i18n.t(name), ic)
         if u:
+            with cols[-2]:
+                i18n.toggle()  # English / हिंदी for Today and this menu
             _signout(cols[-1])
     sub = next((pages for name, _, pages in secs if name == active), [])
     sub = [p for p in sub if p[0] not in access.HIDDEN_IN_NAV or p[0] == page_file]
@@ -113,7 +115,7 @@ def _section_nav(nav: list, page_file: str, u: dict | None) -> None:
             scols = st.columns(len(sub), gap="small")
             for col, (f, label, _ic) in zip(scols, sub):
                 with col:
-                    label = "Overview" if label == active else label  # the section tab above already says "Today"
+                    label = i18n.t("Overview" if label == active else label)  # the section tab above already says "Today"
                     if f == page_file:
                         st.markdown(f'<div class="ss-subactive">{theme.esc(label)}</div>', unsafe_allow_html=True)
                     else:

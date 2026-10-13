@@ -17,6 +17,8 @@ from typing import Any
 import requests
 import streamlit as st
 
+from . import wake
+
 BACKEND_DIR = Path(__file__).resolve().parents[2] / "platform_api"
 
 
@@ -49,9 +51,10 @@ def _send(method: str, path: str, headers: dict, **kw) -> Any:
     try:
         if mode() == "embedded":
             return _embedded_client().request(method, path, headers=headers, **kw)
-        return requests.request(method, mode().rstrip("/") + path, headers=headers, timeout=30, **kw)
+        base = mode().rstrip("/")
+        return wake.request(method, base + path, base, headers=headers, **kw)  # one retry while a sleeping server wakes up
     except requests.exceptions.RequestException:
-        raise PlatformError("The server is not answering. Try again in a minute.") from None
+        raise PlatformError("The server is not answering. It may be waking up: try again in a minute.") from None
 
 
 def try_refresh() -> bool:
@@ -157,7 +160,6 @@ def publish_roster(week_start: str | None, assignments: list[dict]) -> dict:
     return call("PUT", "/dispatch/roster", json={"week_start": week_start, "assignments": assignments})
 
 
-@st.cache_data(ttl=3600, show_spinner=False)
 @st.cache_data(ttl=3600, show_spinner=False)
 def asset_data_uri(path: str) -> str | None:
     """A small static asset served by the platform API (e.g. a hotel logo at /shared/brand/...) as a data: URI, fetched
@@ -397,3 +399,13 @@ def guest_feedback(days: int = 30) -> Any:
 
 def guest_checkouts(day: str | None = None) -> Any:
     return call("GET", "/guest-services/checkouts", params={"date": day} if day else None)
+
+
+# ------------------------------------------------------------------ photo proof: which job kinds need a before / after photo
+def photo_proof_settings() -> dict:
+    """{"kinds": [{kind, label, before, after}], "defaults": [...]} (owner edits; others read)."""
+    return call("GET", "/hotel/settings/photo-proof")  # per hotel (tenant), not per property
+
+
+def save_photo_proof_settings(kinds: list[dict]) -> dict:
+    return call("PUT", "/hotel/settings/photo-proof", json={"kinds": kinds})

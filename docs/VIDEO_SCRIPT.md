@@ -24,7 +24,7 @@ Use this if you only re-record the voice and change the on-screen text, without 
 | 0:52–0:56 | Logo | "Hospitality Operations Intelligence." | none |
 | 0:56–1:00 | "Smarter hotels. Happier teams." | "Smarter hotels. Happier teams." | none |
 
-**Voice-over only (Version A, 141 words), for reading straight through:**
+**Voice-over only (Version A, about 145 words), for reading straight through:**
 
 > Running a hotel in the hills is all about people. But good staff quit without warning, and guests come in waves: Char Dham
 > rush, then quiet months.
@@ -57,7 +57,7 @@ Use real screen recordings from the live apps for the new scenes (`python script
 | 0:52–0:56 | **Travel guide** home: places, stays, experiences, jobs | "And it's linked to a travel guide for tourists, verified stays and local jobs." |
 | 0:56–1:00 | Logo, "Smarter hotels. Happier teams." | "HOI. Smarter hotels. Happier teams." |
 
-**Voice-over only (Version B, 148 words):**
+**Voice-over only (Version B, about 150 words):**
 
 > Saturday, peak season, Mussoorie. Every room is full, two housekeepers didn't come, and room 104 is still waiting for towels.
 > Meet HOI. It helps small hotels see the rush coming and run every day smoothly.

@@ -12,6 +12,7 @@ from typing import Any
 import requests
 
 from . import mock_backend as mock
+from . import wake
 from .config import Settings, current_settings
 
 _session = requests.Session()
@@ -64,7 +65,9 @@ def _http(
 ) -> Any:
     url = s.api_base_url + path
     try:
-        r = _session.request(method, url, params=params, json=json, data=data, files=files, timeout=timeout or s.timeout_s)
+        r = wake.request(  # one retry with a longer timeout while a sleeping (Render free tier) server wakes up
+            method, url, s.api_base_url, session=_session, params=params, json=json, data=data, files=files, timeout=timeout or s.timeout_s
+        )
     except requests.exceptions.ConnectionError as e:
         raise ApiError(
             "The server is not answering. Try again in a minute, or press Refresh.",
@@ -73,8 +76,7 @@ def _http(
         ) from None
     except requests.exceptions.Timeout:
         raise ApiError(
-            f"The server took too long (more than {timeout or s.timeout_s:.0f} seconds). It may be waking up. "
-            "Wait a minute, then press Refresh.",
+            "The server took too long. It may be waking up (this can take about a minute). Wait a minute, then press Refresh.",
             endpoint=path,
         ) from None
     if r.status_code >= 400:

@@ -279,6 +279,8 @@ button:focus-visible, a:focus-visible, [role="tab"]:focus-visible, input:focus-v
 .st-key-ss_nav [data-testid="stHorizontalBlock"] {{ gap:2px !important; align-items:center; flex-wrap:wrap !important; }}
 @media (max-width: 820px) {{ .st-key-ss_nav [data-testid="stHorizontalBlock"] {{ flex-wrap:nowrap !important; overflow-x:auto; scrollbar-width:none; }} }}
 .st-key-ss_nav {{ border-radius:28px !important; }}
+.st-key-lang_toggle button {{ border:1.5px solid #d9d8d3 !important; border-radius:999px; padding:2px 12px !important; margin:0 6px; min-height:32px; }}
+@media (max-width: 820px) {{ .st-key-ss_nav [data-testid="stColumn"]:has(.st-key-lang_toggle) {{ order:-1; }} }}  /* phones: language first, always visible */
 .st-key-ss_nav [data-testid="stHorizontalBlock"]::-webkit-scrollbar {{ display:none; }}
 .st-key-ss_nav [data-testid="stColumn"] {{ width:auto !important; flex:0 0 auto !important; min-width:0 !important; }}
 .st-key-ss_nav [data-testid="stPageLink-NavLink"] {{ border-radius:999px; padding:6px 12px; justify-content:center; transition:background .15s; }}

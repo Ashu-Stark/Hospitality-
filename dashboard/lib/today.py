@@ -3,6 +3,7 @@ gets None for those numbers, never an error). Everything is scoped to the proper
 
 from __future__ import annotations
 
+import re
 from datetime import datetime
 
 from . import auth, platform, tenancy
@@ -43,6 +44,10 @@ def gather() -> dict:
     if gs is not None:
         reqs = [q for q in gs.get("open_requests", []) if not numbers or q.get("room") in numbers]
         out["late_checkouts"] = gs.get("late_checkouts_pending", 0)
+        if out["late_checkouts"]:  # the rooms and times, for a plain sentence on Today
+            rows = _try(platform.late_checkouts)
+            rows = rows if isinstance(rows, list) else (rows or {}).get("items") if isinstance(rows, dict) else None
+            out["late_checkout_rows"] = [r for r in rows or [] if r.get("status") == "pending"]
         out["checkouts_today"] = (gs.get("checkouts_today") or {}).get("count")
         out["urgent"] = [a for a in gs.get("urgent_alerts", []) if not numbers or a.get("room") in numbers]
     out["requests"] = reqs
@@ -144,3 +149,92 @@ def people_for_hours(ro, shift: str, hours: float) -> int:
     lengths = [float(a.get("hours") or 0) for a in ro.assignments if a.get("shift") == shift and a.get("hours")]
     shift_h = median(lengths) if lengths else 8.0
     return max(1, ceil(hours / shift_h - 0.15))
+
+
+# ------------------------------------------------------------------ plain sentences for the "Also needs you" rows
+TEAM = {
+    "front_office": "the front desk",
+    "housekeeping": "housekeeping",
+    "maintenance": "maintenance",
+    "fnb_service": "the restaurant team",
+    "kitchen": "the kitchen",
+    "security": "security",
+    "management": "the manager",
+    "stores": "the store",
+}
+_ROOM_SUFFIX = re.compile(r"\s*·\s*room\s+\S+\s*$", re.I)
+
+
+def team(department: str | None) -> str:
+    d = str(department or "").strip().lower()
+    return TEAM.get(d) or (d.replace("_", " ") if d else "someone")
+
+
+def waited(minutes: float | None) -> str:
+    """40 -> '40 min', 75 -> '1 h 15 min', 1 -> '1 min'."""
+    if minutes is None:
+        return ""
+    m = max(1, int(minutes))
+    if m < 60:
+        return f"{m} min"
+    h, r = divmod(m, 60)
+    return f"{h} h {r} min" if r else f"{h} h"
+
+
+def _lower_first(s: str) -> str:
+    """'Fresh towels' -> 'fresh towels', but 'AC / heater not working' stays as it is."""
+    return s[:1].lower() + s[1:] if len(s) > 1 and s[1:2].islower() else s
+
+
+def job_sentence(j: dict) -> str:
+    """'Something else: Call on the front desk. · room 101' (front_office) -> 'Room 101 needs the front desk. The guest
+    wrote: "Call on the front desk."'. The guest's own words are shown in quotes; the request type in plain words."""
+    base = _ROOM_SUFFIX.sub("", str(j.get("title") or "")).strip()
+    label, _, note = base.partition(": ")
+    label, note = label.strip(), note.strip()
+    said = f' The guest wrote: "{note}"' if note else ""
+    who = team(j.get("department"))
+    if not j.get("room"):
+        return f"{base or 'A job'} ({who})."
+    if label.lower().startswith("something else"):
+        return f"Room {j['room']} needs {who}.{said}"
+    return f"Room {j['room']} needs {who}: {_lower_first(label)}.{said}"
+
+
+def waiting_sentence(j: dict) -> str:
+    m = _minutes_since(j.get("created_at"))
+    return f"Nobody has taken it for {waited(m)}." if m is not None else "Nobody has taken it yet."
+
+
+def late_sentence(jobs: list[dict]) -> tuple[str, str]:
+    """(title, why) for jobs past their target time."""
+    oldest = max(jobs, key=lambda j: _minutes_since(j.get("accepted_at")) or 0)
+    m = _minutes_since(oldest.get("accepted_at"))
+    title = f"{job_sentence(oldest)} It is taking longer than it should."
+    if len(jobs) > 1:
+        title = f"{len(jobs)} jobs are taking longer than they should."
+        why = f"The oldest: {job_sentence(oldest)} Started {waited(m)} ago." if m is not None else f"The oldest: {job_sentence(oldest)}"
+    else:
+        why = f"Started {waited(m)} ago." if m is not None else "Past its target time."
+    return title, why
+
+
+def late_checkout_sentence(count: int, rows: list[dict] | None) -> tuple[str, str]:
+    """(title, why) for guests waiting for a yes or no on a late checkout."""
+    rows = rows or []
+    first = min(rows, key=lambda r: str(r.get("created_at") or "")) if rows else None
+    if count == 1 and first:
+        title = f"Room {first.get('room')} wants to check out late, at {first.get('until')}."
+    elif rows:
+        rooms = ", ".join(str(r.get("room")) for r in rows[:3]) + (" …" if len(rows) > 3 else "")
+        title = f"{count} guests want to check out late (rooms {rooms})."
+    else:
+        title = f"{count} guest{'s want' if count != 1 else ' wants'} to check out late."
+    m = _minutes_since(first.get("created_at")) if first else None
+    why = (f"Asked {waited(m)} ago. " if m is not None else "") + "They are waiting for your yes or no."
+    return title, why
+
+
+def names_sentence(names: list[str]) -> str:
+    """['HS05'] -> 'HS05', ['HS05', 'HS12'] -> 'HS05 and HS12', 3+ -> 'HS05, HS12 and HS14'."""
+    return names[0] if len(names) == 1 else ", ".join(names[:-1]) + " and " + names[-1]

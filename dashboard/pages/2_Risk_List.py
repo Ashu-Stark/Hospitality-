@@ -2,7 +2,7 @@ import pandas as pd
 import streamlit as st
 
 from lib import api_client as api
-from lib import charts, data, platform, theme, ui
+from lib import auth, charts, data, platform, privacy, theme, ui
 from lib.config import current_settings
 
 ui.setup("pages/2_Risk_List.py", "May leave soon?")
@@ -21,6 +21,17 @@ if not scores:
     st.stop()
 
 depts = data.dept_map()
+scores, my_dept = privacy.team_scope(scores, depts)  # department heads: their own department only
+if not scores:
+    ui.empty(
+        f"No one in {theme.dept_label(my_dept).lower()} to show for this week."
+        if my_dept
+        else "Your account is not linked to a department yet. Ask the owner to link it to your staff ID."
+    )
+    ui.footer()
+    st.stop()
+if my_dept:
+    st.caption(f"Showing your department only: {theme.dept_label(my_dept)}. Reasons about pay are private (ask HR).")
 
 
 # ------------------------------------------------------------------ what to do next (retention check-in)
@@ -44,7 +55,7 @@ def _plan(emp: str) -> dict | None:
 
 
 def _fallback_points(sc) -> list[str]:
-    pts = [f"{d.title}. Ask how they feel about it." for d in sc.drivers[:3]]
+    pts = [f"{d.title}. Ask how they feel about it." for d in sc.drivers[:3] if not privacy.is_pay_driver(d) or privacy.sees_pay()]
     return (pts + ["Ask how work is going for them this month.", "Ask if one thing would make their week easier."])[: max(2, len(pts))]
 
 
@@ -52,7 +63,7 @@ def _talk_block(emp: str, sc, plan: dict | None) -> None:
     points = plan["talking_points"] if plan else _fallback_points(sc)
     st.markdown("**Talk to them**")
     for x in points:
-        st.markdown(f"- {x}")
+        st.markdown(f"- {privacy.text(x)}")
     if plan and plan.get("talked"):
         st.success(f"Talk noted on {str(plan.get('talked_at') or '')[:10]}.", icon=":material/check_circle:")
         return
@@ -61,7 +72,12 @@ def _talk_block(emp: str, sc, plan: dict | None) -> None:
         return
     if st.button("We talked", key=f"talk_{emp}", icon=":material/forum:", help="Saves that the talk happened. No notes are stored."):
         try:
-            api._http("POST", "/retention/talks", current_settings(), json={"employee_id": emp, "week_start": plan["week_start"], "points": points})
+            api._http(
+                "POST",
+                "/retention/talks",
+                current_settings(),
+                json={"employee_id": emp, "week_start": plan["week_start"], "points": points},
+            )
             st.toast("Talk noted.")
             st.rerun()
         except api.ApiError as e:
@@ -126,7 +142,7 @@ def _next_steps(emp: str, sc) -> None:
     level = plan["level"] if plan else {"watch": "moderate"}.get(sc.band, sc.band)
     label = {"low": "Low", "moderate": "Moderate", "high": "High"}.get(level, "Not known")
     ui.html(f"<div style='margin:6px 0'>Chance of leaving: {theme.band_chip(LEVEL_BAND.get(level, 'unknown'), label)}</div>")
-    if level == "high":
+    if level == "high" and auth.role() in privacy.WHOLE_HOTEL_ROLES:  # posting a job on the portal: owner / HR
         t, c = st.columns(2)
         with t:
             _talk_block(emp, sc, plan)
@@ -135,7 +151,6 @@ def _next_steps(emp: str, sc) -> None:
     else:
         _talk_block(emp, sc, plan)
     st.caption("Based on a model trained on SYNTHETIC (made-up) data. A prompt for a friendly chat, not a judgement.")
-
 
 
 # ------------------------------------------------------------------ summary first
@@ -187,7 +202,7 @@ for s in scores:
             "of": s.group_size,
             "Same place": "yes" if s.rank_is_tied else "",
             "Based on": theme.BASIS[s.band_basis][0],
-            "Main reason": td.title if td and s.band != "low" else "—",
+            "Main reason": (privacy.drivers([td])[0].title if td and s.band != "low" else "—"),
             "Chance (90 days)": s.risk,
             "_band": s.band,
         }
@@ -197,7 +212,38 @@ order = {theme.BAND[k]["label"]: i for i, k in enumerate(["high", "watch", "low"
 if not df.empty:
     df = df.sort_values(["Contract", "Group", "Place"], key=lambda c: c.map(order) if c.name == "Group" else c).reset_index(drop=True)
 
-ui.takeaway(f"{len(df)} people. Tap a row to see why, and what support may help.")
+
+def _person_card(emp: str, i: int) -> None:
+    """Why this person may need support, and what to do next (one card per selected person)."""
+    s = next(x for x in scores if x.employee_id == emp)
+    ds = privacy.drivers(s.drivers)
+    with st.container(key=f"card_drill_{i}"):
+        a, b = st.columns([1.5, 1])
+        with a:
+            ui.html(
+                f'<div class="ss-person">{ui.avatar_img(depts.get(emp), 46)}'
+                f'<div><div style="font-weight:600;font-size:1.15rem">{theme.esc(ui.display_name(emp))}</div>'
+                f'<div style="display:flex;gap:6px;margin-top:4px;flex-wrap:wrap">{theme.band_chip(s.band)}{theme.basis_tag(s.band_basis)}'
+                f'{theme.contract_tag(s.contract_type)}<span class="ss-tag">place {s.rank} of {s.group_size}</span></div></div></div>'
+            )
+            if ds:
+                st.plotly_chart(charts.driver_bars(ds), width="stretch", config={"displayModeBar": False}, key=f"bars_{emp}")
+            elif s.contract_type == "seasonal":
+                ui.empty("Seasonal staff are grouped by when their contract ends, so there is no list of reasons.")
+            else:
+                ui.empty("No reasons to show for this person.")
+        with b:
+            st.markdown("**How clear is each reason?**", help=theme.SUPPORT_HELP)
+            ui.html(" ".join(theme.support_chip(k) for k in theme.SUPPORT))
+            for d in ds:
+                st.markdown(f"- **{d.title}**" + (f": {d.reason}" if d.reason else ""))
+            if st.button("Open this person", icon=":material/person:", key=f"open_{emp}"):
+                ui.go_to_employee(emp)
+        st.divider()
+        _next_steps(emp, s)
+
+
+ui.takeaway(f"{len(df)} people. Tick Select for the people you want to talk to, then press Plan check-ins.")
 if df.empty:
     ui.empty("No employees match these filters.")
 else:
@@ -208,26 +254,44 @@ else:
         return f"background-color:{b['bg']};color:{b['fg']};font-weight:600"
 
     details = st.toggle("More columns", key="risk_details", help="Show place in the team, contract and the chance number")
-    main = ["Role", "Employee", "Department", "Group", "Main reason"]
+    main = ["Select", "Role", "Employee", "Department", "Group", "Main reason"]
     show = df.drop(columns=["employee_id", "_band"])
+    show.insert(0, "Select", False)
     if not details:
         show = show[main]
-    ev = st.dataframe(
+    # the table changes with the filters: a new key per row set, so a tick can never move to another person
+    sel_key = "risk_sel_" + str(abs(hash(tuple(df["employee_id"]))) % 10**10)
+    edited = st.data_editor(
         show.style.map(band_style, subset=["Group"]).format({"Chance (90 days)": "{:.0%}"} if details else {}),
         hide_index=True,
         width="stretch",
-        on_select="rerun",
-        selection_mode="single-row",
         height=min(560, 38 * len(df) + 40),
+        disabled=[c for c in show.columns if c != "Select"],
+        key=sel_key,
         column_config={
+            "Select": st.column_config.CheckboxColumn(
+                "Select", width="small", help="Tick the people you want to talk to, then press Plan check-ins"
+            ),
             "Role": st.column_config.ImageColumn("Role", width="small", help="Department picture (a drawing, not a photo)"),
             "Chance (90 days)": st.column_config.ProgressColumn("Chance (90 days)", min_value=0, max_value=1, format="percent"),
             "Place": st.column_config.NumberColumn(width="small"),
             "of": st.column_config.NumberColumn(width="small"),
         },
     )
-    e1, e2 = st.columns([1, 4])
+    picked = [df.iloc[i]["employee_id"] for i in range(len(df)) if bool(edited.iloc[i]["Select"])]
+    e1, e2, e3 = st.columns([1.2, 1.2, 2.6], vertical_alignment="center")
     with e1:
+        if st.button(
+            f"Plan check-ins ({len(picked)})" if picked else "Plan check-ins",
+            type="primary",
+            key="plan_checkins",
+            icon=":material/forum:",
+            disabled=not picked,
+            width="stretch",
+            help="Shows why each ticked person may need support, what to talk about, and the next steps",
+        ):
+            st.session_state["risk_plan"] = picked
+    with e2:
         export = df[["employee_id", "Department", "Contract", "Group", "Place", "of", "Based on", "Main reason", "Chance (90 days)"]]
         st.download_button(
             "Download (Excel/CSV)",
@@ -236,38 +300,21 @@ else:
             "text/csv",
             icon=":material/download:",
             help="IDs only, no names. Uses your filters.",
+            width="stretch",
         )
-    with e2:
+    with e3:
+        if not picked:
+            st.caption("Tick one or more people in the Select column first.")
         if not depts:
             st.caption("Departments come from the shift plan. Make one to fill them in.")
 
-    sel = ev.selection.rows if ev and ev.selection else []
-    if sel:
-        emp = df.iloc[sel[0]]["employee_id"]
-        s = next(x for x in scores if x.employee_id == emp)
-        with st.container(key="card_drill"):
-            a, b = st.columns([1.5, 1])
-            with a:
-                ui.html(
-                    f'<div class="ss-person">{ui.avatar_img(depts.get(emp), 46)}'
-                    f'<div><div style="font-weight:600;font-size:1.15rem">{theme.esc(ui.display_name(emp))}</div>'
-                    f'<div style="display:flex;gap:6px;margin-top:4px">{theme.band_chip(s.band)}{theme.basis_tag(s.band_basis)}'
-                    f'{theme.contract_tag(s.contract_type)}<span class="ss-tag">place {s.rank} of {s.group_size}</span></div></div></div>'
-                )
-                if s.drivers:
-                    st.plotly_chart(charts.driver_bars(s.drivers), width="stretch", config={"displayModeBar": False})
-                elif s.contract_type == "seasonal":
-                    ui.empty("Seasonal staff are grouped by when their contract ends, so there is no list of reasons.")
-                else:
-                    ui.empty("No reasons to show for this person.")
-            with b:
-                st.markdown("**How clear is each reason?**", help=theme.SUPPORT_HELP)
-                ui.html(" ".join(theme.support_chip(k) for k in theme.SUPPORT))
-                for d in s.drivers:
-                    st.markdown(f"- **{d.title}**: {d.reason}")
-                if st.button("Open this person", icon=":material/person:"):
-                    ui.go_to_employee(emp)
-            st.divider()
-            _next_steps(emp, s)
+    plan_ids = [e for e in st.session_state.get("risk_plan") or [] if e in set(df["employee_id"])]
+    if plan_ids:
+        ui.html(f'<h3 class="ss-h3">Check-in plan: {len(plan_ids)} {"person" if len(plan_ids) == 1 else "people"}</h3>')
+        MAX_CARDS = 5  # keep the page short; plan the rest in a second round
+        for i, emp in enumerate(plan_ids[:MAX_CARDS]):
+            _person_card(emp, i)
+        if len(plan_ids) > MAX_CARDS:
+            st.caption(f"Showing the first {MAX_CARDS}. Untick them and plan the others next.")
 
 ui.footer()

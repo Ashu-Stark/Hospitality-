@@ -17,6 +17,65 @@ IS_OWNER = auth.role() in ("owner", "platform_admin")
 HOMESTAY = tenancy.is_homestay()
 tab_prop, tab_ob, tab_team, tab_plan = st.tabs(["This hotel", "Setup steps", "Team & access", "Plan"])
 
+
+def _save_photos(rows: list[dict]) -> bool:
+    try:
+        platform.save_photo_proof_settings(rows)
+        return True
+    except platform.PlatformError as e:
+        st.error("Available after the next update." if e.status == 404 else f"Could not save. {e.message}")
+        return False
+
+
+def _photo_proof() -> None:
+    """Photos staff must take: one row per job kind, a before and an after tick. Owner edits; everyone else reads."""
+    can_edit = auth.role() == "owner"
+    with st.container(key="card_photos"):
+        st.markdown("**Photos staff must take**")
+        try:
+            cfg = platform.photo_proof_settings()
+        except platform.PlatformError as e:
+            if e.status == 404:
+                st.caption("Available after the next update.")
+            else:
+                st.caption(f"Could not load the photo settings. {e.message}")
+            return
+        kinds = [k for k in (cfg or {}).get("kinds") or [] if isinstance(k, dict) and k.get("kind")]
+        if not kinds:
+            st.caption("No job types to set yet.")
+            return
+        st.caption(
+            "For each type of job: does the staff app ask for a photo before the work, after it, or both? "
+            + ("" if can_edit else "Only the owner can change this.")
+        )
+        rows = []
+        for k in kinds:
+            c1, c2, c3 = st.columns([3, 1, 1], vertical_alignment="center")  # on a phone these stack; each tick keeps its label
+            c1.markdown(f"**{theme.esc(k.get('label') or str(k['kind']).replace('_', ' ').capitalize())}**")
+            b = c2.checkbox("Photo before", value=bool(k.get("before")), key=f"pp_b_{k['kind']}", disabled=not can_edit)
+            a = c3.checkbox("Photo after", value=bool(k.get("after")), key=f"pp_a_{k['kind']}", disabled=not can_edit)
+            rows.append({"kind": k["kind"], "before": bool(b), "after": bool(a)})
+        if not can_edit:
+            return
+        s1, s2, _ = st.columns([1, 1.4, 2])
+        if s1.button("Save", key="act_photos", type="primary", width="stretch"):
+            if _save_photos(rows):
+                st.toast("Saved")
+                st.rerun()
+        if s2.button("Reset to recommended", key="act_photos_reset", width="stretch"):
+            defaults = [
+                {"kind": d["kind"], "before": bool(d.get("before")), "after": bool(d.get("after"))}
+                for d in (cfg or {}).get("defaults") or []
+                if isinstance(d, dict) and d.get("kind")
+            ]
+            if _save_photos(defaults):
+                for k in kinds:  # let the ticks show the saved values again
+                    st.session_state.pop(f"pp_b_{k['kind']}", None)
+                    st.session_state.pop(f"pp_a_{k['kind']}", None)
+                st.toast("Back to the recommended photos")
+                st.rerun()
+
+
 # ------------------------------------------------------------------ this property: mode, budget, recognition, portal key
 with tab_prop:
     ui.property_picker(key="prop_pick_settings", label="Hotel")
@@ -85,6 +144,8 @@ with tab_prop:
                 if ui.safe(platform.update_property, P["id"], portal_api_key="", what="remove the key"):
                     tenancy.refresh()
                     st.rerun()
+
+        _photo_proof()
 
 
 def go(n: int) -> None:
@@ -242,7 +303,7 @@ with tab_team:
         theme.section(
             "Team & access",
             "Users",
-            "Everyone who can sign in. Staff only see the staff app. Only the owner/GM and HR see the 'May leave soon?' page.",
+            "Everyone who can sign in. Staff only see the staff app. The owner/GM and HR see the whole 'May leave soon?' page; department heads see only their own team, without pay reasons.",
         )
     )
     me_user = auth.current() or {}

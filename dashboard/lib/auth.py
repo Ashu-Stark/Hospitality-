@@ -28,8 +28,8 @@ HOTEL_ROLES = ["owner", "hr", "dept_head", "storekeeper", "worker"]
 ACCESS = {
     "home.py": {"owner", "hr", "dept_head", "storekeeper"},
     "pages/1_Overview.py": {"owner", "hr", "dept_head"},
-    "pages/2_Risk_List.py": {"owner", "hr"},
-    "pages/3_Employee_Detail.py": {"owner", "hr"},
+    "pages/2_Risk_List.py": {"owner", "hr", "dept_head"},  # dept_head: own department only, no pay reasons (lib.privacy)
+    "pages/3_Employee_Detail.py": {"owner", "hr", "dept_head"},
     "pages/4_What_If_Simulator.py": {"owner", "hr"},
     "pages/5_Roster.py": {"owner", "dept_head"},
     "pages/6_Closed_Loop.py": {"owner", "hr"},
