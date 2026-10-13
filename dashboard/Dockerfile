@@ -1,7 +1,8 @@
 # HOI dashboard (Streamlit). Talks to the platform API over HTTP (PLATFORM_API_URL) and the ML API (API_BASE_URL).
+# One image, two admin portals: ADMIN_PORTAL=hotel (default, hotel staff) or ADMIN_PORTAL=super (HOI platform admins).
 FROM python:3.12-slim
 
-ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 USE_MOCKS=true
+ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 USE_MOCKS=true ADMIN_PORTAL=hotel
 WORKDIR /app
 
 COPY requirements.txt .

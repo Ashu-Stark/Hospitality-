@@ -20,6 +20,8 @@ os.environ["PORTAL_LOGIN_RATE_PER_MINUTE"] = "100000"
 os.environ["PORTAL_GRIEVANCE_RATE_PER_HOUR"] = "100000"
 os.environ["PORTAL_TRACK_RATE_PER_MINUTE"] = "100000"
 os.environ["PORTAL_INGEST_RATE_PER_MINUTE"] = "100000"
+for _k in ("PROFILE_RATE_PER_HOUR", "MESSAGE_RATE_PER_HOUR", "APPLY_RATE_PER_DAY", "INTEREST_RATE_PER_DAY", "JOB_POST_RATE_PER_DAY"):
+    os.environ["PORTAL_" + _k] = "100000"  # hiring-board limits; test_hiring lowers them where it tests them
 os.environ.pop("PORTAL_ADMIN_PASSWORD", None)
 os.environ.pop("PORTAL_JWT_SECRET", None)
 for _k in ("BESTTIME_API_KEY_PRIVATE", "BESTTIME_API_KEY_PUBLIC", "LOCATIONIQ_API_KEY", "TOMTOM_API_KEY"):  # external APIs: tests use fakes
@@ -95,6 +97,11 @@ def admin(client):
 @pytest.fixture
 def officer(client):
     return login(client, "demo.officer.rudraprayag")
+
+
+@pytest.fixture
+def seeker(client):
+    return login(client, "demo.seeker")
 
 
 @pytest.fixture

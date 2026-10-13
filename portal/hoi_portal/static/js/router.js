@@ -41,7 +41,7 @@ export async function render() {
   if (typeof cleanup === 'function') { try { cleanup(); } catch { /* ignore */ } }
   cleanup = null;
   if (r?.roles && !r.roles.includes(role())) {
-    go('/signin', { next: path + (Object.keys(query).length ? '?' + new URLSearchParams(query) : ''), need: r.roles.includes('business') ? 'business' : 'official' });
+    go('/signin', { next: path + (Object.keys(query).length ? '?' + new URLSearchParams(query) : ''), need: r.roles.includes('business') ? 'business' : r.roles.includes('job_seeker') ? 'seeker' : 'official' });
     return;
   }
   onNav(path, r);

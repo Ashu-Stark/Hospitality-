@@ -3,7 +3,7 @@ import { qs } from './ui.js';
 
 const BASE = '/api/v1';
 const KEY = 'uthp.session';
-const PRIVATE = /^\/(business|officer|analytics|admin|auth\/me)/;
+const PRIVATE = /^\/(business|officer|analytics|admin|auth\/me|me\/|candidates|jobs\/(mine|threads|applications)|jobs\/[^/?]+\/(applications|apply))/;
 
 export class ApiError extends Error {
   constructor(status, message, data = null, retryAfter = null) {
@@ -102,8 +102,8 @@ export async function api(path, opts = {}) {
 export async function login(username, password) {
   return saveLogin(await raw('/auth/login', { method: 'POST', body: { username, password } }));
 }
-export async function register(username, password) {
-  return saveLogin(await raw('/auth/register', { method: 'POST', body: { username, password } }));
+export async function register(username, password, role = 'business') {
+  return saveLogin(await raw('/auth/register', { method: 'POST', body: { username, password, role } }));
 }
 export async function demoLogin(username) {
   return saveLogin(await raw('/auth/demo/' + encodeURIComponent(username), { method: 'POST' }));
@@ -127,4 +127,11 @@ export function demoAccounts() {
   if (!demoP) demoP = raw('/auth/demo-accounts').catch(() => { demoP = null; return []; });
   return demoP;
 }
+let jobsMetaP = null;
+export function jobsMeta() {
+  if (!jobsMetaP) jobsMetaP = raw('/jobs/meta').catch((e) => { jobsMetaP = null; throw e; });
+  return jobsMetaP;
+}
+/** Dashboard path of a signed-in role. */
+export const homeOf = (r) => (r === 'business' ? '/business' : r === 'job_seeker' ? '/seeker' : '/officer');
 export const districtName = async (id) => (await meta()).districts.find((d) => d.id === id)?.name || id;

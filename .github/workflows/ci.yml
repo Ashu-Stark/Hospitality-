@@ -42,6 +42,11 @@ jobs:
       - name: Portal tests
         working-directory: portal
         run: python -m pytest -q
-      - name: Dashboard smoke test (all pages, mock ML data, embedded platform API)
+      - name: Dashboard smoke test, hotel admin portal (all pages, mock ML data, embedded platform API)
         working-directory: dashboard
+        run: python tests/smoke.py
+      - name: Dashboard smoke test, super-admin portal
+        working-directory: dashboard
+        env:
+          ADMIN_PORTAL: super
         run: python tests/smoke.py

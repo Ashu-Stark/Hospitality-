@@ -14,7 +14,7 @@ router = APIRouter(prefix="/api/v1/admin", tags=["admin"])
 
 @router.get("/users")
 def list_users(
-    role: str | None = Query(None, pattern="^(state_admin|district_officer|business)$"), p: Principal = Depends(admin_only)
+    role: str | None = Query(None, pattern="^(state_admin|district_officer|business|job_seeker)$"), p: Principal = Depends(admin_only)
 ) -> dict:
     items = users.list_users(role)
     return {"items": items, "total": len(items)}

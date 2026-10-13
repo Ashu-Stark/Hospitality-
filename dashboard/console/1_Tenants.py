@@ -1,7 +1,7 @@
 import pandas as pd
 import streamlit as st
 
-from lib import access, auth, nav, platform, tenancy, theme, ui
+from lib import access, platform, portal, tenancy, theme, ui
 from lib.config import DEFAULT_API
 
 ui.setup("console/1_Tenants.py", "Hotels")
@@ -68,6 +68,7 @@ if inv := st.session_state.get("new_invite"):
 
 # ------------------------------------------------------------------ manage
 ui.html(theme.section("All hotel groups", "Manage"))
+portal.open_hotel_help()
 for t in ts:
     c = t["counts"]
     suspended = t["status"] == "suspended"
@@ -85,7 +86,7 @@ for t in ts:
                 f"{'onboarded' if t['onboarded'] else 'setup step ' + str(t['onboarding_step']) + '/5'}</div></div></div>"
             )
         with b:
-            x1, x2, x3 = st.columns(3)
+            x1, x2, x3 = st.columns([1, 1, 1.3])
             new_plan = x1.selectbox(
                 "Plan",
                 list(tenancy.PLANS),
@@ -100,10 +101,7 @@ for t in ts:
             if not t["is_demo"] and x2.button("Reactivate" if suspended else "Suspend", key=f"sus_{t['id']}", width="stretch"):
                 ui.safe(platform.update_tenant, t["id"], status="active" if suspended else "suspended", what="change status")
                 st.rerun()
-            if x3.button("Open", key=f"open_{t['id']}", type="primary", width="stretch", disabled=suspended):
-                auth.open_workspace(t["id"])
-                tenancy.on_tenant_change()
-                st.switch_page(nav.page("home.py"))
+            portal.open_hotel_control(x3, t["id"], disabled=suspended, key=f"open_{t['id']}")
         with st.expander("Modules and owner invite"):
             picked = st.multiselect(
                 "Enabled modules",

@@ -86,7 +86,8 @@ def on_tenant_change() -> None:
     ):
         st.session_state.pop(k, None)
     st.cache_data.clear()
-    refresh()
+    if active().get("id"):  # a platform admin's console token has no workspace to refresh
+        refresh()
     _apply(active())
 
 

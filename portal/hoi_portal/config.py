@@ -40,6 +40,12 @@ class Settings:
     track_rate_per_minute: int = 20
     verify_rate_per_minute: int = 60
     ingest_rate_per_minute: int = 120
+    # Hiring board (per user; profile creation also per IP x 4).
+    profile_rate_per_hour: int = 5
+    message_rate_per_hour: int = 30
+    apply_rate_per_day: int = 20
+    interest_rate_per_day: int = 40
+    job_post_rate_per_day: int = 20
     weather_enabled: bool = True
     weather_ttl_minutes: int = 30
     # External data APIs (keys from the environment only; never logged or sent to the browser).
@@ -87,6 +93,11 @@ def load() -> Settings:
         track_rate_per_minute=int(os.getenv("PORTAL_TRACK_RATE_PER_MINUTE", "20")),
         verify_rate_per_minute=int(os.getenv("PORTAL_VERIFY_RATE_PER_MINUTE", "60")),
         ingest_rate_per_minute=int(os.getenv("PORTAL_INGEST_RATE_PER_MINUTE", "120")),
+        profile_rate_per_hour=int(os.getenv("PORTAL_PROFILE_RATE_PER_HOUR", "5")),
+        message_rate_per_hour=int(os.getenv("PORTAL_MESSAGE_RATE_PER_HOUR", "30")),
+        apply_rate_per_day=int(os.getenv("PORTAL_APPLY_RATE_PER_DAY", "20")),
+        interest_rate_per_day=int(os.getenv("PORTAL_INTEREST_RATE_PER_DAY", "40")),
+        job_post_rate_per_day=int(os.getenv("PORTAL_JOB_POST_RATE_PER_DAY", "20")),
         weather_enabled=_bool(os.getenv("PORTAL_WEATHER_ENABLED"), True),
         weather_ttl_minutes=int(os.getenv("PORTAL_WEATHER_TTL_MINUTES", "30")),
         besttime_key=os.getenv("BESTTIME_API_KEY_PRIVATE", "").strip(),

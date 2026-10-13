@@ -314,6 +314,9 @@ div[class*="st-key-card"], .stPlotlyChart {{ animation: ss-rise .45s cubic-bezie
 .ss-wrow:last-child {{ border-bottom:none; }}
 .ss-wrow .m {{ color:var(--muted); font-size:.76rem; }}
 .ss-avatar.sm {{ width:34px; height:34px; font-size:.8rem; }}
+.ss-ravatar {{ border-radius:999px; flex:none; display:inline-block; vertical-align:middle; }}
+.ss-ravatar.ping {{ animation: ss-pulse 1.4s infinite; }}
+.ss-tag .ss-ravatar {{ margin:-2px 5px 0 -4px; }}
 .ss-ping {{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-top:8px; color:var(--blue); font-size:.88rem; }}
 .ss-countdown {{ flex-basis:100%; height:6px; background:var(--blue-soft); border-radius:999px; overflow:hidden; margin-top:6px; }}
 .ss-countdown i {{ display:block; height:100%; background:linear-gradient(90deg,#3b86ff,#1463e0); border-radius:999px; transition: width 1s linear; }}

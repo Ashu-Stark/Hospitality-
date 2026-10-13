@@ -71,11 +71,16 @@ def try_refresh() -> bool:
     st.session_state["_rt_dirty"] = True  # tells the browser-cookie writer to store the rotated token
     if j["user"]["role"] == "platform_admin":
         st.session_state["platform_token"] = j["token"]
-        tid = (st.session_state.get("tenant") or {}).get("id") or "org_demo"
-        imp = _send("POST", f"/auth/impersonate/{tid}", {"Authorization": f"Bearer {j['token']}"})
-        if imp.status_code == 200:
-            st.session_state["auth_token"] = imp.json()["token"]
-            st.session_state["tenant"] = imp.json()["tenant"]
+        st.session_state["auth_token"] = j["token"]  # console token; a hotel is re-opened only if one was open
+        tid = st.session_state.get("imp_tid")  # set only in the hotel portal, after the admin chose a hotel
+        if tid:
+            imp = _send("POST", f"/auth/impersonate/{tid}", {"Authorization": f"Bearer {j['token']}"})
+            if imp.status_code == 200:
+                st.session_state["auth_token"] = imp.json()["token"]
+                st.session_state["tenant"] = imp.json()["tenant"]
+            else:
+                st.session_state.pop("imp_tid", None)
+                st.session_state["tenant"] = None
     else:
         st.session_state["auth_token"] = j["token"]
         st.session_state["tenant"] = j.get("tenant") or st.session_state.get("tenant")
@@ -138,6 +143,24 @@ def room_qr(rid: str) -> bytes:
 
 def publish_roster(week_start: str | None, assignments: list[dict]) -> dict:
     return call("PUT", "/dispatch/roster", json={"week_start": week_start, "assignments": assignments})
+
+
+@st.cache_data(ttl=3600, show_spinner=False)
+def asset_data_uri(path: str) -> str | None:
+    """A small static asset served by the platform API (e.g. a hotel logo at /shared/brand/...) as a data: URI, fetched
+    server-side so it works in embedded mode too (no browser-reachable API needed). None if unavailable."""
+    import base64
+
+    if not path.startswith("/") or ".." in path:
+        return None
+    try:
+        r = _send("GET", path, {})
+    except PlatformError:
+        return None
+    ctype = (r.headers.get("content-type") or "").split(";")[0].strip()
+    if r.status_code != 200 or not ctype.startswith("image/") or len(r.content) > 300_000:
+        return None
+    return f"data:{ctype};base64," + base64.b64encode(r.content).decode()
 
 
 def public_url() -> str:

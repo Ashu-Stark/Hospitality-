@@ -128,7 +128,7 @@ def live() -> None:
             title = str(r.get("title") or r.get("label") or r.get("type") or "Request").split(" · room")[0]
             who = r.get("assigned_to") or r.get("offer_to")
             rows.append(
-                f'<div class="ss-wrow"><div style="flex:1"><b>{theme.esc(title)}</b>'
+                f'<div class="ss-wrow">{ui.avatar_img(r.get("department"), 30)}<div style="flex:1"><b>{theme.esc(title)}</b>'
                 f'<div class="m">{theme.esc(hhmm(r.get("created_at")))}'
                 + (f" · open {r['minutes_open']} min" if isinstance(r.get("minutes_open"), int) and r.get("status") != "done" else "")
                 + (" · express checkout" if r.get("kind") == "guest_checkout" else "")

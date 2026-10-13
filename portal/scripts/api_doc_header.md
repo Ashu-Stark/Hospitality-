@@ -30,7 +30,8 @@ lists, long strings end in `...`). Ids, registration numbers, dates and numbers 
 | Role | How to get it | Scope |
 |---|---|---|
 | (public) | no token | public endpoints only |
-| `business` | `POST /auth/register` or demo `demo.business` | own businesses and applications |
+| `business` | `POST /auth/register` or demo `demo.business` | own businesses and applications; hiring (job posts, candidate search, interest requests) only with an ACTIVE registration |
+| `job_seeker` | `POST /auth/register` with `role: job_seeker` or demo `demo.seeker` | own hiring profile, applications, interest requests, message threads |
 | `district_officer` | created by state admin; demo `demo.officer.rudraprayag` | **one district** (from the account, never from the client) |
 | `state_admin` | `admin` (password from env `PORTAL_ADMIN_PASSWORD`) or demo `demo.admin` | all districts |
 
@@ -96,6 +97,11 @@ Every response has an `X-Request-ID` header (send your own `X-Request-ID` to cor
 | `GET /registry/verify` | 60/min per IP |
 | `GET /search` | 60/min per IP |
 | `POST /ingest/occupancy` | 120/min per IP |
+| `POST /me/seeker/profile` (create) | 5/hour per user, 20/hour per IP |
+| `POST /jobs/threads/{id}` (message) | 30/hour per user |
+| `POST /jobs/{id}/apply` | 20/day per user |
+| `POST /candidates/{code}/interest` | 40/day per user |
+| `POST /jobs` (job post) | 20/day per user |
 
 Limits are configurable (`PORTAL_*_RATE_*` env vars). Debounce search-as-you-type (300 ms+).
 
@@ -132,6 +138,11 @@ the same origin. Google Fonts (Inter Tight) is allowed. Also: `X-Frame-Options: 
 - **Analytics charts**: series are `{key, label, values[]}` aligned with a sibling axis array (`dates`, `weeks`,
   `months`, `years`). `null` values = no data (draw a gap). Workforce groups with `suppressed: true` have only
   `reason` and must be shown as "hidden (fewer than 5 businesses)".
+- **Hiring board privacy**: profiles have no gender, age/date of birth, religion, caste, marital/family status, photo
+  or address fields (sending them is a 422). `phone`/`email` appear only in the seeker's own profile and, for a
+  business, in `contact` after the candidate accepted that business's interest request; never in `/jobs` or
+  `/candidates` search. `match.why` items are `{ok, partial?, text}`; show them as chips (not colour only).
+  Workforce-market rows with `suppressed: true` have `candidates: null` and `gap: null`.
 - **Rules/helplines**: `number: null` means "to be filled by the department"; never fill in a number.
 
 ## 8. Environment (server)

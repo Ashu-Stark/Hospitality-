@@ -38,6 +38,8 @@ services:
         sync: false
       - key: HOI_PLATFORM_DB
         value: hoi_platform
+      - key: OPS_API_URL                   # the ML / ops backend the demo tenant's dashboard calls (use_mocks false)
+        value: https://hoi-ops.onrender.com
       - key: HOI_JWT_SECRET                # must be fixed, or sign-ins break on every restart
         generateValue: true
       - key: HOI_ENV                       # "production" refuses demo logins; keep development for the hackathon demo
@@ -53,7 +55,8 @@ services:
       - key: SARVAM_API_KEY                # secret, optional: realistic Indian voices for spoken replies (also set TTS_PROVIDER=sarvam); without it the browser voice speaks
         sync: false
 
-  # Streamlit manager dashboard. Calls the two APIs above over their public URLs.
+  # Streamlit HOTEL ADMIN portal (owners, HR, department heads, storekeepers, employees; platform admins choose a hotel,
+  # audited). Name kept as hoi-dashboard so the live service and its URL do not change. Calls the two APIs above.
   - type: web
     name: hoi-dashboard
     runtime: docker
@@ -62,6 +65,10 @@ services:
     dockerContext: ./dashboard
     healthCheckPath: /_stcore/health
     envVars:
+      - key: ADMIN_PORTAL                  # hotel admin portal (no platform console pages)
+        value: hotel
+      - key: SUPER_PORTAL_URL              # hoi-platform-admin public URL, e.g. https://hoi-platform-admin.onrender.com
+        sync: false
       - key: USE_MOCKS                     # the image defaults to mock data; use the live APIs
         value: "false"
       - key: API_BASE_URL                  # hoi-backend public URL, e.g. https://hoi-backend.onrender.com
@@ -69,4 +76,27 @@ services:
       - key: PLATFORM_API_URL              # hoi-platform-api public URL
         sync: false
       - key: PLATFORM_PUBLIC_URL           # same URL; shown to staff phones and in QR links
+        sync: false
+
+  # Streamlit SUPER-ADMIN portal (HOI team only): hotels, plans/modules, insights, audit log. Same image as above;
+  # hotel accounts are refused here and pointed to the hotel portal.
+  - type: web
+    name: hoi-platform-admin
+    runtime: docker
+    plan: free
+    dockerfilePath: ./dashboard/Dockerfile
+    dockerContext: ./dashboard
+    healthCheckPath: /_stcore/health
+    envVars:
+      - key: ADMIN_PORTAL                  # platform console only
+        value: super
+      - key: HOTEL_PORTAL_URL              # hoi-dashboard public URL ("Open in hotel portal" links), e.g. https://hoi-dashboard.onrender.com
+        sync: false
+      - key: USE_MOCKS
+        value: "false"
+      - key: API_BASE_URL                  # hoi-backend public URL
+        sync: false
+      - key: PLATFORM_API_URL              # hoi-platform-api public URL
+        sync: false
+      - key: PLATFORM_PUBLIC_URL           # same URL
         sync: false

@@ -6,7 +6,7 @@ import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
 
-from lib import auth, nav, platform, tenancy, theme, ui
+from lib import platform, portal, tenancy, theme, ui
 
 ui.setup("console/3_Insights.py", "Insights")
 ui.html(
@@ -193,12 +193,12 @@ with st.container(key="card_ins_head"):
         + f"<div style='color:#6b6a65;font-size:.8rem;margin-top:4px'>Last activity: {theme.esc(str(h['last_activity'] or '—')[:16].replace('T', ' '))}</div>",
         unsafe_allow_html=True,
     )
-    if b.button("Open this hotel", type="primary", icon=":material/login:", width="stretch", disabled=suspended or not h["id"]):
-        auth.open_workspace(h["id"])  # audited impersonation, same flow as the Hotels page
-        tenancy.on_tenant_change()
-        st.switch_page(nav.page("home.py"))
-    if suspended:
-        b.caption("Reactivate on the Hotels page to open it.")
+    portal.open_hotel_control(b, h["id"], disabled=suspended or not h["id"], key="ins_open")
+    b.caption(
+        "Reactivate on the Hotels page to open it."
+        if suspended
+        else "Sign in there with your platform account, then choose this hotel (audited)."
+    )
 
 
 def bar_by_day(points: list, value_keys: tuple[str, ...]) -> tuple[list, list]:

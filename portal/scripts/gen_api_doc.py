@@ -724,6 +724,299 @@ def run():
             keep=13,
         )
 
+        # ---- hiring board
+        seeker = c.post(
+            "/api/v1/auth/register", json={"username": "doc.seeker", "password": "at-least-10-chars", "role": "job_seeker"}
+        ).json()
+        sk = {"Authorization": "Bearer " + seeker["access_token"]}
+        demo_seeker = tok("demo.seeker")
+        own_biz = c.get("/api/v1/jobs/mine", headers=owner).json()["active_businesses"][0]
+        soon = (date.today() + timedelta(days=40)).isoformat()
+        later = (date.today() + timedelta(days=150)).isoformat()
+        profile_body = {
+            "display_name": "Meena",
+            "headline": "Cook for pahadi food, 6 years",
+            "skills": [{"key": "cook_pahadi", "years": 6}, {"key": "kitchen_helper", "years": 2}],
+            "certifications": ["Food safety training"],
+            "languages": ["Hindi", "Garhwali"],
+            "districts": ["rudraprayag", "chamoli"],
+            "availability": "seasonal",
+            "available_from": soon,
+            "available_to": later,
+            "pay_min": 14000,
+            "pay_max": 18000,
+            "bio": "Cooked for pilgrim groups.",
+            "visibility": "public",
+            "phone": "+91 90000 00000",
+            "email": None,
+            "consent": True,
+        }
+
+        section("Hiring board: public job board")
+        ep(
+            "GET",
+            "/api/v1/jobs/meta",
+            "none",
+            "Vocabularies: skills taxonomy with categories, job types, languages, certificate suggestions, statuses, the consent notice text and the ASSUMED match weights.",
+            keep=3,
+        )
+        ep(
+            "GET",
+            "/api/v1/jobs",
+            "none (optional bearer: a job seeker with a profile gets `match` per job, sorted by it, and `applied`)",
+            "Open jobs (status open and `closes_on` >= today), newest first. `openings` = total openings in the result.",
+            call="/api/v1/jobs?district=rudraprayag&page_size=2",
+            params="`skill`, `district`, `type` (seasonal|permanent|part_time), `month` (1-12, season covers it), `q` (title, business, district, skill), `page`, `page_size` (1-50, default 12)",
+            keep=1,
+        )
+        ep(
+            "GET",
+            "/api/v1/jobs",
+            "job_seeker (optional)",
+            "Same list with `match` (score 0-100 or null, `parts`, `why` chips, `basis`).",
+            call="/api/v1/jobs?page_size=1",
+            headers=demo_seeker,
+            keep=1,
+        )
+        any_job = c.get("/api/v1/jobs", params={"page_size": 1}).json()["items"][0]
+        ep(
+            "GET",
+            "/api/v1/jobs/{id}",
+            "none (optional bearer)",
+            "One job. Seekers also get `has_profile`, `match`, `my_application`; the owning business gets application counts.",
+            call=f"/api/v1/jobs/{any_job['id']}",
+        )
+
+        section("Hiring board: job seeker (role `job_seeker`)")
+        ep(
+            "POST",
+            "/api/v1/auth/register",
+            "none (10/min/IP)",
+            "Job seekers register with `role: job_seeker` (default `business`).",
+            body={"username": "my.name", "password": "at-least-10-chars", "role": "job_seeker"},
+            status=201,
+        )
+        ep(
+            "GET",
+            "/api/v1/me/seeker/profile",
+            "job_seeker",
+            "Own profile (incl. private phone/email) or `null`, plus the consent notice to show before creating one.",
+            headers=sk,
+        )
+        ep(
+            "POST",
+            "/api/v1/me/seeker/profile",
+            "job_seeker (5/hour per user, 20/hour per IP)",
+            "Create the profile. `consent: true` required (422 otherwise); phone or email required. Sending gender, age/date_of_birth, religion, caste, marital_status, photo, address (and similar) is rejected with 422 `This portal does not collect ...`. 409 if one exists.",
+            body=profile_body,
+            headers=sk,
+            status=201,
+        )
+        ep(
+            "PATCH",
+            "/api/v1/me/seeker/profile",
+            "job_seeker",
+            "Update any fields, incl. `visibility` public|hidden. Same validation; protected fields rejected.",
+            body={"headline": "Head cook, pahadi thali", "visibility": "public"},
+            headers=sk,
+        )
+        ep("GET", "/api/v1/me/seeker", "job_seeker", "Dashboard: profile, counts, applications by status.", headers=demo_seeker)
+        ep(
+            "POST",
+            "/api/v1/jobs/{id}/apply",
+            "job_seeker (20/day)",
+            "Apply with an optional note (<= 500). 409 without a profile, for a closed job or a second application.",
+            call=f"/api/v1/jobs/{any_job['id']}/apply",
+            body={"note": "Available from next week."},
+            headers=sk,
+            status=201,
+        )
+        my_app = c.get("/api/v1/me/seeker/applications", headers=sk).json()["items"][0]
+        ep(
+            "GET",
+            "/api/v1/me/seeker/applications",
+            "job_seeker",
+            "Own applications with job, status and `history` (applied -> viewed -> shortlisted -> contacted / not_selected; withdrawn).",
+            headers=demo_seeker,
+            keep=1,
+        )
+        ep(
+            "GET",
+            "/api/v1/me/seeker/interests",
+            "job_seeker",
+            "Interest requests from businesses. `pending` = awaiting the seeker.",
+            headers=demo_seeker,
+            keep=1,
+        )
+        pend = next(i for i in c.get("/api/v1/me/seeker/interests", headers=demo_seeker).json()["items"] if i["status"] == "pending")
+        ep(
+            "POST",
+            "/api/v1/me/seeker/interests/{id}",
+            "job_seeker",
+            "`action`: accept | decline. Accepting reveals phone/email to THAT business only. 409 if already answered.",
+            call=f"/api/v1/me/seeker/interests/{pend['id']}",
+            body={"action": "accept"},
+            headers=demo_seeker,
+        )
+        ep(
+            "POST",
+            "/api/v1/me/seeker/applications/{id}/withdraw",
+            "job_seeker",
+            "Withdraw an application (409 if already withdrawn).",
+            call=f"/api/v1/me/seeker/applications/{my_app['id']}/withdraw",
+            headers=sk,
+        )
+
+        section("Hiring board: business (role `business`, ACTIVE registration required to post, search and send requests)")
+        ep(
+            "GET",
+            "/api/v1/jobs/mine",
+            "business",
+            "Own job posts with application counts, `can_hire`, `active_businesses`, summary.",
+            headers=owner,
+            keep=1,
+        )
+        job_body = {
+            "business_id": own_biz["id"],
+            "title": "Cook for the winter season",
+            "skills": ["cook_pahadi", "kitchen_helper"],
+            "district": None,
+            "destination_id": None,
+            "job_type": "seasonal",
+            "season_from": soon,
+            "season_to": later,
+            "pay_min": 15000,
+            "pay_max": 19000,
+            "accommodation": True,
+            "food": True,
+            "openings": 2,
+            "languages": ["Hindi", "Garhwali"],
+            "description": "Cook pahadi and simple Indian meals for homestay guests.",
+            "closes_on": (date.today() + timedelta(days=30)).isoformat(),
+        }
+        ep(
+            "POST",
+            "/api/v1/jobs",
+            "business (20/day)",
+            "Post a job. 403 unless `business_id` is an own business with an ACTIVE registration. Seasonal jobs need season dates; `closes_on` within 180 days; description <= 1000; max 20 open posts.",
+            body=job_body,
+            headers=owner,
+            status=201,
+        )
+        new_job = c.get("/api/v1/jobs/mine", headers=owner).json()["items"][0]
+        c.post(f"/api/v1/jobs/{new_job['id']}/apply", json={}, headers=sk)
+        ep(
+            "GET",
+            "/api/v1/jobs/{id}/applications",
+            "business (owner)",
+            "Applicants, best match first, with public candidate fields, `match`, `next_statuses`. Listing marks `applied` as `viewed`. `contact` only for candidates who accepted this business's request.",
+            call=f"/api/v1/jobs/{new_job['id']}/applications",
+            headers=owner,
+            keep=1,
+        )
+        app_id = c.get(f"/api/v1/jobs/{new_job['id']}/applications", headers=owner).json()["items"][0]["id"]
+        ep(
+            "POST",
+            "/api/v1/jobs/applications/{id}/status",
+            "business (owner)",
+            "`status`: viewed | shortlisted | contacted | not_selected (409 for an invalid transition).",
+            call=f"/api/v1/jobs/applications/{app_id}/status",
+            body={"status": "shortlisted"},
+            headers=owner,
+        )
+        ep(
+            "PATCH",
+            "/api/v1/jobs/{id}",
+            "business (owner)",
+            "Close (`status: closed`, `closed_reason` filled|withdrawn), reopen, or change `closes_on`, `openings`, `description`.",
+            call=f"/api/v1/jobs/{new_job['id']}",
+            body={"openings": 3},
+            headers=owner,
+        )
+        ep(
+            "GET",
+            "/api/v1/candidates",
+            "business (active registration)",
+            "Search public profiles. Never returns contact details (not even after acceptance). Sorted by match score against the filters or `job_id`.",
+            call="/api/v1/candidates?skill=cook_pahadi&district=rudraprayag&page_size=2",
+            params="`skill`, `district` (preferred or any), `available_from`, `available_to`, `exp_min` (years in the skill), `language`, `job_id` (own post), `page`, `page_size` (default 12)",
+            headers=owner,
+            keep=1,
+        )
+        doc_code = c.get("/api/v1/me/seeker/profile", headers=sk).json()["profile"]["code"]
+        ep(
+            "GET",
+            "/api/v1/candidates/{code}",
+            "business (active registration)",
+            "One candidate (404 for hidden profiles without a relation). `contact` is null until the candidate accepts this business's interest request.",
+            call=f"/api/v1/candidates/{doc_code}",
+            headers=owner,
+        )
+        ep(
+            "POST",
+            "/api/v1/candidates/{code}/interest",
+            "business (40/day)",
+            "Send an interest request (one per business owner and candidate; 409 on repeat).",
+            call=f"/api/v1/candidates/{doc_code}/interest",
+            body={"job_id": new_job["id"], "message": "We liked your profile. Would you like to talk?"},
+            headers=owner,
+            status=201,
+        )
+        ep(
+            "GET",
+            "/api/v1/candidates/interests",
+            "business",
+            "Sent requests with status; accepted ones include the candidate's `contact`.",
+            headers=owner,
+            keep=1,
+        )
+        ep(
+            "PUT",
+            "/api/v1/candidates/{code}/shortlist",
+            "business (active registration)",
+            "Add to shortlist (idempotent). `DELETE` removes.",
+            call=f"/api/v1/candidates/{doc_code}/shortlist",
+            headers=owner,
+        )
+        ep("GET", "/api/v1/candidates/shortlist", "business", "Shortlisted candidates.", headers=owner, keep=1)
+
+        section("Hiring board: message threads (the two parties only)")
+        ep(
+            "POST",
+            "/api/v1/jobs/threads/{id}",
+            "job_seeker or business party (30/hour)",
+            "Post a text message (1-1000 chars). Thread id = application id (`JA-...`) or interest id (`INT-...`, only once accepted). Anyone else gets 404; officials 403.",
+            call=f"/api/v1/jobs/threads/{app_id}",
+            body={"text": "When does the season start?"},
+            headers=sk,
+            status=201,
+        )
+        ep(
+            "GET",
+            "/api/v1/jobs/threads/{id}",
+            "job_seeker or business party",
+            "Thread meta + messages (oldest first, max 300).",
+            call=f"/api/v1/jobs/threads/{app_id}",
+            headers=owner,
+        )
+        ep(
+            "DELETE",
+            "/api/v1/me/seeker/profile",
+            "job_seeker",
+            "Hard delete: profile, applications, interest requests, shortlist entries and messages. Audit entry keeps only the pseudonymous user id and code.",
+            headers=sk,
+        )
+
+        section("Analytics: workforce market (official, aggregates only)")
+        ep(
+            "GET",
+            "/api/v1/analytics/workforce-market",
+            "official (officer = own district)",
+            "Open openings vs visible candidates by skill and district, seasonal demand vs supply by month, time to fill. Candidate counts below 5 are null with `suppressed: true` (k-anonymity). SYNTHETIC.",
+            headers=admin,
+            keep=3,
+        )
+
         section("State admin")
         ep(
             "GET",

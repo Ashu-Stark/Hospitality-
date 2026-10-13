@@ -5,6 +5,8 @@
 * Synthetic demo data (businesses, occupancy, workforce, arrivals, grievances, applications, sample advisories and
   events, demo accounts) is inserted once when PORTAL_SEED_DEMO is true and the database has no businesses.
   A `meta` document acts as a lock so two processes starting together do not both seed.
+* Synthetic hiring-board data (candidates, job posts, applications, interests) is inserted once when
+  PORTAL_SEED_DEMO is true and the hiring collections are empty (lock `meta.hiring_seed`); it never wipes anything.
 """
 
 from __future__ import annotations
@@ -86,6 +88,33 @@ def ensure_demo(d) -> dict | None:
     return stats
 
 
+def ensure_hiring(d) -> dict | None:
+    """Seed the hiring board once: only if its collections are empty and synthetic businesses exist."""
+    from ..services import users
+
+    if d.seeker_profiles.estimated_document_count() or d.job_posts.estimated_document_count():
+        return None
+    if not d.businesses.estimated_document_count():
+        return None
+    try:
+        d.meta.insert_one({"_id": "hiring_seed", "state": "running", "started_at": mongo.now()})
+    except DuplicateKeyError:
+        log.info("hiring seed already done or running elsewhere; skipping")
+        return None
+    from .hiring import seed_hiring
+
+    try:
+        owner = users.by_username("demo.business") or users.create("demo.business", None, "business", label="Business owner (demo)")
+        seeker = users.by_username("demo.seeker") or users.create("demo.seeker", None, "job_seeker", label="Job seeker (demo)")
+        stats = seed_hiring(d, owner["id"], seeker["id"])
+    except Exception:
+        d.meta.delete_one({"_id": "hiring_seed"})
+        raise
+    d.meta.update_one({"_id": "hiring_seed"}, {"$set": {"state": "done", "finished_at": mongo.now(), "stats": stats}})
+    log.info("seeded synthetic hiring board: %s", stats)
+    return stats
+
+
 def ensure() -> None:
     from ..services import users
 
@@ -96,6 +125,7 @@ def ensure() -> None:
     # Creating the unique indexes afterwards still fails loudly if the seed produced a duplicate.
     if s.seed_demo:
         ensure_demo(d)
+        ensure_hiring(d)
     mongo.ensure_indexes(d)
     users.ensure_admin()
     if s.demo_login:

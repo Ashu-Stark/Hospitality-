@@ -36,9 +36,9 @@ def login(body: LoginIn, request: Request) -> dict:
 
 @router.post("/register", status_code=201)
 def register(body: RegisterIn, request: Request) -> dict:
-    """Business owners create their own account; officers are created by the state admin."""
+    """Business owners and job seekers create their own account; officers are created by the state admin."""
     _limit(request, "register")
-    u = users.create(body.username, body.password, "business")
+    u = users.create(body.username, body.password, body.role)
     return _session(u)
 
 

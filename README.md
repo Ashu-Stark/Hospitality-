@@ -12,7 +12,7 @@ Built for the AI-Tourism Hackathon 2026 (TBI-GEU). **All data is synthetic** (TR
 | `backend/` | ML / ops API: forecast, attrition scoring, OR-Tools roster, tasks, closed loop, voice (deployed on Render) | 8000 | `hoi_ops` |
 | `platform_api/` | HOI platform API: accounts, hotel groups, dispatch, rooms, photo proof, inventory with GST, audit. Serves the **staff app** (`/worker/`) and **guest QR pages** (`/guest/`) | 8100 | `hoi_platform` |
 | `portal/` | Tourism portal (concept, not an official site): directory, destinations with weather/roads/crowd, festivals, dictionary, rules, grievances, business registration, officials' analytics | 8200 | `hoi_portal` |
-| `dashboard/` | Streamlit manager dashboard: login, platform console, 15 hotel pages, employee view | 8501 | none |
+| `dashboard/` | Streamlit admin portals from one codebase (`ADMIN_PORTAL`): **hotel admin portal** (hotel pages by role, employee view; default) and **super-admin portal** (`ADMIN_PORTAL=super`: hotels, insights, audit) | 8501 hotel · 8502 super | none |
 | `website/` | Static marketing site (`site/index.html`), live at https://hoi-portal.vercel.app/site/ | none | none |
 | `docs/` | Tech stack, MongoDB conventions, portal spec and API, scope, competitors, TimesFM, UX review | | |
 
@@ -50,12 +50,14 @@ Get-Content .env | Where-Object { $_ -match '^[A-Z_]+=' } | ForEach-Object { $k,
 $env:PORT=8000; python -m backend.serve                                              # ML / ops API
 cd platform_api; python -m uvicorn hoi_platform.main:app --port 8100                  # platform API + staff app + guest pages
 cd portal;       python -m uvicorn hoi_portal.main:app --port 8200                    # tourism portal
-cd dashboard; $env:API_BASE_URL="http://127.0.0.1:8000"; $env:PLATFORM_API_URL="http://127.0.0.1:8100"; streamlit run app.py
+cd dashboard; $env:API_BASE_URL="http://127.0.0.1:8000"; $env:PLATFORM_API_URL="http://127.0.0.1:8100"; $env:ADMIN_PORTAL="hotel"; streamlit run app.py --server.port 8501   # hotel admin portal
+cd dashboard; $env:API_BASE_URL="http://127.0.0.1:8000"; $env:PLATFORM_API_URL="http://127.0.0.1:8100"; $env:ADMIN_PORTAL="super"; streamlit run app.py --server.port 8502   # super-admin portal
 ```
 
 | Open | Link | Sign in |
 |---|---|---|
-| Manager dashboard | http://localhost:8501 | demo role buttons |
+| Hotel admin portal | http://localhost:8501 | demo role buttons (owner, HR, department head, storekeeper, employee); platform admin chooses a hotel |
+| Super-admin portal (HOI Platform Admin) | http://localhost:8502 | "Platform admin" demo button (hotel accounts are refused) |
 | Staff phone app | http://localhost:8100/worker/ | demo employee `E134` |
 | Tourism portal | http://localhost:8200 | tourists need none; demo state admin, district officer, business under "Sign in" |
 | API docs | http://localhost:8000/docs · http://localhost:8100/docs · http://localhost:8200/docs | |
@@ -70,7 +72,8 @@ cd ml;           python -m pytest -q             # 335 passed, 1 skipped
 cd backend;      python -m pytest -q -m "not slow"   # 33 passed
 cd platform_api; python -m pytest -q             # 35 passed
 cd portal;       python -m pytest -q             # 36 passed
-cd dashboard;    python tests\smoke.py           # 22 pages + 3 access checks
+cd dashboard;    python tests\smoke.py           # hotel portal: every hotel/employee page + access and portal checks
+cd dashboard;    $env:ADMIN_PORTAL="super"; python tests\smoke.py   # super-admin portal: console pages, hotel roles refused
 ruff check platform_api portal dashboard; ruff format --check platform_api portal dashboard
 ```
 

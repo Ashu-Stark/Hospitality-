@@ -169,7 +169,7 @@ with st.container(key="card_cell"):
         f'<div style="margin-top:6px"><b>{len(ids)} assigned</b>'
         + (f" · {theme.band_chip('high', f'{hs:.1f} h short')}" if hs > 0.5 else "")
         + '</div><div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">'
-        + "".join(f'<span class="ss-tag">{theme.esc(ui.short_name(e))}</span>' for e in ids)
+        + "".join(f'<span class="ss-tag">{ui.avatar_img(cd, 20)}{theme.esc(ui.short_name(e))}</span>' for e in ids)
         + "</div>"
     )
 
@@ -249,6 +249,7 @@ if compare or (loop and base_id and prot_id):
             if ab.get(k) != ap.get(k):
                 changes.append(
                     {
+                        "Role": ui.avatar_uri(rp.dept_of.get(k[0]) or rb.dept_of.get(k[0])),
                         "Employee": ui.short_name(k[0]),
                         "Date": k[1],
                         "Baseline": ab.get(k, "off"),
@@ -261,6 +262,12 @@ if compare or (loop and base_id and prot_id):
             + (f", {sum(1 for c in changes if c['Protected person'])} of them for protected people." if changes else ".")
         )
         if changes:
-            st.dataframe(pd.DataFrame(changes), hide_index=True, width="stretch", height=300)
+            st.dataframe(
+                pd.DataFrame(changes),
+                hide_index=True,
+                width="stretch",
+                height=300,
+                column_config={"Role": st.column_config.ImageColumn("Role", width="small")},
+            )
 
 ui.footer()

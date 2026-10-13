@@ -1,8 +1,12 @@
-"""Which pages each signed-in user sees: role (auth.ACCESS) ∩ modules enabled for the tenant's plan."""
+"""Which pages each signed-in user sees: portal (ADMIN_PORTAL) ∩ role (auth.ACCESS) ∩ modules enabled for the tenant's plan.
+
+super-admin portal: SUPER_PAGES (home summary + console), platform admins only
+hotel portal:       HOTEL_PAGES by role and plan, EMPLOYEE_PAGES for workers; platform admins first PICK_PAGE a hotel
+"""
 
 from __future__ import annotations
 
-from . import auth, tenancy
+from . import auth, config, tenancy
 
 HOTEL_PAGES = [
     ("home.py", "Home", ":material/home:"),
@@ -35,6 +39,8 @@ EMPLOYEE_PAGES = [
     ("employee/3_Supplies.py", "Supplies", ":material/inventory_2:"),
     ("employee/4_My_Tasks.py", "My tasks", ":material/task_alt:"),
 ]
+SUPER_PAGES = [("console/0_Home.py", "Home", ":material/home:"), *CONSOLE_PAGES]
+PICK_PAGE = ("pick_hotel.py", "Choose a hotel", ":material/apartment:")
 LOGIN_PAGE = ("login.py", "Sign in", ":material/login:")
 
 MODULE_PAGES = {
@@ -67,12 +73,20 @@ def page_enabled(page_file: str, t: dict) -> bool:
     return not any(page_file in pages and m not in mods for m, pages in MODULE_PAGES.items())
 
 
+def portal_pages() -> list[tuple[str, str, str]]:
+    """Every page this portal can route (used for deep links while signed out)."""
+    return SUPER_PAGES if config.is_super() else [*HOTEL_PAGES, PICK_PAGE, *EMPLOYEE_PAGES]
+
+
 def visible_pages() -> list[tuple[str, str, str]]:
     r = auth.role()
-    if r is None:
+    if r is None or not auth.allowed_here(r):
         return [LOGIN_PAGE]
+    if config.is_super():
+        return SUPER_PAGES  # platform admins only (allowed_here)
     if r == "worker":
         return EMPLOYEE_PAGES
+    if auth.needs_hotel():
+        return [PICK_PAGE]
     t = tenancy.active()
-    hotel = [p for p in HOTEL_PAGES if auth.can_open(p[0]) and (r == "platform_admin" or page_enabled(p[0], t))]
-    return (CONSOLE_PAGES if r == "platform_admin" else []) + hotel
+    return [p for p in HOTEL_PAGES if auth.can_open(p[0]) and (r == "platform_admin" or page_enabled(p[0], t))]

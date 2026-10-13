@@ -24,6 +24,28 @@ HERO_NAME_FILES = [REPO_ROOT / "ml" / "data" / "demo" / "hero_display_names.json
 PLAYBOOK_FILES = [REPO_ROOT / "ml" / "attrition" / "playbook.json", FRONTEND_DIR / "mocks" / "playbook.json"]
 
 
+PORTALS = ("hotel", "super")
+
+
+def portal() -> str:
+    """Which admin portal this process serves (ADMIN_PORTAL): "hotel" (default, hotel staff) or "super" (HOI platform admins).
+    Same code and image, two deployments."""
+    p = os.getenv("ADMIN_PORTAL", "hotel").strip().lower()
+    return p if p in PORTALS else "hotel"
+
+
+def is_super() -> bool:
+    return portal() == "super"
+
+
+def hotel_portal_url() -> str:
+    return os.getenv("HOTEL_PORTAL_URL", "http://localhost:8501").strip().rstrip("/")
+
+
+def super_portal_url() -> str:
+    return os.getenv("SUPER_PORTAL_URL", "http://localhost:8502").strip().rstrip("/")
+
+
 def _bool(v: str | None, default: bool) -> bool:
     return default if v is None else v.strip().lower() in {"1", "true", "yes", "on"}
 

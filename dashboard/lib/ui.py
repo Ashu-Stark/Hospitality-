@@ -2,12 +2,15 @@
 
 from __future__ import annotations
 
+import base64
+import functools
 from collections.abc import Callable
+from pathlib import Path
 from typing import Any
 
 import streamlit as st
 
-from . import access, auth, data, nav, platform, tenancy, theme, tour
+from . import access, auth, config, data, nav, platform, portal, tenancy, theme, tour
 from .api_client import ApiError
 from .config import current_settings
 
@@ -18,23 +21,27 @@ def setup(page_file: str, title: str, *, employee: bool = False) -> None:
     """Every page starts here: tenant, CSS, access check, top bar, sidebar, tour."""
     t = tenancy.bootstrap()
     st.markdown(theme.CSS, unsafe_allow_html=True)
-    st.markdown(f"<style>:root{{--brand:{theme.esc(t['brand_color'])}}}</style>", unsafe_allow_html=True)
+    st.markdown(f"<style>:root{{--brand:{theme.esc(portal.brand_color(t))}}}</style>{portal.css()}", unsafe_allow_html=True)
     u = auth.current()
-    if u is None:  # deep link while signed out (or after a browser refresh): show sign-in here
+    if u is None or not auth.allowed_here(u["role"]):  # signed out, deep link, or wrong portal: show sign-in here
         from . import login_ui
 
         login_ui.render()
         st.stop()
-    allowed = u is not None and (
-        u["role"] == "worker"
-        if employee
-        else auth.can_open(page_file) or page_file.startswith("console/") and u["role"] == "platform_admin"
-    )
+    # a page is open to this user only if it is in their navigation: portal ∩ role ∩ plan modules (the API re-checks)
+    visible = access.visible_pages()
+    allowed = page_file in [f for f, _, _ in visible] and (u["role"] == "worker") == employee
+    if not allowed and (auth.needs_hotel() or auth.impersonating()):
+        # platform admin in the hotel portal: Home and the hotel picker are registered across the switch (app.py), so a
+        # stale URL can land on the one not allowed right now: go to the right one instead of showing "no access"
+        st.switch_page(nav.page(visible[0][0]))
     _topbar(page_file, t, u)
     if not allowed:
         html(theme.banner("<b>You do not have access to this page.</b> Ask your hotel admin if you need it.", "red", "shield"))
         st.stop()
-    if not employee:
+    if auth.impersonating():
+        portal.impersonation_banner(t)
+    if not employee and page_file != access.PICK_PAGE[0]:
         _sidebar(t, u)
         tour.render(page_file)
 
@@ -45,11 +52,15 @@ def _topbar(page_file: str, t: dict, u: dict | None) -> None:
     who = ""
     if u:
         who = f'<span class="ss-userchip">{theme.icon("user", 14)}{theme.esc(u["username"])} · {theme.esc(auth.ROLES[u["role"]].split(" (")[0])}</span>'
+    if config.is_super():
+        where, cls = "", "ss-topbar ss-super"
+    else:
+        where, cls = "", "ss-topbar ss-hotel"
+        if t.get("id"):
+            where = f'<span class="ss-tenant"><i style="background:var(--brand)"></i>{theme.esc(t["name"])}</span>'
     st.markdown(
-        f'<div class="ss-topbar"><div class="ss-brand"><span class="ss-brand-mark" style="background:var(--brand)">{theme.icon("bed", 20, "#fff")}</span>'
-        f'<span>HOI <span class="ss-brand-long">Hospitality Operations Intelligence</span></span></div>'
-        f'<div class="ss-util">{who}<span class="ss-tenant"><i style="background:var(--brand)"></i>{theme.esc(t["name"])}</span>'
-        f'<span class="ss-mode {mode_cls}">{s.mode_label}</span></div></div>',
+        f'<div class="{cls}">{portal.brand_html(t)}'
+        f'<div class="ss-util">{who}{where}<span class="ss-mode {mode_cls}">{s.mode_label}</span></div></div>',
         unsafe_allow_html=True,
     )
     nav = st.session_state.get("_nav") or access.HOTEL_PAGES
@@ -71,6 +82,21 @@ def _topbar(page_file: str, t: dict, u: dict | None) -> None:
 def _sidebar(t: dict, u: dict | None) -> None:
     s = current_settings()
     with st.sidebar:
+        if config.is_super():  # platform console: no hotel workspace, no scoring week
+            html(
+                f'<div class="ss-card" style="padding:12px 14px"><div style="color:#6b6a65;font-size:.75rem">Portal</div>'
+                f"<b>HOI Platform Admin</b><div style='font-size:.8rem;margin-top:6px'>Hotel admin portal: "
+                f"{portal.link(config.hotel_portal_url())}</div></div>"
+            )
+            if st.button("Refresh", icon=":material/refresh:", width="stretch"):
+                data.clear()
+                st.rerun()
+            st.divider()
+            st.markdown(
+                theme.banner("All hotel data is <b>synthetic</b>. Every console action is audited.", "gray", "shield"),
+                unsafe_allow_html=True,
+            )
+            return
         if u and u["role"] == "platform_admin":
             try:
                 ts = [x for x in platform.tenants() if x["status"] == "active"]
@@ -89,6 +115,8 @@ def _sidebar(t: dict, u: dict | None) -> None:
                     auth.open_workspace(pick)  # audited server-side
                     tenancy.on_tenant_change()
                     st.rerun()
+            if st.button("Exit to hotel selection", icon=":material/logout:", width="stretch", key="imp_exit_sb"):
+                portal.exit_hotel()
         else:
             html(
                 f'<div class="ss-card" style="padding:12px 14px"><div style="color:#6b6a65;font-size:.75rem">Workspace</div>'
@@ -183,6 +211,59 @@ def initials(employee_id: str | None) -> str:
         return "?"
     n = data.hero_names().get(employee_id)
     return n[0] if n else employee_id[-3:]
+
+
+# ------------------------------------------------------------------ role avatars (no faces, names or gender)
+# Illustrated badges per department / role. Same SVGs as platform_api/hoi_platform/static/shared/avatars (dashboard-local
+# copy so the dashboard image stays self-contained). Embedded as data URIs: works in embedded and remote modes alike and
+# needs no static file serving.
+AVATAR_DIR = Path(__file__).resolve().parent.parent / "static" / "avatars"
+AVATAR_ROLES = (
+    "hotel_manager",
+    "front_office",
+    "housekeeping",
+    "fnb_service",
+    "kitchen",
+    "maintenance",
+    "security",
+    "storekeeper",
+    "generic",
+)
+_AVATAR_ALIAS = {
+    "manager": "hotel_manager",
+    "owner": "hotel_manager",
+    "fnb": "fnb_service",
+    "store": "storekeeper",
+    "stores": "storekeeper",
+}
+
+
+def avatar_role(department: str | None) -> str:
+    """The one place that maps a department / role to an avatar; unknown -> generic."""
+    k = str(department or "").strip().lower()
+    return k if k in AVATAR_ROLES else _AVATAR_ALIAS.get(k, "generic")
+
+
+@functools.cache
+def _avatar_uri(role: str) -> str:
+    try:
+        raw = (AVATAR_DIR / f"{role}.svg").read_bytes()
+    except OSError:
+        return ""
+    return "data:image/svg+xml;base64," + base64.b64encode(raw).decode()
+
+
+def avatar_uri(department: str | None) -> str:
+    """data: URI of the role avatar (for st.column_config.ImageColumn or <img>)."""
+    return _avatar_uri(avatar_role(department))
+
+
+def avatar_img(department: str | None, size: int = 28, cls: str = "") -> str:
+    """Small decorative <img> (the department label sits next to it as text)."""
+    uri = avatar_uri(department)
+    if not uri:
+        return ""
+    return f'<img class="ss-ravatar {cls}" src="{uri}" alt="" width="{size}" height="{size}">'
 
 
 def go_to_employee(employee_id: str) -> None:

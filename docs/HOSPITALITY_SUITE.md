@@ -5,8 +5,8 @@
 | App | Who | Where | Built with |
 |---|---|---|---|
 | Marketing site | prospects, judges | `website/site/` (Vercel, `/site/`) | static HTML |
-| Super-admin portal | HOI team (platform admin) | dashboard `console/` pages (Render) | Streamlit |
-| Hotel admin portal | owner, HR, dept heads, storekeeper | dashboard `pages/` (Render) | Streamlit |
+| Super-admin portal | HOI team (platform admin) | dashboard with `ADMIN_PORTAL=super`: `console/` pages (Render `hoi-platform-admin`) | Streamlit |
+| Hotel admin portal | owner, HR, dept heads, storekeeper (platform admins after choosing a hotel, audited) | dashboard with `ADMIN_PORTAL=hotel`: `pages/` + `employee/` (Render `hoi-dashboard`) | Streamlit |
 | Worker app (voice) | frontline staff | `platform_api/.../static/worker/` → `/worker/` (Render) | vanilla JS PWA |
 | Guest concierge (QR, voice) | hotel guests | `platform_api/.../static/guest/` → `/guest/?t=<room token>` (Render) | vanilla JS |
 
@@ -93,10 +93,10 @@ All paths and request bodies above are implemented unchanged. Additions (no rena
   `GROQ_API_KEY`), `LLM_MODEL` (= `groq_chat_model`, default `openai/gpt-oss-20b`), `LLM_JSON_MODE`, `STT_BASE_URL`, `STT_API_KEY`,
   `STT_MODEL` (= `groq_stt_model`). Other settings use the `HOI_` prefix (see platform_api/README.md).
 - **Request menu:** new id `food` ("Food order (room service)", fnb_service), so food orders can be confirmed and estimated on the bill.
-- **`GET /public/guest/{token}`** also returns `profile` (public subset: display_name, welcome, checkin_time, checkout_time,
+- **`GET /public/guest/{token}`** also returns `profile` (public subset: display_name, logo_url, welcome, checkin_time, checkout_time,
   late_checkout, wifi, contacts, amenities, dining, policies, nearby, faq, languages, synthetic), `stay`
   `{checkout: null|{id,time,date,luggage_help,status,due_local}, late_checkout: {status: none|pending|approved|declined, until, note, ...}, feedback_given, feedback_rating}`,
-  `local_time`, `today`, `synthetic`. `requests` are the current stay only (since the last checkout), each `{id, title, status, stage, at}`
+  `local_time`, `today`, `synthetic`. `requests` are the current stay only (since the last checkout), each `{id, title, status, stage, department, at}` (department added 13 Oct for the department avatar)
   with `stage` ∈ open / accepted / in_progress / done (`status` keeps the old friendly words).
 - **`GET /public/guest/{token}/requests`** → `{room, requests: [...]}`. **`POST .../actions`** → `{action, ok, ...}` (request: `requests`;
   checkout: the `stay` fields; late_checkout: `late_checkout`; feedback: `rating`). **`proposed_action`** = `{action, params, label, label_hi}`.

@@ -54,7 +54,18 @@ def roles(*allowed: str):
     return check
 
 
+def optional_principal(authorization: str | None = Header(default=None)) -> Principal | None:
+    """Signed-in principal when a valid bearer token is sent, else None (public endpoints with extras for members)."""
+    if not authorization:
+        return None
+    try:
+        return principal(authorization)
+    except HTTPException:
+        return None
+
+
 business_only = roles("business")
+seeker_only = roles("job_seeker")
 official = roles(*OFFICIALS)
 admin_only = roles("state_admin")
 

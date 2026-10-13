@@ -2,8 +2,8 @@
 import { route, start, render, onNavigate, go } from './router.js';
 import { html, mount, raw, $, $$, store, toast } from './ui.js';
 import { t, getLang, setLang } from './i18n.js';
-import { user, role, logout, isOfficial } from './api.js';
-import { MAIN, SECTIONS, sectionOf, BUSINESS_NAV, OFFICER_NAV, ADMIN_NAV } from './nav.js';
+import { user, role, logout, isOfficial, homeOf } from './api.js';
+import { MAIN, SECTIONS, sectionOf, BUSINESS_NAV, OFFICER_NAV, ADMIN_NAV, SEEKER_NAV } from './nav.js';
 import * as home from './pages/home.js';
 import * as dest from './pages/destinations.js';
 import * as reg from './pages/registry.js';
@@ -16,10 +16,13 @@ import * as biz from './pages/business.js';
 import * as off from './pages/officer.js';
 import * as ops from './pages/officer_ops.js';
 import * as plan from './pages/plan.js';
+import * as jobs from './pages/jobs.js';
+import * as hire from './pages/hiring.js';
 import { loadPhotos } from './photos.js';
 
 const OFF = ['district_officer', 'state_admin'];
 const BIZ = ['business'];
+const SEEK = ['job_seeker'];
 
 route('/', home.home);
 route('/search', home.search);
@@ -57,6 +60,17 @@ route('/business/applications/:id', biz.application, { roles: BIZ });
 route('/business/certificate/:id', biz.certificate, { roles: BIZ });
 route('/business/occupancy', biz.occupancy, { roles: BIZ });
 route('/business/api-keys', biz.apiKeys, { roles: BIZ });
+route('/jobs', jobs.board);
+route('/jobs/hire', jobs.hire);
+route('/jobs/about', jobs.about);
+route('/jobs/:id', jobs.detail);
+route('/seeker', jobs.seekerHome, { roles: SEEK });
+route('/seeker/profile', jobs.profile, { roles: SEEK });
+route('/business/hiring', hire.overview, { roles: BIZ });
+route('/business/hiring/new', hire.newJob, { roles: BIZ });
+route('/business/hiring/jobs/:id', hire.applicants, { roles: BIZ });
+route('/business/hiring/candidates', hire.candidates, { roles: BIZ });
+route('/business/hiring/candidates/:code', hire.candidate, { roles: BIZ });
 route('/officer', off.analytics, { roles: OFF });
 route('/officer/applications', ops.applications, { roles: OFF });
 route('/officer/grievances', ops.grievances, { roles: OFF });
@@ -74,12 +88,14 @@ const ICON = {
   explore: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 20l6-14 4 8 3-4 5 10z"/></svg>',
   verify: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6z"/><path d="M8.5 12l2.5 2.5 4.5-5"/></svg>',
   help: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 015 .5c0 1.7-2.5 2-2.5 3.5M12 17v.5"/></svg>',
+  jobs: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M9 7V5a2 2 0 012-2h2a2 2 0 012 2v2M3 13h18"/></svg>',
   plan: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 4L3 6v14l6-2 6 2 6-2V4l-6 2z"/><path d="M9 4v14M15 6v14"/></svg>',
   more: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>',
 };
 function roleNav() {
   const r = role();
   if (r === 'business') return BUSINESS_NAV;
+  if (r === 'job_seeker') return SEEKER_NAV;
   if (OFF.includes(r)) return r === 'state_admin' ? [...OFFICER_NAV, ...ADMIN_NAV] : OFFICER_NAV;
   return [];
 }
@@ -98,12 +114,12 @@ function drawShell() {
   const u = user();
   const sec = sectionOf(currentPath);
   mount($('#mainnav'), html`<div class="pillnav">${MAIN.map((k) => html`<a href="#${SECTIONS[k].home}" ${cur(sec === k)}>${lbl(SECTIONS[k].key)}</a>`)}</div>`);
-  const dash = u ? (u.role === 'business' ? '/business' : '/officer') : null;
+  const dash = u ? homeOf(u.role) : null;
   mount($('#topactions'), u
     ? html`<a class="btn sm ${currentPath.startsWith(dash) ? 'dark' : 'ghost'}" href="#${dash}" title="${u.label || u.username}">${lbl('dashboard')}</a>
            <button type="button" class="btn sm ghost hide-sm" id="signout">${lbl('signout')}</button>`
     : html`<div class="menuwrap"><button type="button" class="btn sm primary" id="signbtn" aria-expanded="false" aria-controls="signmenu">${lbl('signin')} <span aria-hidden="true">▾</span></button>
-        <div class="popmenu" id="signmenu" hidden><a href="#/signin?need=business">${lbl('business_signin')}</a><a href="#/signin?need=official">${lbl('officials_signin')}</a><a href="#/register">${lbl('create_account')}</a></div></div>`);
+        <div class="popmenu" id="signmenu" hidden><a href="#/signin?need=business">${lbl('business_signin')}</a><a href="#/signin?need=seeker">${lbl('seeker_signin')}</a><a href="#/signin?need=official">${lbl('officials_signin')}</a><a href="#/register">${lbl('create_account')}</a></div></div>`);
   $('#signout')?.addEventListener('click', doSignOut);
   const sb = $('#signbtn');
   if (sb) {
@@ -132,14 +148,14 @@ function drawShell() {
     <a href="#/destinations" ${cur(sec === 'explore')}>${raw(ICON.explore)}<span>${lbl('explore')}</span></a>
     <a href="#/plan" ${cur(sec === 'plan')}>${raw(ICON.plan)}<span>${lbl('plan')}</span></a>
     <a href="#/verify" ${cur(sec === 'verify')}>${raw(ICON.verify)}<span>${lbl('verify_short')}</span></a>
-    <button type="button" id="morebtn" aria-expanded="false" aria-controls="moresheet" class="${(!sec && currentPath !== '/') || sec === 'help' || sec === 'experiences' ? 'on' : ''}">${raw(ICON.more)}<span>${lbl('more')}</span></button>`);
+    <button type="button" id="morebtn" aria-expanded="false" aria-controls="moresheet" class="${(!sec && currentPath !== '/') || sec === 'help' || sec === 'jobs' ? 'on' : ''}">${raw(ICON.more)}<span>${lbl('more')}</span></button>`);
   const rn = roleNav();
   mount($('#moresheet'), html`<div class="sheet-in" role="region" aria-label="${lbl('more')}">
     <div class="sheet-h"><strong>${lbl('more')}</strong><button type="button" class="btn sm ghost" id="sheetclose">${lbl('close')}</button></div>
-    <a href="#/experiences">${lbl('experiences')}</a><a href="#/helplines">${lbl('helplines')}</a><a href="#/grievance">${lbl('file')}</a><a href="#/grievance/track">${lbl('track')}</a>
+    <a href="#/jobs">${lbl('jobs')}</a><a href="#/experiences">${lbl('experiences')}</a><a href="#/helplines">${lbl('helplines')}</a><a href="#/grievance">${lbl('file')}</a><a href="#/grievance/track">${lbl('track')}</a>
     <a href="#/dictionary">${lbl('dictionary')}</a><a href="#/rules">${lbl('rules')}</a><a href="#/festivals">${lbl('festivals')}</a><a href="#/search">${lbl('search')}</a>
-    ${rn.length ? html`<div class="mn-h">${u.role === 'business' ? lbl('business') : lbl('officials')}</div>${rn.map(([k, p]) => html`<a href="#${p}" ${cur(currentPath === p)}>${lbl(k)}</a>`)}<button type="button" class="linkrow" id="signout2">${lbl('signout')}</button>`
-      : html`<div class="mn-h">${lbl('signin')}</div><a href="#/signin?need=business">${lbl('business_signin')}</a><a href="#/signin?need=official">${lbl('officials_signin')}</a>`}
+    ${rn.length ? html`<div class="mn-h">${u.role === 'business' ? lbl('business') : u.role === 'job_seeker' ? lbl('job_seeker') : lbl('officials')}</div>${rn.map(([k, p]) => html`<a href="#${p}" ${cur(currentPath === p)}>${lbl(k)}</a>`)}<button type="button" class="linkrow" id="signout2">${lbl('signout')}</button>`
+      : html`<div class="mn-h">${lbl('signin')}</div><a href="#/signin?need=business">${lbl('business_signin')}</a><a href="#/signin?need=seeker">${lbl('seeker_signin')}</a><a href="#/signin?need=official">${lbl('officials_signin')}</a>`}
     <div class="mn-h">${lbl('about')}</div><a href="#/about">${lbl('about')}</a><a href="#/accessibility">${lbl('accessibility')}</a><a href="#/sitemap">${lbl('sitemap')}</a></div>`);
   $('#morebtn').addEventListener('click', () => toggleSheet());
   $('#sheetclose').addEventListener('click', () => { toggleSheet(false); $('#morebtn').focus(); });

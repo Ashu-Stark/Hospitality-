@@ -124,7 +124,7 @@ def render_job(j: dict, w: dict) -> None:
         with a:
             ping = (
                 (
-                    f'<div class="ss-ping"><span class="ss-avatar sm ping">{theme.esc(ui.initials(who))}</span>'
+                    f'<div class="ss-ping">{ui.avatar_img(j["department"], 34, "ping")}'
                     f"Pinging <b>{theme.esc(ui.short_name(who))}</b> · {secs}s left"
                     f'<div class="ss-countdown"><i style="width:{100 * secs / max(1, SECONDS):.0f}%"></i></div></div>'
                 )
@@ -226,7 +226,7 @@ def live() -> None:
         for emp, dpt in sorted(working.items(), key=lambda kv: (kv[1], kv[0]))[:40]:
             pinging = any(j["status"] == "offered" and j.get("offer_to") == emp for j in all_jobs)
             rows.append(
-                f'<div class="ss-wrow"><div class="ss-avatar sm {"ping" if pinging else ""}">{theme.esc(ui.initials(emp))}</div>'
+                f'<div class="ss-wrow">{ui.avatar_img(dpt, 34, "ping" if pinging else "")}'
                 f'<div style="flex:1"><b>{theme.esc(ui.short_name(emp))}</b><div class="m">{theme.esc(theme.dept_label(dpt))}</div></div>'
                 f'{theme.band_chip(bands.get(emp, "low"))}<span class="ss-tag">{load.get(emp, 0)} open</span></div>'
             )
@@ -253,6 +253,7 @@ def performance_section() -> None:
     pct = lambda c: None if c.get("value") is None else round(c["value"] * 100)  # noqa: E731
     rows = [
         {
+            "Role": ui.avatar_uri(w.get("department")),
             "Employee": ui.short_name(w["employee_id"]),
             "Department": theme.dept_label(w.get("department")),
             "Score": w["score"],
@@ -281,7 +282,7 @@ def performance_section() -> None:
         ),
         hide_index=True,
         width="stretch",
-        column_config={"Reasons": st.column_config.TextColumn(width="large")},
+        column_config={"Role": st.column_config.ImageColumn("Role", width="small"), "Reasons": st.column_config.TextColumn(width="large")},
     )
     w = out["weights"]
     st.caption(

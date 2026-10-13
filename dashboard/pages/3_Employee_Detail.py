@@ -45,8 +45,7 @@ with st.container(key="card_head"):
     a, b = st.columns([1.4, 2])
     with a:
         ui.html(
-            f'<div class="ss-person"><div class="ss-avatar {"hero" if s.is_demo_hero else ""}" style="width:64px;height:64px;font-size:1.3rem">'
-            f'{theme.esc(ui.initials(emp))}</div><div><div style="font-size:1.6rem;font-weight:600;letter-spacing:-.03em">'
+            f'<div class="ss-person">{ui.avatar_img(dept, 64)}<div><div style="font-size:1.6rem;font-weight:600;letter-spacing:-.03em">'
             f'{theme.esc(ui.display_name(emp))}</div><div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap">'
             f"{theme.band_chip(s.band, theme.BAND[s.band]['label'] + ' · flagged for review' if s.band == 'high' else None)}"
             f"{theme.basis_tag(s.band_basis)}{theme.contract_tag(s.contract_type)}</div>"

@@ -1,4 +1,4 @@
-"""Accounts (state admin, district officers, business owners), lockout, refresh-token sessions.
+"""Accounts (state admin, district officers, business owners, job seekers), lockout, refresh-token sessions.
 
 No personal data is stored: a username, role, optional district, password hash. Refresh tokens are stored only as
 SHA-256, rotated on every use, with reuse detection (a reused rotated token revokes all the user's sessions).
@@ -30,7 +30,8 @@ DEMO_ACCOUNTS = [
         "District tourism officer, Rudraprayag (demo)",
         "Applications, grievances, advisories and analytics for Rudraprayag only",
     ),
-    ("demo.business", "business", None, "Business owner (demo)", "Registered homestay and hotel, renewals, occupancy, API key"),
+    ("demo.business", "business", None, "Business owner (demo)", "Registered homestay and hotel, renewals, occupancy, API key, hiring"),
+    ("demo.seeker", "job_seeker", None, "Job seeker (demo)", "Hiring board: own profile, job search, applications, interest requests"),
 ]
 ADMIN_USERNAME = "admin"
 

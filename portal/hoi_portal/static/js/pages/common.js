@@ -2,7 +2,7 @@
 import { html, href, statusPill, verifiedPill, roadPill, fmtDateTime, fmtDate, relTime, samplePill, num, titleCase } from '../ui.js';
 import { t } from '../i18n.js';
 import { role, user } from '../api.js';
-import { BUSINESS_NAV, OFFICER_NAV, ADMIN_NAV } from '../nav.js';
+import { BUSINESS_NAV, OFFICER_NAV, ADMIN_NAV, SEEKER_NAV } from '../nav.js';
 
 export const ICONS = {
   plan: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 20l6-14 4 8 3-4 5 10z"/></svg>',
@@ -10,6 +10,7 @@ export const ICONS = {
   festival: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>',
   dict: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 4h11a3 3 0 013 3v13H8a3 3 0 01-3-3z"/><path d="M5 17a3 3 0 013-3h11"/></svg>',
   phone: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 005 5L15 13l5 2v4a2 2 0 01-2 2A16 16 0 013 6a2 2 0 012-2"/></svg>',
+  jobs: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M9 7V5a2 2 0 012-2h2a2 2 0 012 2v2M3 13h18"/></svg>',
   complaint: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5h16v11H9l-5 4z"/><path d="M12 8v4M12 14.5v.5"/></svg>',
 };
 
@@ -65,10 +66,10 @@ export function advisoryRow(a, { manage = false } = {}) {
 /** Sub-navigation for signed-in areas. */
 export function roleSubnav(current) {
   const r = role();
-  const items = r === 'business' ? BUSINESS_NAV : r === 'state_admin' ? [...OFFICER_NAV, ...ADMIN_NAV] : OFFICER_NAV;
+  const items = r === 'business' ? BUSINESS_NAV : r === 'job_seeker' ? SEEKER_NAV : r === 'state_admin' ? [...OFFICER_NAV, ...ADMIN_NAV] : OFFICER_NAV;
   const u = user();
   return html`<div class="whoami"><span class="pill info noicon">${u?.role_label || r}</span>${u?.district_name ? html`<span class="pill neutral noicon">District: ${u.district_name}</span>` : ''}<span>Signed in as <strong>${u?.username}</strong></span></div>
-  <nav class="subnav section" aria-label="${r === 'business' ? 'Business' : 'Officials'} sections"><div class="pillnav">${items.map(([k, p]) => html`<a href="#${p}" ${p === current ? html`aria-current="page"` : ''}>${t(k)}</a>`)}</div></nav>`;
+  <nav class="subnav section" aria-label="${r === 'business' ? 'Business' : r === 'job_seeker' ? 'Job seeker' : 'Officials'} sections"><div class="pillnav">${items.map(([k, p]) => html`<a href="#${p}" ${p === current ? html`aria-current="page"` : ''}>${t(k)}</a>`)}</div></nav>`;
 }
 export const kv = (pairs) => html`<dl class="facts">${pairs.filter((p) => p[1] !== undefined).map(([k, v]) => html`<dt>${k}</dt><dd>${v ?? '—'}</dd>`)}</dl>`;
 export const fmtNum = num;

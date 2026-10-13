@@ -11,8 +11,39 @@ python -m venv .venv
 .venv\Scripts\activate          # macOS/Linux: source .venv/bin/activate
 pip install -r requirements.txt
 cp .env.example .env            # Windows: copy .env.example .env
-streamlit run app.py            # http://localhost:8501
+streamlit run app.py            # hotel admin portal, http://localhost:8501
 ```
+
+## Two portals, one codebase
+
+The same code (and the same Docker image) serves two separate admin portals. `ADMIN_PORTAL` picks one per process:
+
+| `ADMIN_PORTAL` | Portal | Who signs in | Pages |
+|---|---|---|---|
+| `hotel` (default) | **Hotel admin portal** · title "&lt;hotel&gt; · Hotel admin", hotel logo/brand | owner, HR, department head, storekeeper, employee; platform admins after choosing a hotel | Home, Overview … Hotel profile, Guest services, Hotel setup (voice), Setup, Admin; employee app for employees. No console pages. |
+| `super` | **HOI Platform Admin** · navy header, "Platform admin" badge | platform admins only; hotel accounts are refused with a link to the hotel portal | Home (summary), Hotels, Insights, Audit log |
+
+```bash
+# macOS/Linux
+ADMIN_PORTAL=hotel SUPER_PORTAL_URL=http://localhost:8502 streamlit run app.py --server.port 8501
+ADMIN_PORTAL=super HOTEL_PORTAL_URL=http://localhost:8501 streamlit run app.py --server.port 8502
+```
+
+```powershell
+# Windows PowerShell (one terminal each)
+$env:ADMIN_PORTAL="hotel"; $env:SUPER_PORTAL_URL="http://localhost:8502"; streamlit run app.py --server.port 8501
+$env:ADMIN_PORTAL="super"; $env:HOTEL_PORTAL_URL="http://localhost:8501"; streamlit run app.py --server.port 8502
+```
+
+* `HOTEL_PORTAL_URL` (super portal): where "Open in hotel portal" and the sign-in hint point (default `http://localhost:8501`).
+* `SUPER_PORTAL_URL` (hotel portal): shown to platform admins (default `http://localhost:8502`).
+* **Platform admin in the hotel portal:** signs in with the platform account, must choose a hotel (audited impersonation,
+  `platform.open_workspace` in the audit log), then sees that hotel's pages with a "Viewing as platform admin — audited"
+  banner and an **Exit** back to hotel selection. The console's "Open in hotel portal" link passes `?hotel=<id>` so the
+  hotel is highlighted on the picker. Hotels are never opened inside the super-admin portal.
+* Each portal keeps its own "stay signed in" cookie (`hoi_rt` / `hoi_rt_admin`), because cookies on one host are shared across ports.
+* The portal split is a usability boundary. Security still comes from the platform API, which checks the role on every call
+  (console endpoints are platform-admin only).
 
 ## MOCK vs LIVE
 
@@ -40,22 +71,26 @@ When the frontend sits inside the monorepo, `dashboard/mocks/` takes precedence;
 ## Structure
 
 ```
-app.py                 router (st.navigation): login → console / hotel pages / employee app, by role and plan modules
+app.py                 router (st.navigation): portal (ADMIN_PORTAL) → login → console / hotel pages / employee app, by role and plan modules
 login.py               sign in, join with invite code, one-click demo accounts (rendered by lib/login_ui.py)
 home.py                hotel landing page + first-run welcome dialog
+pick_hotel.py          hotel portal: platform admin chooses the hotel to open (audited)
 pages/                 hotel dashboard: 1 Overview … 13 Inventory (numbered files)
-console/               platform console: 1 Hotels (onboard/suspend/plans/modules), 2 Audit log
+console/               super-admin portal: 0 Home (summary), 1 Hotels (onboard/suspend/plans/modules), 3 Insights, 2 Audit log
 employee/              employee app: 1 My day, 2 Jobs, 3 Supplies, 4 My tasks
 lib/platform.py        client for the HOI platform API (platform_api/), embedded or remote (PLATFORM_API_URL)
 lib/api_client.py      client for the ML/ops API (Render) or mock fixtures (USE_MOCKS)
 lib/auth.py            session tokens + page access per role (the API re-checks every call)
-lib/access.py          page sets per surface; modules per plan
+lib/access.py          page sets per portal and surface; modules per plan
+lib/portal.py          portal chrome: navy platform-admin header vs hotel brand/logo, impersonation banner, open-in-hotel-portal links
+lib/config.py          settings, incl. portal() / HOTEL_PORTAL_URL / SUPER_PORTAL_URL
 lib/tenancy.py         current hotel group (from the API), data-source switch per tenant
 lib/dispatch.py        on-shift set from the roster (the dispatch engine runs in the API)
 lib/worker_ui.py       shared phone UI: ping, accept/decline, before/after photos
 lib/models.py, data.py, theme.py, charts.py, ui.py, tour.py, nav.py, mock_backend.py
 mocks/                 captured ML API fixtures + _fixtures.py
-tests/smoke.py         renders every page as the right role through the API (python tests/smoke.py [--live])
+tests/smoke.py         renders every page of the portal as the right role through the API, plus portal rules
+                       (python tests/smoke.py [--live]; ADMIN_PORTAL=super python tests/smoke.py)
 ```
 
 ## Pages
@@ -79,7 +114,7 @@ tests/smoke.py         renders every page as the right role through the API (pyt
 
 ## Accounts, hotel groups, dispatch, inventory
 
-* **Surfaces:** signed-out visitors see the sign-in page; **platform admins** get the console (onboard hotel groups, plans, modules, suspend, audit) and can open any hotel (audited); **hotel staff** see pages for their role (owner, HR, department head, storekeeper); **employees** get a separate mobile-first app.
+* **Surfaces:** signed-out visitors see the sign-in page of their portal; **platform admins** use the super-admin portal (onboard hotel groups, plans, modules, suspend, insights, audit) and can open any hotel in the hotel portal (audited); **hotel staff** use the hotel admin portal with pages for their role (owner, HR, department head, storekeeper); **employees** get a separate mobile-first app there.
 * **Data:** all of this lives in the HOI platform API (`platform_api/`). By default it runs *inside* the Streamlit process (`PLATFORM_API_URL=embedded`), with real routing, validation and tokens; point `PLATFORM_API_URL` at a deployed instance to split them.
 * **First-time users:** demo role cards on the sign-in page, a welcome dialog, and a 9-step guided tour on the demo hotel.
 * Accepted dispatch jobs are mirrored into the ML backend's task board (idempotent key `dispatch:{tenant}:{job}`).

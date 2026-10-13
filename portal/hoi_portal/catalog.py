@@ -68,8 +68,23 @@ GRIEVANCE_SLA_DAYS = 7  # ASSUMED service level for the prototype
 ADVISORY_KINDS = ("road", "weather", "general")
 ROAD_STATUSES = ("open", "caution", "closed")
 CROWD_IMPACTS = ("low", "medium", "high")
-ROLES = {"state_admin": "State admin", "district_officer": "District tourism officer", "business": "Business"}
+ROLES = {"state_admin": "State admin", "district_officer": "District tourism officer", "business": "Business", "job_seeker": "Job seeker"}
 LANGUAGES = ("Hindi", "English", "Garhwali", "Kumaoni", "Punjabi", "Bengali", "Nepali")
 WORKFORCE_ROLES = ("housekeeping", "front_office", "food_beverage", "maintenance", "other")
+
+# Hiring board.
+JOB_APPLICATION_STATUSES = ("applied", "viewed", "shortlisted", "contacted", "not_selected", "withdrawn")
+# Business-side transitions (the seeker can only withdraw).
+JOB_APPLICATION_TRANSITIONS: dict[str, tuple[str, ...]] = {
+    "applied": ("viewed", "shortlisted", "contacted", "not_selected"),
+    "viewed": ("shortlisted", "contacted", "not_selected"),
+    "shortlisted": ("contacted", "not_selected"),
+    "contacted": ("not_selected",),
+    "not_selected": ("shortlisted",),
+    "withdrawn": (),
+}
+INTEREST_STATUSES = ("pending", "accepted", "declined", "withdrawn")
+JOB_STATUSES = ("open", "closed")
+JOB_CLOSE_REASONS = ("filled", "withdrawn", "expired")
 
 SYNTHETIC_NOTE = "SYNTHETIC data generated for a hackathon concept prototype. Not official statistics."

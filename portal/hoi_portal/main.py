@@ -22,7 +22,7 @@ from fastapi.staticfiles import StaticFiles
 
 from . import __version__, config, mongo, seed
 from .errors import DomainError
-from .routers import admin, auth, business, officer, public
+from .routers import admin, auth, business, hiring, officer, public
 
 STATIC = Path(__file__).resolve().parent / "static"
 log = logging.getLogger("hoi.portal")
@@ -111,7 +111,9 @@ def create_app() -> FastAPI:
         except Exception:  # noqa: BLE001
             return JSONResponse({"status": "not ready"}, status_code=503)
 
-    for r in (public.router, auth.router, business.router, business.ingest_router, officer.router, officer.analytics_router, admin.router):
+    routers = (public.router, auth.router, business.router, business.ingest_router, officer.router, officer.analytics_router, admin.router)
+    routers += (hiring.jobs_router, hiring.candidates_router, hiring.seeker_router, hiring.market_router)
+    for r in routers:
         app.include_router(r)
 
     @app.api_route("/api/{rest:path}", methods=["GET", "POST", "PUT", "PATCH", "DELETE"], include_in_schema=False)

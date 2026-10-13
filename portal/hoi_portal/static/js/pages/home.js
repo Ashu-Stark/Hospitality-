@@ -39,6 +39,8 @@ export async function home(ctx) {
       <form class="minisearch" id="vform" novalidate><label for="vreg" class="sr-only">Registration number</label><input class="field mono" id="vreg" name="reg" placeholder="UK-HMS-RUD-00001" autocapitalize="characters" spellcheck="false" maxlength="40"><button class="btn dark sm" type="submit">Verify</button></form></div>
     <div class="task"><span class="ic">${raw(ICONS.complaint)}</span><h2>${t('task_help')}</h2><p>Emergency <strong>112</strong> · helplines · complaints.</p>
       <div class="btnrow"><a class="btn dark sm" href="#/grievance">${t('file')}</a><a class="btn ghost sm" href="#/helplines">Helplines</a></div></div>
+    <div class="task"><span class="ic">${raw(ICONS.jobs)}</span><h2>${t('task_jobs')}</h2><p>Seasonal and year-round work in stays, treks and transport.</p>
+      <div class="btnrow"><a class="btn dark sm" href="#/jobs">Find jobs</a><a class="btn ghost sm" href="#/jobs/hire">Hire staff</a></div></div>
   </section>
   <section class="section" aria-labelledby="exp-h">
     <div class="sechead"><h2 id="exp-h">Explore by experience</h2><a href="#/experiences">${t('see_all')}</a></div>

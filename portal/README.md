@@ -53,6 +53,7 @@ Regenerate the API contract with real example responses: `.venv\Scripts\python.e
 | `TRAFFIC_PROVIDERS` | `tomtom,here,mapbox` | Provider order (Mapbox is a documented stub) |
 | `PORTAL_EXTERNAL_CACHE_DAYS` | 7 | Cache for BestTime / LocationIQ results in MongoDB |
 | `PORTAL_ACCESS_TTL_MINUTES` / `PORTAL_REFRESH_TTL_DAYS` | 30 / 14 | |
+| `PORTAL_PROFILE_RATE_PER_HOUR`, `PORTAL_MESSAGE_RATE_PER_HOUR`, `PORTAL_APPLY_RATE_PER_DAY`, `PORTAL_INTEREST_RATE_PER_DAY`, `PORTAL_JOB_POST_RATE_PER_DAY` | 5, 30, 20, 40, 20 | Hiring board, per user |
 | `PORTAL_LOGIN_RATE_PER_MINUTE`, `PORTAL_GRIEVANCE_RATE_PER_HOUR`, `PORTAL_TRACK_RATE_PER_MINUTE`, `PORTAL_VERIFY_RATE_PER_MINUTE`, `PORTAL_INGEST_RATE_PER_MINUTE` | 10, 5, 20, 60, 120 | |
 
 Production guard (`config.validate`): refuses to start with an empty or `mongomock://` URI, a weak/unset JWT secret,
@@ -86,7 +87,8 @@ tests/           pytest, offline
 - Collections: `users`, `refresh_tokens`, `districts`, `destinations`, `dictionary`, `rules`, `helplines`, `events`,
   `businesses`, `applications`, `grievances`, `advisories`, `api_keys`, `occupancy`, `occupancy_agg`, `workforce`,
   `arrivals`, `weather_cache`, `crowd_forecasts`, `map_tiles`, `places_cache`, `traffic_cache`, `traffic_observations`,
-  `traffic_calibration`, `counters`, `meta`, `audit_log`. Indexes are created at startup.
+  `traffic_calibration`, `counters`, `meta`, `audit_log`; hiring board: `seeker_profiles`, `job_posts`, `job_applications`,
+  `interest_requests`, `job_shortlist`, `job_messages`. Indexes are created at startup.
 - **Occupancy** is stored compactly: `occupancy` holds one document per (business, month) with day-indexed arrays
   `avail[]`, `occ[]`, `src[]` (`s` seed, `m` monthly form, `i` HOI ingest; null = no report). `occupancy_agg` holds
   one document per (destination, stay type, month) with day-indexed sums; the crowd index and occupancy analytics
@@ -108,6 +110,19 @@ for about 40 % of stays; arrivals by district 2019-2026 (current year partial); 
 (submitted, changes requested, approved, rejected, renewals); 9 sample advisories (one expired); 2 sample events;
 demo accounts `demo.admin`, `demo.officer.rudraprayag`, `demo.business` and five synthetic applicants. Occupancy
 curves are ASSUMED shapes that follow the curated seasonality hints; they are not data.
+
+## Hiring board (jobs)
+
+Job seekers (role `job_seeker`) keep a profile (skills from `seed/skills.py` with years, self-declared certificates,
+languages, preferred districts, availability, expected pay, short bio). No gender, age, religion, caste, family,
+photo or address fields exist; sending them is rejected. Phone/email are private and reach a business only after the
+seeker accepts that business's interest request. Businesses with an ACTIVE registration post jobs, search candidates
+and send requests. Match score: `services/matching.py` with ASSUMED weights in `hoi_portal/hiring.yaml` (skills 50,
+district 20, availability 20, language 10; unset criteria are left out and the rest rescaled). Officials see only
+aggregates (`/analytics/workforce-market`, candidate counts < 5 suppressed). Delete = hard delete (profile,
+applications, requests, messages). Seed (`seed/hiring.py`, once, when the hiring collections are empty, lock
+`meta.hiring_seed`): 120 synthetic candidates "Candidate C-0001..", placeholder phones `+91-90000-0NNNN`, 44 job posts
+from synthetic businesses, applications, requests, demo account `demo.seeker`.
 
 ## Crowd index (estimate)
 

@@ -18,6 +18,8 @@ const STR = {
     explore: 'Explore', experiences: 'Experiences', plan: 'Plan', verify_biz: 'Verify a business', verify_short: 'Verify', help: 'Help', more: 'More',
     business_signin: 'Business sign in', officials_signin: 'Officials sign in', create_account: 'Create business account',
     task_plan: 'Plan a trip', task_check: 'Check a business', task_help: 'Get help or complain', alerts: 'Alerts', coming_up: 'Coming up', see_all: 'See all', credits: 'Photo credits',
+    jobs: 'Jobs', task_jobs: 'Find work or hire staff', hiring: 'Hiring', find_jobs: 'Find jobs', my_jobsearch: 'My job search', my_profile: 'My profile',
+    seeker_signin: 'Job seeker sign in', job_seeker: 'Job seeker',
   },
   hi: {
     home: 'मुखपृष्ठ', destinations: 'गंतव्य', directory: 'निर्देशिका', festivals: 'त्योहार', dictionary: 'शब्दकोश',
@@ -35,6 +37,8 @@ const STR = {
     explore: 'घूमें', experiences: 'अनुभव', plan: 'योजना', verify_biz: 'व्यवसाय सत्यापित करें', verify_short: 'सत्यापन', help: 'सहायता', more: 'और',
     business_signin: 'व्यवसाय साइन इन', officials_signin: 'अधिकारी साइन इन', create_account: 'व्यवसाय खाता बनाएँ',
     task_plan: 'यात्रा की योजना', task_check: 'व्यवसाय जाँचें', task_help: 'सहायता या शिकायत', alerts: 'सूचनाएँ', coming_up: 'आगामी', see_all: 'सभी देखें', credits: 'फ़ोटो श्रेय',
+    jobs: 'नौकरियाँ', task_jobs: 'काम खोजें या स्टाफ रखें', hiring: 'भर्ती', find_jobs: 'नौकरी खोजें', my_jobsearch: 'मेरी नौकरी खोज', my_profile: 'मेरी प्रोफ़ाइल',
+    seeker_signin: 'नौकरी खोजने वाले साइन इन', job_seeker: 'नौकरी खोजने वाले',
   },
 };
 

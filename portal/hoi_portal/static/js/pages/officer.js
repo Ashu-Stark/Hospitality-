@@ -6,7 +6,7 @@ import { setQuery } from '../router.js';
 import { lineChart, barChart, hbarChart, heatmap, sparkline, PALETTE, BAND_FILL, bandOf, bandLegend, bandTintLegend, bandCell } from '../charts.js';
 import { roleSubnav } from './common.js';
 
-const TABS = [['overview', 'Overview'], ['rush', 'Rush & crowd'], ['occupancy', 'Occupancy'], ['market', 'Market growth'], ['grievances', 'Grievances'], ['workforce', 'Workforce']];
+const TABS = [['overview', 'Overview'], ['rush', 'Rush & crowd'], ['occupancy', 'Occupancy'], ['market', 'Market growth'], ['grievances', 'Grievances'], ['workforce', 'Workforce'], ['jobs', 'Workforce market']];
 const synBanner = (note) => html`<div class="synbanner" role="note"><b>SYNTHETIC DATA</b><span>Not official statistics.</span></div>`;
 const shortDate = (v) => { const d = new Date(v + 'T00:00'); return `${d.getDate()} ${monthName(d.getMonth() + 1, true)}`; };
 
@@ -29,7 +29,7 @@ export async function analytics(ctx) {
     setQuery({ tab: f.tab === 'overview' ? '' : f.tab, district: f.district });
     if (focusTab) $('#t-' + f.tab, el).focus();
     const d = f.district || undefined;
-    const fn = { overview, rush, occupancy, market, grievances, workforce }[f.tab];
+    const fn = { overview, rush, occupancy, market, grievances, workforce, jobs: jobsMarket }[f.tab];
     return load(panel, () => fn(panel, d, m, isAdmin), { skel: 'block', label: 'Loading analytics…' });
   };
   tabs.forEach((b, i) => {
@@ -220,4 +220,36 @@ async function workforce(box, district) {
     $$('[data-g]', box).forEach((b) => b.addEventListener('click', () => { groupBy = b.dataset.g; load(box, draw, { skel: 'block' }); }));
   };
   await draw();
+}
+
+// Hiring board aggregates: open jobs vs visible candidates (k-anonymous), seasonal demand, time to fill.
+async function jobsMarket(box, district, m, isAdmin) {
+  const w = await api('/analytics/workforce-market', { query: { district } });
+  const t = w.totals;
+  const hid = (v) => (v == null ? html`<span class="muted" title="${w.suppress_reason}">hidden (&lt;${w.k_min})</span>` : num(v));
+  const gapCell = (r) => (r.gap == null ? html`<span class="muted">—</span>` : r.gap > 0 ? html`<strong class="txt-bad">${r.gap} short</strong>` : r.gap < 0 ? html`${-r.gap} spare` : 'balanced');
+  const ttf = w.time_to_fill;
+  mount(box, html`${synBanner(w.note)}${scopeLine(w)}
+    <p class="small muted">Job posts are public; candidate counts are hidden for groups under ${w.k_min} people (k-anonymity).${infoNote(`${w.source} A candidate counts once per listed skill and per preferred district; "any district" counts everywhere.`, 'About this data')}</p>
+    <div class="kpis section">
+      <div class="kpi"><span class="k">Open job posts</span><span class="v">${num(t.open_posts)}</span><span class="small muted">${num(t.openings)} openings</span></div>
+      <div class="kpi"><span class="k">Visible candidates</span><span class="v">${hid(t.candidates)}</span></div>
+      <div class="kpi"><span class="k">Applications, last 30 days</span><span class="v">${num(t.applications_30d)}</span></div>
+      <div class="kpi"><span class="k">Median time to fill</span><span class="v">${ttf.median_days != null ? html`${num(ttf.median_days, 0)}<small> days</small>` : '—'}</span><span class="small muted">${ttf.suppressed ? ttf.reason : `${ttf.filled_posts} filled posts`}</span></div></div>
+    <div class="section" id="wm-season"></div>
+    <section class="card section" aria-labelledby="wm-sk"><h2 id="wm-sk">Supply and demand by skill</h2><p class="small muted">Open openings vs candidates listing the skill. “Short” = more openings than candidates.</p><div id="wm-skt"></div></section>
+    ${isAdmin && !district ? html`<section class="card section" aria-labelledby="wm-d"><details class="more"><summary><h2 id="wm-d" class="h3">By district (${w.by_district.length})</h2></summary><div id="wm-dt" class="section"></div></details></section>` : ''}`);
+  const sea = w.seasonal;
+  const peak = sea.openings.indexOf(Math.max(...sea.openings));
+  append(box, '#wm-season', barChart({
+    title: `Demand peaks in ${monthName(peak + 1)} (${num(sea.openings[peak])} openings)`, sub: 'Openings needed vs candidates available, by calendar month (synthetic)',
+    x: sea.months, xFmt: (v) => monthName(v, true), series: [{ label: 'Openings', values: sea.openings }, { label: 'Candidates available', values: sea.candidates }],
+    note: sea.note + ' Hidden months (<5 candidates) show no bar.',
+  }));
+  const cols = [{ key: 'label', label: 'Skill' }, { key: 'openings', label: 'Openings', num: true }, { key: 'open_posts', label: 'Posts', num: true },
+    { key: 'candidates', label: 'Candidates', num: true, render: (r) => hid(r.candidates) }, { key: 'gap', label: 'Gap', num: true, render: gapCell }];
+  pager(box.querySelector('#wm-skt'), w.by_skill, (slice) => table(cols, slice, 'Supply and demand by skill (synthetic)'), 10);
+  if (isAdmin && !district) {
+    pager(box.querySelector('#wm-dt'), w.by_district, (slice) => table([{ ...cols[0], label: 'District' }, ...cols.slice(1)], slice, 'Supply and demand by district (synthetic)'), 13);
+  }
 }

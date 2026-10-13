@@ -79,6 +79,7 @@ for s in scores:
     rows.append(
         {
             "employee_id": s.employee_id,
+            "Role": ui.avatar_uri(d),
             "Employee": ui.display_name(s.employee_id),
             "Department": theme.dept_label(d),
             "Contract": s.contract_type,
@@ -116,6 +117,7 @@ else:
         selection_mode="single-row",
         height=min(560, 38 * len(df) + 40),
         column_config={
+            "Role": st.column_config.ImageColumn("Role", width="small", help="Department avatar (illustration, not a photo)"),
             "Risk (90d)": st.column_config.ProgressColumn("Risk (90d)", min_value=0, max_value=1, format="%.3f"),
             "Rank": st.column_config.NumberColumn(width="small"),
             "of": st.column_config.NumberColumn(width="small"),
@@ -144,7 +146,7 @@ else:
             a, b = st.columns([1.5, 1])
             with a:
                 ui.html(
-                    f'<div class="ss-person"><div class="ss-avatar {"hero" if s.is_demo_hero else ""}">{theme.esc(ui.initials(emp))}</div>'
+                    f'<div class="ss-person">{ui.avatar_img(depts.get(emp), 46)}'
                     f'<div><div style="font-weight:600;font-size:1.15rem">{theme.esc(ui.display_name(emp))}</div>'
                     f'<div style="display:flex;gap:6px;margin-top:4px">{theme.band_chip(s.band)}{theme.basis_tag(s.band_basis)}'
                     f'{theme.contract_tag(s.contract_type)}<span class="ss-tag">rank {s.rank}/{s.group_size}</span></div></div></div>'

@@ -1,0 +1,29 @@
+# Match score for the hiring board (services/matching.py).
+# EVERY weight and credit below is ASSUMED: a transparent rule of thumb for ranking, not a validated model.
+# Inputs are ONLY skills + years of experience, preferred districts, availability and languages.
+# The profile has no gender, age, religion, caste, family, photo or address fields, so none can be used.
+# Read with hoi_portal/miniyaml.py (YAML subset).
+
+version: "rules-1"
+label: "Match score (rule of thumb, ASSUMED weights)"
+
+# Points per criterion (out of 100). A criterion the job or search does not specify is left out and the
+# remaining weights are rescaled, so the score always says how well the criteria that WERE set are met.
+weights:
+  skills: 50
+  district: 20
+  availability: 20
+  language: 10
+
+skills:
+  full_credit_years: 5      # years in a required skill for full credit
+  min_credit: 0.5           # a required skill with 0 years still earns half
+  related_credit: 0.25      # no exact skill, but one in the same category
+
+district:
+  preferred: 1.0            # job district is one of the seeker's preferred districts
+  any: 0.75                 # seeker did not limit districts ("anywhere in Uttarakhand")
+  same_division: 0.4        # prefers another district in the same division (Garhwal / Kumaon)
+
+availability:
+  type_mismatch: 0.5        # e.g. seeker wants permanent work, job is seasonal
