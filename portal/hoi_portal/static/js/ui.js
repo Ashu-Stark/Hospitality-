@@ -98,6 +98,12 @@ export function statusPill(s, label) {
   const [cls, l] = STATUS[s] || ['neutral', titleCase(s)];
   return html`<span class="pill ${cls}">${label || l}</span>`;
 }
+// Predicted road traffic band (traffic model; never a measurement).
+const TRAFFIC = { free: ['ok', 'Free-flowing'], moderate: ['warn', 'Moderate'], heavy: ['bad', 'Heavy'], severe: ['bad', 'Severe'] };
+export function trafficPill(band, prefix = 'Traffic') {
+  const [cls, l] = TRAFFIC[band] || ['neutral', band || 'Unknown'];
+  return html`<span class="pill ${cls}" title="Predicted, not measured; for planning">${prefix ? prefix + ': ' : ''}${l}</span>`;
+}
 export function roadPill(s) {
   const map = { open: ['ok', 'Open'], caution: ['warn', 'Caution'], closed: ['bad', 'Closed'] };
   const [cls, l] = map[s] || ['neutral', titleCase(s || 'Info')];

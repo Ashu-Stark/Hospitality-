@@ -64,11 +64,27 @@ class FieldValue[T](_Strict):
         return self.source in ANSWER_SOURCES
 
 
+class Geo(_Strict):
+    """Where the location text was found (LocationIQ geocoding); a hint for the owner, never a
+    confirmed fact."""
+    lat: float = Field(ge=-90, le=90)
+    lon: float = Field(ge=-180, le=180)
+    display_name: str = Field(max_length=300)
+    source: Literal["locationiq"] = "locationiq"
+    confidence: float = Field(default=0.0, ge=0, le=1)
+    query: str | None = Field(default=None, max_length=200)   # the text that was geocoded
+
+
+class LocationValue(FieldValue[str]):
+    """The location field plus an optional geocoding result (older drafts have no `geo`)."""
+    geo: Geo | None = None
+
+
 class HotelProfile(_Strict):
     hotel_name: FieldValue[str] = Field(default_factory=FieldValue[str])
     hotel_type: FieldValue[HotelType] = Field(default_factory=FieldValue[HotelType])
     rooms: FieldValue[int] = Field(default_factory=FieldValue[int])
-    location: FieldValue[str] = Field(default_factory=FieldValue[str])
+    location: LocationValue = Field(default_factory=LocationValue)
     peak_months: FieldValue[list[int]] = Field(default_factory=FieldValue[list[int]])
     departments: FieldValue[dict[str, int]] = Field(default_factory=FieldValue[dict[str, int]])
     head_roles: FieldValue[dict[str, str]] = Field(default_factory=FieldValue[dict[str, str]])

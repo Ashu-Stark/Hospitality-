@@ -84,6 +84,16 @@ class AudioConfig(_Strict):
     stt_providers: list[str]
 
 
+class GeocodingConfig(_Strict):
+    enabled: bool
+    api_key_env: str
+    url: str
+    countrycodes: str
+    timeout_seconds: float = Field(gt=0)
+    cache_days: float = Field(ge=0)
+    min_interval_seconds: float = Field(ge=0)
+
+
 class DemoProperty(_Strict):
     hotel_name: str
     hotel_type: str
@@ -105,6 +115,7 @@ class OnboardingConfig(_Strict):
     llm: LlmConfig
     audio: AudioConfig
     demo_properties: list[DemoProperty]
+    geocoding: GeocodingConfig | None = None   # optional: an older YAML without it still loads
 
     @model_validator(mode="after")
     def _types(self) -> OnboardingConfig:

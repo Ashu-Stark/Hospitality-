@@ -14,6 +14,14 @@ def _bool(v: str | None, default: bool) -> bool:
     return default if v is None else v.strip().lower() in {"1", "true", "yes", "on"}
 
 
+def _keys(*values: str) -> tuple[str, ...]:
+    """Comma-separated key lists, merged in order without duplicates."""
+    out: list[str] = []
+    for v in values:
+        out += [k.strip() for k in (v or "").split(",") if k.strip() and k.strip() not in out]
+    return tuple(out)
+
+
 @dataclass(frozen=True)
 class Settings:
     env: str
@@ -34,6 +42,16 @@ class Settings:
     ingest_rate_per_minute: int = 120
     weather_enabled: bool = True
     weather_ttl_minutes: int = 30
+    # External data APIs (keys from the environment only; never logged or sent to the browser).
+    besttime_key: str = field(default="", repr=False)
+    locationiq_key: str = field(default="", repr=False)
+    # Live traffic providers (optional nowcast for the traffic prediction). TOMTOM_API_KEYS: comma list for failover.
+    tomtom_keys: tuple[str, ...] = field(default=(), repr=False)
+    here_key: str = field(default="", repr=False)
+    mapbox_token: str = field(default="", repr=False)
+    traffic_providers: tuple[str, ...] = ()
+    locationiq_enabled: bool = True
+    external_cache_days: int = 7
 
     @property
     def is_production(self) -> bool:
@@ -71,6 +89,14 @@ def load() -> Settings:
         ingest_rate_per_minute=int(os.getenv("PORTAL_INGEST_RATE_PER_MINUTE", "120")),
         weather_enabled=_bool(os.getenv("PORTAL_WEATHER_ENABLED"), True),
         weather_ttl_minutes=int(os.getenv("PORTAL_WEATHER_TTL_MINUTES", "30")),
+        besttime_key=os.getenv("BESTTIME_API_KEY_PRIVATE", "").strip(),
+        locationiq_key=os.getenv("LOCATIONIQ_API_KEY", "").strip(),
+        tomtom_keys=_keys(os.getenv("TOMTOM_API_KEYS", ""), os.getenv("TOMTOM_API_KEY", "")),
+        here_key=os.getenv("HERE_API_KEY", "").strip(),
+        mapbox_token=os.getenv("MAPBOX_TOKEN", "").strip(),
+        traffic_providers=tuple(p.strip().lower() for p in os.getenv("TRAFFIC_PROVIDERS", "").split(",") if p.strip()),
+        locationiq_enabled=_bool(os.getenv("PORTAL_LOCATIONIQ_ENABLED"), True),
+        external_cache_days=int(os.getenv("PORTAL_EXTERNAL_CACHE_DAYS", "7")),
     )
 
 

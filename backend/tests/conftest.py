@@ -3,6 +3,7 @@ import os
 # Tests run offline on in-memory mongomock, never on Atlas: set before the app is imported.
 os.environ["MONGODB_URI"] = "mongomock://"
 os.environ.pop("HOI_ENV", None)
+os.environ.pop("LOCATIONIQ_API_KEY", None)  # geocoding: tests use a fake, never the network
 
 import uuid  # noqa: E402
 

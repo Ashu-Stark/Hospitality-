@@ -25,7 +25,7 @@ from ..seed.experiences import (
     OFFICIAL_SERVICES,
     OFFICIAL_SERVICES_NOTE,
 )
-from . import advisories, crowd, events, weather
+from . import advisories, crowd, events, locationiq, traffic, weather
 
 ROAD_ORDER = {"closed": 0, "caution": 1, "open": 2}
 DISTANCE_NOTE = "Straight-line distance between approximate coordinates, not road distance or travel time."
@@ -212,6 +212,8 @@ def get_itinerary(itin_id: str) -> dict:
     ctx = crowd.Context()
     today = date.today()
     wx_by_dest = _stop_weather([d for d, _ in i["stops"]])
+    bs = best_start(ctx, i["stops"], today)
+    arrive = date.fromisoformat(bs["date"])  # day each stop is reached when starting on the suggested day
     stops = []
     for n, (dest_id, days) in enumerate(i["stops"]):
         d = BY_ID_DEST[dest_id]
@@ -229,9 +231,19 @@ def get_itinerary(itin_id: str) -> dict:
                 "crowd_today": {"index": t["index"], "band": t["band"], "label": "estimate"},
                 "weather": wx,
                 "road": _worst_road(dest_id),
+                # predicted road congestion over daylight hours on the day this stop is reached (not measured)
+                "traffic": _stop_traffic(dest_id, arrive, ctx),
             }
         )
-    return {**_itin_summary(i), "stops": stops, "best_start": best_start(ctx, i["stops"], today), "generated_at": mongo.iso(mongo.now())}
+        arrive += timedelta(days=max(1, days))
+    return {**_itin_summary(i), "stops": stops, "best_start": bs, "generated_at": mongo.iso(mongo.now())}
+
+
+def _stop_traffic(dest_id: str, day: date, ctx: crowd.Context) -> dict | None:
+    try:
+        return traffic.predict_day(dest_id, day, ctx)
+    except Exception:  # noqa: BLE001 - optional on this page
+        return None
 
 
 # ------------------------------------------------------------------ nearby, map, links, offices
@@ -260,6 +272,7 @@ def map_points() -> dict:
             "lon": [min(p["lon"] for p in pts), max(p["lon"] for p in pts)],
         },
         "note": "Schematic dot map from approximate coordinates; not to scale; no boundaries shown.",
+        "static_map": locationiq.map_info(),
     }
 
 

@@ -7,7 +7,7 @@ from datetime import date
 from .. import mongo
 from ..errors import Invalid, NotFound
 from ..seed.districts import BY_ID as DISTRICTS
-from . import advisories, crowd, events, registry, search, weather
+from . import advisories, crowd, events, registry, search, traffic, traffic_live, weather
 
 FIELDS = (
     "id",
@@ -62,6 +62,12 @@ def detail(dest_id: str) -> dict:
     d = get_doc(dest_id)
     ctx = crowd.Context()
     road_adv = advisories.list_public(destination=dest_id)
+    road_items = [a for a in road_adv["items"] if a["kind"] == "road"]
+    try:
+        tr = traffic.summary(dest_id, ctx)  # prediction (always) + live incidents (when a provider answers)
+    except Exception:  # noqa: BLE001 - never break the destination page
+        tr = None
+    live = (tr or {}).get("live")
     return {
         "destination": summary(d),
         "weather": weather.for_destination(dest_id),
@@ -69,10 +75,25 @@ def detail(dest_id: str) -> dict:
         "roads": {
             "facts": d["route_facts"],
             "facts_note": d["facts_note"],
-            "advisories": [a for a in road_adv["items"] if a["kind"] == "road"],
+            "advisories": road_items,
+            "traffic": tr,  # predicted congestion (not measured), next 24 h + best time to drive + factors
+            "live": live,  # live incidents from a provider (None when unavailable or nothing reported)
+            "worst": worst_road(road_items, live),
         },
         "advisories": road_adv["items"],
         "nearby": registry.nearby(dest_id),
         "events": events.for_destination(dest_id),
         "last_updated": mongo.iso(mongo.now()),
     }
+
+
+def worst_road(road_advisories: list[dict], live: dict | None) -> dict | None:
+    """The worst road status from officer advisories and TomTom live traffic, with its source (None = nothing reported)."""
+    order = traffic_live.STATUS_ORDER
+    cands = [(order.get(a.get("status"), 3), "advisory", a.get("status")) for a in road_advisories if a.get("status")]
+    if live and live.get("total"):
+        cands.append((order[live["status"]], live["source"], live["status"]))
+    if not cands:
+        return None
+    _, source, status = min(cands, key=lambda c: (c[0], c[1] != "advisory"))
+    return {"status": status, "source": source}

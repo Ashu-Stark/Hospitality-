@@ -1,6 +1,6 @@
 // Experiences (themes) and the Plan section: sample itineraries (stop-by-stop live status + best start), circuits,
 // schematic dot map, how to reach, official services. Built only from curated destinations; no invented facts.
-import { html, mount, href, load, $, $$, raw, empty, bandPill, roadPill, fmtDate, crumbs, lastUpdated, monthName, moreList, infoNote, collapseFilters, announce, num } from '../ui.js';
+import { html, mount, href, load, $, $$, raw, empty, bandPill, roadPill, trafficPill, fmtDate, crumbs, lastUpdated, monthName, moreList, infoNote, collapseFilters, announce, num } from '../ui.js';
 import { api, meta } from '../api.js';
 import { setQuery } from '../router.js';
 import { BAND_FILL, bandLegend } from '../charts.js';
@@ -101,11 +101,12 @@ export async function itinerary(ctx) {
           <div class="sh"><a class="t" href="${href('/destinations/' + s.destination_id)}">${s.name}</a><span class="muted small">${s.district_name} · ${s.suggested_days} day${s.suggested_days > 1 ? 's' : ''} suggested</span></div>
           <div class="st">${bandPill(s.crowd_today.band, s.crowd_today.index, 'Crowd')}
             <span class="pill ${s.weather?.warning ? 'bad' : 'neutral'} noicon">${s.weather?.warning ? `⚠ ${s.weather.warning.kind === 'snow' ? 'Snow' : 'Heavy rain'} ${short(s.weather.warning.date)}` : wxText(s.weather)}</span>
-            ${s.road ? html`<span class="roadx">Road: ${roadPill(s.road.status)}${s.road.sample ? html`<span class="pill syn">sample</span>` : ''}</span>` : html`<span class="pill neutral noicon">No road alerts</span>`}</div>
+            ${s.road ? html`<span class="roadx">Road: ${roadPill(s.road.status)}${s.road.sample ? html`<span class="pill syn">sample</span>` : ''}</span>` : html`<span class="pill neutral noicon">No road alerts</span>`}
+            ${s.traffic ? html`<span class="roadx">Traffic ${short(s.traffic.date)}: ${trafficPill(s.traffic.band, '')}<span class="pill syn">predicted</span></span>` : ''}</div>
           ${s.best_months?.length ? html`<div class="small muted">Usually best: ${s.best_months.map((m) => monthName(m, true)).join(', ')}</div>` : ''}
         </div></div></li>`)}</ol>
       <p class="hint">${i.note}</p>${thumbsNote()}
-      ${lastUpdated(i.generated_at, 'Crowd levels are estimates; road alerts marked sample are illustrative')}`);
+      ${lastUpdated(i.generated_at, 'Crowd levels are estimates; traffic is predicted for the day you reach each stop if you start on the suggested day; road alerts marked sample are illustrative')}`);
   });
 }
 
@@ -126,10 +127,10 @@ export async function circuits(ctx) {
 export async function map(ctx) {
   const el = ctx.el;
   const f = { circuit: ctx.query.circuit || '', district: ctx.query.district || '', theme: ctx.query.theme || '' };
-  mount(el, html`<div class="pagehead"><div><h1>Map view</h1><p>Where the places are, coloured by today's crowd estimate.</p></div></div>
+  mount(el, html`<div class="pagehead"><div><h1>Map view</h1><p>Where the places are. Today's crowd estimate is in the list and on the crowd dot map.</p></div></div>
     <form class="card tight filters" id="mf" aria-label="Filter the map"></form>
-    <div class="maplayout"><figure class="card mapfig"><div id="mapbox" class="mapbox"></div>
-      <figcaption class="hint">Schematic, not to scale; no boundaries shown. Dots use approximate coordinates. North is up.</figcaption>
+    <div class="maplayout"><figure class="card mapfig"><div class="mapmode" id="mmode" hidden></div><div id="mapbox" class="mapbox"></div>
+      <figcaption class="hint" id="mcap">Schematic, not to scale; no boundaries shown. Dots use approximate coordinates. North is up.</figcaption>
       <div class="heat-legend" id="mleg"></div></figure>
     <section class="card tight maplist" aria-labelledby="ml-h"><h2 id="ml-h" class="h3">Places shown</h2><div id="mlist" aria-live="polite"></div></section></div>`);
   await load($('#mapbox', el), async () => {
@@ -143,12 +144,43 @@ export async function map(ctx) {
     const box = $('#mapbox', el);
     const match = (p) => (!f.circuit || p.circuits.includes(f.circuit)) && (!f.district || p.district === f.district) && (!f.theme || p.themes.includes(f.theme));
     let lastW = 0;
+    // Street map (LocationIQ / OpenStreetMap image proxied and cached by our server) when available; schematic otherwise.
+    let mode = m.static_map?.available ? 'street' : 'dots';
+    const modeBox = $('#mmode', el);
+    const CAP_DOTS = "Schematic, not to scale; no boundaries shown. Dots use approximate coordinates and today's crowd estimate. North is up.";
+    const drawModes = () => {
+      if (!m.static_map?.available) { modeBox.hidden = true; return; }
+      modeBox.hidden = false;
+      mount(modeBox, html`<div class="pillnav sub" role="group" aria-label="Map type"><button type="button" data-m="street" aria-pressed="${String(mode === 'street')}" class="${mode === 'street' ? 'on' : ''}">Street map</button><button type="button" data-m="dots" aria-pressed="${String(mode === 'dots')}" class="${mode === 'dots' ? 'on' : ''}">Crowd dots</button></div>`);
+    };
+    modeBox.addEventListener('click', (e) => {
+      const b = e.target.closest('button[data-m]');
+      if (!b || b.dataset.m === mode) return;
+      mode = b.dataset.m;
+      drawModes();
+      draw(true);
+    });
+    const fallback = () => { m.static_map = { available: false }; mode = 'dots'; drawModes(); draw(true); };
+    const street = (shown) => {
+      const q = Object.fromEntries(Object.entries(f).filter(([, v]) => v));
+      const src = '/api/v1/map/static' + (Object.keys(q).length ? '?' + new URLSearchParams(q).toString() : '');
+      const names = shown.map((p) => p.name).join(', ');
+      mount(box, html`<img class="mapimg" src="${src}" width="960" height="720" alt="Street map with markers for ${shown.length} places: ${names}">`);
+      box.querySelector('img').addEventListener('error', fallback, { once: true });
+      $('#mcap', el).textContent = `Red markers: the ${shown.length} places in the list. ${m.static_map.attribution}.`;
+      $('#mleg', el).hidden = true;
+    };
     const draw = (force) => {
       const W = Math.max(280, Math.floor(box.clientWidth));
       if (!force && W === lastW) return;
       lastW = W;
-      mount(box, raw(drawMap(m, W, match, f.circuit ? m.circuits.find((c) => c.id === f.circuit) : null)));
       const shown = m.items.filter(match);
+      if (mode === 'street' && shown.length) street(shown);
+      else {
+        mount(box, raw(drawMap(m, W, match, f.circuit ? m.circuits.find((c) => c.id === f.circuit) : null)));
+        $('#mcap', el).textContent = CAP_DOTS;
+        $('#mleg', el).hidden = false;
+      }
       mount($('#mlist', el), shown.length ? moreList(shown, (p) => html`<li>${bandPill(p.crowd_today.band, p.crowd_today.index, '')}<a href="${href('/destinations/' + p.id)}">${p.name}</a><span class="muted small">${p.district_name}</span></li>`, window.matchMedia('(max-width: 1000px)').matches ? 6 : 24, 'lines') : empty('No places match these filters'));
     };
     const sync = () => { const fd = new FormData(form); Object.keys(f).forEach((k) => { f[k] = (fd.get(k) || '').toString(); }); setQuery(f); draw(true); announce(`${m.items.filter(match).length} places shown`); };
@@ -156,6 +188,7 @@ export async function map(ctx) {
     form.addEventListener('reset', () => setTimeout(sync));
     const ro = new ResizeObserver(() => requestAnimationFrame(() => { if (box.isConnected) draw(false); }));
     ro.observe(box);
+    drawModes();
     draw(true);
   }, { skel: 'block' });
 }
@@ -246,5 +279,21 @@ export async function nearbyPanel(box, dest) {
   const r = await api(`/destinations/${encodeURIComponent(dest.id)}/nearby`, { query: { limit: 8 } });
   mount(box, html`<h2 id="ph">Nearby places</h2>
     ${moreList(r.items, (p) => html`<a class="item nearby" href="${href('/destinations/' + p.id)}">${photo(p.id) ? img(photo(p.id), { cls: 'nthumb', alt: '' }) : html`<span class="nthumb ph" aria-hidden="true"></span>`}<div class="main"><strong>${p.name}</strong><div class="sub">${p.district_name} · about ${num(p.distance_km)} km straight-line</div></div><div class="side">${bandPill(p.crowd_today.band, p.crowd_today.index, '')}</div></a>`, 5)}
-    <p class="hint section">${r.distance_note}</p>${thumbsNote()}`);
+    <p class="hint section">${r.distance_note}</p>${thumbsNote()}<section class="section places" id="places" aria-labelledby="pl-h" hidden></section>`);
+  placesSection($('#places', box), dest);
+}
+
+// Useful places around a destination (LocationIQ / OpenStreetMap via our server). Hidden when empty or failing.
+async function placesSection(sec, dest, retry = true) {
+  let r;
+  try { r = await api(`/destinations/${encodeURIComponent(dest.id)}/places`); } catch { return; }
+  if (!sec.isConnected) return;
+  if (r.available) {
+    sec.hidden = false;
+    mount(sec, html`<h3 id="pl-h">Useful places around ${dest.name}</h3>
+      <div class="pgroups">${r.groups.map((g) => html`<div class="pgroup"><h4>${g.label} <span class="muted small">within ${num(g.radius_km)} km</span></h4>
+        <ul class="pchips">${g.items.map((i) => html`<li><span class="pn">${i.name}</span><span class="pd">${num(i.distance_km, 1)} km</span></li>`)}</ul></div>`)}</div>
+      <p class="hint">${r.distance_note} ${r.attribution}.</p>`);
+  }
+  if (retry && r.pending?.length) setTimeout(() => placesSection(sec, dest, false), 1500);
 }

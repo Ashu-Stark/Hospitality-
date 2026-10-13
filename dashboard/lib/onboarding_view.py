@@ -90,3 +90,11 @@ def confidence_badge(conf: float, accept: float = 0.6) -> tuple[str, str]:
     if conf >= accept:
         return "watch", f"{conf:.0%} medium"
     return "high", f"{conf:.0%} check"
+
+
+def geo_found(location_field: dict | None) -> str | None:
+    """'Found: <place>' for a geocoded location (LocationIQ), or None when nothing was found or geocoding was off."""
+    geo = (location_field or {}).get("geo") or None
+    if not geo or not geo.get("display_name") or not (location_field or {}).get("value"):
+        return None
+    return f"Found: {geo['display_name']}"

@@ -13,6 +13,18 @@ cd portal
 Without `MONGODB_URI` it uses in-memory mongomock and seeds synthetic demo data at startup (about 3 s).
 Open http://127.0.0.1:8200/ (web app) and http://127.0.0.1:8200/docs (Swagger, dev only).
 
+External data (all keys server-side; tests use fakes and never call the network):
+
+- **BestTime** foot traffic: `..\.venv\Scripts\python.exe -m hoi_portal.scripts.besttime_refresh [--dry-run]` fetches the
+  venues in `seed/besttime_venues.py` once (skips venues fetched < 7 days ago and venues BestTime could not forecast;
+  both are stored in `crowd_forecasts`). Destination crowd responses add `foot_traffic` (or null) beside our estimate.
+- **LocationIQ**: `GET /api/v1/map/static` (PNG proxied and cached in `map_tiles`) and
+  `GET /api/v1/destinations/{id}/places` (cached in `places_cache`). Calls are sequential, >= 0.5 s apart.
+- **Traffic prediction** (`services/traffic.py`, weights in `hoi_portal/traffic.yaml`, all ASSUMED): `GET /api/v1/traffic/{id}?hours=72`.
+  Predicted, not measured. Live providers (`services/traffic_live.py`) only adjust the next 1-3 hours; each live answer is
+  stored in `traffic_observations`; `python -m hoi_portal.scripts.traffic_calibrate` fits per-destination corrections
+  once 30 observations exist (pure Python; no numpy on the deployed portal).
+
 Tests (offline, mongomock, fake weather):
 
 ```powershell
@@ -34,6 +46,12 @@ Regenerate the API contract with real example responses: `.venv\Scripts\python.e
 | `PORTAL_SEED_DEMO` | true outside production | Seeds synthetic data when the database has no businesses |
 | `PORTAL_CORS_ORIGINS` | `*` in dev, none in prod | Explicit list required in production |
 | `PORTAL_WEATHER_ENABLED` | true | Calls Open-Meteo server-side |
+| `BESTTIME_API_KEY_PRIVATE` | unset | Secret. Only the refresh command uses it (BestTime foot-traffic forecasts) |
+| `LOCATIONIQ_API_KEY` | unset | Secret. Street map image + nearby places (server-side only); `PORTAL_LOCATIONIQ_ENABLED=false` switches it off |
+| `TOMTOM_API_KEYS` / `TOMTOM_API_KEY` | unset | Secret. Live traffic nowcast; comma list = failover keys (401/403/5xx/timeout only, never on 429) |
+| `HERE_API_KEY` | unset | Secret. Optional second live-traffic provider |
+| `TRAFFIC_PROVIDERS` | `tomtom,here,mapbox` | Provider order (Mapbox is a documented stub) |
+| `PORTAL_EXTERNAL_CACHE_DAYS` | 7 | Cache for BestTime / LocationIQ results in MongoDB |
 | `PORTAL_ACCESS_TTL_MINUTES` / `PORTAL_REFRESH_TTL_DAYS` | 30 / 14 | |
 | `PORTAL_LOGIN_RATE_PER_MINUTE`, `PORTAL_GRIEVANCE_RATE_PER_HOUR`, `PORTAL_TRACK_RATE_PER_MINUTE`, `PORTAL_VERIFY_RATE_PER_MINUTE`, `PORTAL_INGEST_RATE_PER_MINUTE` | 10, 5, 20, 60, 120 | |
 
@@ -67,7 +85,8 @@ tests/           pytest, offline
 
 - Collections: `users`, `refresh_tokens`, `districts`, `destinations`, `dictionary`, `rules`, `helplines`, `events`,
   `businesses`, `applications`, `grievances`, `advisories`, `api_keys`, `occupancy`, `occupancy_agg`, `workforce`,
-  `arrivals`, `weather_cache`, `counters`, `meta`, `audit_log`. Indexes are created at startup.
+  `arrivals`, `weather_cache`, `crowd_forecasts`, `map_tiles`, `places_cache`, `traffic_cache`, `traffic_observations`,
+  `traffic_calibration`, `counters`, `meta`, `audit_log`. Indexes are created at startup.
 - **Occupancy** is stored compactly: `occupancy` holds one document per (business, month) with day-indexed arrays
   `avail[]`, `occ[]`, `src[]` (`s` seed, `m` monthly form, `i` HOI ingest; null = no report). `occupancy_agg` holds
   one document per (destination, stay type, month) with day-indexed sums; the crowd index and occupancy analytics

@@ -589,7 +589,7 @@ ol.stops .n{position:absolute;left:-44px;top:12px;width:36px;height:36px;border-
 .stopc a.t{font-weight:600;font-size:1.08rem;color:var(--ink);text-decoration:none}
 .stopc a.t:hover{text-decoration:underline}
 .stopc .st{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
-.roadx{display:inline-flex;gap:4px;align-items:center;font-size:.8rem;color:var(--ink2)}
+.roadx{display:inline-flex;gap:4px;align-items:center;font-size:.8rem;color:var(--ink2);flex-wrap:wrap;min-width:0;max-width:100%}
 /* --- circuits, map, services --- */
 .circ{display:flex;flex-direction:column;gap:8px}
 .circ h2.h3{font-size:1.15rem}
@@ -654,3 +654,16 @@ a.item.nearby .main{flex:1 1 160px}
 .creditlist img{flex:none;width:120px;height:90px;object-fit:cover;border-radius:12px}
 .creditlist li > div{display:flex;flex-direction:column;gap:2px;min-width:0;overflow-wrap:anywhere}
 @media (max-width:480px){.creditlist{grid-template-columns:minmax(0,1fr)}.creditlist img{width:88px;height:66px}}
+/* External data: BestTime foot traffic, LocationIQ map + places, TomTom live traffic */
+.gl .s.ft{display:flex;align-items:center;gap:4px 8px;margin-top:2px;flex-wrap:wrap}
+.gl .s.ft>span{flex:1 1 130px;min-width:0}
+.minibars{width:72px;height:22px;flex:none}
+.mapmode{margin-bottom:10px}
+.mapimg{display:block;width:100%;height:auto;border-radius:14px;background:var(--field)}
+.places h3{margin-bottom:8px}
+.pgroups{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:10px 16px}
+.pgroup h4{font-size:.86rem;font-weight:600;margin:0 0 6px}
+.pchips{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:4px}
+.pchips li{display:flex;justify-content:space-between;gap:10px;background:var(--field);border-radius:10px;padding:6px 10px;font-size:.84rem;min-width:0}
+.pchips .pn{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.pchips .pd{color:var(--muted);flex:none;font-variant-numeric:tabular-nums}

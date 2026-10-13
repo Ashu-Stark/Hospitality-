@@ -21,6 +21,7 @@ from backend.db import audit, ensure_seeded
 from backend.mongo import database_kind, get_database
 from backend.onboarding import api as onboarding_api
 from backend.onboarding.config import load_config as load_onboarding_config
+from backend.onboarding.geocode import default_geocoder
 from backend.onboarding.llm import default_adapter
 from backend.onboarding.seed import ensure_demo_properties
 from backend.onboarding.stt import CloudSTT
@@ -94,6 +95,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.state.onboarding_cfg = load_onboarding_config()
     app.state.onboarding_llm = default_adapter(app.state.onboarding_cfg)
     app.state.onboarding_stt = CloudSTT(app.state.onboarding_cfg.audio.stt_providers)
+    app.state.onboarding_geocoder = default_geocoder(app.state.onboarding_cfg)  # LocationIQ
     register_core_routes(app)
     app.include_router(roster_service.router(get_db, get_service, source_of))
     app.include_router(task_api.router(get_db, source_of))

@@ -100,3 +100,18 @@ demo_properties:
   - {hotel_name: "Demo Pine Homestay (SYNTHETIC)", hotel_type: homestay, rooms: 12, location: Mussoorie}
   - {hotel_name: "Demo Ridge Hotel (SYNTHETIC)", hotel_type: small_hotel, rooms: 35, location: Nainital}
   - {hotel_name: "Demo Valley Resort (SYNTHETIC)", hotel_type: resort, rooms: 80, location: Rishikesh}
+
+# Geocoding of the location answer (LocationIQ Search / forward geocoding, countrycodes=in,
+# limit 1). Runs when the location field is filled from an answer or edited; the result is
+# stored next to the field as `geo` and shown on the summary as "Found: ...". The key is read
+# ONLY from the environment variable below. No key or a failed call -> silently skipped; it
+# never blocks Confirm. Only the place text the owner gave is sent (no names or staff data).
+geocoding:
+  enabled: true                       # ASSUMED
+  api_key_env: LOCATIONIQ_API_KEY
+  url: "https://us1.locationiq.com/v1/search"   # verified against docs.locationiq.com, Oct 2026
+  countrycodes: in
+  timeout_seconds: 5                  # ASSUMED
+  cache_days: 7                       # ASSUMED: same text -> cached result (in-process)
+  min_interval_seconds: 0.5           # ASSUMED: free tier allows about 2 requests per second
+                                      # confidence shown = LocationIQ's importance (0-1)

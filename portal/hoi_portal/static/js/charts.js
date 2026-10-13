@@ -461,6 +461,21 @@ export function sparkline(values, color = PALETTE[0]) {
   return `<svg class="spark" viewBox="-2 0 ${W + 4} ${H}" preserveAspectRatio="none" aria-hidden="true" focusable="false"><path d="${d}" fill="none" stroke="${color}" stroke-width="2" vector-effect="non-scaling-stroke"/><circle cx="${lx}" cy="${ly}" r="2.5" fill="${color}"/></svg>`;
 }
 
+/** Tiny decorative 24-bar strip (the caller states the takeaway in text). hl: Set of highlighted indexes. */
+export function miniBars(values, hl = new Set(), color = PALETTE[0], hlColor = '#2e8540') {
+  const n = values.length;
+  if (!n) return '';
+  const W = 120, H = 28, gap = 1;
+  const bw = (W - gap * (n - 1)) / n;
+  const mx = Math.max(...values, 1);
+  let s = `<svg class="minibars" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" aria-hidden="true" focusable="false">`;
+  values.forEach((v, i) => {
+    const h = v > 0 ? Math.max(2, (v / mx) * (H - 2)) : 1;
+    s += `<rect x="${(i * (bw + gap)).toFixed(2)}" y="${(H - h).toFixed(2)}" width="${bw.toFixed(2)}" height="${h.toFixed(2)}" rx="1" fill="${v > 0 ? (hl.has(i) ? hlColor : color) : '#d9d8d3'}"/>`;
+  });
+  return s + '</svg>';
+}
+
 export const bandLegend = () => Object.keys(BAND_FILL).map((k) => ({ label: BAND_LABEL[k], color: BAND_FILL[k] }));
 export const bandTintLegend = () => Object.keys(BAND_TINT).map((k) => ({ label: BAND_LABEL[k], color: BAND_TINT[k][0] }));
 export const bandCell = (v) => { const b = bandOf(v); return { fill: BAND_TINT[b][0], text: BAND_TINT[b][1], label: BAND_LABEL[b].split(' (')[0] }; };

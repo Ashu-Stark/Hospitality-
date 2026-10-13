@@ -1,10 +1,10 @@
 // Destinations list + destination detail. Detail answers "should I go this week?" first (At a glance tiles), then
 // shows ONE tab panel at a time (deep-linkable: #/destinations/<id>/<tab>).
-import { html, mount, href, load, bandPill, $, $$, empty, monthName, MONTH_NAMES, fmtDate, relTime, roadPill, impactPill, lastUpdated, crumbs, landscape, num, raw, samplePill, collapseFilters, pager, moreList, infoNote } from '../ui.js';
+import { html, mount, href, load, bandPill, trafficPill, $, $$, empty, monthName, MONTH_NAMES, fmtDate, relTime, roadPill, impactPill, lastUpdated, crumbs, landscape, num, raw, samplePill, collapseFilters, pager, moreList, infoNote } from '../ui.js';
 import { api, meta } from '../api.js';
 import { setQuery } from '../router.js';
 import { t } from '../i18n.js';
-import { barChart, BAND_FILL, bandLegend, bandOf } from '../charts.js';
+import { barChart, BAND_FILL, bandLegend, bandOf, miniBars, PALETTE } from '../charts.js';
 import { bizRow, advisoryRow, kv } from './common.js';
 import { nearbyPanel } from './plan.js';
 import { photo, img, photoHead, thumbsNote } from '../photos.js';
@@ -89,6 +89,10 @@ export async function detail(ctx) {
     const w = d.weather;
     const roadAdv = (d.roads?.advisories || []).slice().sort((a, b) => (ROAD_ORDER[a.status] ?? 3) - (ROAD_ORDER[b.status] ?? 3));
     const worst = roadAdv[0];
+    const live = d.roads?.live || null; // live incidents from a provider (TomTom, HERE), alongside the posted advisories
+    const tr = d.roads?.traffic || null; // predicted congestion (traffic model), always shown as a prediction
+    const roadWorst = d.roads?.worst || (worst ? { status: worst.status, source: 'advisory' } : null);
+    const ft = cr?.foot_traffic || null; // BestTime typical foot traffic at one well-known venue
     const outlook = cr?.outlook || [];
     const quiet = outlook.length ? outlook.reduce((a, b) => (b.index < a.index ? b : a)) : null;
     const nowM = new Date().getMonth() + 1;
@@ -104,10 +108,14 @@ export async function detail(ctx) {
           ${w?.available ? html`<span class="v">${Math.round(w.current?.temperature_c)}°C <small>${w.current?.summary || ''}</small></span><span class="s">${wWarn ? html`<strong>⚠ ${wWarn.kind === 'snow' ? 'Snow' : 'Heavy rain'} ${short(wWarn.date)}</strong>` : 'No rain or snow warnings, 7 days'}</span>`
             : html`<span class="v">—</span><span class="s">Live weather unavailable</span>`}</a>
         <a class="gl ${cr?.today?.band === 'very_high' ? 'r' : cr?.today?.band === 'high' ? 'w' : ''}" href="#${base}/crowd"><span class="k">Crowd today <span class="tag">estimate</span></span>
-          ${cr?.today ? html`<span class="v">${bandPill(cr.today.band, cr.today.index, '')}</span><span class="s">Quietest in 14 days: ${short(quiet.date)} (${quiet.index})</span>` : html`<span class="v">—</span><span class="s">No estimate</span>`}</a>
-        <a class="gl ${worst?.status === 'closed' ? 'r' : worst?.status === 'caution' ? 'w' : ''}" href="#${base}/roads"><span class="k">Roads</span>
-          ${worst ? html`<span class="v">${roadPill(worst.status)}</span><span class="s">${worst.segment || worst.title.replace(/^SAMPLE:\s*/, '')}${roadAdv.length > 1 ? ` · +${roadAdv.length - 1} more` : ''}</span>`
-            : html`<span class="v"><span class="pill neutral noicon">No alerts posted</span></span><span class="s">Check locally before setting out</span>`}</a>
+          ${cr?.today ? html`<span class="v">${bandPill(cr.today.band, cr.today.index, '')}</span><span class="s">Quietest in 14 days: ${short(quiet.date)} (${quiet.index})</span>` : html`<span class="v">—</span><span class="s">No estimate</span>`}
+          ${ft?.best_window ? html`<span class="s ft">${raw(miniBars(ft.today_by_hour, bestSet(ft)))}<span>Best time to visit today: <strong>${ft.best_window.label}</strong> (BestTime)</span></span>` : ''}</a>
+        <a class="gl ${roadWorst?.status === 'closed' ? 'r' : roadWorst?.status === 'caution' ? 'w' : ''}" href="#${base}/roads"><span class="k">Roads</span>
+          ${roadWorst && roadWorst.source !== 'advisory' && live ? html`<span class="v">${roadPill(live.status)}</span><span class="s">Live (${live.source}): ${live.summary}</span>`
+            : worst ? html`<span class="v">${roadPill(worst.status)}</span><span class="s">Posted alert: ${worst.segment || worst.title.replace(/^SAMPLE:\s*/, '')}${roadAdv.length > 1 ? ` · +${roadAdv.length - 1} more` : ''}</span>`
+            : tr ? html`<span class="v">${trafficPill(tr.now.band, '')} <small>traffic now</small></span><span class="s">Predicted${tr.best_time ? ` · best time to drive ${tr.best_time.label}` : ''}</span>`
+            : html`<span class="v"><span class="pill neutral noicon">No alerts posted</span></span><span class="s">Check locally before setting out</span>`}
+          ${tr && (worst || (roadWorst && roadWorst.source !== 'advisory')) ? html`<span class="s">Traffic now: ${tr.now.band_label.toLowerCase()} (predicted)</span>` : ''}</a>
         <a class="gl" href="#${base}/overview"><span class="k">Best months</span>
           <span class="v">${x.best_months?.length ? monthRanges(x.best_months) : 'Any time'}</span><span class="s">${x.best_months?.length ? (goodNow ? `✓ ${monthName(nowM)} is a good time` : `${monthName(nowM)} is outside the usual season`) : 'See seasonal notes'}</span></a>
       </section>
@@ -162,18 +170,22 @@ const PANELS = {
     const dir = `https://www.google.com/maps/dir/?api=1&destination=${x.lat},${x.lon}`;
     mount(p, html`${ph('Getting there')}
       <p class="row"><a class="btn sm dark" href="${dir}" target="_blank" rel="noopener noreferrer">Get directions <span aria-hidden="true">↗</span><span class="sr-only"> (Google Maps, opens in a new tab)</span></a><span class="small muted">Uses approximate coordinates; check the route before you set out.</span></p>
-      <h3 class="section">Live road alerts</h3>
+      <div id="trf"></div>
+      ${d.roads?.live ? liveTraffic(d.roads.live) : ''}
+      <h3 class="section">Posted road alerts</h3>
       ${adv.length ? html`<div class="section">${moreList(adv, (a) => advisoryRow(a), 5)}</div>` : html`<p class="flag green section">No live road alerts posted for ${x.name}. Conditions change quickly in the hills; check locally.</p>`}
       ${other.length ? html`<h3 class="section">Other alerts</h3><div class="section">${moreList(other, (a) => advisoryRow(a), 3)}</div>` : ''}
       ${[...adv, ...other].some((a) => a.sample) ? html`<p class="hint">Alerts marked Sample are illustrative, not real road status.</p>` : ''}
       <h3 class="section">Route facts <span class="pill warn">Verify</span>${infoNote(d.roads?.facts_note || x.facts_note)}</h3>
       <ul class="bullets section">${(d.roads?.facts || x.route_facts || []).map((r) => html`<li>${r}</li>`)}</ul>`);
+    if (d.roads?.traffic) p.querySelector('#trf').appendChild(trafficBlock(d.roads.traffic));
   },
   crowd(p, d, hl, x) {
     const cr = d.crowd;
     if (!cr) { mount(p, html`${ph('Crowd')}<p class="muted">No crowd estimate available.</p>`); return; }
     const days = cr.outlook || [];
-    mount(p, html`${ph('Crowd', html` <span class="pill syn">estimate</span>${infoNote(`${cr.note} Method: ${cr.method}.`)}`)}<div id="strip"></div><div id="usual" class="section"></div>`);
+    mount(p, html`${ph('Crowd', html` <span class="pill syn">estimate</span>${infoNote(`${cr.note} Method: ${cr.method}.`)}`)}<div id="ftraffic"></div><div id="strip" class="${cr.foot_traffic?.best_window ? 'section' : ''}"></div><div id="usual" class="section"></div>`);
+    if (cr.foot_traffic?.best_window) p.querySelector('#ftraffic').appendChild(footTraffic(cr.foot_traffic));
     p.querySelector('#strip').appendChild(barChart({
       title: stripHeadline(x.name, days), sub: 'Crowd index per day (0-100). Dashed line: very-high threshold (85).',
       x: days.map((z) => z.date), series: [{ label: 'Crowd index', values: days.map((z) => z.index) }], yMax: 100, height: 220,
@@ -233,6 +245,58 @@ const PANELS = {
       <div class="btnrow section"><a class="btn ghost sm" href="#/grievance">File a complaint</a><a class="btn ghost sm" href="#/verify">Verify a business</a></div>`);
   },
 };
+
+const bestSet = (ft) => new Set(ft.best_window ? [ft.best_window.start_hour, ft.best_window.start_hour + 1] : []);
+const hourLabel = (h) => `${h % 12 === 0 ? 12 : h % 12} ${h < 12 ? 'am' : 'pm'}`;
+const hourShort = (h) => (h % 12 === 0 ? (h ? '12p' : '12a') : h < 12 ? h + 'a' : (h - 12) + 'p');
+
+// BestTime: typical foot traffic by hour today at one well-known venue (not a headcount; shown beside our estimate).
+function footTraffic(ft) {
+  const best = bestSet(ft);
+  return barChart({
+    title: `Best time to visit today: ${ft.best_window.label} (BestTime)`,
+    sub: `Typical foot traffic at ${ft.venue_name}, ${ft.day}, by hour (0-100, relative to its busiest hour; no bar = closed or no data). Busiest day: ${ft.busiest_day}.`,
+    x: [...Array(24).keys()], series: [{ label: 'Typical foot traffic', values: ft.today_by_hour.map((v) => (v > 0 ? v : null)) }], yMax: 100, height: 170,
+    xFmt: (h, i, long) => (long ? `${hourLabel(h)}–${hourLabel((h + 1) % 24)}` : hourShort(h)),
+    colorFn: (i) => (best.has(i) ? '#2e8540' : PALETTE[0]), minLabelGap: 30,
+    legendItems: [{ label: 'Best 2 hours today', color: '#2e8540' }, { label: 'Other hours', color: PALETTE[0] }],
+    tipExtra: (i) => (ft.peak_hours.includes(i) ? 'Peak hour' : ft.quiet_hours.includes(i) ? 'Quiet hour' : ''),
+    note: `${ft.note}. ${ft.credit}, fetched ${relTime(ft.fetched_at)}.`,
+  });
+}
+
+// Traffic model: predicted congestion for the next 24 hours (never a measurement).
+const TFILL = { free: BAND_FILL.low, moderate: BAND_FILL.moderate, heavy: BAND_FILL.high, severe: BAND_FILL.very_high };
+const TLEG = [['free', 'Free-flowing (0-34)'], ['moderate', 'Moderate (35-59)'], ['heavy', 'Heavy (60-79)'], ['severe', 'Severe (80+)']];
+function trafficBlock(tr) {
+  const box = document.createElement('div');
+  const hrs = tr.hours || [];
+  mount(box, html`<h3 class="section">Road traffic ${trafficPill(tr.now.band, 'Now')} <span class="pill syn">predicted</span>${infoNote(`${tr.label}. ${tr.model.note} Index 0-100 from time of day, weekends, season and yatra calendar, festivals, our crowd estimate, BestTime foot traffic, the weather forecast, posted alerts and live incidents when available.`, 'About the traffic prediction')}</h3>
+    <p class="small">${tr.now.delay}. ${tr.corridor.label}.${tr.landslide_risk ? html` <strong>Landslide risk: heavy monsoon rain forecast.</strong>` : ''}</p><div id="tchart"></div>`);
+  box.querySelector('#tchart').appendChild(barChart({
+    title: tr.best_time ? `Best time to drive: ${tr.best_time.label}` : 'Predicted traffic, next 24 hours',
+    sub: `Why: ${tr.factors_text}. Congestion index per hour (0-100), predicted.`,
+    x: hrs.map((h) => h.time), series: [{ label: 'Predicted congestion', values: hrs.map((h) => h.index) }], yMax: 100, height: 170,
+    xFmt: (v, i, long) => { const h = new Date(v).getHours(); return long ? `${fmtDate(v, { weekday: true, noYear: true })} ${hourLabel(h)}` : hourShort(h); },
+    colorFn: (i) => TFILL[hrs[i].band], minLabelGap: 30, legendItems: TLEG.map(([k, l]) => ({ label: l, color: TFILL[k] })),
+    tipExtra: (i) => (hrs[i].nowcast ? 'Includes live incidents' : ''),
+    note: `${tr.label}. Delays are shown as bands, not minutes.`,
+  }));
+  return box;
+}
+
+// Live incidents near the destination from a provider (alongside officer-posted advisories).
+function liveTraffic(lv) {
+  const row = (i) => html`<div class="item"><div class="main"><strong>${i.description}</strong>
+      <div class="sub">${[i.road, i.from && i.to ? `${i.from} → ${i.to}` : i.from || i.to].filter(Boolean).join(' · ') || 'Road not named'}${i.delay_min ? ` · delay about ${i.delay_min} min` : ''}${i.last_update ? ` · reported ${relTime(i.last_update)}` : ''}</div></div>
+    <div class="side">${roadPill(i.status)}</div></div>`;
+  const f = lv.flow;
+  const flowText = !f ? '' : f.road_closed ? ' Nearest main road: reported closed.' : ` Nearest main road: ${f.ratio >= 0.8 ? 'moving at about its usual speed' : f.ratio >= 0.5 ? 'slower than usual' : 'much slower than usual'} (measured).`;
+  return html`<h3 class="section">Live traffic <span class="tag">${lv.source}</span></h3>
+    <p class="small">${lv.summary} ${lv.area}.${flowText}</p>
+    ${lv.incidents.length ? html`<div class="section">${moreList(lv.incidents, row, 3)}</div>` : ''}
+    <p class="hint">${lv.credit} · updated ${relTime(lv.fetched_at)}. ${lv.note}</p>`;
+}
 
 function stripHeadline(name, days) {
   if (!days.length) return `${name}: no outlook`;

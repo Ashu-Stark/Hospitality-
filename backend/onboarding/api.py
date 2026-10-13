@@ -54,6 +54,10 @@ def _adapter(request: Request, consent: bool):  # noqa: ANN202
     return None
 
 
+def _geocoder(request: Request):  # noqa: ANN202
+    return getattr(request.app.state, "onboarding_geocoder", None)
+
+
 def router(get_db, source_of) -> APIRouter:  # noqa: ANN001
     r = APIRouter(prefix="", tags=["onboarding"])
 
@@ -103,7 +107,7 @@ def router(get_db, source_of) -> APIRouter:  # noqa: ANN001
                 text, kind = body.text, "typed"
             return await run_in_threadpool(
                 service.answer, db, session_id, text, kind, cfg, _adapter(request, consent),
-                source_of(request))
+                source_of(request), _geocoder(request))
         except AudioRejected as e:
             raise HTTPException(status_code=422, detail=str(e)) from e
         except (NotFound, service.Conflict, ValidationError, ValueError, KeyError) as e:
@@ -113,7 +117,8 @@ def router(get_db, source_of) -> APIRouter:  # noqa: ANN001
     def field(body: service.FieldEdit, request: Request,
               db: Database = Depends(get_db)) -> service.SummaryOut:
         try:
-            return service.edit(db, body, cfg_of(request), source_of(request))
+            return service.edit(db, body, cfg_of(request), source_of(request),
+                                _geocoder(request))
         except (NotFound, service.Conflict, KeyError, ValidationError, ValueError) as e:
             raise _http(e) from e
 

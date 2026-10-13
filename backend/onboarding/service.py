@@ -18,7 +18,7 @@ from pymongo.database import Database
 from pymongo.errors import DuplicateKeyError
 
 from backend.db import NO_ID, PROPERTIES, PROPERTY_SETTINGS, audit, stamped, utcnow
-from backend.onboarding import llm
+from backend.onboarding import geocode, llm
 from backend.onboarding.config import OnboardingConfig
 from backend.onboarding.flow import (
     FlowState,
@@ -183,7 +183,8 @@ def _open(db: Database, session_id: str) -> dict:
 
 
 def answer(db: Database, session_id: str, text: str, kind: InputKind, cfg: OnboardingConfig,
-           adapter: llm.ChatAdapter | None, source: str) -> AnswerOut:
+           adapter: llm.ChatAdapter | None, source: str,
+           geocoder: geocode.Geocoder | None = None) -> AnswerOut:
     """Apply one answer (typed text or a transcript) and move to the next question."""
     session = _open(db, session_id)
     draft, flow = draft_of(session), flow_of(session)
@@ -201,6 +202,8 @@ def answer(db: Database, session_id: str, text: str, kind: InputKind, cfg: Onboa
         draft, filled, issues = merge(draft, result, kind, cfg)
         if set(filled) & set(RETEMPLATE_FIELDS):
             draft = _retemplate(draft, cfg)
+        if "location" in filled:
+            draft = geocode.attach(draft, geocoder)   # a hint only; silently skipped on failure
         flow = record_answer(flow, filled, skipped=False)
         if asked and asked not in filled:
             message = qs.message("not_understood", lang)
@@ -234,12 +237,15 @@ def stt_failed(db: Database, session_id: str, cfg: OnboardingConfig, message: st
                      stt_error=message, input_fallback="text")
 
 
-def edit(db: Database, body: FieldEdit, cfg: OnboardingConfig, source: str) -> SummaryOut:
+def edit(db: Database, body: FieldEdit, cfg: OnboardingConfig, source: str,
+         geocoder: geocode.Geocoder | None = None) -> SummaryOut:
     """The owner edits one field directly (always wins). KeyError / ValidationError -> 422."""
     session = _open(db, body.session_id)
     draft = edit_field(draft_of(session), body.field, body.value, cfg)
     if body.field in RETEMPLATE_FIELDS:
         draft = _retemplate(draft, cfg)
+    if body.field == "location":
+        draft = geocode.attach(draft, geocoder)
     flow = record_answer(flow_of(session), [body.field], skipped=False)
     if flow.current == body.field:
         flow = advance(flow.model_copy(update={"current": None}), cfg)

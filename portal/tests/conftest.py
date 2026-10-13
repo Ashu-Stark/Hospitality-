@@ -22,13 +22,15 @@ os.environ["PORTAL_TRACK_RATE_PER_MINUTE"] = "100000"
 os.environ["PORTAL_INGEST_RATE_PER_MINUTE"] = "100000"
 os.environ.pop("PORTAL_ADMIN_PASSWORD", None)
 os.environ.pop("PORTAL_JWT_SECRET", None)
+for _k in ("BESTTIME_API_KEY_PRIVATE", "BESTTIME_API_KEY_PUBLIC", "LOCATIONIQ_API_KEY", "TOMTOM_API_KEY"):  # external APIs: tests use fakes
+    os.environ.pop(_k, None)
 
 from fastapi.testclient import TestClient  # noqa: E402
 from hoi_portal import config, mongo, ratelimit  # noqa: E402
 
 config.reload()
 from hoi_portal.main import create_app  # noqa: E402
-from hoi_portal.services import crowd, weather  # noqa: E402
+from hoi_portal.services import besttime, crowd, locationiq, traffic, traffic_live, weather  # noqa: E402
 
 CALLS = {"n": 0}
 
@@ -58,9 +60,14 @@ def _no_network(*a, **k):
 @pytest.fixture(autouse=True)
 def _offline(monkeypatch):
     monkeypatch.setattr("httpx.get", _no_network)
+    monkeypatch.setattr("httpx.post", _no_network)
     weather.set_fetcher(fake_forecast)
     yield
     weather.set_fetcher(fake_forecast)
+    besttime.set_fetcher(None, None)
+    locationiq.set_http(None)
+    traffic_live.set_http(None)
+    traffic.invalidate_calibration()
 
 
 @pytest.fixture(scope="module")

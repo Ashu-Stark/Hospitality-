@@ -27,6 +27,7 @@ from .. import config, mongo
 from ..errors import NotFound
 from ..seed.destinations import BY_ID_DEST, DESTINATIONS
 from ..seed.generator import PROFILES
+from . import besttime
 from . import events as events_svc
 
 BANDS = [
@@ -198,6 +199,8 @@ def for_destination(dest_id: str, ctx: Context | None = None) -> dict:
         "alert": peak["index"] >= ALERT_AT,
         "usual_by_month": usual_by_month(ctx, dest_id),
         "method": "0.8 x occupancy% + event (+12/+6/+2) + weekend (+5) + season (+5 peak / -10 closed); ASSUMED weights.",
+        # Real typical foot traffic at one well-known venue (BestTime, cached); shown alongside the estimate, never mixed in.
+        "foot_traffic": besttime.foot_traffic(dest_id),
     }
 
 

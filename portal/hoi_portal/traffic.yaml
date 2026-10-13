@@ -1,0 +1,135 @@
+# Road traffic prediction model for the portal (services/traffic.py).
+# EVERY weight, threshold and profile below is ASSUMED: expert judgement for a planning aid, not measured.
+# The model starts as this expert-weighted sum and only changes when `python -m hoi_portal.scripts.traffic_calibrate`
+# has enough live observations to fit small per-destination, per-time-of-day corrections (see `calibration`).
+# Output is a congestion index 0-100 per hour and a band; never speeds, distances or travel times for a road.
+# Read with hoi_portal/miniyaml.py (YAML subset: mappings, inline lists, numbers, true/false, quoted strings).
+
+version: "expert-1"
+label: "Predicted, not measured; for planning"
+horizon_hours_max: 72
+
+# Index -> band (upper bounds, exclusive). ASSUMED.
+bands:
+  free: 35
+  moderate: 60
+  heavy: 80          # 80 and above = severe
+delay_text:          # delay is expressed as a band, never in minutes
+  free: "No unusual delay expected"
+  moderate: "Likely slow in places"
+  heavy: "Expect queues"
+  severe: "Expect long queues or closures"
+
+# Destination (synthetic seasonality profile) -> corridor type. ASSUMED grouping.
+corridor_of_profile:
+  char_dham: hill_pilgrim
+  vof: hill_pilgrim
+  hill_station: hill_town
+  snow: hill_town
+  spiritual: plains_pilgrim
+  wildlife: plains_leisure
+  town: town
+corridor_labels:
+  hill_pilgrim: "Pilgrim roads in the high hills"
+  hill_town: "Roads to a hill town"
+  plains_pilgrim: "Pilgrim towns in the foothills"
+  plains_leisure: "Roads around the park gates"
+  town: "Town roads"
+hill_corridors: [hill_pilgrim, hill_town]
+
+# Weekday profile per corridor: index per hour 0..23 (India time). ASSUMED shapes: hill pilgrim roads start very
+# early, hill towns build up through the day, towns have morning and evening rush.
+hourly_base:
+  hill_pilgrim: [6, 5, 4, 4, 8, 16, 26, 30, 30, 28, 25, 23, 23, 23, 25, 26, 26, 23, 18, 12, 9, 8, 7, 6]
+  hill_town: [6, 5, 4, 4, 4, 6, 12, 20, 28, 32, 34, 36, 38, 38, 38, 40, 44, 46, 42, 32, 22, 14, 10, 8]
+  plains_pilgrim: [10, 8, 6, 6, 10, 18, 28, 36, 42, 44, 42, 40, 40, 40, 42, 46, 50, 54, 52, 44, 34, 24, 16, 12]
+  plains_leisure: [5, 4, 4, 4, 6, 14, 24, 30, 32, 30, 28, 26, 26, 26, 28, 30, 34, 32, 26, 18, 12, 8, 6, 5]
+  town: [8, 6, 5, 5, 6, 12, 24, 40, 52, 54, 48, 44, 42, 42, 44, 48, 54, 58, 52, 40, 28, 18, 12, 10]
+
+# Weekend / holiday extra index: [start hour, end hour (exclusive), amount]. Hill towns: Friday-evening and
+# Saturday-morning arrivals, Sunday-afternoon departures. ASSUMED. Holidays use the Sunday pattern.
+weekend:
+  hill_pilgrim:
+    saturday: [[5, 12, 8]]
+    sunday: [[5, 12, 8]]
+  hill_town:
+    friday: [[17, 22, 10]]
+    saturday: [[7, 13, 16], [13, 18, 8]]
+    sunday: [[13, 20, 20]]
+  plains_pilgrim:
+    saturday: [[6, 21, 12]]
+    sunday: [[6, 21, 14]]
+  plains_leisure:
+    saturday: [[6, 12, 10], [14, 19, 6]]
+    sunday: [[6, 12, 8], [14, 19, 10]]
+  town:
+    saturday: [[10, 20, 6]]
+    sunday: [[10, 20, 4]]
+holidays: ["01-26", "08-15", "10-02"]   # fixed-date national holidays (MM-DD); festivals come from the events data
+
+# Demand terms below (season, yatra, Kanwar, events, crowd) are day-level, so each is multiplied by the hour's
+# activity = hourly_base[h] / max(hourly_base): a busy day adds most at busy hours and little at night.
+season_weight: 10            # x the destination's monthly seasonality (0-1); "peak season" when that is >= 0.8
+yatra:
+  char_dham_months: [5, 6, 9, 10]   # busiest Char Dham months in the curated hints
+  char_dham_boost: 6                # extra on hill pilgrim corridors in those months
+  kanwar_event_id: kanwar-yatra     # dates from the events data; usual months when no dates are set
+  kanwar_destinations: [haridwar, rishikesh, dehradun]
+  kanwar_boost: 25
+event_boost:                 # by the event's crowd_impact (events data; usual months when no dates are set)
+  high: 12
+  medium: 6
+  low: 2
+event_month_only_share: 0.5  # an event with no announced dates matches its whole usual month(s): count it at half weight
+crowd_weight: 0.08           # x our crowd estimate for that day (0-100)
+foot_traffic_weight: 0.12    # x BestTime typical foot traffic at that hour (0-100), when a forecast exists
+
+weather:                     # Open-Meteo forecast for the destination
+  rain_mm_h_full: 8          # rain at this rate (mm/h) or more adds rain_boost in full
+  rain_boost: 15
+  snow_cm_h_full: 2
+  snow_boost: 25
+  hill_multiplier: 1.5       # rain and snow slow hill roads more
+  night_share: 0.5           # weather terms x (night_share + (1 - night_share) x activity)
+  monsoon_months: [7, 8, 9]
+  landslide_daily_mm: 50     # a monsoon day with this much rain on a hill corridor -> landslide-risk flag
+  landslide_boost: 12
+
+advisories:                  # officer-posted road advisories for the destination
+  closed_floor: 90           # a posted closure keeps the index at least here while it is active
+  caution_boost: 10
+
+nowcast:                     # live provider data adjusts only the next few hours
+  hours: 3
+  decay: [1.0, 0.6, 0.3]
+  closed_floor: 90
+  per_jam: 8
+  per_other: 4
+  max_boost: 30
+  flow_weight: 0.6           # blend of the observed flow congestion into those hours
+
+best_time:
+  window_hours: 3
+  drive_hours: [6, 19]       # only daylight windows are suggested (hill roads at night are discouraged)
+
+calibration:
+  min_observations: 30       # per destination, before any correction is fitted
+  ridge_lambda: 10           # shrinks each bucket's mean residual towards 0 (n / (n + lambda))
+  max_bias: 15
+  buckets: [[0, 6], [6, 10], [10, 16], [16, 20], [20, 24]]
+
+live:
+  providers: [tomtom, here, mapbox]   # order; env TRAFFIC_PROVIDERS overrides
+  cache_minutes: 10
+  fail_cache_minutes: 3
+  breaker_minutes: 15        # a provider that failed is skipped this long
+  box_deg: 0.15              # bounding box half-size around the destination (about 33 x 29 km here)
+  timeout_seconds: 5
+  tomtom_flow: true          # one extra TomTom call: flow on the road nearest the destination point
+
+observed_index:              # how one live observation becomes a 0-100 value for calibration. ASSUMED.
+  base: 15
+  per_jam: 10
+  per_other: 4
+  closed: 90
+  flow_scale: 120            # (1 - current speed / free-flow speed) x this

@@ -84,7 +84,7 @@ def create_app() -> FastAPI:
         h["Cross-Origin-Opener-Policy"] = "same-origin"
         if not request.url.path.startswith(NO_CSP_PATHS):
             h["Content-Security-Policy"] = CSP
-        if request.url.path.startswith("/api/"):
+        if request.url.path.startswith("/api/") and not (request.url.path == "/api/v1/map/static" and response.status_code == 200):
             h["Cache-Control"] = "no-store"
         if s.is_production:
             h["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"

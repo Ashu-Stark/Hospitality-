@@ -3,14 +3,28 @@ grievance filing and tracking."""
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Query, Request
+from fastapi import APIRouter, Query, Request, Response
 
 from .. import catalog, config, mongo, ratelimit
 from ..schemas import GrievanceIn, TrackIn
-from ..seed.destinations import DESTINATIONS
+from ..seed.destinations import BY_ID_DEST, DESTINATIONS
 from ..seed.dictionary import CATEGORIES
 from ..seed.districts import DISTRICTS
-from ..services import advisories, crowd, destinations, dictionary, events, grievances, plan, registry, rules, search, weather
+from ..services import (
+    advisories,
+    crowd,
+    destinations,
+    dictionary,
+    events,
+    grievances,
+    locationiq,
+    plan,
+    registry,
+    rules,
+    search,
+    traffic,
+    weather,
+)
 
 router = APIRouter(prefix="/api/v1", tags=["public"])
 SEARCH_RATE_PER_MINUTE = 60
@@ -114,6 +128,22 @@ def destination_crowd(dest_id: str) -> dict:
     return crowd.for_destination(dest_id)
 
 
+@router.get("/traffic/{dest_id}")
+def traffic_prediction(dest_id: str, hours: int = Query(72, ge=1, le=72)) -> dict:
+    """Predicted road congestion (index 0-100 + band) per hour for the next `hours`, the best time to drive and the
+    factors behind it. Predicted, not measured; for planning. Live incidents are added when a provider answers."""
+    if dest_id in BY_ID_DEST:
+        weather.for_destination(dest_id)  # warm the forecast cache the model reads (cached 30 minutes)
+    return traffic.predict(dest_id, hours)
+
+
+@router.get("/destinations/{dest_id}/places")
+def destination_places(dest_id: str, category: str | None = Query(None, max_length=30)) -> dict:
+    """Useful places around a destination (hospital, pharmacy, ATM, fuel, police, viewpoints, places of worship) from
+    LocationIQ / OpenStreetMap, cached 7 days. `available: false` when the server has no key or nothing was found."""
+    return locationiq.places(dest_id, category)
+
+
 @router.get("/destinations/{dest_id}/nearby")
 def destination_nearby(dest_id: str, limit: int = Query(6, ge=1, le=23)) -> dict:
     """Other destinations by straight-line distance from approximate coordinates (not road distance)."""
@@ -149,6 +179,18 @@ def itinerary_detail(itin_id: str) -> dict:
 @router.get("/map")
 def map_points() -> dict:
     return plan.map_points()
+
+
+@router.get("/map/static", response_class=Response, responses={200: {"content": {"image/png": {}}}})
+def map_static(
+    circuit: str | None = Query(None, max_length=40),
+    theme: str | None = Query(None, max_length=30),
+    district: str | None = Query(None, max_length=40),
+) -> Response:
+    """PNG map (LocationIQ, OpenStreetMap) with markers for the filtered destinations, served from our origin and cached
+    7 days. 503 when the server has no LocationIQ key or the upstream fails (the web app then shows the schematic map)."""
+    png = locationiq.static_map(circuit or None, theme or None, district or None)
+    return Response(content=png, media_type="image/png", headers={"Cache-Control": "public, max-age=86400"})
 
 
 @router.get("/official-services")

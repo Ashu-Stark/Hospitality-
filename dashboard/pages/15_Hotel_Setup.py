@@ -171,6 +171,11 @@ edited = st.data_editor(
     disabled=["field", "Field", "Source", "Confidence", "Check"],
     column_config={"field": None, "Value": st.column_config.TextColumn("Value (edit me)")},
 )
+found = ov.geo_found(fields.get("location"))
+if found:  # LocationIQ / OpenStreetMap geocoding of the location answer: a hint only, never blocks Confirm
+    st.caption(
+        f":material/location_on: {found} · not right? edit the location in the table above. Place search © LocationIQ · © OpenStreetMap contributors"
+    )
 if st.button("Save my edits", icon=":material/save:"):
     errors, out = [], None
     for (_, old), (_, new) in zip(df.iterrows(), edited.iterrows()):

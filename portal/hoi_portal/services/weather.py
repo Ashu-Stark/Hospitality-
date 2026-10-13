@@ -68,6 +68,7 @@ def http_fetch(lat: float, lon: float) -> dict:
         "longitude": lon,
         "current": "temperature_2m,weather_code,wind_speed_10m",
         "daily": "temperature_2m_max,temperature_2m_min,precipitation_probability_max,precipitation_sum,snowfall_sum,weather_code",
+        "hourly": "precipitation,snowfall",  # used by the traffic prediction (rain / snow slow-down)
         "timezone": "Asia/Kolkata",
         "forecast_days": 7,
     }
@@ -115,7 +116,13 @@ def parse(raw: dict) -> dict:
     code = cur.get("weather_code")
     if cur.get("temperature_2m") is None and not days:
         raise ValueError("empty forecast")
+    hourly = raw.get("hourly") or {}
     return {
+        "hourly": {
+            "time": list(hourly.get("time") or []),
+            "precip_mm": [_num(v) for v in hourly.get("precipitation") or []],
+            "snow_cm": [_num(v) for v in hourly.get("snowfall") or []],
+        },
         "current": {
             "temperature_c": _num(cur.get("temperature_2m")),
             "weather_code": code,
