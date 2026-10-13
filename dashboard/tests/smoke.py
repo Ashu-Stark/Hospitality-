@@ -57,6 +57,47 @@ for page, who in CASES:
     for b in banners:
         print("     banner:", b[b.find("<b>") :][:200])
 
+if not only or any(o in "pages/15_Hotel_Setup.py" for o in only):  # Hotel setup (voice): a typed flow end to end
+    HS = "pages/15_Hotel_Setup.py"
+    at = AppTest.from_file(str(ROOT / "app.py"), default_timeout=180)
+    for k, v in SESSIONS["platform"].items():
+        at.session_state[k] = v
+    at.session_state["_smoke_page"] = HS
+    at.run()
+    steps = []
+    try:
+        next(b for b in at.button if b.label == "Start a new setup").click().run()
+        answers = {
+            "rooms": "hamare paas barah kamre hain",
+            "location": "Mussoorie",
+            "departments": "housekeeping mein teen, kitchen mein do, front desk pe do",
+            "peak_months": "may se june aur december",
+            "shifts": "subah 7 se 3, shaam 3 se 11",
+            "overtime_rate_multiplier": "double",
+            "min_rest_hours": "das ghante",
+        }
+        for _ in range(10):
+            q = at.session_state["onb"].get("question") if "onb" in at.session_state else None
+            if not q:
+                break
+            at.text_input[0].input(answers[q["field"]])
+            next(b for b in at.button if b.label == "Send answer").click().run()
+            steps.append(q["field"])
+        for cb in at.checkbox:
+            if "qualified person" in cb.label:
+                cb.check()
+        at.run()
+        next(b for b in at.button if b.label == "Confirm and save").click().run()
+        res = at.session_state["onb_confirmed"] if "onb_confirmed" in at.session_state else None
+        errs = [e.value for e in at.exception]
+        ok = not errs and res is not None and res.get("created") and len(steps) == 7
+    except Exception as e:  # noqa: BLE001
+        ok, errs, res = False, [repr(e)], None
+    failed += not ok
+    print(f"{'ok' if ok else 'FAIL':4} {HS} typed flow: asked {steps}, confirm -> {res}")
+    for e in errs:
+        print("     exception:", str(e)[:1500])
+
 if not only:  # role filtering: pages outside a role's set must not be routable for that role
     for role, must_not in (("hr", "pages/13_Inventory.py"), ("storekeeper", "pages/2_Risk_List.py"), ("worker", "pages/1_Overview.py")):
         visible = access.EMPLOYEE_PAGES if role == "worker" else [p for p in access.HOTEL_PAGES if role in auth.ACCESS.get(p[0], set())]

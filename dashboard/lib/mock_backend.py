@@ -339,3 +339,119 @@ def metrics(params: dict) -> dict:
         d["replacement_cost_inr"] = float(rc)
         d["roi_inr"] = d["flagged_still_employed"] * float(rc)
     return d
+
+
+# ------------------------------------------------------------------ hotel onboarding by voice
+# MOCK mode runs the backend's real onboarding engine (backend/onboarding: templates, question flow,
+# rule-based extractor, confirm rules) in-process on an in-memory mongomock database, so the page
+# behaves exactly like the live API with its default config: typed answers and rule-based
+# extraction, no LLM, no cloud speech-to-text, nothing leaves this process. It needs the repo
+# checkout (backend/ and ml/ next to dashboard/); without it the calls answer 501.
+_ONB: dict[str, Any] = {}
+ONB_DB = "hoi_ops_dashboard_mock"
+
+
+def _onb() -> dict[str, Any]:
+    if not _ONB:
+        import sys
+
+        from .config import REPO_ROOT
+
+        if str(REPO_ROOT) not in sys.path:
+            sys.path.append(str(REPO_ROOT))
+        try:
+            import mongomock
+
+            from backend.db import ensure_indexes
+            from backend.onboarding import service
+            from backend.onboarding.config import load_config
+            from backend.onboarding.flow import load_questions
+            from backend.onboarding.seed import ensure_demo_properties
+            from backend.onboarding.store import NotFound
+            from backend.onboarding.stt import AudioRejected, SttRefused, transcribe_upload
+        except ImportError as e:
+            raise MockError(
+                501,
+                f"Hotel setup in MOCK mode runs the backend onboarding engine in-process and needs the repo checkout "
+                f"(backend/ and ml/). Switch to LIVE on the Admin page. ({e})",
+            ) from None
+        db = mongomock.MongoClient(tz_aware=True)[ONB_DB]
+        cfg = load_config()
+        ensure_indexes(db)
+        ensure_demo_properties(db, cfg)
+        _ONB.update(
+            db=db,
+            cfg=cfg,
+            service=service,
+            questions=load_questions,
+            NotFound=NotFound,
+            AudioRejected=AudioRejected,
+            SttRefused=SttRefused,
+            transcribe=transcribe_upload,
+        )
+    return _ONB
+
+
+def _onb_call(fn, *args) -> dict:
+    o = _onb()
+    svc = o["service"]
+    try:
+        out = fn(*args)
+    except o["NotFound"] as e:
+        raise MockError(404, str(e)) from None
+    except svc.Conflict as e:
+        raise MockError(409, str(e)) from None
+    except svc.Blocked as e:
+        raise MockError(422, e.detail) from None
+    except (KeyError, ValueError) as e:  # pydantic ValidationError is a ValueError
+        raise MockError(422, svc.edit_errors(e)) from None
+    return json.loads(out.model_dump_json()) if hasattr(out, "model_dump_json") else json.loads(json.dumps(out, default=str))
+
+
+def onboarding_start(body: dict) -> dict:
+    o = _onb()
+    svc = o["service"]
+    return _onb_call(lambda: svc.start(o["db"], svc.StartRequest.model_validate(body), o["cfg"], "dashboard:mock"))
+
+
+def onboarding_answer(body: dict, audio: tuple[str, bytes, str] | None = None) -> dict:
+    o = _onb()
+    svc = o["service"]
+    sid = str(body.get("session_id") or "")
+    if audio is not None:
+        name, data, ctype = audio
+        try:
+            text = o["transcribe"](data, name, ctype, bool(body.get("consent")), o["cfg"].audio, None)
+        except o["AudioRejected"] as e:
+            raise MockError(422, str(e)) from None
+        except o["SttRefused"] as e:
+            lang = _onb_call(lambda: svc.summary(o["db"], sid, o["cfg"]))["language"]
+            msg = o["questions"]().message(e.key, lang)
+            return _onb_call(lambda: svc.stt_failed(o["db"], sid, o["cfg"], msg))
+        return _onb_call(lambda: svc.answer(o["db"], sid, text, "voice", o["cfg"], None, "dashboard:mock"))
+    text = str(body.get("text") or "")
+    if not text.strip():
+        raise MockError(422, [{"type": "missing", "loc": ["body", "text"], "msg": "Field required"}])
+    return _onb_call(lambda: svc.answer(o["db"], sid, text, "typed", o["cfg"], None, "dashboard:mock"))
+
+
+def onboarding_edit(body: dict) -> dict:
+    o = _onb()
+    svc = o["service"]
+    return _onb_call(lambda: svc.edit(o["db"], svc.FieldEdit.model_validate(body), o["cfg"], "dashboard:mock"))
+
+
+def onboarding_summary(session_id: str) -> dict:
+    o = _onb()
+    return _onb_call(lambda: o["service"].summary(o["db"], session_id, o["cfg"]))
+
+
+def onboarding_confirm(body: dict) -> dict:
+    o = _onb()
+    svc = o["service"]
+    return _onb_call(lambda: svc.confirm(o["db"], svc.ConfirmRequest.model_validate(body), o["cfg"], "dashboard:mock"))
+
+
+def onboarding_property_settings(property_id: str) -> dict:
+    o = _onb()
+    return _onb_call(lambda: o["service"].get_settings(o["db"], property_id))

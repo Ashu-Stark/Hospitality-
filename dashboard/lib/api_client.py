@@ -51,10 +51,20 @@ def _friendly(status: int, detail: Any, endpoint: str, base: str) -> str:
     return f"HTTP {status} from {base}{endpoint}. {d}".strip()
 
 
-def _http(method: str, path: str, s: Settings, *, params: dict | None = None, json: Any = None, timeout: float | None = None) -> Any:
+def _http(
+    method: str,
+    path: str,
+    s: Settings,
+    *,
+    params: dict | None = None,
+    json: Any = None,
+    timeout: float | None = None,
+    data: dict | None = None,
+    files: dict | None = None,
+) -> Any:
     url = s.api_base_url + path
     try:
-        r = _session.request(method, url, params=params, json=json, timeout=timeout or s.timeout_s)
+        r = _session.request(method, url, params=params, json=json, data=data, files=files, timeout=timeout or s.timeout_s)
     except requests.exceptions.ConnectionError as e:
         raise ApiError(
             f"Backend unreachable at {s.api_base_url}. Is it running? (Switch to MOCK mode on the Admin page to demo offline.)",
@@ -238,6 +248,70 @@ def voice_ingest(file: str, create_task: bool = False, settings: Settings | None
         if s.use_mocks
         else _http("POST", "/voice/ingest", s, json=body, timeout=60)
     )
+
+
+# ------------------------------------------------------------------ hotel onboarding by voice (backend/onboarding)
+def onboarding_start(
+    language: str = "en", hotel_type: str | None = None, hotel_name: str | None = None, settings: Settings | None = None
+) -> dict:
+    s = _s(settings)
+    body = {k: v for k, v in {"language": language, "hotel_type": hotel_type, "hotel_name": hotel_name}.items() if v}
+    return (
+        _mock(mock.onboarding_start, body, endpoint="/onboarding/start")
+        if s.use_mocks
+        else _http("POST", "/onboarding/start", s, json=body)
+    )
+
+
+def onboarding_answer(
+    session_id: str,
+    text: str | None = None,
+    audio: tuple[str, bytes, str] | None = None,
+    consent: bool = False,
+    settings: Settings | None = None,
+) -> dict:
+    """Typed text (JSON) or an audio recording (multipart: file name, bytes, content type)."""
+    s = _s(settings)
+    if s.use_mocks:
+        body = {"session_id": session_id, "text": text, "consent": consent}
+        return _mock(mock.onboarding_answer, body, audio, endpoint="/onboarding/answer")
+    if audio is not None:
+        form = {"session_id": session_id, "consent": "true" if consent else "false"}
+        return _http("POST", "/onboarding/answer", s, data=form, files={"file": audio}, timeout=90)
+    return _http("POST", "/onboarding/answer", s, json={"session_id": session_id, "text": text, "consent": consent}, timeout=60)
+
+
+def onboarding_edit(session_id: str, field: str, value: Any, settings: Settings | None = None) -> dict:
+    s = _s(settings)
+    body = {"session_id": session_id, "field": field, "value": value}
+    return (
+        _mock(mock.onboarding_edit, body, endpoint="/onboarding/field")
+        if s.use_mocks
+        else _http("PATCH", "/onboarding/field", s, json=body)
+    )
+
+
+def onboarding_summary(session_id: str, settings: Settings | None = None) -> dict:
+    s = _s(settings)
+    if s.use_mocks:
+        return _mock(mock.onboarding_summary, session_id, endpoint="/onboarding/summary")
+    return _http("GET", "/onboarding/summary", s, params={"session": session_id})
+
+
+def onboarding_confirm(session_id: str, acknowledged_legal_fields: list[str], settings: Settings | None = None) -> dict:
+    s = _s(settings)
+    body = {"session": session_id, "acknowledged_legal_fields": list(acknowledged_legal_fields)}
+    return (
+        _mock(mock.onboarding_confirm, body, endpoint="/onboarding/confirm")
+        if s.use_mocks
+        else _http("POST", "/onboarding/confirm", s, json=body)
+    )
+
+
+def property_settings(property_id: str, settings: Settings | None = None) -> dict:
+    s = _s(settings)
+    path = f"/properties/{property_id}/settings"
+    return _mock(mock.onboarding_property_settings, property_id, endpoint=path) if s.use_mocks else _http("GET", path, s)
 
 
 # ------------------------------------------------------------------ mock-only data + raw explorer

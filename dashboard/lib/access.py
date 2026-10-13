@@ -19,6 +19,7 @@ HOTEL_PAGES = [
     ("pages/7_Tasks.py", "Tasks", ":material/task_alt:"),
     ("pages/8_Voice_Ingest.py", "Voice", ":material/mic:"),
     ("pages/12_Setup.py", "Setup", ":material/add_business:"),
+    ("pages/15_Hotel_Setup.py", "Hotel setup (voice)", ":material/record_voice_over:"),
     ("pages/9_Admin.py", "Admin", ":material/settings:"),
 ]
 CONSOLE_PAGES = [

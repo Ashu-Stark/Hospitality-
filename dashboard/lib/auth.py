@@ -37,6 +37,7 @@ ACCESS = {
     "pages/7_Tasks.py": {"owner", "hr", "dept_head"},
     "pages/8_Voice_Ingest.py": {"owner", "dept_head"},
     "pages/12_Setup.py": {"owner"},
+    "pages/15_Hotel_Setup.py": {"owner"},
     "pages/9_Admin.py": {"owner"},
 }
 DEMO_TENANT = "org_demo"
