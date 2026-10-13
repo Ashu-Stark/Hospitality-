@@ -54,7 +54,7 @@ STEPS = [
 
 def start() -> None:
     st.session_state["tour_step"] = 0
-    st.switch_page(nav.page(STEPS[0][0]))
+    nav.go(STEPS[0][0])
 
 
 def end() -> None:
@@ -75,7 +75,7 @@ def render(page_file: str) -> None:
             a, b = st.columns([5, 1])
             a.markdown(f"**Guided tour paused** · step {i + 1} of {len(STEPS)}: {title}")
             if b.button("Resume", key="tour_resume_btn", width="stretch"):
-                st.switch_page(nav.page(page))
+                nav.go(page)
         return
     with st.container(key="tour_card"):
         st.markdown(
@@ -87,14 +87,14 @@ def render(page_file: str) -> None:
         a, b, c = st.columns([1, 1, 4])
         if i > 0 and a.button("Back", key="tour_back", width="stretch"):
             st.session_state["tour_step"] = i - 1
-            st.switch_page(nav.page(STEPS[i - 1][0]))
+            nav.go(STEPS[i - 1][0])
         last = i == len(STEPS) - 1
         if b.button("Finish" if last else "Next", key="tour_next", type="primary", width="stretch"):
             if last:
                 end()
                 st.rerun()
             st.session_state["tour_step"] = i + 1
-            st.switch_page(nav.page(STEPS[i + 1][0]))
+            nav.go(STEPS[i + 1][0])
         if c.button("End tour", key="tour_end", type="tertiary"):
             end()
             st.rerun()

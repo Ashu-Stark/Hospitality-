@@ -69,7 +69,7 @@ def go_extra_staff() -> None:
         "note": f"Shift plan short by about {r['hours']:.0f} hours ({shift} shift, {day}).",
         "source": "roster_shortage",
     }
-    st.switch_page(nav.page("pages/20_Extra_Staff.py"))
+    nav.go("pages/20_Extra_Staff.py")
 
 
 # 1 guests
@@ -260,7 +260,7 @@ for title, why, label, key, action in todo:
     with b:
         if st.button(t(label), key=key, width="stretch"):
             if isinstance(action, str):
-                st.switch_page(nav.page(action))
+                nav.go(action)
             try:
                 action()
                 st.toast("Done")

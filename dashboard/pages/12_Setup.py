@@ -291,9 +291,9 @@ with tab_ob:
             )
             c1, c2, c3 = st.columns(3)
             if c1.button("Open week numbers", type="primary", width="stretch"):
-                st.switch_page(nav.page("pages/1_Overview.py"))
+                nav.go("pages/1_Overview.py")
             if c2.button("Open jobs", width="stretch"):
-                st.switch_page(nav.page("pages/10_Dispatch.py"))
+                nav.go("pages/10_Dispatch.py")
             if c3.button("Edit setup", width="stretch"):
                 go(0)
 

@@ -29,7 +29,7 @@ def shortage_prefill(dept: str | None, day: str | None, hours: float = 8.0, sour
 def request_staff_button(pre: dict, key: str) -> None:
     if auth.can_open("pages/20_Extra_Staff.py") and st.button("Request staff", key=key, type="primary", icon=":material/group_add:"):
         st.session_state["staffing_prefill"] = pre
-        st.switch_page(nav.page("pages/20_Extra_Staff.py"))
+        nav.go("pages/20_Extra_Staff.py")
 
 
 week0 = data.demo_week() or ui.ensure_demo_week()

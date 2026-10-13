@@ -123,7 +123,7 @@ if state:
                     "assignee": "the best free person on shift",
                     "deadline": "",
                 }
-                st.switch_page(nav.page("pages/10_Dispatch.py"))
+                nav.go("pages/10_Dispatch.py")
             st.caption("Nothing is made until you press a button. Check the room and problem first: voice-to-text can mishear.")
 else:
     ui.empty("Press Use the example to try it.")

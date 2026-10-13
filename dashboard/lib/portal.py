@@ -155,12 +155,12 @@ def open_hotel(tid: str) -> None:
     auth.open_workspace(tid)  # audited server-side
     tenancy.on_tenant_change()
     st.session_state.pop("want_hotel", None)
-    st.switch_page(nav.page("home.py"))  # app.py registers Home while the picker is shown
+    nav.go("home.py")  # app.py registers Home while the picker is shown
 
 
 def exit_hotel() -> None:
     auth.exit_workspace()
-    st.switch_page(nav.page(access.PICK_PAGE[0]))  # app.py registers the picker while a hotel is open
+    nav.go(access.PICK_PAGE[0])  # app.py registers the picker while a hotel is open
 
 
 # ------------------------------------------------------------------ hotel portal: platform admin viewing a hotel

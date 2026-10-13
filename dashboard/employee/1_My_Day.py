@@ -56,6 +56,6 @@ ui.html(
     )
 )
 c1, c2 = st.columns(2)
-c1.page_link(nav.page("employee/2_Jobs.py"), label="Open jobs", icon=":material/bolt:")
-c2.page_link(nav.page("employee/3_Supplies.py"), label="Request supplies", icon=":material/inventory_2:")
+nav.link("employee/2_Jobs.py", where=c1, label="Open jobs", icon=":material/bolt:")
+nav.link("employee/3_Supplies.py", where=c2, label="Request supplies", icon=":material/inventory_2:")
 ui.footer()

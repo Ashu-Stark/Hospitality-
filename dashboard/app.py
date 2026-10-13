@@ -46,6 +46,7 @@ for f, label, ic in routable:
     if f not in by_file:
         url = None if f == default else f.split("/")[-1].split("_", 1)[-1].removesuffix(".py")
         by_file[f] = st.Page(f, title=label, icon=ic, url_path=url, default=f == default)
+st.session_state["_default_page"] = default
 st.session_state["_page_by_file"] = by_file  # nav links use Page objects, never path strings
 auth.sync_cookie()
 st.navigation(list(by_file.values()), position="hidden").run()

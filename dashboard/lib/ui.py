@@ -35,7 +35,7 @@ def setup(page_file: str, title: str, *, employee: bool = False) -> None:
     if not allowed and (auth.needs_hotel() or auth.impersonating()):
         # platform admin in the hotel portal: Home and the hotel picker are registered across the switch (app.py), so a
         # stale URL can land on the one not allowed right now: go to the right one instead of showing "no access"
-        st.switch_page(nav.page(visible[0][0]))
+        nav.go(visible[0][0])
     _topbar(page_file, t, u)
     if not allowed:
         html(theme.banner("<b>You do not have access to this page.</b> Ask your hotel admin if you need it.", "red", "shield"))
@@ -76,7 +76,7 @@ def _wake() -> None:
 
 
 def _link(f: str, label: str, icon: str | None = None) -> None:
-    st.page_link(st.session_state.get("_page_by_file", {}).get(f, f), label=label, icon=icon)  # Page objects: robust deep links
+    nav.link(f, label, icon)  # Page objects; never crashes on a stale page registry (see lib/nav.py)
 
 
 def _signout(col) -> None:
@@ -316,7 +316,7 @@ def avatar_img(department: str | None, size: int = 28, cls: str = "") -> str:
 
 def go_to_employee(employee_id: str) -> None:
     st.session_state["selected_employee"] = employee_id
-    st.switch_page(nav.page("pages/3_Employee_Detail.py"))
+    nav.go("pages/3_Employee_Detail.py")
 
 
 def footer() -> None:
@@ -495,7 +495,7 @@ def action_tiles(items: list[dict], key: str = "acts") -> None:
                     continue
                 if st.button(it["button"], key=f"{key}_{it.get('key', it['label'])}", width="stretch", type=it.get("type", "secondary")):
                     if isinstance(tgt, str):
-                        st.switch_page(nav.page(tgt))
+                        nav.go(tgt)
                     try:
                         tgt()
                         st.toast("Done")

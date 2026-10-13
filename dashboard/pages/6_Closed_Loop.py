@@ -247,9 +247,9 @@ ui.html(
 )
 c1, c2 = st.columns(2)
 with c1:
-    st.page_link(nav.page("pages/5_Roster.py"), label="Compare the two shift plans", icon=":material/calendar_month:")
+    nav.link("pages/5_Roster.py", label="Compare the two shift plans", icon=":material/calendar_month:")
 with c2:
-    st.page_link(nav.page("pages/7_Tasks.py"), label="See the next-step tasks", icon=":material/task_alt:")
+    nav.link("pages/7_Tasks.py", label="See the next-step tasks", icon=":material/task_alt:")
 
 interventions_section()
 
