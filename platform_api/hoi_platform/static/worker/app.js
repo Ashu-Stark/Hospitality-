@@ -95,8 +95,9 @@
     try { await signIn(await api("POST", "/auth/login", { username: $("#user").value.trim(), password: $("#pin").value })); }
     catch (err) { $("#loginErr").textContent = err.message; $("#loginErr").classList.remove("hidden"); }
   });
+  const DEMO_WORKER = "HS05";  // the demo hotel's housekeeping attendant (shown only when the server has demo sign-in on)
   $("#demoBtn").addEventListener("click", async () => {
-    try { S.remember = $("#remember").checked; await signIn(await api("POST", "/auth/demo/E134")); }
+    try { S.remember = $("#remember").checked; await signIn(await api("POST", `/auth/demo/${DEMO_WORKER}`)); }
     catch (err) { $("#loginErr").textContent = err.message; $("#loginErr").classList.remove("hidden"); }
   });
 
@@ -115,6 +116,7 @@
     try { S.me = await api("GET", "/me/shifts"); } catch (e) { S.me = { shifts: [], department: null }; }
     try { S.items = await api("GET", "/inventory/items"); } catch (e) { S.items = []; }
     await loadRecognition();
+    await loadWork();
     renderAll();
     await pollJobs();
     clearInterval(S.poll);
@@ -137,7 +139,44 @@
     if (S.tenant?.brand_color) document.documentElement.style.setProperty("--brand", S.tenant.brand_color);
     document.body.classList.toggle("homestay", isHomestay());
     if (S.me?.property?.name) $("#meHotel").textContent = S.me.property.name;
-    renderToday(); renderJobs(); renderItems(); loadRequests(); renderRecognition();
+    renderToday(); renderJobs(); renderItems(); loadRequests(); renderRecognition(); renderWork();
+  }
+
+  // ---------------------------------------------------------------- my work today (own jobs only: /me/worklog)
+  // Minutes are the app's Start -> Done stamps (server clock); they show the work, they are not attendance.
+  async function loadWork() {
+    try { S.work = await api("GET", "/me/worklog"); } catch (e) { S.work = null; }
+  }
+  S.thumbs = {};
+  async function thumb(img) {
+    const pid = img.dataset.pid;
+    try {
+      if (!S.thumbs[pid]) S.thumbs[pid] = URL.createObjectURL(await api("GET", `/dispatch/photos/${encodeURIComponent(pid)}`));
+      img.src = S.thumbs[pid]; img.classList.remove("ph");
+    } catch (e) { /* the row still reads without its photo */ }
+  }
+  function renderWork() {
+    const el = $("#workCard"), w = S.work;
+    if (!el) return;
+    if (!w) { el.classList.add("hidden"); return; }
+    el.classList.remove("hidden");
+    const done = (w.jobs || []).filter((j) => j.status === "done").sort((a, b) => String(b.done_at).localeCompare(String(a.done_at)));
+    const mins = Math.round(w.summary?.total_work_minutes || 0);
+    const rows = done.map((j) => {
+      const pid = j.photos?.after || j.photos?.before;
+      const m = j.minutes?.work;
+      const bits = [j.room ? `${t("room")} ${j.room}` : dept(j.department), j.started_at ? fill(t("w_started"), { t: j.started_at.slice(11, 16) }) : "",
+        m != null ? fill(t("w_took"), { n: Math.max(1, Math.round(m)) }) : ""].filter(Boolean);
+      return `<li class="wrow">${pid ? `<img class="wthumb ph" data-pid="${esc(pid)}" alt="${esc(t("w_photo"))}" width="52" height="52">` : `<span class="wthumb none" aria-hidden="true">✓</span>`}` +
+        `<div class="jrowt"><b>${esc(j.title)}</b><span class="muted">${esc(bits.join(" · "))}</span></div></li>`;
+    }).join("");
+    const html = `<div class="eyebrow">${esc(t("w_title"))}</div>` +
+      `<div class="wtot"><div><b>${esc(done.length)}</b><span>${esc(t("w_jobs"))}</span></div><div><b>${esc(mins)}</b><span>${esc(t("w_minutes"))}</span></div></div>` +
+      (rows ? `<ul class="wlist">${rows}</ul>` : `<p class="muted">${esc(t("w_none"))}</p>`) +
+      `<p class="muted small">${esc(t("w_note"))}</p>`;
+    if (el._h === html) return;
+    el.innerHTML = html; el._h = html;
+    el.querySelectorAll("img[data-pid]").forEach(thumb);
   }
 
   // ---------------------------------------------------------------- recognition (own points only; positive only)
@@ -172,6 +211,7 @@
     $$(".tabbar button").forEach((b) => b.classList.toggle("on", b.dataset.tab === tab));
     $("#voiceFab").classList.toggle("hidden", !["today", "jobs"].includes(tab));
     if (tab === "supplies") loadRequests();
+    if (tab === "me") loadWork().then(renderWork);
     window.scrollTo({ top: 0 });
   }
   $$(".tabbar button").forEach((b) => b.addEventListener("click", () => show(b.dataset.tab)));
@@ -236,8 +276,13 @@
     $("#jobDot").classList.toggle("hidden", !offer);
     $("#tJobs").textContent = S.jobs.filter((j) => j.status !== "done").length;
     const doneNow = S.jobs.filter((j) => j.status === "done").length;
-    if (S.doneSeen !== undefined && doneNow !== S.doneSeen) { await loadRecognition(); renderRecognition(); }
+    if (S.doneSeen !== undefined && doneNow !== S.doneSeen) { await loadRecognition(); renderRecognition(); await loadWork(); renderWork(); }
     S.doneSeen = doneNow;
+    // shift status changes during the day (the roster snapshot moves on): re-read it about once a minute
+    S.polls = (S.polls || 0) + 1;
+    if (S.polls % 30 === 0) {
+      try { S.me = await api("GET", "/me/shifts"); $("#shiftChip").textContent = S.me?.on_shift_now ? t("on_shift") : t("off_shift"); renderToday(); } catch (e) { /* keep the last one */ }
+    }
     if (isHomestay()) renderToday();
     renderJobs();
   }
@@ -295,7 +340,7 @@
         `<ol class="steps3" aria-label="${esc(t("steps"))}"><li class="done">${esc(t("step_accept"))}</li><li class="${working ? "done" : "now"}">${esc(t("step_start"))}</li><li class="${working ? "now" : ""}">${esc(t("step_done"))}</li></ol>` +
         `<button class="btn primary big ${working ? "go-done" : "go-start"}" ${act} data-id="${esc(cur.id)}">` +
         `${working ? "✓" : "▶"} ${esc(t(working ? "finish" : "start"))}</button>` +
-        (photo ? `<p class="jhint"><span aria-hidden="true">📷</span> ${esc(t(working ? "done_hint" : "start_hint"))}</p>` : "") + `</div>`;
+        (photo ? `<p class="jhint"><span aria-hidden="true">📷</span> ${esc(t(working ? "done_hint" : "start_hint"))}</p>` : addPhoto(cur, working ? "after" : "before")) + `</div>`;
     }
     if (rest.length) {
       html += `<h3 class="subh">${esc(t("other_jobs"))}</h3>` + rest.map((j) =>
@@ -305,11 +350,40 @@
     }
     if ($("#active")._h !== html) { $("#active").innerHTML = html; $("#active")._h = html; }  // unchanged: keep the DOM (no flicker)
     $("#noJobs").classList.toggle("hidden", !!offer || active.length > 0);
+    renderNoJobs();
     const doneHtml = done.length ? `<h3 class="subh">${esc(t("completed_recent"))}</h3>` + done.map((j) =>
       `<div class="jrow s-done"><i class="sdot" aria-hidden="true"></i><div class="jrowt"><b>${esc(j.title)}</b>` +
       `<span class="muted">${j.room ? esc(t("room")) + " " + esc(j.room) + " · " : ""}${esc((j.done_at || "").slice(11, 16))}</span></div>` +
       `<span class="sbadge s-done">${esc(t("done"))}</span></div>`).join("") : "";
     if ($("#doneList")._h !== doneHtml) { $("#doneList").innerHTML = doneHtml; $("#doneList")._h = doneHtml; }
+  }
+
+  // Optional photo: always there on the job being worked on, even when the hotel's rule does not ask for one (a towel
+  // run, a repair before the start). Same live camera and upload; it does not press Start / Done for the worker.
+  // Before = while the job is accepted, after = while working (the server accepts exactly these).
+  function addPhoto(job, kind) {
+    const added = S.added?.[`${job.id}:${kind}`];
+    return `<button class="btn small addphoto" data-act="photo" data-optional="1" data-kind="${kind}" data-id="${esc(job.id)}">` +
+      `<span aria-hidden="true">📷</span> ${esc(t(added ? "photo_added" : "add_photo"))}</button>`;
+  }
+
+  // Empty Jobs screen: say plainly when the person is off shift (jobs are offered only to staff on shift).
+  // current_shift.day is the roster date of the shift running now (the server maps today onto the published week, and
+  // a night shift after midnight belongs to the previous date), so shifts are compared on roster dates.
+  function nextShift() {
+    const cur = S.me?.current_shift || {}, order = ["morning", "evening", "night"], list = S.me?.shifts || [];
+    const today = cur.day || ymd(new Date());
+    const next = list.find((s) => s.date > today || (s.date === today && order.indexOf(s.shift) > order.indexOf(cur.shift)));
+    return next || (cur.roster_week_mapped ? list[0] : null);  // the published week repeats: wrap to its first shift
+  }
+  const shiftDay = (iso) => (S.me?.current_shift?.roster_week_mapped ? day(new Date(iso + "T00:00:00").getDay()) : fmtDay(iso));
+  function renderNoJobs() {
+    const off = !isHomestay() && S.me && S.me.on_shift_now === false;
+    const n = off ? nextShift() : null;
+    $("#noJobsIcon").textContent = off ? "🌙" : "🔔";
+    $("#noJobsTitle").textContent = t(off ? "off_now" : "no_jobs");
+    $("#noJobsSub").textContent = !off ? t("no_jobs_sub")
+      : t("off_now_sub") + " " + (n ? fill(t("next_shift"), { s: `${shiftDay(n.date)} · ${shiftName(n.shift)} ${t("today_shift")}` }) : t("next_shift_none"));
   }
 
   document.addEventListener("click", async (e) => {
@@ -321,7 +395,7 @@
     try {
       if (b.dataset.act === "accept") { await api("POST", `/dispatch/jobs/${encodeURIComponent(id)}/accept`, {}); }
       else if (b.dataset.act === "decline") { await api("POST", `/dispatch/jobs/${encodeURIComponent(id)}/decline`, {}); }
-      else if (b.dataset.act === "photo") { openCamera(id, b.dataset.kind); }
+      else if (b.dataset.act === "photo") { openCamera(id, b.dataset.kind, b.dataset.optional === "1"); }
       else if (b.dataset.act === "start" || b.dataset.act === "complete") {  // no photo needed for this job: one tap
         await api("POST", `/dispatch/jobs/${encodeURIComponent(id)}/${b.dataset.act}`, {});
         const j = S.jobs.find((x) => x.id === id), after = !j || !j.photos_required || j.photos_required.after;
@@ -333,11 +407,11 @@
   });
 
   // ---------------------------------------------------------------- camera (live only, no gallery)
-  async function openCamera(jobId, kind) {
+  async function openCamera(jobId, kind, optional) {
     if (S.cam?.stream) S.cam.stream.getTracks().forEach((tr) => tr.stop());
-    S.cam = { jobId, kind, blob: null, stream: null };
+    S.cam = { jobId, kind, optional: !!optional, blob: null, stream: null };
     $("#camRetry").classList.add("hidden");
-    $("#camTitle").textContent = t(kind === "before" ? "before_photo" : "after_photo");
+    $("#camTitle").textContent = t(optional ? "add_photo_title" : kind === "before" ? "before_photo" : "after_photo");
     $("#camErr").classList.add("hidden"); $("#preview").classList.add("hidden"); $("#video").classList.remove("hidden");
     $("#camShoot").classList.remove("hidden"); $("#camConfirm").classList.add("hidden");
     $("#camera").classList.remove("hidden");
@@ -355,7 +429,7 @@
     $("#camera").classList.add("hidden"); S.cam = null;
   }
   $("#camClose").addEventListener("click", closeCamera);
-  $("#camRetry").addEventListener("click", () => { const { jobId, kind } = S.cam; closeCamera(); openCamera(jobId, kind); });
+  $("#camRetry").addEventListener("click", () => { const { jobId, kind, optional } = S.cam; closeCamera(); openCamera(jobId, kind, optional); });
   $("#snap").addEventListener("click", () => {
     const v = $("#video"), c = $("#canvas");
     c.width = v.videoWidth || 960; c.height = v.videoHeight || 1280;
@@ -371,11 +445,15 @@
     $("#camShoot").classList.remove("hidden"); $("#camConfirm").classList.add("hidden");
   });
   $("#usePhoto").addEventListener("click", async () => {
-    const { jobId, kind, blob } = S.cam;
+    const { jobId, kind, blob, optional } = S.cam;
     $("#usePhoto").disabled = true;
     try {
       const fd = new FormData(); fd.append("kind", kind); fd.append("file", blob, `${kind}.jpg`);
       await api("POST", `/dispatch/jobs/${encodeURIComponent(jobId)}/photos`, fd, true);
+      if (optional) {  // extra photo only: the worker still taps Start / Done themselves
+        S.added = { ...(S.added || {}), [`${jobId}:${kind}`]: true };
+        closeCamera(); toast(t("photo_saved")); await pollJobs(); return;
+      }
       await api("POST", `/dispatch/jobs/${encodeURIComponent(jobId)}/${kind === "before" ? "start" : "complete"}`, {});
       closeCamera(); toast(t(kind === "before" ? "started" : "job_done")); await pollJobs();
     } catch (err) { $("#camErr").textContent = err.message; $("#camErr").classList.remove("hidden"); }
@@ -551,7 +629,8 @@
   // ---------------------------------------------------------------- start
   (async () => {
     applyLang();
-    try { const demos = await (await window.HOINet.fetch("/auth/demo-accounts")).json(); if (demos.some((d) => d.username === "E134")) $("#demoBtn").classList.remove("hidden"); } catch (e) { /* offline */ }
+    // /auth/demo-accounts is empty unless the server has HOI_DEMO_LOGIN on: the button stays hidden on a real hotel's server
+    try { const demos = await (await window.HOINet.fetch("/auth/demo-accounts")).json(); if (Array.isArray(demos) && demos.some((d) => d.username === DEMO_WORKER)) $("#demoBtn").classList.remove("hidden"); } catch (e) { /* offline */ }
     S.refresh = localStorage.getItem("hoi.rt") || sessionStorage.getItem("hoi.rt");
     S.remember = !!localStorage.getItem("hoi.rt") || !sessionStorage.getItem("hoi.rt");
     if (S.refresh && await refresh() && S.user?.role === "worker") { await boot(); return; }

@@ -286,7 +286,17 @@ def create_invite(role: str) -> dict:
 
 # ------------------------------------------------------------------ dispatch
 def set_context(day: str | None, shift: str | None, working: dict, bands: dict, floors: int = 4) -> dict:
+    """Manual override of who is on shift (practice clock / demos); it ends with the current shift."""
     return call("PUT", "/dispatch/context", json={"day": day, "shift": shift, "working": working, "bands": bands, "floors": floors})
+
+
+def publish_bands(bands: dict, floors: int = 4) -> dict:
+    """Chance-of-leaving bands and floor count only; who is on shift keeps following the live roster."""
+    return call("PUT", "/dispatch/context", json={"override": False, "bands": bands, "floors": floors})
+
+
+def clear_context_override() -> dict:
+    return call("DELETE", "/dispatch/context/override")
 
 
 def get_context() -> dict:
@@ -330,6 +340,13 @@ def photo_bytes(pid: str) -> bytes:
 def performance(days: int = 14) -> dict:
     """Per-worker performance score vs each person's own previous period (owner / hr / dept_head; coaching aid)."""
     return call("GET", "/dispatch/performance", params={"days": int(days)})
+
+
+def worklog(day: str | None = None, employee_id: str | None = None, department: str | None = None) -> dict:
+    """One day's jobs with wait / work minutes and photo ids, plus a per-person summary (owner / hr / dept_head; a
+    department head gets their own department only)."""
+    params = {k: v for k, v in {"date": day, "employee_id": employee_id, "department": department}.items() if v}
+    return call("GET", "/dispatch/worklog", params=params)
 
 
 def reset_dispatch() -> None:

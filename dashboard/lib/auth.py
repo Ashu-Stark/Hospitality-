@@ -46,6 +46,7 @@ ACCESS = {
     "pages/9_Admin.py": {"owner"},
     "pages/18_Recognition.py": {"owner", "hr", "dept_head"},
     "pages/19_Staff.py": {"owner", "hr", "dept_head"},
+    "pages/21_Work_Log.py": {"owner", "hr", "dept_head"},  # dept_head: own department only (the API scopes it)
     "pages/20_Extra_Staff.py": {"owner", "hr", "dept_head"},
 }
 DEMO_TENANT = "org_demo"

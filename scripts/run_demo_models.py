@@ -185,10 +185,11 @@ def run(uri: str, ops_name: str = "hoi_ops", platform_name: str = "hoi_platform"
     print("\n3. Publish to the platform (demo tenant only)")
     dept = {r["employee_id"]: r["department"] for r in ostaff}
     dispatch.publish_roster(tid, week.isoformat(), [a.model_dump(mode="json") for a in roster.assignments])
-    morning = {a.employee_id: dept[a.employee_id] for a in roster.assignments if a.date == week and a.shift == "morning"}
-    dispatch.set_context(tid, week.isoformat(), "morning", morning, {s.employee_id: s.band for s in scores}, seed.FLOORS)
-    print(f"  roster_snapshots: {len(roster.assignments)} shifts; dispatch_context: {len(morning)} on the morning shift, "
-          f"{len(scores)} chance-of-leaving bands")
+    # bands only: who is on shift follows the published roster and the clock (no manual override from this script)
+    dispatch.set_context(tid, None, None, {}, {s.employee_id: s.band for s in scores}, seed.FLOORS, override=False)
+    live = dispatch.get_context(tid)
+    print(f"  roster_snapshots: {len(roster.assignments)} shifts; dispatch_context: live roster, {len(live['working'])} on the "
+          f"{live['shift']} shift now, {len(scores)} chance-of-leaving bands")
 
     summary = {
         "week_start": week.isoformat(), "staff_scored": len(scores), "levels": dict(levels),

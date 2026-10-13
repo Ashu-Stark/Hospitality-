@@ -4,7 +4,7 @@ window.HOI_I18N = {
     offline: "No internet. Changes will not save until you are back online.",
     welcome: "Hello! Sign in to start your shift.", welcome_sub: "Your shifts, new jobs and supplies in one place.",
     username: "Employee ID or username", pin: "PIN / password", remember: "Keep me signed in on this phone",
-    signin: "Sign in", demo: "Try the demo as employee E134", invite_hint: "New here? Ask your manager for an invite code.",
+    signin: "Sign in", demo: "Try the demo as employee HS05", invite_hint: "New here? Ask your manager for an invite code.",
     this_week: "This week", jobs: "Jobs", requests: "Requests", today: "Today", supplies: "Supplies", me: "Me",
     no_jobs: "No requests right now", no_jobs_sub: "Keep this screen open. Your phone will buzz when a job comes in.",
     need_supplies: "Need supplies?", search_items: "Search items", room_opt: "Room (optional)", send_request: "Send request",
@@ -36,13 +36,17 @@ window.HOI_I18N = {
     your_team: "Your team", hs_tasks: "Your tasks", hs_tasks_sub: "Small team: pick up what comes in. No shift plan needed.", hs_none: "Nothing to do right now.",
     new_task: "New task", take_it: "I'll do it", not_now_task: "Not now",
     start: "Start", finish: "Done", start_hint: "Takes a quick photo of the room first", done_hint: "Takes a photo of the finished work",
-    open: "Open", other_jobs: "Next jobs", answer_in: "{n} s to answer", steps: "Steps", step_accept: "Accepted", step_start: "Start", step_done: "Done"
+    open: "Open", other_jobs: "Next jobs", answer_in: "{n} s to answer", steps: "Steps", step_accept: "Accepted", step_start: "Start", step_done: "Done",
+    add_photo: "Add photo", photo_added: "Photo added · add another", add_photo_title: "Add a photo (optional)", photo_saved: "Photo saved with the time.",
+    off_now: "You're off shift now", off_now_sub: "Jobs come to staff on shift.", next_shift: "Your next shift: {s}.", next_shift_none: "Your manager has not shared your next shift yet.",
+    w_title: "My work today", w_jobs: "jobs done", w_minutes: "minutes on jobs", w_started: "started {t}", w_took: "took {n} min", w_photo: "Job photo",
+    w_none: "No finished jobs yet today.", w_note: "Time from Start to Done in this app."
   },
   hi: {
     offline: "इंटरनेट नहीं है। इंटरनेट आने तक बदलाव सेव नहीं होंगे।",
     welcome: "नमस्ते! शिफ़्ट शुरू करने के लिए साइन इन करें।", welcome_sub: "आपकी शिफ़्ट, नए काम और सामान — सब एक जगह।",
     username: "कर्मचारी ID या यूज़रनेम", pin: "PIN / पासवर्ड", remember: "इस फ़ोन पर साइन इन रखें",
-    signin: "साइन इन", demo: "डेमो देखें (कर्मचारी E134)", invite_hint: "नए हैं? अपने मैनेजर से इनवाइट कोड लें।",
+    signin: "साइन इन", demo: "डेमो देखें (कर्मचारी HS05)", invite_hint: "नए हैं? अपने मैनेजर से इनवाइट कोड लें।",
     this_week: "इस हफ़्ते", jobs: "काम", requests: "माँग", today: "आज", supplies: "सामान", me: "मैं",
     no_jobs: "अभी कोई काम नहीं", no_jobs_sub: "यह स्क्रीन खुली रखें। नया काम आने पर फ़ोन वाइब्रेट होगा।",
     need_supplies: "सामान चाहिए?", search_items: "सामान खोजें", room_opt: "कमरा (अगर हो)", send_request: "माँग भेजें",
@@ -74,6 +78,10 @@ window.HOI_I18N = {
     your_team: "आपकी टीम", hs_tasks: "आपके काम", hs_tasks_sub: "छोटी टीम: जो काम आए, उठा लें। शिफ़्ट प्लान की ज़रूरत नहीं।", hs_none: "अभी कोई काम नहीं।",
     new_task: "नया काम", take_it: "मैं कर दूँगी/दूँगा", not_now_task: "अभी नहीं",
     start: "शुरू करें", finish: "काम पूरा", start_hint: "पहले कमरे की एक फ़ोटो लें", done_hint: "पूरे काम की एक फ़ोटो लें",
-    open: "खोलें", other_jobs: "आगे के काम", answer_in: "{n} सेकंड में जवाब दें", steps: "क़दम", step_accept: "लिया", step_start: "शुरू", step_done: "पूरा"
+    open: "खोलें", other_jobs: "आगे के काम", answer_in: "{n} सेकंड में जवाब दें", steps: "क़दम", step_accept: "लिया", step_start: "शुरू", step_done: "पूरा",
+    add_photo: "फ़ोटो जोड़ें", photo_added: "फ़ोटो जुड़ गई · एक और", add_photo_title: "फ़ोटो जोड़ें (ज़रूरी नहीं)", photo_saved: "फ़ोटो समय के साथ सेव हो गई।",
+    off_now: "अभी आपकी ड्यूटी नहीं है", off_now_sub: "काम ड्यूटी पर मौजूद स्टाफ़ को आते हैं।", next_shift: "आपकी अगली शिफ़्ट: {s}।", next_shift_none: "मैनेजर ने अगली शिफ़्ट अभी नहीं डाली है।",
+    w_title: "आज मेरा काम", w_jobs: "काम पूरे", w_minutes: "मिनट काम पर", w_started: "शुरू {t}", w_took: "{n} मिनट लगे", w_photo: "काम की फ़ोटो",
+    w_none: "आज अभी कोई काम पूरा नहीं हुआ।", w_note: "इस ऐप में शुरू से पूरा तक का समय।"
   }
 };

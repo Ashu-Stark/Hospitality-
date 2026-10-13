@@ -173,3 +173,17 @@
 .jrowt b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 /* camera: the shutter is the one big button */
 #snap{min-height:60px;font-size:1.1rem}#active{padding-bottom:96px}  /* room so the round Speak button never covers the last row's button */
+/* optional photo: a quiet second button under Start / Done */
+.btn.addphoto{display:flex;margin:10px auto 0;min-height:44px;font-size:.92rem;color:var(--ink2);background:var(--field);border-color:var(--line)}
+/* my work today (Me tab): own finished jobs with time taken and a photo thumbnail */
+.work .wtot{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.work .wtot div{background:var(--field);border-radius:16px;padding:12px 14px}
+.work .wtot b{display:block;font-size:1.9rem;letter-spacing:-.04em;line-height:1.1}
+.work .wtot span{color:var(--ink2);font-size:.85rem}
+.wlist{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.wrow{display:flex;align-items:center;gap:12px;background:var(--field);border-radius:16px;padding:8px 12px 8px 8px}
+.wthumb{width:52px;height:52px;border-radius:12px;object-fit:cover;flex:0 0 auto;display:grid;place-items:center;background:#fff;color:#2e9b3e;font-weight:800}
+.wthumb.ph{background:var(--line)}
+.work .small{font-size:.8rem}
+#active:empty{padding-bottom:0}
+.work .wlist{margin-top:10px}

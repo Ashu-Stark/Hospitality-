@@ -115,9 +115,12 @@ class ActiveIn(BaseModel):
 class ContextIn(BaseModel):
     day: str | None = None
     shift: str | None = None
-    working: dict[str, str]
+    working: dict[str, str] = {}
     bands: dict[str, str] = {}
     floors: int = Field(default=4, ge=1, le=200)
+    # true: a manual override of who is on shift until the end of the current shift (practice clock, demos, simulator);
+    # false: store only bands and floors and keep the live roster
+    override: bool = True
 
 
 class JobIn(BaseModel):

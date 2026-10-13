@@ -4,7 +4,7 @@ A job is offered to the best on-shift worker with a timed window. Accept assigns
 moves the offer to the next candidate; with nobody left the job becomes 'unassigned' for a supervisor.
 Offer expiry is applied lazily on every read (sweep), so clients cannot extend a window.
 
-Who is on shift comes from the tenant's shift snapshot (dispatch_context), published from the roster.
+Who is on shift comes from the published roster and the live clock, or a manual override (see get_context).
 
 Ranking (higher is better; every part is returned so 'why this worker' is explainable):
   100 − 25·open_jobs − 8·done_this_shift − 6·floor_distance − (15 if band=high, 6 if watch)
@@ -17,10 +17,10 @@ from __future__ import annotations
 
 import re
 import zlib
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime, timedelta, timezone
 
-from .. import mongo
-from . import photo_proof, tenants
+from .. import config, mongo
+from . import photo_proof, shifts, tenants
 from .errors import Conflict, Invalid, NotFound
 
 OPEN_STATES = ("offered", "accepted", "in_progress")
@@ -77,43 +77,97 @@ def offer_seconds(tid: str) -> int:
 
 
 # ------------------------------------------------------------------ shift context
-def set_context(tid: str, day: str | None, shift: str | None, working: dict[str, str], bands: dict[str, str], floors: int = 4) -> dict:
-    mongo.col("dispatch_context").update_one(
-        {"tenant_id": tid},
-        {
-            "$set": {
-                "day": day,
-                "shift": shift,
-                "working": mongo.to_pairs(working),
-                "bands": mongo.to_pairs(bands),
-                "floors": int(floors),
-                "updated_at": mongo.now(),
-            }
-        },
-        upsert=True,
-    )
+# Who is on shift NOW comes from the published roster (roster_snapshots) and the live clock in hotel local time
+# (services/shifts.py: ASSUMED shift windows, night across midnight, the roster week repeating by weekday).
+# PUT /dispatch/context is a MANUAL OVERRIDE (the owner's practice clock, demos, the scenario simulator): it applies
+# until the end of the shift that is running when it is set, then the live roster takes over again. A PUT with
+# override=false only stores the chance-of-leaving bands (used by the retention guard) and the floor count.
+# Without a roster (a fresh hotel) everyone in the imported staff list counts as on shift.
+def _tz() -> timezone:
+    return timezone(timedelta(minutes=config.settings.hotel_utc_offset_minutes))
+
+
+def set_context(
+    tid: str,
+    day: str | None,
+    shift: str | None,
+    working: dict[str, str],
+    bands: dict[str, str],
+    floors: int = 4,
+    override: bool = True,
+) -> dict:
+    now = mongo.now()
+    fields: dict = {"bands": mongo.to_pairs(bands), "floors": int(floors), "updated_at": now}
+    if override:
+        run = shifts.running(now.astimezone(_tz()), shifts.windows(_settings(tid)))
+        until = run[0]["end"].astimezone(UTC) if run else now + timedelta(hours=8)
+        fields.update(day=day, shift=shift, working=mongo.to_pairs(working), override_until=until)
+    mongo.col("dispatch_context").update_one({"tenant_id": tid}, {"$set": fields}, upsert=True)
     return get_context(tid)
 
 
-def get_context(tid: str) -> dict:
-    r = mongo.find_one("dispatch_context", {"tenant_id": tid})
-    if not r:
-        staff = {s["employee_id"]: s["department"] for s in tenants.staff(tid)}
+def clear_override(tid: str) -> dict:
+    """Back to the live roster now (ends a manual override early)."""
+    mongo.col("dispatch_context").update_one({"tenant_id": tid}, {"$set": {"override_until": None}})
+    return get_context(tid)
+
+
+def live_context(tid: str, now: datetime | None = None) -> dict | None:
+    """Day, shift and everyone rostered on the shift(s) running now; None when no roster is published."""
+    snap = mongo.col("roster_snapshots").find_one({"tenant_id": tid})
+    rows = (snap or {}).get("assignments") or []
+    if not rows:
+        return None
+    loc = (now or mongo.now()).astimezone(_tz())
+    wins = shifts.windows(_settings(tid))
+    run = shifts.running(loc, wins)
+    dates = sorted({a["date"] for a in rows})
+    dept = {s["employee_id"]: s["department"] for s in tenants.staff(tid)}
+    working: dict[str, str] = {}
+    for r in run:
+        rd = shifts.map_to_week(r["date"], snap.get("week_start"), dates)
+        for a in rows:
+            if a["date"] == rd and a["shift"] == r["shift"]:
+                working[a["employee_id"]] = dept.get(a["employee_id"]) or a.get("department") or "unknown"
+    cur = run[0] if run else None
+    day = shifts.map_to_week(cur["date"], snap.get("week_start"), dates) if cur else None
+    return {
+        "day": day,
+        "shift": cur["shift"] if cur else None,
+        "working": working,
+        "local_date": cur["date"].isoformat() if cur else loc.date().isoformat(),
+        "shift_window": {"start": f"{cur['start']:%H:%M}", "end": f"{cur['end']:%H:%M}"} if cur else None,
+        "roster_week_mapped": bool(cur) and day != cur["date"].isoformat(),
+        "source": "live roster (auto)",
+    }
+
+
+def get_context(tid: str, now: datetime | None = None) -> dict:
+    r = mongo.col("dispatch_context").find_one({"tenant_id": tid}) or {}
+    now = now or mongo.now()
+    base = {
+        "tenant_id": tid,
+        "bands": mongo.from_pairs(r.get("bands")),
+        "floors": r.get("floors", 4),
+        "updated_at": mongo.iso(r.get("updated_at")),
+        "override_until": None,
+    }
+    until = _aware(r.get("override_until"))
+    if until and until > now:
+        loc = until.astimezone(_tz())
         return {
-            "tenant_id": tid,
-            "day": None,
-            "shift": None,
-            "working": staff,
-            "bands": {},
-            "floors": 4,
-            "updated_at": None,
-            "source": "imported staff (no roster snapshot yet)",
+            **base,
+            "day": r.get("day"),
+            "shift": r.get("shift"),
+            "working": mongo.from_pairs(r.get("working")),
+            "override_until": loc.isoformat(),
+            "source": f"manual override until {loc:%H:%M}",
         }
-    c = {"tenant_id": tid, "day": r.get("day"), "shift": r.get("shift"), "working": {}, "bands": {}, "floors": r.get("floors", 4)}
-    c["updated_at"] = r.get("updated_at")
-    c["working"], c["bands"] = mongo.from_pairs(r.get("working")), mongo.from_pairs(r.get("bands"))
-    c["source"] = "roster snapshot"
-    return c
+    live = live_context(tid, now)
+    if live is not None:
+        return {**base, **live}
+    staff = {s["employee_id"]: s["department"] for s in tenants.staff(tid)}
+    return {**base, "day": None, "shift": None, "working": staff, "source": "imported staff (no roster snapshot yet)"}
 
 
 # ------------------------------------------------------------------ jobs

@@ -15,6 +15,7 @@ HOTEL_PAGES = [
     ("pages/1_Overview.py", "Week numbers", ":material/dashboard:"),
     ("pages/8_Voice_Ingest.py", "Voice note", ":material/mic:"),
     ("pages/19_Staff.py", "Staff on shift", ":material/badge:"),
+    ("pages/21_Work_Log.py", "Work log", ":material/schedule:"),
     ("pages/5_Roster.py", "Shift plan", ":material/calendar_month:"),
     ("pages/18_Recognition.py", "Thank-you points", ":material/workspace_premium:"),
     ("pages/20_Extra_Staff.py", "Extra staff", ":material/group_add:"),
@@ -44,6 +45,7 @@ SECTIONS = [
         ":material/groups:",
         [
             "pages/19_Staff.py",
+            "pages/21_Work_Log.py",
             "pages/5_Roster.py",
             "pages/18_Recognition.py",
             "pages/20_Extra_Staff.py",
@@ -91,7 +93,7 @@ LOGIN_PAGE = ("login.py", "Sign in", ":material/login:")
 MODULE_PAGES = {
     "retention": {"pages/2_Risk_List.py", "pages/3_Employee_Detail.py", "pages/4_What_If_Simulator.py", "pages/6_Closed_Loop.py"},
     "roster": {"pages/5_Roster.py", "pages/20_Extra_Staff.py"},
-    "dispatch": {"pages/10_Dispatch.py", "pages/11_Worker_App.py", "pages/14_Rooms.py", "pages/18_Recognition.py"},
+    "dispatch": {"pages/10_Dispatch.py", "pages/11_Worker_App.py", "pages/14_Rooms.py", "pages/18_Recognition.py", "pages/21_Work_Log.py"},
     "inventory": {"pages/13_Inventory.py"},
     "voice": {"pages/8_Voice_Ingest.py"},
 }

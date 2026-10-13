@@ -3,7 +3,7 @@ whole small team is shown (no roster) as "Our team". Ids and role titles only; n
 
 import streamlit as st
 
-from lib import platform, tenancy, theme, today, ui
+from lib import nav, platform, tenancy, theme, today, ui
 
 ui.setup("pages/19_Staff.py", "Staff on shift")
 HOMESTAY = tenancy.is_homestay()
@@ -64,6 +64,8 @@ def card(s: dict) -> str:
 
 ui.html('<div class="ss-staffgrid">' + "".join(card(s) for s in show) + "</div>")
 st.caption("Points are thank-you points only: never used to punish. Staff see only their own points in their app.")
+if "pages/21_Work_Log.py" in {f for f, _, _ in st.session_state.get("_nav", [])}:
+    nav.link("pages/21_Work_Log.py", "Work log: what got done, how long it took, photos", ":material/schedule:")
 ui.html("""<style>
 .ss-staffgrid { display:grid; grid-template-columns:repeat(auto-fill,minmax(250px,1fr)); gap:12px; }
 .ss-staff { background:#fff; border-radius:20px; padding:16px; display:flex; gap:14px; align-items:center; border:2px solid transparent; }

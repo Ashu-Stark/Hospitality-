@@ -1,11 +1,11 @@
 """Employee self-service: my shifts and my department (used by the worker portal)."""
 
-from fastapi import APIRouter, Depends, File, Form, Query, Request, Response, UploadFile
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, Request, Response, UploadFile
 
 from .. import config, ratelimit
 from ..deps import HOTEL_MANAGERS, Principal, roles, tenant_of
 from ..schemas import RosterPublishIn, TtsIn, VoiceActIn, VoiceCommandIn
-from ..services import dispatch, performance, recognition, tts, voice
+from ..services import dispatch, performance, recognition, tts, voice, worklog
 from . import audio
 
 router = APIRouter(tags=["me"])
@@ -24,7 +24,14 @@ def my_shifts(p: Principal = Depends(roles("worker"))) -> dict:
     out["mode"] = prop["mode"] if prop else "hotel"
     # homestay teams have no roster: everyone of the property counts as available
     out["on_shift_now"] = (p.employee_id or "") in ctx["working"] or out["mode"] == "homestay"
-    out["current_shift"] = {"day": ctx.get("day"), "shift": ctx.get("shift")}
+    # the same live context the dispatcher offers jobs from (live roster + clock, or the owner's manual override)
+    out["current_shift"] = {
+        "day": ctx.get("day"),
+        "shift": ctx.get("shift"),
+        "window": ctx.get("shift_window"),
+        "roster_week_mapped": bool(ctx.get("roster_week_mapped")),
+        "source": ctx.get("source"),
+    }
     return out
 
 
@@ -40,6 +47,17 @@ def my_performance(days: int = Query(default=14, ge=1, le=90), p: Principal = De
     out = performance.compute(tenant_of(p), days, worker=p.employee_id or p.username)
     me = out.pop("workers")[0]
     return {**out, **me}
+
+
+@router.get("/me/worklog")
+def my_worklog(
+    day: str | None = Query(default=None, alias="date", pattern=r"^\d{4}-\d{2}-\d{2}$"), p: Principal = Depends(roles("worker"))
+) -> dict:
+    """The signed-in worker's own jobs for one day (default today, hotel local time) with minutes and photo ids."""
+    try:
+        return worklog.compute(tenant_of(p), day, employee_id=p.employee_id or p.username)
+    except ValueError:
+        raise HTTPException(422, "date must be a real day, YYYY-MM-DD.") from None
 
 
 @router.post("/me/voice/transcribe")

@@ -31,7 +31,7 @@
     <label class="check"><input id="remember" type="checkbox" checked> <span data-i18n="remember">Keep me signed in on this phone</span></label>
     <div id="loginErr" class="banner red hidden" role="alert"></div>
     <button class="btn primary" type="submit" data-i18n="signin">Sign in</button>
-    <button id="demoBtn" class="btn hidden" type="button" data-i18n="demo">Try the demo as employee E134</button>
+    <button id="demoBtn" class="btn hidden" type="button" data-i18n="demo">Try the demo as employee HS05</button>
   </form>
   <p class="muted center" data-i18n="invite_hint">New here? Ask your manager for an invite code.</p>
 </section>
@@ -60,7 +60,7 @@
     <div id="tab-jobs" class="tab stack hidden">
       <div id="offer"></div>
       <div id="active"></div>
-      <div id="noJobs" class="empty card"><div class="big">🔔</div><b data-i18n="no_jobs">No requests right now</b><p class="muted" data-i18n="no_jobs_sub">Keep this screen open. Your phone will buzz when a job comes in.</p></div>
+      <div id="noJobs" class="empty card"><div class="big" id="noJobsIcon">🔔</div><b id="noJobsTitle" data-i18n="no_jobs">No requests right now</b><p class="muted" id="noJobsSub" data-i18n="no_jobs_sub">Keep this screen open. Your phone will buzz when a job comes in.</p></div>
       <div id="doneList"></div>
     </div>
 
@@ -80,6 +80,8 @@
 
     <!-- me -->
     <div id="tab-me" class="tab stack hidden">
+      <!-- my work today: own finished jobs, time from Start to Done, photo thumbnails (GET /me/worklog) -->
+      <div id="workCard" class="card stack work hidden" aria-live="polite"></div>
       <div class="card stack">
         <div class="row"><span class="muted" data-i18n="employee_id">Employee ID</span><b id="meId" class="right"></b></div>
         <div class="row"><span class="muted" data-i18n="department">Department</span><b id="meDept" class="right medept"><img id="meAvatar" class="javatar" src="/shared/avatars/generic.svg" alt="" width="28" height="28"><span id="meDeptTxt"></span></b></div>

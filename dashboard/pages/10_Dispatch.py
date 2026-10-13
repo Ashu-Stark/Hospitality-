@@ -4,20 +4,31 @@ from datetime import date
 import pandas as pd
 import streamlit as st
 
-from lib import data, dispatch, models, platform, tenancy, theme, ui
+from lib import data, dispatch, models, nav, platform, tenancy, theme, ui
 
 ui.setup("pages/10_Dispatch.py", "Jobs")
 cfg = tenancy.active_settings()
 SECONDS = int(cfg.get("offer_seconds", 30))
 
 ui.page_head("Jobs", "Each job goes to a free person on shift. You only step in when nobody takes it.")
+if "pages/21_Work_Log.py" in {f for f, _, _ in st.session_state.get("_nav", [])}:
+    nav.link("pages/21_Work_Log.py", "Work log: what got done, how long it took, photos", ":material/schedule:")
 form_slot = st.container()  # send a job (one row)
 live_slot = st.container(key="live_jobs")  # the answer: how many jobs wait, are being done, are done; then the list
 # the list refreshes itself; keep it fully visible while it does (no grey-out flicker on a slow connection)
 ui.html('<style>.st-key-live_jobs [data-stale="true"]{opacity:1 !important;transition:none !important}</style>')
 
-ro, working, bands, day0, shift0 = data.ops_inputs()
-with ui.details("Details: day, shift and job settings"):
+ro, working, bands, day0, shift0 = data.ops_inputs()  # live: the shift plan and the clock, or your practice setting
+ctx = st.session_state.get("ops_ctx") or {}
+src = str(ctx.get("source") or "")
+if ctx.get("override_until"):
+    who_text = f"your practice setting ({ctx.get('shift') or 'no'} shift of {ctx.get('day') or '?'}), until {src[-5:]}"
+elif src.startswith("live"):
+    who_text = f"the shift plan and the clock: {ctx.get('shift') or 'no'} shift now"
+else:
+    who_text = "everyone in the staff list (no shift plan yet)"
+with ui.details("Details: who is on shift, and job settings"):
+    st.caption(f"Jobs go to people on shift. Right now that comes from {who_text}.")
     c1, c2 = st.columns([1.4, 1.3])
     with c1:
         days = ro.dates if ro else []
@@ -33,6 +44,28 @@ with ui.details("Details: day, shift and job settings"):
         )
     with c2:
         shift = st.segmented_control("Shift", models.SHIFT_ORDER, default=shift0, key="ops_shift") or shift0
+    p1, p2 = st.columns(2)
+    with p1:
+        if st.button(
+            "Practice: use this day and shift",
+            help="For training or a demo. Lasts until the end of the shift running now; then the shift plan takes over again.",
+            width="stretch",
+        ):
+            staff_rows = ui.safe(platform.staff, what="load staff") or []
+            ui.safe(
+                platform.set_context,
+                day,
+                shift,
+                dispatch.on_shift(ro, staff_rows, day, shift),
+                bands,
+                tenancy.floors(),
+                what="set the practice shift",
+            )
+            st.rerun()
+    with p2:
+        if ctx.get("override_until") and st.button("Back to the live shift plan", width="stretch"):
+            ui.safe(platform.clear_context_override, what="go back to the live shift plan")
+            st.rerun()
     c3, c4 = st.columns(2)
     with c3:
         auto = st.toggle(
@@ -51,11 +84,10 @@ with ui.details("Details: day, shift and job settings"):
             ui.safe(platform.update_workspace, offer_seconds=secs, what="save job settings")
             tenancy.refresh()
             SECONDS = secs
-ro, working, bands, day, shift = data.ops_inputs(day, shift)
-st.session_state["ops_day"], st.session_state["ops_shift_val"] = day, shift
+st.session_state["ops_day"], st.session_state["ops_shift_val"] = day0, shift0
 if not working:
     with form_slot:
-        ui.html(theme.banner("No one is on shift for this day and shift. Make a shift plan, or add staff in Settings.", "amber", "alert"))
+        ui.html(theme.banner("No one is on shift right now. Make a shift plan, or add staff in Settings.", "amber", "alert"))
 
 # ------------------------------------------------------------------ new request
 SAMPLES = [

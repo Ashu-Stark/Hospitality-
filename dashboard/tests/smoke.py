@@ -87,6 +87,38 @@ DEMO_USERS = {
 }
 SESSIONS = {who: session(u) for who, u in DEMO_USERS.items()}
 HP, GS, INS = "pages/16_Hotel_Profile.py", "pages/17_Guest_Services.py", "console/3_Insights.py"
+WL = "pages/21_Work_Log.py"
+
+
+def seed_worklog() -> list[str]:
+    """Two finished jobs today through the embedded API (as the owner acting for the worker): HS05 housekeeping and HS18
+    maintenance, each with a before and an after photo. SYNTHETIC. Returns their titles."""
+    import io
+
+    from PIL import Image
+
+    tok = SESSIONS["owner"]["auth_token"]
+
+    def c(method: str, path: str, **kw):
+        return platform.call(method, path, token=tok, **kw)
+
+    buf = io.BytesIO()
+    Image.new("RGB", (320, 240), (90, 140, 200)).save(buf, "JPEG")
+    ctx = c("GET", "/dispatch/context")
+    titles = []
+    for emp, dept, title in (("HS05", "housekeeping", "Smoke: fresh towels"), ("HS18", "maintenance", "Smoke: fix the heater")):
+        c("PUT", "/dispatch/context", json={"working": {emp: dept}, "bands": {}})
+        j = c("POST", "/dispatch/jobs", json={"title": title, "department": dept, "urgency": "medium", "room": "104"})
+        jid, who = j["id"], {"employee_id": emp}
+        c("POST", f"/dispatch/jobs/{jid}/accept", json=who)
+        for kind, step in (("before", "start"), ("after", "complete")):
+            c("POST", f"/dispatch/jobs/{jid}/photos", data={"kind": kind, **who}, files={"file": ("p.jpg", buf.getvalue(), "image/jpeg")})
+            c("POST", f"/dispatch/jobs/{jid}/{step}", json=who)
+        titles.append(title)
+    c("PUT", "/dispatch/context", json={k: ctx.get(k) for k in ("day", "shift", "working", "bands", "floors") if ctx.get(k) is not None})
+    return titles
+
+
 CASES = [("login.py", None)]
 if SUPER:
     CASES += [(f, "platform") for f, _, _ in access.SUPER_PAGES]
@@ -98,8 +130,11 @@ else:
     # check-in pages: department heads see their own team, pay reasons hidden; Settings as the owner (photo proof section)
     CASES += [("pages/2_Risk_List.py", r) for r in ("owner", "dept_head")] + [("pages/3_Employee_Detail.py", "dept_head")]
     CASES += [("pages/12_Setup.py", "owner"), ("home.py", "owner")]
+    # work log: owner, HR and a department head (own department only)
+    CASES += [(WL, r) for r in ("owner", "hr", "dept_head")]
 only = [a for a in sys.argv[1:] if not a.startswith("--")]
 failed = 0
+WL_TITLES = seed_worklog() if not SUPER and (not only or any(o in WL for o in only)) else []
 
 for page, who in CASES:
     if only and not any(o in page for o in only):
@@ -266,6 +301,34 @@ if not only or any(o in p for o in only for p in (HP, GS, INS)):  # wrong roles 
         nav_files = nav_of(at)
         errs = [e.value for e in at.exception]
         failed += report(not errs and page not in nav_files, f"access: {who} is not offered {page} (falls back to {nav_files[0]})", errs)
+
+if not SUPER and WL_TITLES:  # work log: plain sentences with minutes and photos; a department head sees their department only
+
+    def wl_text(at: AppTest) -> str:
+        return " ".join(str(m.value) for m in at.markdown)
+
+    at = run_page(WL, SESSIONS["owner"])
+    txt, errs = wl_text(at), [e.value for e in at.exception]
+    ok = (
+        not errs
+        and all(t in txt for t in WL_TITLES)
+        and "HS05 did" in txt
+        and "took " in txt
+        and txt.count('class="wl-ph"') >= 4
+        and len(at.get("download_button")) == 1
+        and len(at.dataframe) == 1
+    )
+    failed += report(ok, f"{WL} owner: both smoke jobs as sentences with minutes, 4 photo thumbnails, CSV, per-person table", errs)
+    at = run_page(WL, SESSIONS["dept_head"])
+    txt, errs = wl_text(at), [e.value for e in at.exception]
+    ok = not errs and WL_TITLES[0] in txt and WL_TITLES[1] not in txt
+    failed += report(ok, f"{WL} dept_head (housekeeping): sees the housekeeping job, not the maintenance one", errs)
+    at = run_page(WL, SESSIONS["worker"])
+    failed += report(not at.exception and WL not in nav_of(at), f"access: worker is not offered {WL}")
+    at = run_page("pages/10_Dispatch.py", SESSIONS["owner"])
+    failed += report(
+        not at.exception and any("Work log" in str(p.label) for p in at.get("page_link")), "nav: Jobs page links to the Work log"
+    )
 
 if not only:  # pay is private: only the owner and HR see pay reasons
     from lib import privacy

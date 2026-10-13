@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, Respon
 
 from ..deps import HOTEL_MANAGERS, Principal, acting_employee, principal, roles, tenant_of
 from ..schemas import ActAs, ContextIn, JobIn, LinkTaskIn
-from ..services import dispatch, performance, photos, tenants, users
+from ..services import dispatch, performance, photos, tenants, users, worklog
 
 router = APIRouter(prefix="/dispatch", tags=["dispatch"])
 
@@ -18,8 +18,20 @@ def _act(p: Principal, tid: str, body_emp: str | None, action: str, jid: str) ->
 
 @router.put("/context")
 def set_context(body: ContextIn, p: Principal = Depends(roles(*HOTEL_MANAGERS))) -> dict:
-    """Publish who is on shift (from the roster) and risk bands for the retention guard."""
-    return dispatch.set_context(tenant_of(p), body.day, body.shift, body.working, body.bands, body.floors)
+    """Risk bands for the retention guard; with override=true (default) also a manual 'who is on shift' that lasts until
+    the end of the current shift. Without an override, who is on shift follows the published roster and the clock."""
+    tid = tenant_of(p)
+    if body.override:
+        tenants.audit(tid, p.username, "dispatch.context_override", f"{body.day} {body.shift} ({len(body.working)} on shift)")
+    return dispatch.set_context(tid, body.day, body.shift, body.working, body.bands, body.floors, override=body.override)
+
+
+@router.delete("/context/override")
+def clear_override(p: Principal = Depends(roles(*HOTEL_MANAGERS))) -> dict:
+    """Back to the live roster now."""
+    tid = tenant_of(p)
+    tenants.audit(tid, p.username, "dispatch.context_live")
+    return dispatch.clear_override(tid)
 
 
 @router.get("/context")
@@ -129,6 +141,29 @@ def team_performance(days: int = Query(default=14, ge=1, le=90), p: Principal = 
         if not dept:
             raise HTTPException(403, "Your account is not linked to a department. Ask the owner to set it.")
     return performance.compute(tid, days, department=dept)
+
+
+@router.get("/worklog")
+def work_log(
+    day: str | None = Query(default=None, alias="date", pattern=r"^\d{4}-\d{2}-\d{2}$"),
+    employee_id: str | None = None,
+    department: str | None = None,
+    p: Principal = Depends(roles("owner", "dept_head", "hr")),
+) -> dict:
+    """One day's jobs (hotel local time) with wait / response / work / total minutes and photo ids, plus a per-person
+    summary. Employee ids only. Department heads see their department only."""
+    tid = tenant_of(p)
+    if p.role == "dept_head":
+        own = users.department_of(p.user_id)
+        if not own:
+            raise HTTPException(403, "Your account is not linked to a department. Ask the owner to set it.")
+        if department and department != own:
+            raise HTTPException(403, "Department heads see their own department only.")
+        department = own
+    try:
+        return worklog.compute(tid, day, employee_id or None, department or None)
+    except ValueError:
+        raise HTTPException(422, "date must be a real day, YYYY-MM-DD.") from None
 
 
 @router.post("/reset", status_code=204)

@@ -142,8 +142,12 @@ def dept_map() -> dict[str, str]:
 
 
 def ops_inputs(day: str | None = None, shift: str | None = None):
-    """(roster, working{emp: dept}, bands{emp: band}, day, shift) for the dispatch engine.
-    Falls back to imported tenant staff when no roster exists. Never raises."""
+    """(roster, working{emp: dept}, bands{emp: band}, day, shift) for the dispatch engine. Never raises.
+
+    Who is on shift NOW comes from the platform's live context: the published roster and the clock (hotel local time),
+    or a manual override the owner set on the Jobs page (practice clock), which ends with the shift. Page loads only
+    publish the roster (staff read their own shifts from it) and the chance-of-leaving bands; they never set who is on
+    shift. `day` / `shift` are accepted for older callers and ignored. The context is kept in session "ops_ctx"."""
     from . import auth, dispatch, platform, tenancy
 
     rid = current_roster_id()
@@ -154,33 +158,34 @@ def ops_inputs(day: str | None = None, shift: str | None = None):
         except api.ApiError:
             ro = None
     d0, s0 = dispatch.ops_context(ro)
-    day, shift = day or d0, shift or s0
-    try:
-        staff_rows = platform.staff() if auth.role() != "worker" else []
-    except platform.PlatformError:
-        staff_rows = []
-    working = dispatch.on_shift(ro, staff_rows, day, shift)
+    manager = auth.role() in ("owner", "dept_head", "platform_admin")
     try:
         bands = {s.employee_id: s.band for s in scores(None)} if auth.role() != "worker" else {}
     except api.ApiError:
         bands = {}
-    if auth.role() in ("owner", "dept_head", "platform_admin"):  # managers publish the roster snapshot the engine ranks from
-        sig = hash((day, shift, tuple(sorted(working.items())), tuple(sorted(bands.items()))))
-        if st.session_state.get("ctx_sig") != sig:
-            try:
-                platform.set_context(day, shift, working, bands, tenancy.floors())
-                st.session_state["ctx_sig"] = sig
-            except platform.PlatformError:
-                pass
+    if manager:
         if ro is not None and st.session_state.get("roster_pub") != ro.id:  # employees read their own shifts from this
             try:
                 platform.publish_roster(ro.week_start, ro.assignments)
                 st.session_state["roster_pub"] = ro.id
             except platform.PlatformError:
                 pass
-    elif auth.role() == "worker":
-        try:
-            working = platform.get_context().get("working", {})
-        except platform.PlatformError:
-            working = {}
-    return ro, working, bands, day, shift
+        sig = hash((tuple(sorted(bands.items())), tenancy.floors()))
+        if st.session_state.get("ctx_sig") != sig:  # bands for the retention guard; not who is on shift
+            try:
+                platform.publish_bands(bands, tenancy.floors())
+                st.session_state["ctx_sig"] = sig
+            except platform.PlatformError:
+                pass
+    try:
+        ctx = platform.get_context()
+    except platform.PlatformError:
+        ctx = None
+    st.session_state["ops_ctx"] = ctx
+    if ctx is not None:
+        return ro, ctx.get("working") or {}, bands, ctx.get("day") or d0, ctx.get("shift") or s0
+    try:
+        staff_rows = platform.staff() if auth.role() != "worker" else []
+    except platform.PlatformError:
+        staff_rows = []
+    return ro, dispatch.on_shift(ro, staff_rows, d0, s0), bands, d0, s0
