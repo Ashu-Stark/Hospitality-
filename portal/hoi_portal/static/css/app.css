@@ -667,3 +667,17 @@ a.item.nearby .main{flex:1 1 160px}
 .pchips li{display:flex;justify-content:space-between;gap:10px;background:var(--field);border-radius:10px;padding:6px 10px;font-size:.84rem;min-width:0}
 .pchips .pn{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
 .pchips .pd{color:var(--muted);flex:none;font-variant-numeric:tabular-nums}
+
+/* Home hero, left-aligned (overrides the centred layout above) */
+.homepage .hero-in{text-align:left;padding:56px 56px 72px}
+.homepage .hero .eyebrow{margin:0;letter-spacing:.08em;font-size:.8rem;text-transform:uppercase}
+.homepage .hero h1{margin:12px 0 12px;max-width:760px;font-size:clamp(2rem,4vw,3.25rem);letter-spacing:-.03em;line-height:1.06}
+.homepage .hero p.lead{margin:0;max-width:560px;font-size:1.08rem;line-height:1.5;opacity:.92}
+.homepage .hsearch{max-width:720px;margin:26px 0 0}
+.homepage .herocredit{right:18px;bottom:14px;font-size:.72rem;padding:3px 9px;border-radius:999px}
+@media (max-width:640px){
+  .homepage .hero-in{padding:30px 18px 64px}
+  .homepage .hero h1{font-size:clamp(1.75rem,8vw,2.2rem)}
+  .homepage .hero p.lead{font-size:.98rem}
+  .homepage .herocredit{left:auto;right:10px;bottom:10px;text-align:right}
+}

@@ -18,8 +18,9 @@ export async function home(ctx) {
   mount(el, html`
   <section class="hero ${hp ? 'photo' : ''}" aria-labelledby="hero-h">
     <div class="hero-in">
-      <p class="eyebrow">Uttarakhand · concept portal</p>
+      <p class="eyebrow">Uttarakhand travel &amp; hospitality</p>
       <h1 id="hero-h">${t('hero_title')}</h1>
+      <p class="lead">Live weather, road traffic, crowd levels and verified stays, in one place.</p>
       <div class="hsearch" id="hsearch">
         <form class="panel" role="search" id="hform" aria-label="Search the portal">
           <label for="hq" class="sr-only">${t('search')}</label>
