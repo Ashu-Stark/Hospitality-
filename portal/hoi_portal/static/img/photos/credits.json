@@ -332,6 +332,21 @@
    "modified": "resized and compressed"
   },
   {
+   "id": "kashipur",
+   "kind": "destination",
+   "file": "kashipur.jpg",
+   "file_sm": "kashipur_sm.jpg",
+   "width": 1280,
+   "height": 956,
+   "title": "The Dronasagar Lake during sunrise.jpg",
+   "alt": "Sunrise over the lotus-covered Drona Sagar lake in Kashipur, with a small jetty in front",
+   "author": "Anushka221",
+   "license": "CC BY-SA 4.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+   "source_url": "https://commons.wikimedia.org/wiki/File:The_Dronasagar_Lake_during_sunrise.jpg",
+   "modified": "resized and compressed"
+  },
+  {
    "id": "pauri",
    "kind": "destination",
    "file": "pauri.jpg",

@@ -16,7 +16,7 @@ def test_security_headers_and_request_id(client):
         assert "script-src 'self'" in csp and "connect-src 'self'" in csp and "fonts.googleapis.com" in csp and "unsafe-inline" not in csp
         assert r.headers["x-content-type-options"] == "nosniff" and r.headers["x-frame-options"] == "DENY"
         assert r.headers["referrer-policy"] == "no-referrer" and r.headers["x-request-id"]
-    assert "concept" in client.get("/").text.lower()
+    assert "not a government site" in client.get("/").text.lower()
     assert client.get("/api/v1/meta").headers["cache-control"] == "no-store"
     assert client.get("/api/v1/meta", headers={"X-Request-ID": "abc123"}).headers["x-request-id"] == "abc123"
     assert client.get("/ready").json()["status"] == "ready"
