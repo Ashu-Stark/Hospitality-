@@ -106,12 +106,32 @@ class AttritionScore:
         return max(pos, key=lambda d: d.contribution_logodds) if pos else None
 
 
+# Everyday words for the reasons ("why") shown on screen; unknown categories keep the API's title.
+PLAIN_REASON = {
+    "overtime_overload": "Too much overtime",
+    "stalled_progression": "No growth in the job",
+    "pay_gap": "Paid less than others",
+    "low_engagement": "Seems less interested",
+    "clustered_leave_burnout": "Tired, no proper break",
+    "season_end_exit": "Season contract ending",
+    "manager_relationship": "Trouble with the manager",
+}
+
+
+def _plain_reason_text(reason: str, title: str) -> str:
+    """Drop the technical title the API puts in front ("Overtime overload: averaging ..." -> "Averaging ...")."""
+    if title and reason.startswith(title + ": "):
+        reason = reason[len(title) + 2 :]
+        reason = reason[:1].upper() + reason[1:]
+    return reason
+
+
 def parse_driver(d: dict) -> Driver:
     cat = str(req(d, "category", "Driver", "unknown"))
     return Driver(
         cat,
-        str(d.get("title") or pretty(cat)),
-        str(d.get("reason") or ""),
+        PLAIN_REASON.get(cat) or str(d.get("title") or pretty(cat)),
+        _plain_reason_text(str(d.get("reason") or ""), str(d.get("title") or "")),
         float(req(d, "contribution_logodds", "Driver", 0.0)),
         norm_support(d.get("support_level")),
     )

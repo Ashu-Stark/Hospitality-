@@ -5,36 +5,38 @@ import streamlit as st
 
 from lib import api_client as api
 from lib import data, models, nav, theme, ui
+from lib.models import PLAIN_REASON
 
-ui.setup("pages/6_Closed_Loop.py", "Closed loop")
-ui.page_head("Support plan", "One run: find who needs support, create the follow-up tasks, give them protected weekends, then measure.")
+ui.setup("pages/6_Closed_Loop.py", "Support plan")
+ui.page_head("Support plan", "One click: find who needs a chat, make the follow-up tasks, give them weekends off, then check again.")
 
 c1, c2 = st.columns([1, 3])
 with c1:
-    run = st.button("Run full loop", type="primary", icon=":material/play_arrow:", width="stretch")
+    run = st.button("Make the support plan", type="primary", icon=":material/play_arrow:", width="stretch")
 with c2:
-    st.caption(
-        "Deterministic for the demo week (cached rosters), so the same numbers come back on every run. Tasks use "
-        "idempotency keys, so re-running never duplicates them. The live run takes ~30 s."
-    )
+    st.caption("Takes about 30 seconds. Running it again does not make the same tasks twice.")
 
 # Task status -> pill tone (theme.BAND palette): done green, acked amber, overdue red, open grey.
-STATUS_TONE = {"done": ("low", "Done"), "acked": ("watch", "Acknowledged"), "overdue": ("high", "Overdue"), "open": ("unknown", "Open")}
+STATUS_TONE = {"done": ("low", "Done"), "acked": ("watch", "Seen"), "overdue": ("high", "Late"), "open": ("unknown", "Open")}
+
+
+def reason(k: str | None) -> str:
+    return PLAIN_REASON.get(str(k or "")) or models.pretty(k or "")
 
 
 def interventions_section() -> None:
     """Stored interventions (GET /interventions); open vs completed comes from each linked task."""
-    ui.html(theme.section("Interventions", "Follow-through", "Every stored intervention with the status of its linked task."))
+    ui.html(theme.section("Next steps", "Follow-through", "Every suggested next step and whether its task is done."))
     pick = st.radio("Show", ["All", "Open", "Done"], horizontal=True, key="iv_status", label_visibility="collapsed")
-    rows = ui.safe(api.list_interventions, pick.lower(), what="load the interventions")
+    rows = ui.safe(api.list_interventions, pick.lower(), what="load the next steps")
     if rows is None:
         return
     if not rows:
-        ui.empty("No interventions yet. Run the loop to create them." if pick == "All" else f"No {pick.lower()} interventions.")
+        ui.empty("No next steps yet. Press Make the support plan." if pick == "All" else f"No {pick.lower()} next steps.")
         return
     cell = "padding:6px 10px;border-bottom:1px solid #ecebe8;text-align:left;vertical-align:top"
     head = "".join(
-        f'<th style="{cell};font-size:.75rem;color:#6b6a65">{h}</th>' for h in ("Employee", "Driver", "Action", "Owner", "Due", "Status")
+        f'<th style="{cell};font-size:.75rem;color:#6b6a65">{h}</th>' for h in ("Person", "Why", "Next step", "Who", "By", "Status")
     )
     body = "".join(
         "<tr>"
@@ -42,7 +44,7 @@ def interventions_section() -> None:
             f'<td style="{cell}">{v}</td>'
             for v in (
                 theme.esc(ui.short_name(r.get("employee_id"))),
-                theme.esc(models.pretty(r.get("driver", ""))),
+                theme.esc(reason(r.get("driver"))),
                 theme.esc(r.get("action")),
                 theme.esc(r.get("owner")),
                 theme.esc(r.get("due_date")),
@@ -57,16 +59,13 @@ def interventions_section() -> None:
     )
     n_done = sum(r.get("task_status") == "done" for r in rows)
     n_over = sum(r.get("task_status") == "overdue" for r in rows)
-    st.caption(
-        f"{len(rows)} shown: {n_done} done, {n_over} overdue. Status comes from the linked task (ack or close it on the Tasks page). "
-        "Interventions are support actions for flagged staff; a flag is a model estimate on SYNTHETIC data, not a prediction about any person."
-    )
+    st.caption(f"{len(rows)} shown: {n_done} done, {n_over} late. Mark them seen or done on the Tasks page.")
 
 
 animate = False
 if run:
-    with st.spinner("Running the loop: scoring, creating tasks, solving two rosters, re-scoring…"):
-        raw = ui.safe(api.run_loop, what="run the closed loop")
+    with st.spinner("Working: finding people, making tasks, making two shift plans, checking again…"):
+        raw = ui.safe(api.run_loop, what="make the support plan")
     if raw:
         st.session_state["loop_raw"] = raw
         st.session_state["last_roster_id"] = raw.get("protected_roster_id")
@@ -75,7 +74,7 @@ if run:
 
 raw = st.session_state.get("loop_raw")
 if not raw:
-    ui.empty("Press Run full loop to start. Results appear step by step.")
+    ui.empty("Press Make the support plan to start. Results appear step by step.")
     interventions_section()
     ui.footer()
     st.stop()
@@ -96,19 +95,19 @@ with st.container(key="card_s1"):
     ui.html(
         theme.step_header(
             1,
-            "Score this week",
-            f"{len(L.flagged)} permanent staff flagged for review in the week of {L.week_start}. "
-            "Seasonal staff follow the contract-date rule and are handled by renewal tasks instead.",
+            "Who needs a chat this week",
+            f"{len(L.flagged)} permanent staff to check in with, week of {L.week_start}. "
+            "Seasonal staff are handled by contract-renewal tasks instead.",
         )
     )
     cards = []
     for e in L.flagged:
         p = people.get(e)
-        top = models.pretty(p.top_drivers[0]) if p and p.top_drivers else "—"
+        top = reason(p.top_drivers[0]) if p and p.top_drivers else "—"
         cards.append(
             theme.status_card(
-                f"rank {p.baseline.rank}" if p else "",
-                f"risk {p.original_risk:.3f}" if p else "",
+                f"place {p.baseline.rank}" if p else "",
+                f"chance {p.original_risk:.0%}" if p else "",
                 ui.short_name(e),
                 top,
                 p.original_band if p else "high",
@@ -119,22 +118,18 @@ pause()
 
 # ------------------------------------------------------------------ step 2
 with st.container(key="card_s2"):
-    ui.html(
-        theme.step_header(
-            2, "Generate interventions", f"{len(L.interventions)} tasks from the driver playbook: top 2 actions per flagged person."
-        )
-    )
+    ui.html(theme.step_header(2, "Make next-step tasks", f"{len(L.interventions)} tasks: up to 2 suggested next steps for each person."))
     if L.interventions:
         st.dataframe(
             pd.DataFrame(
                 [
                     {
                         "Task": f"#{i.get('task_id')}",
-                        "Employee": ui.short_name(i.get("employee_id")),
-                        "Driver": models.pretty(i.get("driver", "")),
-                        "Action": i.get("action"),
-                        "Owner": i.get("owner"),
-                        "Due": i.get("due_date"),
+                        "Person": ui.short_name(i.get("employee_id")),
+                        "Why": reason(i.get("driver")),
+                        "Next step": i.get("action"),
+                        "Who": i.get("owner"),
+                        "By": i.get("due_date"),
                     }
                     for i in L.interventions
                 ]
@@ -149,8 +144,8 @@ with st.container(key="card_s3"):
     ui.html(
         theme.step_header(
             3,
-            "Adjust the roster",
-            f"Baseline roster #{L.baseline_roster_id} vs protected roster #{L.protected_roster_id} (flagged staff get a weekend off).",
+            "Change the shift plan",
+            f"Plan #{L.baseline_roster_id} before vs plan #{L.protected_roster_id} with a weekend off for these people.",
         )
     )
     if tb and tp:
@@ -167,27 +162,27 @@ with st.container(key="card_s3"):
             '<div class="ss-tiles" style="margin-top:12px">'
             + cmp("Total cost", "total_cost_inr", "", True, True)
             + cmp("Overtime hours", "overtime_hours", "{:,.0f} h")
-            + cmp("Understaffed shifts", "understaffed_shifts", "{:,.0f}")
-            + cmp("Understaffed hours", "understaffed_hours", "{:,.0f} h")
-            + cmp("Coverage", "coverage", "{:.1%}", good_neg=False)
+            + cmp("Shifts short of people", "understaffed_shifts", "{:,.0f}")
+            + cmp("Hours short", "understaffed_hours", "{:,.0f} h")
+            + cmp("Shifts filled", "coverage", "{:.1%}", good_neg=False)
             + "</div>"
         )
 pause()
 
 # ------------------------------------------------------------------ step 4
 with st.container(key="card_s4"):
-    ui.html(theme.step_header(4, "Re-score", "Each flagged person re-scored with the features each roster implies."))
+    ui.html(theme.step_header(4, "Check again", "For each person: the chance of leaving with each shift plan."))
     rows = []
     for p in L.people:
         rows.append(
             {
                 "Employee": ui.short_name(p.employee_id),
-                "Risk (baseline roster)": p.baseline.risk,
-                "Risk (protected roster)": p.protected.risk,
-                "Δ risk": p.risk_change,
-                "Band": f"{p.baseline.band} → {p.protected.band}",
-                "Rank": f"{p.baseline.rank} → {p.protected.rank}",
-                "Overtime h": f"{p.baseline.overtime_hours:g} → {p.protected.overtime_hours:g}",
+                "Chance (before)": p.baseline.risk,
+                "Chance (weekends off)": p.protected.risk,
+                "Change": p.risk_change,
+                "Group": f"{theme.BAND[p.baseline.band]['label']} → {theme.BAND[p.protected.band]['label']}",
+                "Place": f"{p.baseline.rank} → {p.protected.rank}",
+                "Overtime hours": f"{p.baseline.overtime_hours:g} → {p.protected.overtime_hours:g}",
                 "Weekend off": f"{'yes' if p.baseline.full_weekend_off else 'no'} → {'yes' if p.protected.full_weekend_off else 'no'}",
                 "Days worked": f"{p.baseline.days_worked} → {p.protected.days_worked}",
             }
@@ -201,11 +196,11 @@ with st.container(key="card_s4"):
 
     if not df.empty:
         st.dataframe(
-            df.style.map(color_delta, subset=["Δ risk"]).format(
+            df.style.map(color_delta, subset=["Change"]).format(
                 {
-                    "Risk (baseline roster)": "{:.4f}",
-                    "Risk (protected roster)": "{:.4f}",
-                    "Δ risk": lambda v: f"{'↓' if v < 0 else '↑' if v > 0 else ''} {v:+.4f}",
+                    "Chance (before)": "{:.1%}",
+                    "Chance (weekends off)": "{:.1%}",
+                    "Change": lambda v: f"{'↓' if v < 0 else '↑' if v > 0 else ''} {v * 100:+.1f} points",
                 }
             ),
             hide_index=True,
@@ -214,8 +209,8 @@ with st.container(key="card_s4"):
     for p in L.people:
         if p.is_demo_hero:
             ui.html(
-                f'<div style="margin:6px 0">{theme.icon("user", 16)} <b>{theme.esc(ui.short_name(p.employee_id))}</b>: risk '
-                f"{p.baseline.risk:.4f} → {p.protected.risk:.4f} {theme.delta_chip(p.risk_change, '{:.4f}')}, overtime "
+                f'<div style="margin:6px 0">{theme.icon("user", 16)} <b>{theme.esc(ui.short_name(p.employee_id))}</b>: chance '
+                f"{p.baseline.risk:.1%} → {p.protected.risk:.1%} {theme.delta_chip(p.risk_change * 100, '{:.1f} points')}, overtime "
                 f"{p.baseline.overtime_hours:g} h → {p.protected.overtime_hours:g} h, weekend off "
                 f"{'yes' if p.protected.full_weekend_off else 'no'}.</div>"
             )
@@ -223,10 +218,9 @@ with st.container(key="card_s4"):
     worse = [p for p in L.people if p.risk_change > 0]
     ui.html(
         theme.banner(
-            f"<b>Honest read:</b> the largest risk change is {biggest:.4f}. One protected week barely moves a score driven by "
-            "weeks of sustained overtime; a lasting effect needs several protected cycles."
-            + (f" {len(worse)} person(s) score slightly <i>higher</i> under the protected roster." if worse else "")
-            + f" <span style='color:#6b6a65'>{theme.esc(L.note)}</span>",
+            f"<b>Honest read:</b> the biggest change is {biggest * 100:.1f} points. One weekend off does not undo weeks of "
+            "overtime. It takes several weeks of weekends off to see a real change."
+            + (f" {len(worse)} person(s) went slightly <i>up</i> with the new plan." if worse else ""),
             "amber",
             "info",
         )
@@ -239,20 +233,23 @@ ui.html(theme.section("Totals", "Outcome"))
 ui.html(
     theme.tiles(
         [
-            theme.tile("Cost delta", ui.inr(tp.get("total_cost_inr", 0) - tb.get("total_cost_inr", 0)), "protected − baseline", "rupee"),
+            theme.tile("Cost change", ui.inr(tp.get("total_cost_inr", 0) - tb.get("total_cost_inr", 0)), "new plan − old plan", "rupee"),
             theme.tile(
-                "Coverage delta", f"{(tp.get('coverage', 0) - tb.get('coverage', 0)) * 100:+.1f} pts", "protected − baseline", "check"
+                "Shifts filled change",
+                f"{(tp.get('coverage', 0) - tb.get('coverage', 0)) * 100:+.1f} points",
+                "new plan − old plan",
+                "check",
             ),
-            theme.tile("Overtime delta", f"{tp.get('overtime_hours', 0) - tb.get('overtime_hours', 0):+,.0f} h", "whole roster", "clock"),
-            theme.tile("Bands improved", f"{improved} of {len(L.people)}", "flagged people whose band dropped", "trend"),
+            theme.tile("Overtime change", f"{tp.get('overtime_hours', 0) - tb.get('overtime_hours', 0):+,.0f} h", "whole team", "clock"),
+            theme.tile("People who moved to a calmer group", f"{improved} of {len(L.people)}", "out of the people checked", "trend"),
         ]
     )
 )
 c1, c2 = st.columns(2)
 with c1:
-    st.page_link(nav.page("pages/5_Roster.py"), label="Compare the two rosters shift by shift", icon=":material/calendar_month:")
+    st.page_link(nav.page("pages/5_Roster.py"), label="Compare the two shift plans", icon=":material/calendar_month:")
 with c2:
-    st.page_link(nav.page("pages/7_Tasks.py"), label="See the intervention tasks", icon=":material/task_alt:")
+    st.page_link(nav.page("pages/7_Tasks.py"), label="See the next-step tasks", icon=":material/task_alt:")
 
 interventions_section()
 

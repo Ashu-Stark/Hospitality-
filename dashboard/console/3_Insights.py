@@ -104,7 +104,7 @@ ui.big_numbers(
     ]
 )
 if not hotels:
-    ui.empty("No hotel groups yet. Onboard one on the Hotels page.")
+    ui.empty("No hotels yet. Add one on the Hotels page.")
     ui.footer()
     st.stop()
 
@@ -129,36 +129,36 @@ else:
         [
             {
                 "Hotel": h["name"],
-                "Status": "Suspended" if h["status"] == "suspended" else "Active",
+                "Status": "Paused" if h["status"] == "suspended" else "Active",
                 "Plan": tenancy.PLANS.get(h["plan"], {}).get("label", h["plan"]),
                 "Rooms": h["rooms"],
-                "Occupancy %": h["occupancy"],
+                "Rooms full %": h["occupancy"],
                 "On-time %": h["on_time"],
-                "Request response (median min)": h["median_response"],
-                "Feedback (avg / 5)": h["fb_avg"],
-                "Items below reorder": h["below_reorder"],
+                "Time to answer a guest (min)": h["median_response"],
+                "Guest rating (out of 5)": h["fb_avg"],
+                "Items running low": h["below_reorder"],
                 "Last activity": str(h["last_activity"] or "")[:16].replace("T", " "),
             }
             for h in shown
         ]
     )
     pill = {"Active": f"color:{theme.BAND['low']['fg']};background:{theme.BAND['low']['bg']}"}
-    pill["Suspended"] = f"color:{theme.BAND['high']['fg']};background:{theme.BAND['high']['bg']}"
-    if not st.toggle("Details", key="ins_details", help="Show plan, on-time, response time, stock and last activity"):
-        df = df[["Hotel", "Status", "Rooms", "Occupancy %", "Feedback (avg / 5)"]]
+    pill["Paused"] = f"color:{theme.BAND['high']['fg']};background:{theme.BAND['high']['bg']}"
+    if not st.toggle("More columns", key="ins_details", help="Show plan, on time, answer time, stock and last activity"):
+        df = df[["Hotel", "Status", "Rooms", "Rooms full %", "Guest rating (out of 5)"]]
     st.dataframe(
         df.style.map(lambda v: pill.get(v, ""), subset=["Status"])
         .format(
             precision=0,
             na_rep="—",
-            subset=[c for c in ("Rooms", "Occupancy %", "On-time %", "Request response (median min)", "Items below reorder") if c in df],
+            subset=[c for c in ("Rooms", "Rooms full %", "On-time %", "Time to answer a guest (min)", "Items running low") if c in df],
         )
-        .format(precision=1, na_rep="—", subset=["Feedback (avg / 5)"]),
+        .format(precision=1, na_rep="—", subset=["Guest rating (out of 5)"]),
         hide_index=True,
         width="stretch",
         height=min(420, 38 + 35 * len(df)),
         column_config={
-            "Occupancy %": st.column_config.ProgressColumn(min_value=0, max_value=100, format="%.0f%%"),
+            "Rooms full %": st.column_config.ProgressColumn(min_value=0, max_value=100, format="%.0f%%"),
         },
     )
     st.download_button(
@@ -183,9 +183,9 @@ with st.container(key="card_ins_head"):
     )
     portal.open_hotel_control(b, h["id"], disabled=suspended or not h["id"], key="ins_open")
     b.caption(
-        "Reactivate on the Hotels page to open it."
+        "Turn it back on in the Hotels page to open it."
         if suspended
-        else "Sign in there with your platform account, then choose this hotel (audited)."
+        else "Sign in there with your HOI team account, then pick this hotel. This is logged."
     )
 
 
@@ -209,7 +209,7 @@ with t_ops:
                 ("Active users", fmt(h["active_users"])),
                 (f"Jobs ({days} d)", fmt(h["jobs"])),
                 ("On time", fmt(h["on_time"], "%")),
-                ("Median completion", fmt(h["median_completion"], " min")),
+                ("Usual time to finish a job", fmt(h["median_completion"], " min")),
                 ("Express / late checkouts", f"{fmt(h['express'])} / {fmt(h['late'])}"),
             ]
         )
@@ -234,7 +234,7 @@ with t_guests:
         st.plotly_chart(fig, width="stretch", config={"displayModeBar": False})
     else:
         ui.empty(f"{fmt(h['requests'])} guest requests in {days} days; no daily breakdown to chart.")
-    st.caption(f"Median response: {fmt(h['median_response'], ' min')} from request to a worker accepting.")
+    st.caption(f"Usual time to answer: {fmt(h['median_response'], ' min')} from the request until someone takes it.")
 
     xs, ys = bar_by_day(h["fb_trend"], ("average", "avg", "rating"))
     fbx = st.expander("Feedback trend")
@@ -280,19 +280,17 @@ with t_staff:
             )
         )
     elif h["perf_avg"] is None:
-        ui.empty("No performance score yet (not enough completed jobs in this period).")
+        ui.empty("No score yet (not enough jobs done in this period).")
     else:
         ui.html(
             theme.tiles(
                 [
-                    theme.tile(
-                        "Average performance score", f"{h['perf_avg']:.0f} / 100", f"across {fmt(h['perf_workers'])} workers", "trend"
-                    ),
+                    theme.tile("Average staff score", f"{h['perf_avg']:.0f} / 100", f"across {fmt(h['perf_workers'])} workers", "trend"),
                     theme.tile("Staff", fmt(h["staff"]), f"{fmt(h['active_users'])} active app users", "users"),
                 ]
             )
         )
-        st.caption("A coaching aid averaged over the hotel; individual scores stay inside the hotel's own workspace.")
+        st.caption("To help people improve. Only the hotel average is shown here; each person's score stays with the hotel.")
 
 with t_inv:
     ui.html(
@@ -300,9 +298,9 @@ with t_inv:
             [
                 theme.tile("Stock value", ui.inr(h["stock_value"]), "at last purchase price", "rupee"),
                 theme.tile(
-                    "Items below reorder",
+                    "Items running low",
                     fmt(h["below_reorder"]),
-                    "need a purchase order" if h["below_reorder"] else "all stocked",
+                    "time to order" if h["below_reorder"] else "enough of everything",
                     "alert",
                 ),
             ]

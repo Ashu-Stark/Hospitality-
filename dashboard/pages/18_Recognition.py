@@ -9,12 +9,11 @@ import streamlit as st
 
 from lib import auth, platform, theme, ui
 
-ui.setup("pages/18_Recognition.py", "Recognition")
-ui.page_head("Recognition", "Thank-you points for good work this month, and what each person may get from your budget.")
+ui.setup("pages/18_Recognition.py", "Thank-you points")
+ui.page_head("Thank-you points", "Thank-you points for good work this month, and what each person may get from your budget.")
 ui.html(
     theme.banner(
-        "<b>Positive only.</b> Points are earned, never taken away, and are never used for discipline or pay cuts. "
-        "Each worker sees only their own points in the staff app.",
+        "<b>Points only go up.</b> They are never used to punish or cut pay. Each person sees only their own points in the staff app.",
         "blue",
         "shield",
     )
@@ -51,9 +50,9 @@ if rows:
                 "Jobs done": w["jobs_done"],
                 "Department": theme.dept_label(w["department"]),
                 "Qualifies": "yes" if w["eligible"] else f"needs {r['config']['min_jobs']} jobs",
-                "Reached cap": "yes" if w["capped"] else "",
-                "Share of pool": f"{w['share']:.0%}",
-                "Points before cap": w["raw_points"],
+                "Reached the limit": "yes" if w["capped"] else "",
+                "Share of budget": f"{w['share']:.0%}",
+                "Points before the limit": w["raw_points"],
             }
             for w in rows
         ]
@@ -61,7 +60,7 @@ if rows:
     zero = int((df["Points"] == 0).sum())
     df = df[df["Points"] > 0] if zero < len(df) else df
     ui.takeaway(
-        ("People with points, listed by id (not ranked)." if not r.get("leaderboard") else "Your team board is switched on (Settings).")
+        ("People with points, listed by ID (not ranked)." if not r.get("leaderboard") else "Your team board is switched on (Settings).")
         + (f" {zero} people have no points yet." if zero and zero < len(rows) else "")
     )
     ui.table(
@@ -73,7 +72,7 @@ if rows:
 else:
     ui.empty("No staff counted for this property yet.")
 
-with st.expander("How points are earned and the fairness rules"):
+with st.expander("How points are earned, and the fair-play rules"):
     w = r["config"]["weights"]
     ui.html(
         '<div class="ss-kv">'
@@ -82,7 +81,7 @@ with st.expander("How points are earned and the fairness rules"):
             for k, label in (
                 ("on_time_job", "Job finished on time"),
                 ("after_photo", "After photo added"),
-                ("inspection_pass", "Room passed inspection first time"),
+                ("inspection_pass", "Room passed the check first time"),
                 ("guest_feedback_good", "Guest gave 4-5 stars after the request"),
             )
         )
@@ -93,9 +92,9 @@ with st.expander("How points are earned and the fairness rules"):
         f"- At most **{r['config']['max_points_per_worker']} points** per person per month, so nobody is pushed to overwork.\n"
         f"- A reward share needs at least **{r['config']['min_jobs']} finished jobs** in the month.\n"
         f"- One person gets at most **{r['config']['max_share']:.0%}** of the budget; the rest stays with you.\n"
-        "- Weights and limits are ASSUMED starting points; the owner can change them."
+        "- These numbers are a starting point. The owner can change them."
     )
-    st.caption(r["note"])
+    st.caption("Rewards are an estimate until the owner confirms them at month end.")
 if auth.role() in ("owner", "platform_admin"):
     st.caption("Change the budget, the rules or the team board in Settings.")
 ui.footer()

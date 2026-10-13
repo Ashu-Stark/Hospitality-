@@ -11,48 +11,44 @@ STEPS = [
     (
         "pages/1_Overview.py",
         "Start with the week",
-        "Cost, coverage and who may need support, from one source of truth. The orange tag on ROI marks an assumption you can edit.",
+        "Money, shifts and who may need a chat, all in one place. Numbers we guessed show their reason when you hover.",
     ),
     (
         "pages/2_Risk_List.py",
         "Who to check in with",
-        "Bands rank people within this week. Permanent staff are ranked by the model; seasonal staff by "
-        "contract date (see the basis tag). Click any row for the reasons.",
+        "People are sorted into: check in this week, keep an eye on, doing fine. Click a row to see why.",
     ),
     (
         "pages/3_Employee_Detail.py",
         "Meet Sunita",
-        "Rising overtime and no weekend off. Each driver is explained in plain language and is "
-        "labelled with how strongly the data supports it. Create a task straight from the playbook.",
+        "More overtime and no weekend off. Each reason is in plain words. Make a task from the suggested next step.",
     ),
     (
         "pages/4_What_If_Simulator.py",
-        "Try a fix first",
-        "Give her 2 protected weekends and re-score. It is a simulation, not a promise, and the effect is shown as-is, even when small.",
+        "Try a change first",
+        "Give her 2 weekends off and see what changes. It is a guess, not a promise.",
     ),
     (
         "pages/5_Roster.py",
-        "Fair roster in seconds",
-        "The solver respects leave, rest and skills, and reports exactly why a week cannot be "
-        "staffed instead of publishing a roster that breaks a rule.",
+        "Fair shift plan in seconds",
+        "The plan follows the rules (rest, leave, weekly off) and tells you clearly when there are not enough people.",
     ),
     (
         "pages/6_Closed_Loop.py",
-        "Close the loop",
-        "Press Run full loop: score, create interventions, re-solve with protected weekends, re-score. This is the core idea.",
+        "Support plan",
+        "Press 'Make the support plan': find who needs a chat, make tasks, plan weekends off, then check again.",
     ),
     (
         "pages/10_Dispatch.py",
-        "Live dispatch",
-        "Press Simulate incoming request. The best on-shift worker is pinged; if they do not accept "
-        "in time, the next one is. Open 'Why this worker?' for the score.",
+        "Jobs",
+        "Press 'Try a guest request'. The best free person gets it on their phone. If they don't take it in time, the next person does.",
     ),
     (
         "pages/11_Worker_App.py",
-        "The worker's side",
-        "Accept the ping, take a before photo, do the job, take an after photo. Both are stamped with server time and hashed.",
+        "The staff side",
+        "Take the job, take a photo before, do the job, take a photo after. The time on the photo comes from the server.",
     ),
-    ("pages/12_Setup.py", "Make it yours", "Create your own workspace: properties, staff by ID only, your backend, team invites."),
+    ("pages/12_Setup.py", "Make it yours", "Add your hotel, staff (by ID only) and invite your team."),
 ]
 
 

@@ -51,7 +51,7 @@ def _send(method: str, path: str, headers: dict, **kw) -> Any:
             return _embedded_client().request(method, path, headers=headers, **kw)
         return requests.request(method, mode().rstrip("/") + path, headers=headers, timeout=30, **kw)
     except requests.exceptions.RequestException:
-        raise PlatformError(f"Platform API unreachable at {mode()}.") from None
+        raise PlatformError("The server is not answering. Try again in a minute.") from None
 
 
 def try_refresh() -> bool:

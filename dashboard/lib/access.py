@@ -10,17 +10,17 @@ from . import auth, config, tenancy
 
 HOTEL_PAGES = [
     ("home.py", "Today", ":material/today:"),
-    ("pages/10_Dispatch.py", "Live jobs", ":material/bolt:"),
+    ("pages/10_Dispatch.py", "Jobs", ":material/bolt:"),
     ("pages/7_Tasks.py", "Tasks", ":material/task_alt:"),
     ("pages/1_Overview.py", "Week numbers", ":material/dashboard:"),
     ("pages/8_Voice_Ingest.py", "Voice note", ":material/mic:"),
     ("pages/19_Staff.py", "Staff on shift", ":material/badge:"),
-    ("pages/5_Roster.py", "Roster", ":material/calendar_month:"),
-    ("pages/18_Recognition.py", "Recognition", ":material/workspace_premium:"),
+    ("pages/5_Roster.py", "Shift plan", ":material/calendar_month:"),
+    ("pages/18_Recognition.py", "Thank-you points", ":material/workspace_premium:"),
     ("pages/20_Extra_Staff.py", "Extra staff", ":material/group_add:"),
-    ("pages/2_Risk_List.py", "Check-ins", ":material/volunteer_activism:"),
+    ("pages/2_Risk_List.py", "May leave soon?", ":material/volunteer_activism:"),
     ("pages/3_Employee_Detail.py", "Employee", ":material/person:"),
-    ("pages/4_What_If_Simulator.py", "What-if", ":material/tune:"),
+    ("pages/4_What_If_Simulator.py", "Try a change", ":material/tune:"),
     ("pages/6_Closed_Loop.py", "Support plan", ":material/sync:"),
     ("pages/14_Rooms.py", "Rooms", ":material/bed:"),
     ("pages/17_Guest_Services.py", "Guest requests", ":material/room_service:"),
@@ -29,7 +29,7 @@ HOTEL_PAGES = [
     ("pages/13_Inventory.py", "Stock", ":material/inventory_2:"),
     ("pages/12_Setup.py", "Settings", ":material/settings:"),
     ("pages/15_Hotel_Setup.py", "Setup by voice", ":material/record_voice_over:"),
-    ("pages/9_Admin.py", "Data & system", ":material/dns:"),
+    ("pages/9_Admin.py", "System", ":material/dns:"),
 ]
 # The hotel portal's navigation: at most five sections (top row), each with its pages (second row).
 # Pages in HIDDEN_IN_NAV stay routable (drill-downs) but get no button of their own.
@@ -76,7 +76,7 @@ HOMESTAY_LABELS = {"pages/19_Staff.py": "Our team", "pages/13_Inventory.py": "St
 CONSOLE_PAGES = [
     ("console/1_Tenants.py", "Hotels", ":material/apartment:"),
     ("console/3_Insights.py", "Insights", ":material/insights:"),
-    ("console/2_Audit.py", "Audit log", ":material/receipt_long:"),
+    ("console/2_Audit.py", "Activity log", ":material/receipt_long:"),
 ]
 EMPLOYEE_PAGES = [
     ("employee/1_My_Day.py", "My day", ":material/today:"),
@@ -96,11 +96,11 @@ MODULE_PAGES = {
     "voice": {"pages/8_Voice_Ingest.py"},
 }
 MODULE_LABELS = {
-    "retention": "Retention (risk, what-if, closed loop)",
-    "roster": "Roster solver",
-    "dispatch": "Dispatch, rooms + photo proof",
-    "inventory": "Inventory",
-    "voice": "Voice to task",
+    "retention": "May leave soon? (check-ins, try a change, support plan)",
+    "roster": "Shift plan",
+    "dispatch": "Jobs, rooms and photo proof",
+    "inventory": "Stock",
+    "voice": "Voice notes into tasks",
 }
 PLAN_MODULES = {
     "starter": ["roster", "dispatch", "inventory"],

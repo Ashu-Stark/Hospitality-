@@ -25,7 +25,7 @@ def _mirror_task(job: dict, me: str) -> None:
             me,
             supervisor=f"{job['department']} supervisor",
             employee_id=me,
-            description=f"Dispatched job {job['id']}",
+            description=f"Job {job['id']}",
             due_in_minutes={"high": 30, "medium": 120, "low": 480}.get(job["urgency"], 120),
         )
         api.ack_task(t.get("id"))
@@ -49,14 +49,14 @@ def phone(me: str, dept: str | None, shift: str, seconds: int, allow_upload: boo
             ui.html(theme.banner(theme.esc(e.message), "red", "alert"))
             return
         if not mine:
-            ui.html('<div class="ss-phone-empty">No new requests. You will be pinged here.</div>')
+            ui.html('<div class="ss-phone-empty">No new jobs. They will show up here.</div>')
             return
         j = mine[0]
         s = j.get("seconds_left", 0)
         ui.html(
             f'<div class="ss-offer ss-anim"><div class="ss-ring"><span>{s}</span></div>'
-            f'<div class="t">New request</div><div class="big">{theme.esc(j["title"])}</div>'
-            f'<div class="m">{"room " + theme.esc(j["room"]) + " · " if j.get("room") else ""}{theme.esc(j["urgency"])} urgency</div>'
+            f'<div class="t">New job</div><div class="big">{theme.esc(j["title"])}</div>'
+            f'<div class="m">{"room " + theme.esc(j["room"]) + " · " if j.get("room") else ""}{theme.esc(j["urgency"])} priority</div>'
             f'<div class="ss-countdown"><i style="width:{100 * s / max(1, seconds):.0f}%"></i></div></div>'
         )
         a, b = st.columns(2)
@@ -85,9 +85,9 @@ def phone(me: str, dept: str | None, shift: str, seconds: int, allow_upload: boo
             kind = "before" if "before" not in ph else "after"
             st.markdown(f"**{'1 · Photo before you start' if kind == 'before' else '2 · Photo when finished'}**")
             shot = st.camera_input(f"{kind} photo", key=f"cam_{j['id']}_{kind}", label_visibility="collapsed")
-            up = st.file_uploader("Upload (demo)", type=["jpg", "jpeg", "png"], key=f"up_{j['id']}_{kind}") if allow_upload else None
+            up = st.file_uploader("Upload a photo", type=["jpg", "jpeg", "png"], key=f"up_{j['id']}_{kind}") if allow_upload else None
             src = shot or up
-            if src is not None and st.button(f"Submit {kind} photo", key=f"sub_{j['id']}_{kind}", type="primary", width="stretch"):
+            if src is not None and st.button(f"Send {kind} photo", key=f"sub_{j['id']}_{kind}", type="primary", width="stretch"):
                 info = ui.safe(platform.upload_photo, j["id"], kind, src.getvalue(), _as(me), what=f"upload the {kind} photo")
                 if info:
                     step = ui.safe(
@@ -98,7 +98,7 @@ def phone(me: str, dept: str | None, shift: str, seconds: int, allow_upload: boo
                             api.done_task(j["backend_task_id"])
                         except ApiError:
                             pass
-                    st.toast(f"{kind.capitalize()} photo stamped {info['server_ts'][11:19]}", icon=":material/photo_camera:")
+                    st.toast(f"{kind.capitalize()} photo saved at {info['server_ts'][11:19]}", icon=":material/photo_camera:")
                     st.rerun()
             if "before" in ph:
                 st.image(platform.photo_bytes(ph["before"]["id"]), caption=f"before · {ph['before']['server_ts'][11:19]}", width="stretch")
@@ -111,7 +111,7 @@ def completed(me: str, limit: int = 5) -> None:
         done = []
     if not done:
         return
-    ui.html(theme.section("Recently completed", "Proof"))
+    ui.html(theme.section("Done recently", "Proof"))
     for j in done:
         ph = platform.job_photos(j["id"])
         with st.container(key=f"card_wdone_{j['id']}"):
@@ -123,8 +123,8 @@ def completed(me: str, limit: int = 5) -> None:
                         st.image(platform.photo_bytes(ph[k]["id"]), width="stretch")
                         st.caption(
                             f"{k} · {ph[k]['server_ts'][:19].replace('T', ' ')} · "
-                            f"{'hash verified' if ph[k]['verified'] else 'HASH MISMATCH'} · {ph[k]['sha256'][:12]}…"
+                            f"{'photo checked' if ph[k]['verified'] else 'photo was changed'}"
                         )
             if j.get("started_at") and j.get("done_at"):
                 mins = (datetime.fromisoformat(j["done_at"]) - datetime.fromisoformat(j["started_at"])).total_seconds() / 60
-                st.caption(f"Time on job (before → after photo): {mins:.1f} min")
+                st.caption(f"Time on the job (before to after photo): {mins:.0f} min")

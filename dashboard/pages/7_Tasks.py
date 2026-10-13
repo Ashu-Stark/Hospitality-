@@ -7,19 +7,19 @@ from lib import models, theme, ui
 from lib.api_client import ApiError
 
 ui.setup("pages/7_Tasks.py", "Tasks")
-ui.page_head("Tasks", "Follow-up tasks and how close each one is to its deadline.")
+ui.page_head("Tasks", "Follow-up tasks and how much time is left for each.")
 
 # ------------------------------------------------------------------ demo clock (demo-only control)
 with st.container(key="card_clock"):
-    clock_raw = ui.safe(api.get_clock, what="read the demo clock")
+    clock_raw = ui.safe(api.get_clock, what="read the practice clock")
     clock = models.parse_clock(clock_raw) if clock_raw else None
     a, b, c = st.columns([1.1, 2.9, 1.1])
     with a:
         ui.html(
             f'<div style="display:flex;gap:8px;align-items:center"><span class="ss-tag" style="background:#fff6df;border-color:#f2cd6f;'
-            f'color:#7a5000">DEMO-ONLY CONTROL</span></div><div style="font-size:1.5rem;font-weight:600;letter-spacing:-.03em;margin-top:6px">'
+            f'color:#7a5000">Practice clock</span></div><div style="font-size:1.5rem;font-weight:600;letter-spacing:-.03em;margin-top:6px">'
             f"{clock.virtual_now.strftime('%a %d %b, %H:%M') if clock and clock.virtual_now else '—'}</div>"
-            f'<div style="color:#6b6a65;font-size:.8rem">virtual time · speed ×{clock.multiplier:g}</div>'
+            f'<div style="color:#6b6a65;font-size:.8rem">speed ×{clock.multiplier:g}</div>'
             if clock
             else ""
         )
@@ -28,12 +28,12 @@ with st.container(key="card_clock"):
         cur = next((k for k, v in speeds.items() if clock and abs(v - clock.multiplier) < 1e-6), None)
         pick = st.segmented_control("Fast-forward the clock", list(speeds), default=cur, key="speed_pick")
         if pick and clock and speeds[pick] != clock.multiplier:
-            if ui.safe(api.set_clock, speeds[pick], what="change the demo clock speed"):
+            if ui.safe(api.set_clock, speeds[pick], what="change the clock speed"):
                 st.toast(f"Clock speed set to ×{speeds[pick]:g}", icon=":material/fast_forward:")
                 st.rerun()
     with c:
         auto = st.toggle(
-            "Live refresh (5 s)", value=False, help="Re-reads the board every 5 seconds so reminders and escalations appear live."
+            "Update every 5 seconds", value=False, help="Shows new reminders and tasks passed to the supervisor as they happen."
         )
         st.button("Refresh now", icon=":material/refresh:")
 
@@ -46,13 +46,13 @@ def act(task_id, to: str) -> None:
     overrides[task_id] = to
     try:
         (api.ack_task if to == "acked" else api.done_task)(task_id)
-        st.session_state["task_msg"] = f"Task #{task_id} marked {to}"
+        st.session_state["task_msg"] = f"Task #{task_id} marked {'seen' if to == 'acked' else to}"
     except ApiError as e:
         if prev is None:
             overrides.pop(task_id, None)
         else:
             overrides[task_id] = prev
-        st.session_state["task_error"] = f"Task #{task_id}: {e.message} (change rolled back)"
+        st.session_state["task_error"] = f"Task #{task_id}: {e.message} (not changed)"
 
 
 @st.fragment(run_every=5 if auto else None)
@@ -78,16 +78,15 @@ def board() -> None:
 
     f1, f2, f3 = st.columns([1.5, 1.5, 2])
     with f1:
-        who = st.multiselect("Assignee", sorted({t.assignee for t in tasks}), placeholder="Everyone")
+        who = st.multiselect("Who does it", sorted({t.assignee for t in tasks}), placeholder="Everyone")
     with f2:
         emp = st.multiselect(
-            "Linked employee", sorted({t.employee_id for t in tasks if t.employee_id}), format_func=ui.short_name, placeholder="Any"
+            "About which person", sorted({t.employee_id for t in tasks if t.employee_id}), format_func=ui.short_name, placeholder="Any"
         )
-    with f3:
-        show_keys = st.toggle("Show idempotency keys (debug)", value=False)
+    show_keys = False
     tasks = [t for t in tasks if (not who or t.assignee in who) and (not emp or t.employee_id in emp)]
     if not tasks:
-        ui.empty("No tasks yet. Run the closed loop, create one from an employee page, or ingest a voice note.")
+        ui.empty("No tasks yet. Make the support plan, add one from a person's page, or use a voice note.")
         return
 
     def urgency(t: models.Task) -> tuple[str, str]:
@@ -95,7 +94,7 @@ def board() -> None:
             return "", ""
         f = t.deadline_fraction(now)
         if t.deadline and now > t.deadline:
-            return "overdue", theme.band_chip("high", "overdue")
+            return "overdue", theme.band_chip("high", "late")
         if f is not None and f >= 0.9:
             return "near90", theme.band_chip("watch", f"{f:.0%} of time used")
         if f is not None and f >= 0.5:
@@ -106,16 +105,16 @@ def board() -> None:
     ui.html(
         theme.tiles(
             [
-                theme.tile("Open", str(sum(t.status == "open" for t in tasks)), "awaiting acknowledgement", "flag"),
-                theme.tile("Acknowledged", str(sum(t.status == "acked" for t in tasks)), "in progress", "clock"),
-                theme.tile("Done", str(sum(t.status == "done" for t in tasks)), "completed", "check"),
-                theme.tile("Overdue", str(n_over), "past deadline, not done", "alert"),
+                theme.tile("Open", str(sum(t.status == "open" for t in tasks)), "nobody has seen it yet", "flag"),
+                theme.tile("Seen", str(sum(t.status == "acked" for t in tasks)), "someone is on it", "clock"),
+                theme.tile("Done", str(sum(t.status == "done" for t in tasks)), "finished", "check"),
+                theme.tile("Late", str(n_over), "past the time, not done", "alert"),
             ]
         )
     )
     ui.html('<div style="height:12px"></div>')
     cols = st.columns(3)
-    for col, (status, title) in zip(cols, (("open", "Open"), ("acked", "Acknowledged"), ("done", "Done"))):
+    for col, (status, title) in zip(cols, (("open", "Open"), ("acked", "Seen"), ("done", "Done"))):
         with col:
             group = sorted((t for t in tasks if t.status == status), key=lambda t: t.deadline or datetime.max)
             ui.html(
@@ -124,7 +123,7 @@ def board() -> None:
             for t in group:
                 cls, chip = urgency(t)
                 rem = [e for e in t.events if "remind" in str(e.get("kind", "")).lower()]
-                esc_tag = theme.band_chip("high", "escalated") if t.escalated else ""
+                esc_tag = theme.band_chip("high", "passed to the supervisor") if t.escalated else ""
                 ui.html(
                     f'<div class="ss-task {cls}"><div class="t">{theme.esc(t.title)}</div>'
                     f'<div class="m">#{t.id} · {theme.esc(t.assignee)}'
@@ -139,7 +138,7 @@ def board() -> None:
                 b1, b2 = st.columns(2)
                 with b1:
                     if t.status == "open":
-                        st.button("Ack", key=f"ack_{t.id}", on_click=act, args=(t.id, "acked"), width="stretch")
+                        st.button("Seen", key=f"ack_{t.id}", on_click=act, args=(t.id, "acked"), width="stretch")
                 with b2:
                     if t.status != "done":
                         st.button("Done", key=f"done_{t.id}", on_click=act, args=(t.id, "done"), type="primary", width="stretch")

@@ -169,9 +169,9 @@ if not only:
         keep = ("user", "auth_token", "platform_token", "tenant", "imp_tid", "welcomed")
         at = run_page("pages/1_Overview.py", {k: at.session_state[k] for k in keep if k in at.session_state})
         errs += [e.value for e in at.exception]
-        banner = any("Viewing as platform admin" in str(m.value) for m in at.markdown)
+        banner = any("Viewing as HOI team" in str(m.value) for m in at.markdown)
         ok = not errs and opened == auth.DEMO_TENANT and "home.py" in nav_of(at) and banner
-        failed += report(ok, f"portal: platform admin opened {opened} (audited) and sees the 'Viewing as platform admin' banner", errs)
+        failed += report(ok, f"portal: platform admin opened {opened} (audited) and sees the 'Viewing as HOI team' banner", errs)
         next(b for b in at.button if b.key == "imp_exit").click().run()
         failed += report(nav_of(at) == [access.PICK_PAGE[0]], "portal: Exit returns the platform admin to hotel selection")
     except Exception as e:  # noqa: BLE001
@@ -238,7 +238,7 @@ if not only or any(o in "pages/15_Hotel_Setup.py" for o in only):  # the cached 
         next(b for b in at.button if b.label == "Start a new setup").click().run()
         n = 0
         while at.session_state["onb"].get("question") and n < 10:
-            next(b for b in at.button if b.label == "Use the cached Hindi demo answer").click().run()
+            next(b for b in at.button if b.label == "Use the Hindi example answer").click().run()
             n += 1
         f = at.session_state["onb"]["fields"]
         errs = [e.value for e in at.exception]

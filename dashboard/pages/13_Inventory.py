@@ -6,17 +6,17 @@ import streamlit as st
 
 from lib import auth, data, dispatch, platform, tenancy, theme, ui
 
-ui.setup("pages/13_Inventory.py", "Inventory")
+ui.setup("pages/13_Inventory.py", "Stock")
 U = auth.current()
 CAN_MANAGE = U["role"] in ("owner", "storekeeper", "platform_admin")
 ROOMS = tenancy.rooms()
 MOVE_KINDS = {
-    "receive": "Received (GRN)",
-    "issue": "Issued",
-    "transfer_out": "Transfer out",
-    "transfer_in": "Transfer in",
-    "adjust": "Count adjustment",
-    "waste": "Wastage / damage",
+    "receive": "Delivery received",
+    "issue": "Given out",
+    "transfer_out": "Moved out",
+    "transfer_in": "Moved in",
+    "adjust": "Fixed after counting",
+    "waste": "Wasted / damaged",
     "return": "Returned",
     "opening": "Opening stock",
 }
@@ -44,7 +44,7 @@ try:
     items, locs, sups = get("/items"), get("/locations"), get("/suppliers")
     stock_payload = get("/stock")
 except platform.PlatformError as e:
-    ui.html(theme.banner(f"<b>Could not load inventory.</b> {theme.esc(e.message)}", "red", "alert"))
+    ui.html(theme.banner(f"<b>Could not load stock.</b> {theme.esc(e.message)}", "red", "alert"))
     ui.footer()
     st.stop()
 item_by = {i["id"]: i for i in items}
@@ -53,12 +53,12 @@ sup_by = {s["id"]: s for s in sups}
 stk = {(r["item_id"], r["location_id"]): r["qty"] for r in stock_payload["stock"]}
 on_hand = stock_payload["on_hand"]
 
-ui.page_head("Stock", "What you have, what is running low, and what to reorder.")
+ui.page_head("Stock", "What you have, what is running low, and what to order.")
 if not items:
-    ui.empty("No items yet. Add items in the Catalog tab" + ("" if CAN_MANAGE else " (ask your storekeeper)") + ".")
+    ui.empty("No items yet. Add items in the Item list tab" + ("" if CAN_MANAGE else " (ask your storekeeper)") + ".")
 
 HOMESTAY = tenancy.is_homestay()
-tabs = st.tabs(["What's low"] if HOMESTAY else ["Overview", "Requests", "Purchasing", "Stock & moves", "Stock count", "Catalog"])
+tabs = st.tabs(["What's low"] if HOMESTAY else ["Summary", "Requests", "Orders", "Stock & history", "Count stock", "Item list"])
 
 # ------------------------------------------------------------------ overview
 with tabs[0]:
@@ -66,7 +66,7 @@ with tabs[0]:
     wk = data.demo_week() or ui.ensure_demo_week()
     if wk:
         d0 = date.fromisoformat(wk)
-        fc = ui.safe(data.forecast, d0.isoformat(), (d0 + timedelta(days=6)).isoformat(), what="load the occupancy forecast")
+        fc = ui.safe(data.forecast, d0.isoformat(), (d0 + timedelta(days=6)).isoformat(), what="load how full we'll be")
         occ = [d.mean for d in fc.days] if fc else []
     sugg = get("/suggestions", rooms=ROOMS, occ=",".join(f"{x:.3f}" for x in occ))
     analytics = get("/analytics", days=28)
@@ -78,26 +78,26 @@ with tabs[0]:
     n_low = sum(1 for s in sugg if s["low"])
     ui.big_numbers(
         [
-            ("Running low", n_low, "Items at or below their reorder level" if n_low else "Nothing to reorder", "warn" if n_low else "ok"),
+            ("Running low", n_low, "Below the 'order when below' level" if n_low else "Nothing to order", "warn" if n_low else "ok"),
             ("Requests waiting", len(pending), "Staff asked the store for these", "warn" if pending else "ok"),
-            ("Orders open", len(open_po), "Purchase orders not received yet", "info"),
+            ("Orders open", len(open_po), "Ordered, not delivered yet", "info"),
             ("Stock value", ui.inr(analytics["stock_value"]), f"{len(items)} items", "info"),
         ]
     )
     a = st.container()
     b = st.expander("Where stock goes (last 28 days)") if not HOMESTAY else st.container()
     with a:
-        ui.html('<h3 class="ss-h3">What to reorder</h3>')
+        ui.html('<h3 class="ss-h3">What to order</h3>')
         df = pd.DataFrame(
             [
                 {
                     "Item": s["name"],
-                    "On hand": round(s["on_hand"]),
-                    "On order": round(s["on_order"]),
-                    "Reorder pt": s["reorder_point"],
-                    "Par": s["par"],
-                    "Static rule": s["static_qty"],
-                    "Forecast-aware": s["forecast_qty"],
+                    "In stock": round(s["on_hand"]),
+                    "Ordered": round(s["on_order"]),
+                    "Order when below": s["reorder_point"],
+                    "Normal level": s["par"],
+                    "Usual amount": s["static_qty"],
+                    "Order now": s["forecast_qty"],
                     "Unit": s["unit"],
                     "_id": s["id"],
                     "_sup": s["supplier_id"],
@@ -107,36 +107,34 @@ with tabs[0]:
             ]
         )
         if df.empty:
-            ui.html(theme.banner("Everything is above its reorder point for the forecast week.", "blue", "check"))
+            ui.html(theme.banner("You have enough of everything for next week.", "blue", "check"))
         else:
-            caught = df[(df["Static rule"] == 0) & (df["Forecast-aware"] > 0)]
+            caught = df[(df["Usual amount"] == 0) & (df["Order now"] > 0)]
             if len(caught):
                 ui.html(
                     theme.banner(
-                        f"<b>{len(caught)} item(s) look fine on static par but will run short</b> in the forecast busy week: "
+                        f"<b>{len(caught)} item(s) look fine now but will run short</b> in the busy week ahead: "
                         + ", ".join(theme.esc(x) for x in caught["Item"].head(5)),
                         "amber",
                         "trend",
                     )
                 )
-            main_cols = ["Item", "On hand", "Forecast-aware", "Unit"]
+            main_cols = ["Item", "In stock", "Order now", "Unit"]
             ui.table(df.drop(columns=["_id", "_sup"]).rename(columns={}), main_cols, key="inv_reorder")
-            st.caption(f"Order amount follows expected occupancy for {ROOMS} rooms over the next week plus delivery time.")
-            if CAN_MANAGE and st.button(
-                "Create draft POs from forecast-aware suggestions", type="primary", icon=":material/shopping_cart:"
-            ):
+            st.caption(f"'Order now' follows how full the {ROOMS} rooms will be next week, plus delivery time.")
+            if CAN_MANAGE and st.button("Make draft orders from 'Order now'", type="primary", icon=":material/shopping_cart:"):
                 by_sup: dict[str, dict] = {}
-                for _, r in df[df["Forecast-aware"] > 0].iterrows():
-                    by_sup.setdefault(r["_sup"], {})[r["_id"]] = float(r["Forecast-aware"])
+                for _, r in df[df["Order now"] > 0].iterrows():
+                    by_sup.setdefault(r["_sup"], {})[r["_id"]] = float(r["Order now"])
                 for sid, lines in by_sup.items():
                     ui.safe(
                         platform.inv,
                         "POST",
                         "/pos",
-                        json={"supplier_id": sid, "lines": lines, "note": "Auto-suggested from forecast"},
-                        what="create the purchase order",
+                        json={"supplier_id": sid, "lines": lines, "note": "Suggested for next week"},
+                        what="make the order",
                     )
-                st.toast(f"{len(by_sup)} draft PO(s) created", icon=":material/shopping_cart:")
+                st.toast(f"{len(by_sup)} draft order(s) made", icon=":material/shopping_cart:")
                 st.rerun()
     with b:
         if cons and not HOMESTAY:
@@ -159,18 +157,18 @@ with tabs[0]:
             st.caption(f"Wastage last 28 days: {ui.inr(analytics['wastage_value'])}")
     linen = [s for s in sugg if s["category"] == "Linen"]
     if linen and not HOMESTAY:
-        lin = st.expander("Linen per room (par)")
+        lin = st.expander("Linen sets per room")
         lin.caption(
-            f"Pieces on hand per room ({ROOMS} rooms). Hotels plan around 3: one in the room, one in the laundry, one on the shelf."
+            f"Pieces in stock per room ({ROOMS} rooms). Hotels plan around 3: one in the room, one in the laundry, one on the shelf."
         )
         lin.markdown(
             '<div class="ss-statusrow">'
             + "".join(
                 theme.status_card(
                     s["name"],
-                    f"{s['on_hand'] / ROOMS:.1f} par",
+                    f"{s['on_hand'] / ROOMS:.1f} sets per room",
                     f"{s['on_hand']:.0f}",
-                    "ok" if s["on_hand"] / ROOMS >= 3 else "below 3 par",
+                    "ok" if s["on_hand"] / ROOMS >= 3 else "fewer than 3 sets",
                     "low" if s["on_hand"] / ROOMS >= 3 else "watch",
                 )
                 for s in linen
@@ -180,7 +178,7 @@ with tabs[0]:
         )
 
 if HOMESTAY:
-    st.caption("Homestay mode shows stock basics. Switch to hotel mode in Settings for requests, purchasing, counts and the catalog.")
+    st.caption("Homestay mode shows only the basics. Switch to hotel mode in Settings for requests, orders, counting and the item list.")
     ui.footer()
     st.stop()
 
@@ -195,23 +193,26 @@ with tabs[1]:
         )
         room = c3.text_input("Room (optional)")
         pick = st.multiselect("Items", [i["id"] for i in items], format_func=lambda i: f"{item_by[i]['name']} ({item_by[i]['unit']})")
-        qty = {i: st.number_input(f"Qty · {item_by[i]['name']}", 1.0, 10000.0, 1.0, key=f"rq_{i}") for i in pick}
+        qty = {i: st.number_input(f"How many · {item_by[i]['name']}", 1.0, 10000.0, 1.0, key=f"rq_{i}") for i in pick}
         note = st.text_input("Note")
-        send = st.form_submit_button("Submit request", type="primary")
+        send = st.form_submit_button("Send request", type="primary")
     if send:
         act(
             "POST",
             "/requests",
             {"department": dept, "lines": qty, "location_id": to_loc, "room": room or None, "note": note},
-            "Request submitted",
+            "Request sent",
         )
     st.divider()
     flt = st.segmented_control("Show", ["Open", "All"], default="Open", key="req_filter")
     for r in get("/requests", **({"status": "pending,partial"} if flt == "Open" else {})):
         tone = {"pending": "watch", "partial": "watch", "issued": "low", "rejected": "high"}.get(r["status"], "unknown")
+        req_label = {"pending": "waiting", "partial": "part given", "issued": "given", "rejected": "not approved"}.get(
+            r["status"], r["status"]
+        )
         with st.container(key=f"card_req_{r['id']}"):
             ui.html(
-                f'<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><b>{theme.esc(r["id"])}</b>{theme.band_chip(tone, r["status"])}'
+                f'<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><b>{theme.esc(r["id"])}</b>{theme.band_chip(tone, req_label)}'
                 f'<span class="ss-tag">{theme.esc(theme.dept_label(r["department"]))}</span><span class="ss-tag">by {theme.esc(ui.short_name(r["requested_by"]))}</span>'
                 + (f'<span class="ss-tag">room {theme.esc(r["room"])}</span>' if r.get("room") else "")
                 + f'<span style="color:#6b6a65;font-size:.78rem">{r["created_at"][:16].replace("T", " ")} · {theme.esc(r.get("note") or "")}</span></div>'
@@ -221,9 +222,9 @@ with tabs[1]:
                     [
                         {
                             "Item": item_by.get(l["item_id"], {}).get("name", l["item_id"]),
-                            "Requested": l["qty"],
-                            "Issued": l["qty_issued"],
-                            "Store stock": round(on_hand.get(l["item_id"], 0)),
+                            "Asked for": l["qty"],
+                            "Given": l["qty_issued"],
+                            "In store": round(on_hand.get(l["item_id"], 0)),
                         }
                         for l in r["lines"]
                     ]
@@ -233,39 +234,42 @@ with tabs[1]:
             )
             if CAN_MANAGE and r["status"] in ("pending", "partial"):
                 c1, c2, c3, c4 = st.columns([1.4, 1, 1, 1])
-                src = c1.selectbox("Issue from", [l["id"] for l in locs], format_func=lambda i: loc_by[i]["name"], key=f"src_{r['id']}")
-                if c2.button("Issue all", key=f"iss_{r['id']}", type="primary", width="stretch"):
+                src = c1.selectbox("Give from", [l["id"] for l in locs], format_func=lambda i: loc_by[i]["name"], key=f"src_{r['id']}")
+                if c2.button("Give all", key=f"iss_{r['id']}", type="primary", width="stretch"):
                     act(
                         "POST",
                         f"/requests/{r['id']}/fulfil",
                         {"issued": {l["item_id"]: l["qty"] - l["qty_issued"] for l in r["lines"]}, "from_location": src},
                     )
-                if c3.button("Issue what's in stock", key=f"isp_{r['id']}", width="stretch"):
+                if c3.button("Give what's in stock", key=f"isp_{r['id']}", width="stretch"):
                     part = {l["item_id"]: min(l["qty"] - l["qty_issued"], stk.get((l["item_id"], src), 0)) for l in r["lines"]}
                     act("POST", f"/requests/{r['id']}/fulfil", {"issued": part, "from_location": src})
-                if c4.button("Reject", key=f"rej_{r['id']}", width="stretch"):
+                if c4.button("Say no", key=f"rej_{r['id']}", width="stretch"):
                     act("POST", f"/requests/{r['id']}/reject", {"note": "not approved"})
 
 # ------------------------------------------------------------------ purchasing
 with tabs[2]:
     pos = get("/pos")
     flow = ["draft", "approved", "sent", "partial", "received"]
+    flow_label = {"draft": "draft", "approved": "approved", "sent": "sent", "partial": "part delivered", "received": "delivered"}
     ui.html(
         '<div class="ss-stepper">'
-        + "".join(f'<div class="s"><span>{sum(1 for p in pos if p["status"] == s)}</span>{s}</div>' for s in flow)
+        + "".join(f'<div class="s"><span>{sum(1 for p in pos if p["status"] == s)}</span>{flow_label[s]}</div>' for s in flow)
         + "</div>"
     )
     if CAN_MANAGE and sups:
-        with st.expander("New purchase order"):
+        with st.expander("New order"):
             with st.form("newpo", clear_on_submit=True):
                 sid = st.selectbox(
-                    "Supplier", [s["id"] for s in sups], format_func=lambda i: f"{sup_by[i]['name']} · {sup_by[i]['lead_days']} d lead"
+                    "Supplier",
+                    [s["id"] for s in sups],
+                    format_func=lambda i: f"{sup_by[i]['name']} · delivers in {sup_by[i]['lead_days']} days",
                 )
                 pick = st.multiselect("Items", [i["id"] for i in items], format_func=lambda i: item_by[i]["name"])
-                qty = {i: st.number_input(f"Qty · {item_by[i]['name']}", 1.0, 100000.0, 10.0, key=f"poq_{i}") for i in pick}
+                qty = {i: st.number_input(f"How many · {item_by[i]['name']}", 1.0, 100000.0, 10.0, key=f"poq_{i}") for i in pick}
                 note = st.text_input("Note")
-                if st.form_submit_button("Create draft PO", type="primary"):
-                    act("POST", "/pos", {"supplier_id": sid, "lines": qty, "note": note}, "Draft PO created")
+                if st.form_submit_button("Make draft order", type="primary"):
+                    act("POST", "/pos", {"supplier_id": sid, "lines": qty, "note": note}, "Draft order made")
     for p in pos:
         tone = {"draft": "unknown", "approved": "watch", "sent": "watch", "partial": "watch", "received": "low", "cancelled": "high"}[
             p["status"]
@@ -274,7 +278,8 @@ with tabs[2]:
         total = tot.get("total", sum(l["qty"] * l["unit_cost"] for l in p["lines"]))
         with st.container(key=f"card_po_{p['id']}"):
             ui.html(
-                f'<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><b>{theme.esc(p["id"])}</b>{theme.band_chip(tone, p["status"])}'
+                f'<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><b>{theme.esc(p["id"])}</b>'
+                f"{theme.band_chip(tone, {'partial': 'part delivered', 'received': 'delivered'}.get(p['status'], p['status']))}"
                 f'<span class="ss-tag">{theme.esc(sup_by.get(p["supplier_id"], {}).get("name", "?"))}</span><span class="ss-tag">{ui.inr(total)} incl. GST</span>'
                 f'<span class="ss-tag">expected {theme.esc(p.get("expected_at") or "—")}</span>'
                 f'<span style="color:#6b6a65;font-size:.78rem">{theme.esc(p.get("note") or "")}</span></div>'
@@ -285,9 +290,9 @@ with tabs[2]:
                         {
                             "Item": item_by.get(l["item_id"], {}).get("name", l["item_id"]),
                             "Ordered": l["qty"],
-                            "Received": l["qty_received"],
-                            "Unit ₹": l["unit_cost"],
-                            "Line ₹": l["qty"] * l["unit_cost"],
+                            "Delivered": l["qty_received"],
+                            "Price each ₹": l["unit_cost"],
+                            "Total ₹": l["qty"] * l["unit_cost"],
                         }
                         for l in p["lines"]
                     ]
@@ -301,13 +306,13 @@ with tabs[2]:
                 )
                 g1, g2 = st.columns([3, 1])
                 g1.caption(
-                    f"Taxable {ui.inr(tot['taxable'])} · {split} · total {ui.inr(tot['total'])} "
-                    "(rates from the item catalog; confirm with your accountant)"
+                    f"Before tax {ui.inr(tot['taxable'])} · {split} · total {ui.inr(tot['total'])} "
+                    "(check the tax rates with your accountant)"
                 )
                 try:
                     doc = platform.inv("GET", f"/pos/{p['id']}/document", raw=True)
                     g2.download_button(
-                        "PO document", doc, f"{p['id']}.html", "text/html", key=f"doc_{p['id']}", icon=":material/description:"
+                        "Order sheet", doc, f"{p['id']}.html", "text/html", key=f"doc_{p['id']}", icon=":material/description:"
                     )
                 except platform.PlatformError:
                     pass
@@ -319,19 +324,19 @@ with tabs[2]:
                     act("POST", f"/pos/{p['id']}/status", {"status": "sent"})
                 if p["status"] in ("approved", "sent", "partial"):
                     loc = b2.selectbox(
-                        "Receive into",
+                        "Put into",
                         [l["id"] for l in locs],
                         format_func=lambda i: loc_by[i]["name"],
                         key=f"rl_{p['id']}",
                         label_visibility="collapsed",
                     )
-                    if b3.button("Receive all (GRN)", key=f"rc_{p['id']}", width="stretch"):
+                    if b3.button("Delivery received (all)", key=f"rc_{p['id']}", width="stretch"):
                         act(
                             "POST",
                             f"/pos/{p['id']}/receive",
                             {"received": {l["item_id"]: l["qty"] for l in p["lines"]}, "location_id": loc},
                         )
-                    with st.popover("Partial receipt"):
+                    with st.popover("Part delivered"):
                         got = {
                             l["item_id"]: st.number_input(
                                 item_by.get(l["item_id"], {}).get("name", l["item_id"]),
@@ -343,7 +348,7 @@ with tabs[2]:
                             for l in p["lines"]
                             if l["qty"] > l["qty_received"]
                         }
-                        if st.button("Post GRN", key=f"grn_{p['id']}"):
+                        if st.button("Save delivery", key=f"grn_{p['id']}"):
                             act("POST", f"/pos/{p['id']}/receive", {"received": got, "location_id": loc})
                 if p["status"] in ("draft", "approved", "sent") and b4.button("Cancel", key=f"cx_{p['id']}", width="stretch"):
                     act("POST", f"/pos/{p['id']}/status", {"status": "cancelled"})
@@ -357,7 +362,7 @@ with tabs[3]:
                 "Category": i["category"],
                 **{l["name"]: round(stk.get((i["id"], l["id"]), 0), 1) for l in locs},
                 "Total": round(sum(stk.get((i["id"], l["id"]), 0) for l in locs), 1),
-                "Reorder pt": i["reorder_point"],
+                "Order when below": i["reorder_point"],
             }
             for i in items
         ]
@@ -366,37 +371,37 @@ with tabs[3]:
 
         def low_style(row):
             return [
-                "background-color:#fdeceb;color:#a32020;font-weight:600" if c == "Total" and row["Total"] <= row["Reorder pt"] else ""
+                "background-color:#fdeceb;color:#a32020;font-weight:600" if c == "Total" and row["Total"] <= row["Order when below"] else ""
                 for c in row.index
             ]
 
         st.dataframe(grid.style.apply(low_style, axis=1), hide_index=True, width="stretch", height=420)
     if CAN_MANAGE and items and locs:
         c1, c2, c3 = st.columns(3)
-        with c1.popover("Transfer between locations", width="stretch"):
+        with c1.popover("Move between places", width="stretch"):
             it = st.selectbox("Item", [i["id"] for i in items], format_func=lambda i: item_by[i]["name"], key="tr_it")
             fr = st.selectbox("From", [l["id"] for l in locs], format_func=lambda i: loc_by[i]["name"], key="tr_fr")
             to = st.selectbox(
                 "To", [l["id"] for l in locs], format_func=lambda i: loc_by[i]["name"], key="tr_to", index=min(1, len(locs) - 1)
             )
-            q = st.number_input("Qty", 1.0, 100000.0, 10.0, key="tr_q")
-            if st.button("Transfer", key="tr_go", type="primary"):
+            q = st.number_input("How many", 1.0, 100000.0, 10.0, key="tr_q")
+            if st.button("Move", key="tr_go", type="primary"):
                 act("POST", "/transfer", {"item_id": it, "from_location": fr, "to_location": to, "qty": q})
-        with c2.popover("Record wastage / damage", width="stretch"):
+        with c2.popover("Note wasted / damaged", width="stretch"):
             it = st.selectbox("Item", [i["id"] for i in items], format_func=lambda i: item_by[i]["name"], key="ws_it")
-            lo = st.selectbox("Location", [l["id"] for l in locs], format_func=lambda i: loc_by[i]["name"], key="ws_lo")
-            q = st.number_input("Qty", 1.0, 100000.0, 1.0, key="ws_q")
+            lo = st.selectbox("Place", [l["id"] for l in locs], format_func=lambda i: loc_by[i]["name"], key="ws_lo")
+            q = st.number_input("How many", 1.0, 100000.0, 1.0, key="ws_q")
             why = st.text_input("Reason", key="ws_r", placeholder="torn, expired, damaged in transit…")
-            if st.button("Record", key="ws_go", type="primary"):
+            if st.button("Save", key="ws_go", type="primary"):
                 act("POST", "/waste", {"item_id": it, "location_id": lo, "qty": q, "reason": why})
-        with c3.popover("Receive without PO", width="stretch"):
+        with c3.popover("Delivery received (no order)", width="stretch"):
             it = st.selectbox("Item", [i["id"] for i in items], format_func=lambda i: item_by[i]["name"], key="rv_it")
             lo = st.selectbox("Into", [l["id"] for l in locs], format_func=lambda i: loc_by[i]["name"], key="rv_lo")
-            q = st.number_input("Qty", 1.0, 100000.0, 10.0, key="rv_q")
-            ref = st.text_input("Invoice / delivery ref", key="rv_ref")
-            if st.button("Receive", key="rv_go", type="primary"):
+            q = st.number_input("How many", 1.0, 100000.0, 10.0, key="rv_q")
+            ref = st.text_input("Bill / delivery number", key="rv_ref")
+            if st.button("Save delivery", key="rv_go", type="primary"):
                 act("POST", "/receive", {"item_id": it, "location_id": lo, "qty": q, "ref": ref})
-    ui.html(theme.section("Ledger", "Every movement"))
+    ui.html(theme.section("History", "Every movement"))
     mv = get("/moves", limit=400)
     if mv:
         st.dataframe(
@@ -405,8 +410,8 @@ with tabs[3]:
                     {
                         "When": m["at"][:16].replace("T", " "),
                         "Item": item_by.get(m["item_id"], {}).get("name", m["item_id"]),
-                        "Location": loc_by.get(m["location_id"], {}).get("name", ""),
-                        "Qty": m["qty"],
+                        "Place": loc_by.get(m["location_id"], {}).get("name", ""),
+                        "How many": m["qty"],
                         "Type": MOVE_KINDS.get(m["kind"], m["kind"]),
                         "Dept": theme.dept_label(m["department"]) if m["department"] else "",
                         "Room": m["room"] or "",
@@ -423,7 +428,7 @@ with tabs[3]:
         )
     errs = get("/analytics", days=1)["ledger_errors"]
     st.caption(
-        "Ledger check: stock equals the sum of movements for every item and location." if not errs else f"Ledger mismatch: {errs[:3]}"
+        "Check: the stock matches the history for every item and place." if not errs else f"Stock does not match the history: {errs[:3]}"
     )
 
 # ------------------------------------------------------------------ stock count
@@ -432,10 +437,10 @@ with tabs[4]:
     if not oc:
         if CAN_MANAGE and locs:
             c1, c2 = st.columns([2, 1])
-            lo = c1.selectbox("Location to count", [l["id"] for l in locs], format_func=lambda i: loc_by[i]["name"])
-            if c2.button("Start count", type="primary", width="stretch"):
+            lo = c1.selectbox("Place to count", [l["id"] for l in locs], format_func=lambda i: loc_by[i]["name"])
+            if c2.button("Start counting", type="primary", width="stretch"):
                 act("POST", "/counts", {"location_id": lo})
-        ui.empty("No count in progress. A count freezes the system quantity now; enter what is physically on the shelf, then post.")
+        ui.empty("No count going on. Start one, type what is really on the shelf, then save.")
     for cnt in oc:
         ui.html(
             f"<b>Counting {theme.esc(loc_by.get(cnt['location_id'], {}).get('name', ''))}</b> · started {cnt['created_at'][:16].replace('T', ' ')}"
@@ -445,7 +450,7 @@ with tabs[4]:
                 {
                     "item_id": l["item_id"],
                     "Item": item_by.get(l["item_id"], {}).get("name", ""),
-                    "System": l["system_qty"],
+                    "In the app": l["system_qty"],
                     "Counted": l["system_qty"],
                 }
                 for l in cnt["lines"]
@@ -455,19 +460,19 @@ with tabs[4]:
             df,
             hide_index=True,
             width="stretch",
-            disabled=["item_id", "Item", "System"],
+            disabled=["item_id", "Item", "In the app"],
             column_config={"item_id": None},
             key=f"ed_{cnt['id']}",
         )
-        ed["Variance"] = ed["Counted"] - ed["System"]
-        val = sum(r["Variance"] * item_by.get(r["item_id"], {}).get("unit_cost", 0) for _, r in ed.iterrows())
-        st.caption(f"Variance value: {ui.inr(val)} across {int((ed['Variance'] != 0).sum())} item(s)")
-        if CAN_MANAGE and st.button("Post count adjustments", type="primary", key=f"post_{cnt['id']}"):
+        ed["Difference"] = ed["Counted"] - ed["In the app"]
+        val = sum(r["Difference"] * item_by.get(r["item_id"], {}).get("unit_cost", 0) for _, r in ed.iterrows())
+        st.caption(f"Difference in value: {ui.inr(val)} across {int((ed['Difference'] != 0).sum())} item(s)")
+        if CAN_MANAGE and st.button("Save the count", type="primary", key=f"post_{cnt['id']}"):
             act(
                 "POST",
                 f"/counts/{cnt['id']}/post",
                 {"counted": {r["item_id"]: float(r["Counted"]) for _, r in ed.iterrows()}},
-                "Count posted",
+                "Count saved",
             )
 
 # ------------------------------------------------------------------ catalog
@@ -476,15 +481,15 @@ with tabs[5]:
         pd.DataFrame(
             [
                 {
-                    "SKU": i["sku"],
+                    "Code": i["sku"],
                     "Item": i["name"],
                     "Category": i["category"],
                     "Unit": i["unit"],
-                    "Unit ₹": i["unit_cost"],
-                    "Par": i["par"],
-                    "Reorder pt": i["reorder_point"],
-                    "Lead days": i["lead_days"],
-                    "Use / occupied room": i["per_occ_room"],
+                    "Price each ₹": i["unit_cost"],
+                    "Normal level": i["par"],
+                    "Order when below": i["reorder_point"],
+                    "Delivery days": i["lead_days"],
+                    "Used per guest room per night": i["per_occ_room"],
                     "Supplier": sup_by.get(i["supplier_id"], {}).get("name", ""),
                 }
                 for i in items
@@ -498,13 +503,13 @@ with tabs[5]:
         with c1.popover("Add item", width="stretch"):
             with st.form("newitem", clear_on_submit=True):
                 name = st.text_input("Name")
-                sku = st.text_input("SKU")
+                sku = st.text_input("Code")
                 cat = st.selectbox("Category", CATEGORIES)
                 unit = st.text_input("Unit", "pc")
-                cost = st.number_input("Unit cost ₹", 0.0, 1e6, 10.0)
-                par = st.number_input("Par level", 0.0, 1e6, 50.0)
-                rop = st.number_input("Reorder point", 0.0, 1e6, 20.0)
-                poc = st.number_input("Usage per occupied room-night (0 if not room-driven)", 0.0, 50.0, 0.0, step=0.01)
+                cost = st.number_input("Price each ₹", 0.0, 1e6, 10.0)
+                par = st.number_input("Normal level", 0.0, 1e6, 50.0)
+                rop = st.number_input("Order when below", 0.0, 1e6, 20.0)
+                poc = st.number_input("Used per guest room per night (0 if it does not depend on guests)", 0.0, 50.0, 0.0, step=0.01)
                 g1, g2 = st.columns(2)
                 hsn = g1.text_input("HSN code", placeholder="6302")
                 gst = g2.selectbox("GST rate %", [0, 5, 12, 18, 28, 0.25, 3, 40], index=3, help="Confirm the rate with your accountant.")
@@ -528,13 +533,13 @@ with tabs[5]:
                         },
                         "Item added",
                     )
-        with c2.popover("Add location", width="stretch"):
-            ln = st.text_input("Location name", key="nl_name")
-            if st.button("Add location", key="nl_go") and ln:
+        with c2.popover("Add place", width="stretch"):
+            ln = st.text_input("Place name (e.g. main store)", key="nl_name")
+            if st.button("Add place", key="nl_go") and ln:
                 act("POST", "/locations", {"name": ln})
         with c3.popover("Add supplier", width="stretch"):
             sn = st.text_input("Supplier name", key="ns_name")
-            sl = st.number_input("Lead time (days)", 1, 60, 3, key="ns_lead")
+            sl = st.number_input("Days to deliver", 1, 60, 3, key="ns_lead")
             gstin = st.text_input("GSTIN (optional)", key="ns_gstin", placeholder="05ABCDE1234F1Z5", max_chars=15)
             inter = st.toggle("Supplier is in another state (IGST)", key="ns_inter")
             if st.button("Add supplier", key="ns_go") and sn:

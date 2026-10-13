@@ -37,18 +37,18 @@ def _detail_text(detail: Any) -> str:
 def _friendly(status: int, detail: Any, endpoint: str, base: str) -> str:
     d = _detail_text(detail)
     if status == 404:
-        return f"Not found ({endpoint}). {d}".strip()
+        return f"Not found. {d}".strip()
     if status == 422:
-        return f"The backend rejected the request as invalid: {d}"
+        return f"Some of the input is not right: {d}"
     if status == 501:
-        return d or "This action is not available in the current mode."
+        return d or "This is not available right now."
     if status == 503:
-        return f"The backend could not complete this right now: {d}" if d else "Service temporarily unavailable."
+        return f"The server could not do this right now: {d}" if d else "The server is busy. Try again in a minute."
     if status == 403:
-        return "The request was blocked by the hosting provider (403). Check the input for unusual characters."
+        return "This was blocked. Check the text for unusual characters."
     if status >= 500:
-        return f"The backend hit an internal error on {endpoint} (HTTP {status}). {d}".strip()
-    return f"HTTP {status} from {base}{endpoint}. {d}".strip()
+        return f"Something went wrong on the server. Try again. {d}".strip()
+    return f"Something went wrong (code {status}). {d}".strip()
 
 
 def _http(
@@ -67,14 +67,14 @@ def _http(
         r = _session.request(method, url, params=params, json=json, data=data, files=files, timeout=timeout or s.timeout_s)
     except requests.exceptions.ConnectionError as e:
         raise ApiError(
-            f"Backend unreachable at {s.api_base_url}. Is it running? (Switch to MOCK mode on the Admin page to demo offline.)",
+            "The server is not answering. Try again in a minute, or press Refresh.",
             endpoint=path,
             detail=str(e),
         ) from None
     except requests.exceptions.Timeout:
         raise ApiError(
-            f"The backend did not answer within {timeout or s.timeout_s:.0f}s on {path}. A sleeping Render instance "
-            "can take up to a minute to wake; try Refresh.",
+            f"The server took too long (more than {timeout or s.timeout_s:.0f} seconds). It may be waking up. "
+            "Wait a minute, then press Refresh.",
             endpoint=path,
         ) from None
     if r.status_code >= 400:

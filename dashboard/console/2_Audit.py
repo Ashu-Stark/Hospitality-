@@ -3,18 +3,18 @@ import streamlit as st
 
 from lib import platform, ui
 
-ui.setup("console/2_Audit.py", "Audit log")
-ui.page_head("Audit log", "Every platform action, newest first.")
+ui.setup("console/2_Audit.py", "Activity log")
+ui.page_head("Activity log", "Everything done in HOI, newest first.")
 
-names = {t["id"]: t["name"] for t in (ui.safe(platform.tenants, what="load hotel groups") or [])}
+names = {t["id"]: t["name"] for t in (ui.safe(platform.tenants, what="load the hotels") or [])}
 c1, c2 = st.columns([2, 3])
-scope = c1.selectbox("Hotel group", ["All"] + list(names), format_func=lambda i: "All" if i == "All" else names[i])
-needle = c2.text_input("Filter action or user", placeholder="login.failed, platform., po.")
-rows = ui.safe(platform.platform_audit, None if scope == "All" else scope, what="load the audit log") or []
+scope = c1.selectbox("Hotel", ["All"] + list(names), format_func=lambda i: "All" if i == "All" else names[i])
+needle = c2.text_input("Search what was done or who did it", placeholder="login, open, order")
+rows = ui.safe(platform.platform_audit, None if scope == "All" else scope, what="load the activity log") or []
 if needle:
     rows = [r for r in rows if needle.lower() in (r["action"] + " " + (r["actor"] or "")).lower()]
 if not rows:
-    ui.empty("No audit entries match.")
+    ui.empty("Nothing matches.")
 else:
     df = pd.DataFrame(
         [
@@ -29,5 +29,5 @@ else:
         ]
     )
     st.dataframe(df, hide_index=True, width="stretch", height=520)
-    st.download_button("Export CSV", df.to_csv(index=False).encode(), "hoi_audit.csv", icon=":material/download:")
+    st.download_button("Download (Excel/CSV)", df.to_csv(index=False).encode(), "hoi_activity_log.csv", icon=":material/download:")
 ui.footer()

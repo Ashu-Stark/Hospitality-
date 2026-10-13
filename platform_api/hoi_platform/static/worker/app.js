@@ -15,7 +15,7 @@
   const roleImg = (d) => `<img class="javatar" src="${esc(window.HOI_AVATAR(d))}" alt="" width="28" height="28">`;
   const shiftName = (k) => (SHIFTS[S.lang] || SHIFTS.en)[k] || k;
   const REC = {
-    en: { on_time_job: "Finish a job on time", after_photo: "Add the after photo", inspection_pass: "Room passes inspection first time", guest_feedback_good: "Guest gives 4-5 stars after your request" },
+    en: { on_time_job: "Finish a job on time", after_photo: "Add the after photo", inspection_pass: "Room passes the check first time", guest_feedback_good: "Guest gives 4-5 stars after your request" },
     hi: { on_time_job: "काम समय पर पूरा करें", after_photo: "बाद की फ़ोटो लगाएँ", inspection_pass: "कमरा पहली बार में जाँच पास करे", guest_feedback_good: "आपके काम के बाद मेहमान 4-5 स्टार दे" },
   };
   const fill = (s, o) => s.replace(/\{(\w+)\}/g, (_, k) => esc(o[k] ?? ""));
@@ -83,7 +83,7 @@
 
   // ---------------------------------------------------------------- auth
   async function signIn(sess) {
-    if (sess.user.role !== "worker") { $("#loginErr").textContent = "This app is for employees. Managers use the HOI dashboard."; $("#loginErr").classList.remove("hidden"); return; }
+    if (sess.user.role !== "worker") { $("#loginErr").textContent = S.lang === "hi" ? "यह ऐप स्टाफ़ के लिए है। मैनेजर HOI डैशबोर्ड इस्तेमाल करें।" : "This app is for staff. Managers use the HOI dashboard."; $("#loginErr").classList.remove("hidden"); return; }
     S.access = sess.token; saveRefresh(sess.refresh_token); S.user = sess.user; S.tenant = sess.tenant;
     await boot();
   }

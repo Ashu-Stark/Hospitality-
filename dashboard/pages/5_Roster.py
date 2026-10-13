@@ -9,10 +9,8 @@ from lib import api_client as api
 from lib import auth, data, models, nav, theme, ui
 from lib.config import current_settings
 
-ui.setup("pages/5_Roster.py", "Roster")
-ui.page_head(
-    "Weekly roster", "Who works which shift this week. The solver keeps rest, leave, weekly offs and skills; you see any gaps first."
-)
+ui.setup("pages/5_Roster.py", "Shift plan")
+ui.page_head("Shift plan", "Who works which shift this week. The plan follows the rules (rest, leave, weekly off). Gaps are shown first.")
 
 
 def shortage_prefill(dept: str | None, day: str | None, hours: float = 8.0, source: str = "roster_shortage") -> dict:
@@ -23,7 +21,7 @@ def shortage_prefill(dept: str | None, day: str | None, hours: float = 8.0, sour
         "date_from": d,
         "date_to": d,
         "openings": max(1, round(hours / 8)),
-        "note": f"Roster short by about {hours:.0f} h on {d}.",
+        "note": f"Shift plan short by about {hours:.0f} hours on {d}.",
         "source": source,
     }
 
@@ -42,29 +40,29 @@ with st.container(key="card_controls"):
     c1, c4 = st.columns([3, 1], vertical_alignment="bottom")
     with c1:
         opts = data.week_options(week0) if week0 else []
-        wk = st.selectbox("Week starting (Monday)", opts, index=0, help="Defaults to the cached demo week.") if opts else None
+        wk = st.selectbox("Week (starts Monday)", opts, index=0) if opts else None
     with c4:
-        gen = st.button("Make roster", type="primary", icon=":material/auto_awesome:", width="stretch")
+        gen = st.button("Make shift plan", type="primary", icon=":material/auto_awesome:", width="stretch")
     with st.expander("Options"):
         protect = st.toggle(
-            "Give flagged staff a weekend off",
+            "Give a weekend off to people on the check-in list",
             value=False,
-            help="Passes the high-band permanent staff as protected_ids, so the solver gives them a weekend off.",
+            help="People in 'Check in this week' get a full weekend off if possible.",
         )
         infeasible = st.toggle(
-            "Practice: show a week that cannot be staffed",
+            "Practice: show a week without enough people",
             value=False,
             disabled=not s.use_mocks,
-            help="MOCK only: rehearse how the page reports a week that cannot be staffed under the hard rules.",
+            help="Practice data only: see what the page shows when there are not enough people.",
         )
 
 if gen:
     protected = []
     if protect:
-        sc = ui.safe(data.scores, ui.week(), what="load scores for protection") or []
+        sc = ui.safe(data.scores, ui.week(), what="load the check-in list") or []
         protected = [x.employee_id for x in sc if x.band == "high" and x.contract_type == "permanent"]
-    with st.spinner("Solving… the CP-SAT solver may use its full 10-second limit."):
-        raw = ui.safe(api.generate_roster, None if wk == week0 else wk, protected, True, True, infeasible, what="generate the roster")
+    with st.spinner("Making the shift plan… this can take up to 10 seconds."):
+        raw = ui.safe(api.generate_roster, None if wk == week0 else wk, protected, True, True, infeasible, what="make the shift plan")
     if raw:
         st.session_state["roster_raw"] = raw
         if raw.get("id"):
@@ -76,9 +74,9 @@ ro: models.Roster | None = models.parse_roster(raw) if raw else None
 if ro is None:
     rid = data.current_roster_id()
     if rid is not None:
-        ro = ui.safe(data.roster, rid, what=f"load roster {rid}")
+        ro = ui.safe(data.roster, rid, what="load the shift plan")
 if ro is None:
-    ui.empty("No roster yet. Press Make roster.")
+    ui.empty("No shift plan yet. Press Make shift plan.")
     ui.footer()
     st.stop()
 
@@ -94,12 +92,13 @@ if not ro.feasible:
             else f"<li>{theme.esc(c)}</li>"
             for c in ro.causes
         )
-        or "<li>No cause was reported.</li>"
+        or "<li>No reason was given.</li>"
     )
     ui.html(
         theme.banner(
-            f"<b>This week cannot be staffed under the hard rules (status: {theme.esc(ro.status)}).</b> "
-            f"No roster was published, because a partial one would break a rule. Short shifts:<ul style='margin:6px 0 0'>{items}</ul>",
+            "<b>Not enough people for this week.</b> "
+            "No shift plan was made, because it would break a rule (rest, leave or weekly off). Shifts short of people:"
+            f"<ul style='margin:6px 0 0'>{items}</ul>",
             "red",
             "alert",
         )
@@ -117,13 +116,13 @@ short_n = int(cost.get("understaffed_shifts", 0) or 0)
 ui.big_numbers(
     [
         (
-            "Shifts covered",
+            "Shifts filled",
             ui.pct(ro.coverage_ratio, 0),
-            "of the hours the forecast needs",
+            "of the hours we need for how full we'll be",
             "ok" if (ro.coverage_ratio or 0) >= 0.97 else "warn",
         ),
         (
-            "Short shifts",
+            "Shifts short of people",
             short_n,
             f"{cost.get('understaffed_hours', 0):,.0f} hours without enough people" if short_n else "Every shift has enough people",
             "bad" if short_n else "ok",
@@ -145,20 +144,18 @@ if short_n:
         ui.html(
             theme.banner(
                 f"<b>Short: {theme.esc(theme.dept_label(wd))}</b>, {theme.esc(wday or '')} {theme.esc(wsh)} shift, about {wh:.0f} h. "
-                "You can ask local staffing partners for help.",
+                "You can ask local staffing partners for extra people.",
                 "amber",
                 "alert",
             )
         )
         request_staff_button(shortage_prefill(wd, wday, wh), "req_staff_short")
 if ro.protected_ids:
-    st.caption("Weekend off protected for: " + ", ".join(ui.short_name(e) for e in ro.protected_ids))
-with st.expander("Solver details"):
-    st.caption(f"{ro.method} · {ro.status} · roster #{ro.id} · solved in {(ro.solve_seconds or 0):.1f} s")
+    st.caption("Weekend off kept free for: " + ", ".join(ui.short_name(e) for e in ro.protected_ids))
 
 # ------------------------------------------------------------------ grid
 ui.takeaway(
-    "Each cell = people assigned. Red or amber cells are short of hours." if short_n else "Every department is fully covered this week."
+    "Each box = number of people on shift. Red or yellow boxes need more people." if short_n else "Every shift has enough people this week."
 )
 shift = st.segmented_control("Shift", ["All shifts"] + models.SHIFT_ORDER, default="All shifts")
 dates = ro.dates
@@ -185,7 +182,11 @@ def style_cells(_):
 st.dataframe(grid.style.apply(style_cells, axis=None), width="stretch")
 ui.html(
     " ".join(
-        [theme.band_chip("low", "fully covered"), theme.band_chip("watch", "< 1 shift short"), theme.band_chip("high", "≥ 1 shift short")]
+        [
+            theme.band_chip("low", "enough people"),
+            theme.band_chip("watch", "a few hours short"),
+            theme.band_chip("high", "1 shift or more short"),
+        ]
     )
 )
 
@@ -200,7 +201,7 @@ with st.expander("Look inside one shift"):
     ids = people.get((cd, cday, csh), [])
     hs = short.get((cd, dates.index(cday), csh), 0)
     ui.html(
-        f'<div style="margin-top:6px"><b>{len(ids)} assigned</b>'
+        f'<div style="margin-top:6px"><b>{len(ids)} people</b>'
         + (f" · {theme.band_chip('high', f'{hs:.1f} h short')}" if hs > 0.5 else "")
         + '</div><div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">'
         + "".join(f'<span class="ss-tag">{ui.avatar_img(cd, 20)}{theme.esc(ui.short_name(e))}</span>' for e in ids)
@@ -208,34 +209,34 @@ with st.expander("Look inside one shift"):
     )
 
 # ------------------------------------------------------------------ fairness + soft goals (secondary)
-with st.expander("Fairness and trade-offs"):
+with st.expander("Is it fair?"):
     f1, f2 = st.columns([1.2, 1])
     with f1:
-        ui.html(theme.section("Fairness distribution", "Per person", "Weekend & night duty spread vs department average (1 = fairest)."))
+        ui.html(theme.section("Fair share of weekends and nights", "Per person", "1 = fair share compared with the department."))
         if fair:
             fig = go.Figure(
                 go.Histogram(
                     x=fair,
                     nbinsx=12,
                     marker=dict(color="#2a78d6", line=dict(color="#fff", width=2), cornerradius=4),
-                    hovertemplate="score %{x}<br>%{y} people<extra></extra>",
+                    hovertemplate="fair share %{x}<br>%{y} people<extra></extra>",
                 )
             )
             st.plotly_chart(theme.style_fig(fig, 260, legend=False), width="stretch", config={"displayModeBar": False})
         else:
-            ui.empty("No fairness scores returned.")
+            ui.empty("Nothing to show.")
     with f2:
-        ui.html(theme.section("Soft goals not fully met", "Trade-offs"))
+        ui.html(theme.section("Wishes not fully met", "Trade-offs"))
         labels = {
-            "understaffed": "shifts understaffed",
+            "understaffed": "shifts short of people",
             "overtime": "people with overtime",
-            "weekend_spread": "departments with uneven weekend duty",
-            "night_spread": "departments with uneven night duty",
-            "protected_weekend_off": "protected people who could not get a full weekend off",
+            "weekend_spread": "departments where weekends are not shared fairly",
+            "night_spread": "departments where nights are not shared fairly",
+            "protected_weekend_off": "people who could not get the full weekend off we asked for",
         }
         counts = Counter(g.get("goal") for g in ro.violated_soft_goals)
         if not counts:
-            ui.html(theme.banner("All soft goals met.", "blue", "check"))
+            ui.html(theme.banner("All wishes met.", "blue", "check"))
         for goal, n in counts.most_common():
             ui.html(
                 f'<div class="ss-card" style="padding:12px 16px;margin-bottom:8px;display:flex;justify-content:space-between">'
@@ -243,42 +244,42 @@ with st.expander("Fairness and trade-offs"):
             )
         over = [g for g in ro.violated_soft_goals if g.get("goal") == "protected_weekend_off"]
         if over:
-            st.caption("Could not protect: " + ", ".join(ui.short_name(g.get("employee_id")) for g in over))
+            st.caption("Could not give a weekend off to: " + ", ".join(ui.short_name(g.get("employee_id")) for g in over))
         if ro.hard_violations:
-            ui.html(theme.banner(f"{len(ro.hard_violations)} hard-rule violations reported.", "red", "alert"))
+            ui.html(theme.banner(f"{len(ro.hard_violations)} rule(s) broken (rest, leave or weekly off).", "red", "alert"))
 
-# ------------------------------------------------------------------ baseline vs protected (secondary)
-with st.expander("Compare two rosters"):
-    ui.html(theme.section("Baseline vs protected", "Compare", "Rosters from the closed loop, or any two roster IDs."))
+# ------------------------------------------------------------------ before vs with weekends off (secondary)
+with st.expander("Compare two shift plans"):
+    ui.html(theme.section("Before and with weekends off", "Compare", "Plans from the Support plan page, or any two plan numbers."))
     loop = st.session_state.get("loop_raw") or {}
     c1, c2, c3 = st.columns([1, 1, 1])
     with c1:
-        base_id = st.number_input("Baseline roster ID", min_value=0, step=1, value=int(loop.get("baseline_roster_id") or 0))
+        base_id = st.number_input("First plan number", min_value=0, step=1, value=int(loop.get("baseline_roster_id") or 0))
     with c2:
-        prot_id = st.number_input("Protected roster ID", min_value=0, step=1, value=int(loop.get("protected_roster_id") or 0))
+        prot_id = st.number_input("Plan with weekends off (number)", min_value=0, step=1, value=int(loop.get("protected_roster_id") or 0))
     with c3:
         ui.html('<div style="height:26px"></div>')
         compare = st.button("Compare", icon=":material/compare_arrows:", disabled=not (base_id and prot_id))
     if not loop:
-        st.caption("Tip: run the Closed loop page once and the two roster IDs are filled in for you.")
+        st.caption("Tip: use the Support plan page once and both numbers are filled in for you.")
     if compare or (loop and base_id and prot_id):
-        rb = ui.safe(data.roster, base_id, what=f"load roster {base_id}")
-        rp = ui.safe(data.roster, prot_id, what=f"load roster {prot_id}")
+        rb = ui.safe(data.roster, base_id, what="load the first plan")
+        rp = ui.safe(data.roster, prot_id, what="load the second plan")
         if rb and rp:
             rows = []
-            for label, r in (("Baseline", rb), ("Protected", rp)):
+            for label, r in (("Before", rb), ("With weekends off", rp)):
                 rows.append(
                     {
-                        "Roster": f"{label} #{r.id}",
-                        "Coverage": r.coverage_ratio,
+                        "Shift plan": f"{label} #{r.id}",
+                        "Shifts filled": r.coverage_ratio,
                         "Total cost ₹": r.cost.get("total_cost_inr"),
-                        "Overtime h": r.cost.get("overtime_hours"),
-                        "Understaffed shifts": r.cost.get("understaffed_shifts"),
-                        "Protected": len(r.protected_ids),
+                        "Overtime hours": r.cost.get("overtime_hours"),
+                        "Shifts short of people": r.cost.get("understaffed_shifts"),
+                        "Weekends off given": len(r.protected_ids),
                     }
                 )
             st.dataframe(
-                pd.DataFrame(rows).style.format({"Coverage": "{:.1%}", "Total cost ₹": "{:,.0f}"}), hide_index=True, width="stretch"
+                pd.DataFrame(rows).style.format({"Shifts filled": "{:.1%}", "Total cost ₹": "{:,.0f}"}), hide_index=True, width="stretch"
             )
             ab = {(a["employee_id"], a["date"]): a["shift"] for a in rb.assignments}
             ap = {(a["employee_id"], a["date"]): a["shift"] for a in rp.assignments}
@@ -290,14 +291,14 @@ with st.expander("Compare two rosters"):
                             "Role": ui.avatar_uri(rp.dept_of.get(k[0]) or rb.dept_of.get(k[0])),
                             "Employee": ui.short_name(k[0]),
                             "Date": k[1],
-                            "Baseline": ab.get(k, "off"),
-                            "Protected": ap.get(k, "off"),
-                            "Protected person": "yes" if k[0] in rp.protected_ids else "",
+                            "Before": ab.get(k, "off"),
+                            "With weekends off": ap.get(k, "off"),
+                            "Weekend off asked": "yes" if k[0] in rp.protected_ids else "",
                         }
                     )
             st.markdown(
-                f"**{len(changes)} shift changes** between the two rosters"
-                + (f", {sum(1 for c in changes if c['Protected person'])} of them for protected people." if changes else ".")
+                f"**{len(changes)} shift changes** between the two plans"
+                + (f", {sum(1 for c in changes if c['Weekend off asked'])} of them for people given a weekend off." if changes else ".")
             )
             if changes:
                 st.dataframe(

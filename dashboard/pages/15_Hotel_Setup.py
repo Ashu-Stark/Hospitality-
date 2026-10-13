@@ -14,9 +14,9 @@ from lib import theme, ui
 from lib.api_client import ApiError
 
 PAGE = "pages/15_Hotel_Setup.py"
-ui.setup(PAGE, "Hotel setup (voice)")
+ui.setup(PAGE, "Setup by voice")
 ui.page_head(
-    "Setup by voice", "Answer a few questions by voice or typing (Hindi, English or Hinglish); nothing is saved until you confirm."
+    "Setup by voice", "Answer a few questions by voice or typing (Hindi, English or Hinglish). Nothing is saved until you confirm."
 )
 
 LANGS = {"English": "en", "हिन्दी (Hindi)": "hi"}
@@ -62,7 +62,7 @@ if not state:
     st.stop()
 
 sid = state["session_id"]
-ui.html(theme.banner(f"<b>{theme.esc(state['banner'])}</b> Draft for property id {theme.esc(state['property_id'])}.", "amber", "info"))
+ui.html(theme.banner(f"<b>{theme.esc(state['banner'])}</b> Draft for hotel {theme.esc(state['property_id'])}.", "amber", "info"))
 
 # ------------------------------------------------------------------ current question + answer
 q = state.get("question")
@@ -85,16 +85,15 @@ if q:
     with st.container(key="card_onb_question"):
         ui.html(
             f'<div class="ss-card"><div style="color:#6b6a65;font-size:.82rem">Question {q["number"]} of at most {q["max_questions"]}'
-            f' · wording is a draft for review</div><div style="font-size:1.3rem;margin:8px 0">{theme.esc(q["text"])}</div>'
+            f'</div><div style="font-size:1.3rem;margin:8px 0">{theme.esc(q["text"])}</div>'
             f'<div style="color:#6b6a65">Example: {theme.esc(q["example"])}</div></div>'
         )
-        tab_text, tab_voice, tab_demo = st.tabs(["Type the answer", "Speak the answer", "Cached Hindi demo"])
+        tab_text, tab_voice, tab_demo = st.tabs(["Type the answer", "Speak the answer", "Hindi example"])
         with tab_demo:
             st.caption(
-                "Plays one SYNTHETIC Hindi / Hinglish conversation written by us (not recorded speech), answer by answer, "
-                "so the voice flow can be shown with no microphone and no API keys."
+                "Plays one example Hindi / Hinglish conversation we wrote, answer by answer, so you can try it without a microphone."
             )
-            if st.button("Use the cached Hindi demo answer", icon=":material/record_voice_over:"):
+            if st.button("Use the Hindi example answer", icon=":material/record_voice_over:"):
                 fx = call(api.onboarding_demo_transcript, what="load the demo transcript")
                 demo_text = (fx or {}).get("answers", {}).get(q["field"])
                 if demo_text:
@@ -113,12 +112,12 @@ if q:
                 remember(call(api.onboarding_answer, sid, text="skip", what="skip the question"))
                 st.rerun()
         with tab_voice:
-            st.caption(f"Streamlit {st.__version__}: record with the microphone or upload a short clip.")
+            st.caption("Record with the microphone or upload a short clip.")
             rec = st.audio_input("Record your answer", key=f"onb_rec_{q['number']}")
             up = st.file_uploader("Or upload audio", type=["wav", "mp3", "m4a", "webm", "ogg"], key=f"onb_up_{q['number']}")
             consent = st.checkbox(
                 "This recording is my own voice. It contains no staff names or salaries. "
-                "I understand that free AI services give no privacy guarantee.",
+                "I understand that free AI services may not keep it private.",
                 key=f"onb_consent_{q['number']}",
             )
             clip = rec or up
@@ -127,20 +126,16 @@ if q:
                 remember(call(api.onboarding_answer, sid, audio=audio, consent=consent, what="send the recording"))
                 st.rerun()
             st.caption(
-                "Voice needs the server to allow cloud speech-to-text for owner audio (off by default) and your consent. "
-                "If it is off, you will be asked to type instead. Audio is not stored."
+                "Voice works only if it is switched on for your hotel and you tick the box. If it is off, please type. Audio is not stored."
             )
 else:
     ui.html(theme.banner("<b>All questions answered.</b> Check the draft, tick the legal checks and press Confirm.", "blue", "check"))
 
 if state.get("transcript"):
-    st.caption(
-        f"Last answer ({state.get('input')}, extractor: {state.get('extractor') or 'none'}): “{state['transcript']}”"
-        + (f" · fallback: {state['fallback_reason']}" if state.get("fallback_reason") else "")
-    )
+    st.caption(f"Last answer: “{state['transcript']}”")
 
 # ------------------------------------------------------------------ draft table
-ui.html(theme.section("Draft profile", "Summary", "Every field is editable. Source and confidence show where each value came from."))
+ui.html(theme.section("Your answers so far", "Summary", "You can change any value. 'How sure' shows how well we understood you."))
 fields = state["fields"]
 legal = state.get("legal_fields", [])
 rows = []
@@ -149,10 +144,10 @@ for name, fv in fields.items():
     rows.append(
         {
             "field": name,
-            "Field": ov.LABELS.get(name, name),
+            "Question": ov.LABELS.get(name, name),
             "Value": ov.format_value(name, fv["value"]),
-            "Source": ov.SOURCE_LABEL.get(fv["source"], fv["source"]) + (" (edited)" if fv.get("method") == "edit" else ""),
-            "Confidence": conf_label,
+            "From": ov.SOURCE_LABEL.get(fv["source"], fv["source"]) + (" (edited)" if fv.get("method") == "edit" else ""),
+            "How sure": conf_label,
             "Check": ("verify with a qualified person" if fv["needs_verification"] else "")
             + (f" · {fv['note']}" if fv.get("note") else ""),
         }
@@ -163,8 +158,8 @@ edited = st.data_editor(
     key=f"onb_editor_{sid}_{state.get('answers', 0)}",
     hide_index=True,
     width="stretch",
-    disabled=["field", "Field", "Source", "Confidence", "Check"],
-    column_config={"field": None, "Value": st.column_config.TextColumn("Value (edit me)")},
+    disabled=["field", "Question", "From", "How sure", "Check"],
+    column_config={"field": None, "Value": st.column_config.TextColumn("Value (you can change it)")},
 )
 found = ov.geo_found(fields.get("location"))
 if found:  # LocationIQ / OpenStreetMap geocoding of the location answer: a hint only, never blocks Confirm
@@ -178,9 +173,9 @@ if st.button("Save my edits", icon=":material/save:"):
             try:
                 value = ov.parse_value(old["field"], str(new["Value"]))
             except ValueError as e:
-                errors.append(f"{old['Field']}: {e}")
+                errors.append(f"{old['Question']}: {e}")
                 continue
-            out = call(api.onboarding_edit, sid, old["field"], value, what=f"save {old['Field']}") or out
+            out = call(api.onboarding_edit, sid, old["field"], value, what=f"save {old['Question']}") or out
     for e in errors:
         ui.html(theme.banner(theme.esc(e), "red", "alert"))
     if out:
@@ -194,7 +189,7 @@ for kind, tone in (("errors", "red"), ("warnings", "amber")):
 if state.get("needs_confirmation"):
     ui.html(
         theme.banner(
-            "<b>Please confirm these values</b> (low confidence): "
+            "<b>Please check these values</b> (we are not sure): "
             + theme.esc(", ".join(ov.LABELS.get(f, f) for f in state["needs_confirmation"]))
             + ". Edit them or type the same value again, then Save my edits.",
             "amber",
@@ -204,7 +199,7 @@ if state.get("needs_confirmation"):
 
 # ------------------------------------------------------------------ legal checks + confirm
 ui.html(
-    theme.section("Legal values", "Verify with a qualified person", "These depend on labour rules. They are never confirmed from voice.")
+    theme.section("Labour-law values", "Check with a qualified person", "These depend on labour rules. Voice alone never confirms them.")
 )
 acks = []
 for f in legal:
@@ -222,7 +217,7 @@ if blocked:
         for key, label in (
             ("missing_required", "missing"),
             ("needs_confirmation", "please confirm"),
-            ("unacknowledged_legal_fields", "legal checks not ticked"),
+            ("unacknowledged_legal_fields", "labour-law boxes not ticked"),
         )
         if blocked.get(key)
     ]
@@ -234,7 +229,7 @@ done = SS.get("onb_confirmed")
 if done and done.get("property_id") == state["property_id"]:
     ui.html(
         theme.banner(
-            f"<b>Saved as {theme.esc(done['property_id'])}</b>"
+            f"<b>Saved as hotel {theme.esc(done['property_id'])}</b>"
             + (" (already saved earlier: nothing duplicated)." if not done["created"] else "."),
             "blue",
             "check",

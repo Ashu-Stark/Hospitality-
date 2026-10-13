@@ -3,18 +3,18 @@ import streamlit as st
 
 from lib import charts, data, theme, ui
 
-ui.setup("pages/2_Risk_List.py", "Risk list")
+ui.setup("pages/2_Risk_List.py", "May leave soon?")
 ui.page_head(
-    "People to check in with",
-    "A ranking for supportive conversations this week. It is not a prediction that anyone will leave, and never grounds for action against them.",
+    "May leave soon? Check in",
+    "This is a list to check in with people, not a judgement.",
 )
 
-scores = ui.safe(data.scores, ui.week(), what="score employees")
+scores = ui.safe(data.scores, ui.week(), what="load the check-in list")
 if scores is None:
     ui.footer()
     st.stop()
 if not scores:
-    ui.empty("The backend returned no scores for this week.")
+    ui.empty("No one to show for this week yet.")
     ui.footer()
     st.stop()
 
@@ -25,9 +25,9 @@ depts = data.dept_map()
 n_by = {b: sum(1 for x in scores if x.band == b) for b in ("high", "watch", "low")}
 ui.big_numbers(
     [
-        ("Check in this week", n_by["high"], "Highest band: a friendly conversation first", "warn" if n_by["high"] else "ok"),
-        ("Keep an eye on", n_by["watch"], "Middle band", "info"),
-        ("Doing fine", n_by["low"], "Lowest band", "ok"),
+        ("Check in this week", n_by["high"], "Start with a friendly chat", "warn" if n_by["high"] else "ok"),
+        ("Keep an eye on", n_by["watch"], "Say hello, ask how things are", "info"),
+        ("Doing fine", n_by["low"], "Nothing to do", "ok"),
     ]
 )
 
@@ -40,7 +40,9 @@ with f4:
     q = st.text_input("Search ID / name", placeholder="E134, Sunita")
 with st.expander("More filters"):
     g1, g2 = st.columns(2)
-    sel_bands = g1.multiselect("Band", theme.BAND_ORDER, default=[], format_func=lambda b: theme.BAND[b]["label"], placeholder="All bands")
+    sel_bands = g1.multiselect(
+        "Group", theme.BAND_ORDER, default=[], format_func=lambda b: theme.BAND[b]["label"], placeholder="All groups"
+    )
     ctype = g2.segmented_control("Contract", ["All", "Permanent", "Seasonal"], default="All")
 
 names = data.hero_names()
@@ -63,20 +65,20 @@ for s in scores:
             "Employee": ui.display_name(s.employee_id),
             "Department": theme.dept_label(d),
             "Contract": s.contract_type,
-            "Band": theme.BAND[s.band]["label"],
-            "Rank": s.rank,
+            "Group": theme.BAND[s.band]["label"],
+            "Place": s.rank,
             "of": s.group_size,
-            "Tied": "tied" if s.rank_is_tied else "",
-            "Basis": theme.BASIS[s.band_basis][0].replace("basis: ", ""),
-            "Top driver": td.title if td else "—",
-            "Risk (90d)": s.risk,
+            "Same place": "yes" if s.rank_is_tied else "",
+            "Based on": theme.BASIS[s.band_basis][0],
+            "Main reason": td.title if td else "—",
+            "Chance (90 days)": s.risk,
             "_band": s.band,
         }
     )
 df = pd.DataFrame(rows)
-order = {"High": 0, "Watch": 1, "Low": 2, "n/a": 3}
+order = {theme.BAND[k]["label"]: i for i, k in enumerate(["high", "watch", "low", "unknown"])}
 if not df.empty:
-    df = df.sort_values(["Contract", "Band", "Rank"], key=lambda c: c.map(order) if c.name == "Band" else c).reset_index(drop=True)
+    df = df.sort_values(["Contract", "Group", "Place"], key=lambda c: c.map(order) if c.name == "Group" else c).reset_index(drop=True)
 
 ui.takeaway(f"{len(df)} people. Tap a row to see why, and what support may help.")
 if df.empty:
@@ -84,43 +86,43 @@ if df.empty:
 else:
 
     def band_style(v):
-        key = {"High": "high", "Watch": "watch", "Low": "low"}.get(v, "unknown")
+        key = next((k for k, b in theme.BAND.items() if b["label"] == v), "unknown")
         b = theme.BAND[key]
         return f"background-color:{b['bg']};color:{b['fg']};font-weight:600"
 
-    details = st.toggle("Details", key="risk_details", help="Show rank, ties, basis, contract and the raw score")
-    main = ["Role", "Employee", "Department", "Band", "Top driver"]
+    details = st.toggle("More columns", key="risk_details", help="Show place in the team, contract and the chance number")
+    main = ["Role", "Employee", "Department", "Group", "Main reason"]
     show = df.drop(columns=["employee_id", "_band"])
     if not details:
         show = show[main]
     ev = st.dataframe(
-        show.style.map(band_style, subset=["Band"]).format({"Risk (90d)": "{:.3f}"} if details else {}),
+        show.style.map(band_style, subset=["Group"]).format({"Chance (90 days)": "{:.0%}"} if details else {}),
         hide_index=True,
         width="stretch",
         on_select="rerun",
         selection_mode="single-row",
         height=min(560, 38 * len(df) + 40),
         column_config={
-            "Role": st.column_config.ImageColumn("Role", width="small", help="Department avatar (illustration, not a photo)"),
-            "Risk (90d)": st.column_config.ProgressColumn("Risk (90d)", min_value=0, max_value=1, format="%.3f"),
-            "Rank": st.column_config.NumberColumn(width="small"),
+            "Role": st.column_config.ImageColumn("Role", width="small", help="Department picture (a drawing, not a photo)"),
+            "Chance (90 days)": st.column_config.ProgressColumn("Chance (90 days)", min_value=0, max_value=1, format="percent"),
+            "Place": st.column_config.NumberColumn(width="small"),
             "of": st.column_config.NumberColumn(width="small"),
         },
     )
     e1, e2 = st.columns([1, 4])
     with e1:
-        export = df[["employee_id", "Department", "Contract", "Band", "Rank", "of", "Basis", "Top driver", "Risk (90d)"]]
+        export = df[["employee_id", "Department", "Contract", "Group", "Place", "of", "Based on", "Main reason", "Chance (90 days)"]]
         st.download_button(
-            "Export CSV",
+            "Download (Excel/CSV)",
             export.to_csv(index=False).encode(),
-            "hoi_risk_list.csv",
+            "hoi_check_in_list.csv",
             "text/csv",
             icon=":material/download:",
-            help="IDs only, no names. Filters applied.",
+            help="IDs only, no names. Uses your filters.",
         )
     with e2:
         if not depts:
-            st.caption("Department comes from the latest roster; generate one to fill it in.")
+            st.caption("Departments come from the shift plan. Make one to fill them in.")
 
     sel = ev.selection.rows if ev and ev.selection else []
     if sel:
@@ -133,24 +135,24 @@ else:
                     f'<div class="ss-person">{ui.avatar_img(depts.get(emp), 46)}'
                     f'<div><div style="font-weight:600;font-size:1.15rem">{theme.esc(ui.display_name(emp))}</div>'
                     f'<div style="display:flex;gap:6px;margin-top:4px">{theme.band_chip(s.band)}{theme.basis_tag(s.band_basis)}'
-                    f'{theme.contract_tag(s.contract_type)}<span class="ss-tag">rank {s.rank}/{s.group_size}</span></div></div></div>'
+                    f'{theme.contract_tag(s.contract_type)}<span class="ss-tag">place {s.rank} of {s.group_size}</span></div></div></div>'
                 )
                 if s.drivers:
                     st.plotly_chart(charts.driver_bars(s.drivers), width="stretch", config={"displayModeBar": False})
                 elif s.contract_type == "seasonal":
-                    ui.empty("Seasonal staff are banded by contract end date; there is no per-driver breakdown.")
+                    ui.empty("Seasonal staff are grouped by when their contract ends, so there is no list of reasons.")
                 else:
-                    ui.empty("No active risk drivers for this employee.")
+                    ui.empty("No reasons to show for this person.")
             with b:
-                st.markdown("**Support levels**", help=theme.SUPPORT_HELP)
+                st.markdown("**How clear is each reason?**", help=theme.SUPPORT_HELP)
                 ui.html(" ".join(theme.support_chip(k) for k in theme.SUPPORT))
                 for d in s.drivers:
                     st.markdown(f"- **{d.title}**: {d.reason}")
                 if s.actions:
-                    st.markdown("**Suggested actions**")
+                    st.markdown("**Suggested next step**")
                     for ac in s.actions:
                         st.markdown(f"- {ac.action} · _{ac.owner}_")
-                if st.button("Open employee detail", type="primary", icon=":material/person:"):
+                if st.button("Open this person", type="primary", icon=":material/person:"):
                     ui.go_to_employee(emp)
 
 ui.footer()

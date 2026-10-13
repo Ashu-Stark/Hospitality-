@@ -60,7 +60,7 @@ class Settings:
 
     @property
     def mode_label(self) -> str:
-        return "MOCK DATA" if self.use_mocks else "LIVE"
+        return "Practice data" if self.use_mocks else "Live data"
 
     def cache_key(self) -> tuple:
         return (self.api_base_url, self.use_mocks)

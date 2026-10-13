@@ -11,7 +11,7 @@ STATUS = {  # label, band tone (reuses the reserved status colours), what happen
     "occupied": ("Occupied", "unknown", "Checkout creates a cleaning job"),
     "dirty": ("Dirty", "high", "Cleaning job offered to housekeeping"),
     "cleaning": ("Cleaning", "watch", "In progress (before photo taken)"),
-    "inspection": ("Inspection", "watch", "Supervisor checks, then pass or re-clean"),
+    "inspection": ("Waiting for check", "watch", "Supervisor checks it: OK or clean again"),
     "out_of_order": ("Out of order", "high", "Maintenance job raised"),
 }
 
@@ -35,7 +35,7 @@ ui.big_numbers(
         (
             "To check",
             summary.get("inspection", 0) + summary.get("out_of_order", 0),
-            "Waiting for inspection or out of order",
+            "Waiting for a check, or out of order",
             "warn" if summary.get("inspection", 0) else "ok",
         ),
     ]
@@ -80,19 +80,19 @@ if waiting or busy:
     for r in waiting:
         with st.container(key=f"card_insp_{r['id']}"):
             a, b, c = st.columns([3, 1, 1])
-            a.markdown(f"**Room {r['number']}** · cleaned, waiting for inspection")
-            if b.button("Pass", key=f"pass_{r['id']}", type="primary", width="stretch"):
+            a.markdown(f"**Room {r['number']}** · cleaned, waiting for a check")
+            if b.button("OK", key=f"pass_{r['id']}", type="primary", width="stretch"):
                 if ui.safe(platform.room_action, r["id"], "inspect", {"passed": True}, what="pass inspection"):
                     st.rerun()
-            if c.button("Re-clean", key=f"fail_{r['id']}", width="stretch"):
+            if c.button("Clean again", key=f"fail_{r['id']}", width="stretch"):
                 if ui.safe(platform.room_action, r["id"], "inspect", {"passed": False, "note": ""}, what="send back"):
                     st.rerun()
     for r in busy:
         j = jobs.get(r.get("current_job_id") or "", {})
         who = j.get("assigned_to") or j.get("offer_to")
         state = {
-            "offered": f"pinging {who}",
-            "accepted": f"accepted by {who}",
+            "offered": f"sent to {who}",
+            "accepted": f"taken by {who}",
             "in_progress": f"{who} cleaning now",
             "unassigned": "no one on shift accepted: assign on Dispatch",
             "done": "done",
@@ -126,20 +126,20 @@ if visible:
                     st.rerun()
 
             if r["status"] == "occupied" and b[0].button("Checkout", type="primary", width="stretch"):
-                go("checkout", ok=f"Room {r['number']}: cleaning job dispatched")
+                go("checkout", ok=f"Room {r['number']}: cleaning job sent")
             if r["status"] == "ready" and b[0].button("Check in", type="primary", width="stretch"):
                 go("check-in")
             if r["status"] == "inspection":
-                if b[0].button("Pass inspection", type="primary", width="stretch"):
+                if b[0].button("Check OK", type="primary", width="stretch"):
                     go("inspect", {"passed": True}, f"Room {r['number']} is ready")
                 note = b[1].text_input(
-                    "Re-clean note", key=f"note_{r['id']}", label_visibility="collapsed", placeholder="What needs redoing?"
+                    "What to clean again", key=f"note_{r['id']}", label_visibility="collapsed", placeholder="What needs redoing?"
                 )
-                if b[2].button("Fail: re-clean", width="stretch"):
-                    go("inspect", {"passed": False, "note": note}, "Re-clean job dispatched")
+                if b[2].button("Not OK: clean again", width="stretch"):
+                    go("inspect", {"passed": False, "note": note}, "Clean-again job sent")
             if r["status"] == "out_of_order":
                 if b[0].button("Back in service", type="primary", width="stretch"):
-                    go("back-in-service", ok="Cleaning job dispatched before selling")
+                    go("back-in-service", ok="Cleaning job sent before the next guest")
             elif r["status"] in ("ready", "occupied", "dirty"):
                 with b[3].popover("Out of order", width="stretch"):
                     reason = st.text_input("Reason", key=f"ooo_{r['id']}", placeholder="Leaking pipe, broken AC…")
@@ -169,8 +169,7 @@ if qr_box is not None:
         st.markdown(f"**Guest link for room {rr['number']}**")
         st.code(f"{base}/guest/?t={rr['guest_token']}", language=None)
         st.caption(
-            "Each room has its own random link. Requests from it are rate-limited and go straight to dispatch "
-            "(towels → housekeeping, AC → maintenance, tea → F&B)."
+            "Each room has its own link. Requests go straight to the right team (towels → housekeeping, AC → maintenance, tea → F&B)."
         )
 elif not IS_OWNER:
     st.caption("The owner can print room QR codes from this page.")

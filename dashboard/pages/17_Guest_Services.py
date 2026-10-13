@@ -96,7 +96,7 @@ def tiles() -> None:
 
 
 tiles()
-t_live, t_out, t_late, t_fb = st.tabs(["Live requests", "Checkouts today", "Late checkout queue", "Feedback"])
+t_live, t_out, t_late, t_fb = st.tabs(["Open requests", "Checkouts today", "Late checkout asks", "Feedback"])
 
 
 # ------------------------------------------------------------------ live requests
@@ -119,7 +119,7 @@ def live() -> None:
         ui.html(theme.banner(theme.esc(e.message), "red", "alert"))
         return
     if reqs is None:
-        ui.empty("Your role cannot see individual requests. The owner and department heads see them here and on Dispatch.")
+        ui.empty("Your role cannot see individual requests. The owner and department heads see them here and on the Jobs page.")
         return
     reqs = [r for r in reqs if r.get("status") != "done" and (not HERE or str(r.get("room") or r.get("room_number")) in HERE)]
     if not reqs:

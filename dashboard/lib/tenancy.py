@@ -10,18 +10,18 @@ from .config import env_settings
 
 DEMO_ID = "org_demo"
 PLANS = {
-    "starter": {"label": "Starter", "properties": 1, "staff": 80, "modules": ["Forecast & roster", "Dispatch + photo proof", "Inventory"]},
+    "starter": {"label": "Starter", "properties": 1, "staff": 80, "modules": ["Shift plan", "Jobs + photo proof", "Stock"]},
     "growth": {
         "label": "Growth",
         "properties": 5,
         "staff": 400,
-        "modules": ["Everything in Starter", "Retention, what-if, closed loop", "Voice to task"],
+        "modules": ["Everything in Starter", "May leave soon? check-ins", "Voice notes into tasks"],
     },
     "chain": {
         "label": "Chain",
         "properties": None,
         "staff": None,
-        "modules": ["Everything in Growth", "Unlimited properties", "Own backend URL"],
+        "modules": ["Everything in Growth", "Any number of hotels", "Own server"],
     },
 }
 SIGNED_OUT = {

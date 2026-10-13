@@ -63,7 +63,7 @@ def card(s: dict) -> str:
 
 
 ui.html('<div class="ss-staffgrid">' + "".join(card(s) for s in show) + "</div>")
-st.caption("Points are thank-you points only: never used for discipline. Staff see only their own points in their app.")
+st.caption("Points are thank-you points only: never used to punish. Staff see only their own points in their app.")
 ui.html("""<style>
 .ss-staffgrid { display:grid; grid-template-columns:repeat(auto-fill,minmax(250px,1fr)); gap:12px; }
 .ss-staff { background:#fff; border-radius:20px; padding:16px; display:flex; gap:14px; align-items:center; border:2px solid transparent; }

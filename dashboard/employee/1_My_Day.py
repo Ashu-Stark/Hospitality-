@@ -15,7 +15,7 @@ if t:
 else:
     ui.html(
         '<div class="ss-hero dark" style="padding:26px 24px"><div class="eyebrow">Today</div><h1 style="font-size:2.2rem">Day off</h1>'
-        "<p>No shift on the roster today. Rest well.</p></div>"
+        "<p>No shift today. Rest well.</p></div>"
     )
 
 ui.html(theme.section("This week", "My shifts"))
@@ -35,7 +35,7 @@ if days:
     weekend_off = all(d not in shifts for d in days[5:7])
     st.caption(f"{len(shifts)} shifts · {sum(a['hours'] for a in shifts.values())} h this week" + (" · weekend off" if weekend_off else ""))
 else:
-    ui.empty("No roster published yet.")
+    ui.empty("Your manager has not shared this week's shift plan yet.")
 
 try:
     jobs_open = platform.jobs("offered,accepted,in_progress")
@@ -49,7 +49,7 @@ except ApiError:
 ui.html(
     theme.tiles(
         [
-            theme.tile("Jobs", str(len(jobs_open)), "pinged or in progress", "flag"),
+            theme.tile("Jobs", str(len(jobs_open)), "new or in progress", "flag"),
             theme.tile("Supply requests", str(len(my_reqs)), "waiting for the store", "check"),
             theme.tile("My tasks", str(len(my_tasks)), "open", "clock"),
         ]

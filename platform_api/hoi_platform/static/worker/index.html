@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#0b0b0b">
-<meta name="description" content="HOI staff app: your shifts, job pings with photo proof, and supply requests.">
+<meta name="description" content="HOI staff app: your shifts, new jobs with photos, and supplies.">
 <title>HOI Staff</title>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="/shared/brand/hoi/hoi-icon-32.png" type="image/png">
@@ -13,14 +13,14 @@
 <link rel="stylesheet" href="app.css">
 </head>
 <body>
-<div id="offline" class="offline hidden" data-i18n="offline">You are offline. Changes will fail until you reconnect.</div>
+<div id="offline" class="offline hidden" data-i18n="offline">No internet. Changes will not save until you are back online.</div>
 
 <!-- sign in -->
 <section id="login" class="wrap hidden">
   <div class="hero">
     <img class="logo" src="/shared/brand/hoi/hoi-mark.svg" alt="HOI" width="64" height="64">
     <h1 data-i18n="welcome">Hello! Sign in to start your shift.</h1>
-    <p data-i18n="welcome_sub">Your shifts, job pings and supply requests in one place.</p>
+    <p data-i18n="welcome_sub">Your shifts, new jobs and supplies in one place.</p>
   </div>
   <form id="loginForm" class="card stack" autocomplete="on">
     <div class="row lang"><button type="button" class="btn ghost" data-lang="en">English</button><button type="button" class="btn ghost" data-lang="hi">हिंदी</button></div>
@@ -33,7 +33,7 @@
     <button class="btn primary" type="submit" data-i18n="signin">Sign in</button>
     <button id="demoBtn" class="btn hidden" type="button" data-i18n="demo">Try the demo as employee E134</button>
   </form>
-  <p class="muted center" data-i18n="invite_hint">New here? Ask your manager for an invite code and join from the HOI sign-in page.</p>
+  <p class="muted center" data-i18n="invite_hint">New here? Ask your manager for an invite code.</p>
 </section>
 
 <!-- app -->
@@ -60,7 +60,7 @@
     <div id="tab-jobs" class="tab stack hidden">
       <div id="offer"></div>
       <div id="active"></div>
-      <div id="noJobs" class="empty card"><div class="big">🔔</div><b data-i18n="no_jobs">No requests right now</b><p class="muted" data-i18n="no_jobs_sub">Keep this screen open. You will feel a buzz when a job comes in.</p></div>
+      <div id="noJobs" class="empty card"><div class="big">🔔</div><b data-i18n="no_jobs">No requests right now</b><p class="muted" data-i18n="no_jobs_sub">Keep this screen open. Your phone will buzz when a job comes in.</p></div>
       <div id="doneList"></div>
     </div>
 
@@ -95,7 +95,7 @@
         <select id="voicePick" class="field"></select>
         <label class="check"><input type="checkbox" id="voiceMute"> <span data-i18n="voice_mute">Don't speak replies (text only)</span></label>
       </div>
-      <div class="banner blue" data-i18n="privacy">Your photos are stamped with the server's time and kept for proof of work. Your manager cannot see anything on your phone.</div>
+      <div class="banner blue" data-i18n="privacy">Your job photos are kept to show the work is done. Your manager cannot see anything else on your phone.</div>
       <button id="install" class="btn hidden" data-i18n="install">Add to home screen</button>
       <button id="signout" class="btn dark" data-i18n="signout">Sign out</button>
       <p class="muted center poweredby"><img src="/shared/brand/hoi/hoi-mark.svg" alt="" width="18" height="18"> HOI staff app</p>
@@ -113,7 +113,7 @@
       <div class="row hidden" id="camRetry"><button class="btn" type="button" data-i18n="try_again">Try again</button></div>
       <div class="row" id="camShoot"><button id="snap" class="btn primary" data-i18n="take_photo">Take photo</button></div>
       <div class="row hidden" id="camConfirm"><button id="retake" class="btn" data-i18n="retake">Retake</button><button id="usePhoto" class="btn primary" data-i18n="use_photo">Use photo</button></div>
-      <p class="muted" data-i18n="camera_note">Live camera only. The time on the photo comes from the server, not your phone.</p>
+      <p class="muted" data-i18n="camera_note">Take the photo now with the camera. The time is added for you.</p>
     </div>
   </div>
 
@@ -122,13 +122,13 @@
   <div id="voice" class="sheet hidden" role="dialog" aria-modal="true" aria-labelledby="vTitle">
     <div class="sheet-in stack">
       <div class="row"><b id="vTitle" data-i18n="voice_title">Voice assistant</b><button id="vClose" type="button" class="btn ghost small" data-i18n="close">Close</button></div>
-      <p class="muted" data-i18n="voice_notice">Your voice is turned into text by a third-party AI service and is not stored. Don't say personal details.</p>
-      <label class="check hidden" id="vConsentRow"><input id="vConsent" type="checkbox"> <span data-i18n="voice_consent">Allow voice processing on this phone</span></label>
+      <p class="muted" data-i18n="voice_notice">An outside service turns your voice into text. It is not saved. Please don't say personal details.</p>
+      <label class="check hidden" id="vConsentRow"><input id="vConsent" type="checkbox"> <span data-i18n="voice_consent">Allow voice on this phone</span></label>
       <div id="vLog" class="vlog" aria-live="polite"></div>
       <div id="vConfirm"></div>
       <div class="vmicwrap"><button id="vMic" type="button" class="vmic" aria-label="Tap to talk"><span aria-hidden="true">🎙</span></button></div>
       <p id="vState" class="muted center vstate" aria-live="polite"></p>
-      <form id="vForm" class="vform"><label for="vText" class="sr" data-i18n="voice_type">Type a command</label><input id="vText" class="field" maxlength="300" autocomplete="off" data-i18n-ph="voice_type" placeholder="Type a command"><button class="btn primary small" type="submit" data-i18n="go">Go</button></form>
+      <form id="vForm" class="vform"><label for="vText" class="sr" data-i18n="voice_type">Or type here</label><input id="vText" class="field" maxlength="300" autocomplete="off" data-i18n-ph="voice_type" placeholder="Or type here"><button class="btn primary small" type="submit" data-i18n="go">Go</button></form>
       <div class="vchips" id="vChips"></div>
     </div>
   </div>

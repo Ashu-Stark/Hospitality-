@@ -24,11 +24,11 @@ LABELS = {
     "min_rest_hours": "Minimum rest between shifts (h)",
     "max_consecutive_days": "Max consecutive working days",
     "overtime_rate_multiplier": "Overtime rate (x normal)",
-    "incentive_monthly_budget_cap": "Monthly incentive budget cap (INR)",
+    "incentive_monthly_budget_cap": "Monthly thank-you budget limit (₹)",
 }
 INT_FIELDS = {"rooms", "standard_weekly_hours", "weekly_off_days", "max_consecutive_days", "incentive_monthly_budget_cap"}
 FLOAT_FIELDS = {"min_rest_hours", "overtime_rate_multiplier"}
-SOURCE_LABEL = {"template": "template", "voice": "voice", "typed": "typed", "default": "not set"}
+SOURCE_LABEL = {"template": "suggested", "voice": "voice", "typed": "typed", "default": "not set"}
 
 
 def format_value(field: str, value: Any) -> str:
@@ -86,10 +86,10 @@ def parse_value(field: str, text: str) -> Any:
 def confidence_badge(conf: float, accept: float = 0.6) -> tuple[str, str]:
     """(band tone for theme.band_chip, label)."""
     if conf >= 0.85:
-        return "low", f"{conf:.0%} high"
+        return "low", "sure"
     if conf >= accept:
-        return "watch", f"{conf:.0%} medium"
-    return "high", f"{conf:.0%} check"
+        return "watch", "fairly sure"
+    return "high", "please check"
 
 
 def geo_found(location_field: dict | None) -> str | None:

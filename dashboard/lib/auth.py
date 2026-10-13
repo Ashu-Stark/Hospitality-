@@ -15,7 +15,7 @@ import streamlit as st
 from . import config, platform
 
 ROLES = {
-    "platform_admin": "Platform admin (HOI staff)",
+    "platform_admin": "HOI team",
     "owner": "Owner / GM",
     "hr": "HR",
     "dept_head": "Department head",
@@ -67,12 +67,9 @@ def allowed_here(role: str | None) -> bool:
 
 def wrong_portal_message(role: str) -> str:
     if role == "platform_admin":
-        return f"Platform admins sign in to the platform console: [{config.super_portal_url()}]({config.super_portal_url()})"
+        return f"HOI team accounts sign in here: [{config.super_portal_url()}]({config.super_portal_url()})"
     url = config.hotel_portal_url()
-    return (
-        f"This is the HOI platform console, for HOI staff only. {ROLES.get(role, role)} accounts sign in to the "
-        f"hotel admin portal: [{url}]({url})"
-    )
+    return f"This page is for the HOI team only. {ROLES.get(role, role)} accounts sign in to the hotel page: [{url}]({url})"
 
 
 def _start(sess: dict) -> None:
@@ -139,7 +136,7 @@ def demo_login(username: str) -> str | None:
 def open_workspace(tid: str) -> None:
     """Platform admin, hotel portal only: switch the hotel-scoped token to another tenant (audited server-side)."""
     if config.is_super():
-        raise RuntimeError("Hotels are opened in the hotel admin portal, not in the platform console.")
+        raise RuntimeError("Open hotels from the hotel sign-in page, not from the HOI team console.")
     sess = platform.impersonate(tid, st.session_state["platform_token"])
     st.session_state["auth_token"] = sess["token"]
     st.session_state["tenant"] = sess["tenant"]

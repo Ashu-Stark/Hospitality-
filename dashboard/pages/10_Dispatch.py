@@ -6,11 +6,11 @@ import streamlit as st
 
 from lib import data, dispatch, models, platform, tenancy, theme, ui
 
-ui.setup("pages/10_Dispatch.py", "Dispatch")
+ui.setup("pages/10_Dispatch.py", "Jobs")
 cfg = tenancy.active_settings()
 SECONDS = int(cfg.get("offer_seconds", 30))
 
-ui.page_head("Live jobs", "Requests go to the best free person on shift automatically. You only step in when nobody takes a job.")
+ui.page_head("Jobs", "Each job goes to the best free person on shift. You only step in when nobody takes it.")
 
 ro, working, bands, day0, shift0 = data.ops_inputs()
 with st.container(key="card_ops"):
@@ -19,7 +19,7 @@ with st.container(key="card_ops"):
         days = ro.dates if ro else []
         day = (
             st.selectbox(
-                "Operating day (roster week)",
+                "Day",
                 days,
                 index=days.index(day0) if day0 in days else 0,
                 format_func=lambda d: f"{models.DAY_NAMES[date.fromisoformat(d).weekday()]} {d}",
@@ -29,30 +29,28 @@ with st.container(key="card_ops"):
         )
     with c2:
         shift = st.segmented_control("Shift", models.SHIFT_ORDER, default=shift0, key="ops_shift") or shift0
-    c3, c4 = st.expander("Dispatch settings").columns(2)
+    c3, c4 = st.expander("Job settings").columns(2)
     with c3:
         auto = st.toggle(
-            "Auto-assign",
+            "Send jobs by themselves",
             value=cfg.get("assign_mode", "auto") == "auto",
-            help="On: every new request is offered immediately. Off: requests wait for a supervisor.",
+            help="On: every new job is sent to someone at once. Off: jobs wait for a supervisor.",
         )
         if auto != (cfg.get("assign_mode", "auto") == "auto"):
-            ui.safe(platform.update_workspace, assign_mode="auto" if auto else "manual", what="save dispatch settings")
+            ui.safe(platform.update_workspace, assign_mode="auto" if auto else "manual", what="save job settings")
             tenancy.refresh()
     with c4:
         secs = st.select_slider(
-            "Ping window", [15, 30, 60, 120], value=SECONDS if SECONDS in (15, 30, 60, 120) else 30, format_func=lambda s: f"{s} s"
+            "Time to say yes", [15, 30, 60, 120], value=SECONDS if SECONDS in (15, 30, 60, 120) else 30, format_func=lambda s: f"{s} s"
         )
         if secs != SECONDS:
-            ui.safe(platform.update_workspace, offer_seconds=secs, what="save dispatch settings")
+            ui.safe(platform.update_workspace, offer_seconds=secs, what="save job settings")
             tenancy.refresh()
             SECONDS = secs
 ro, working, bands, day, shift = data.ops_inputs(day, shift)
 st.session_state["ops_day"], st.session_state["ops_shift_val"] = day, shift
 if not working:
-    ui.html(
-        theme.banner("No one is on shift for this day/shift. Generate a roster (Roster page) or import staff in Setup.", "amber", "alert")
-    )
+    ui.html(theme.banner("No one is on shift for this day and shift. Make a shift plan, or add staff in Settings.", "amber", "alert"))
 
 # ------------------------------------------------------------------ new request
 SAMPLES = [
@@ -68,7 +66,7 @@ SAMPLES = [
 with st.container(key="card_new"):
     a, b, c, d, e = st.columns([2.4, 0.9, 1.2, 1, 1.2])
     with a:
-        title = st.text_input("New request", placeholder="e.g. AC not cooling", key="nr_title")
+        title = st.text_input("New job", placeholder="e.g. AC not cooling", key="nr_title")
     with b:
         room = st.text_input("Room", placeholder="204", key="nr_room")
     with c:
@@ -84,32 +82,32 @@ with st.container(key="card_new"):
         urg = st.selectbox("Urgency", ["high", "medium", "low"], index=1)
     with e:
         ui.html('<div style="height:26px"></div>')
-        send = st.button("Dispatch", type="primary", icon=":material/bolt:", width="stretch", disabled=not title)
+        send = st.button("Send", type="primary", icon=":material/bolt:", width="stretch", disabled=not title)
     s1, s2 = st.columns([1.6, 3.4])
     with s1:
-        sim = st.button("Simulate incoming request", icon=":material/notifications_active:")
+        sim = st.button("Try a guest request", icon=":material/notifications_active:")
     with s2:
-        st.caption("Department is guessed from the words in the request; you can change it before dispatching.")
+        st.caption("We guess the department from the words. You can change it before you send.")
 if send and title:
-    if ui.safe(platform.create_job, title, dept, room or None, urg, "manual", what="dispatch the request"):
-        st.toast("Request dispatched" if auto else "Request queued for a supervisor", icon=":material/bolt:")
+    if ui.safe(platform.create_job, title, dept, room or None, urg, "manual", what="send the job"):
+        st.toast("Job sent" if auto else "Job waiting for a supervisor", icon=":material/bolt:")
 if sim:
     staffed = set(working.values())
     pool = [s for s in SAMPLES if s[1] in staffed] or SAMPLES
     t, dpt, u = random.choice(pool)
     rm = f"{random.randint(1, tenancy.floors())}{random.randint(1, 12):02d}"
-    if ui.safe(platform.create_job, t, dpt, rm, u, "simulated", what="simulate a request"):
-        st.toast(f"Incoming: {t} · room {rm}", icon=":material/notifications_active:")
+    if ui.safe(platform.create_job, t, dpt, rm, u, "simulated", what="make a practice request"):
+        st.toast(f"New: {t} · room {rm}", icon=":material/notifications_active:")
 
 
 def render_job(j: dict, w: dict) -> None:
     tone, label = {
-        "offered": ("watch", "pinging"),
-        "accepted": ("low", "accepted"),
+        "offered": ("watch", "waiting for a yes"),
+        "accepted": ("low", "taken"),
         "in_progress": ("low", "in progress"),
         "done": ("low", "done"),
         "unassigned": ("high", "needs supervisor"),
-        "new": ("unknown", "queued"),
+        "new": ("unknown", "waiting"),
     }[j["status"]]
     who = j.get("offer_to") if j["status"] == "offered" else j.get("assigned_to")
     secs = j.get("seconds_left", 0)
@@ -119,7 +117,7 @@ def render_job(j: dict, w: dict) -> None:
             ping = (
                 (
                     f'<div class="ss-ping">{ui.avatar_img(j["department"], 34, "ping")}'
-                    f"Pinging <b>{theme.esc(ui.short_name(who))}</b> · {secs}s left"
+                    f"Sent to <b>{theme.esc(ui.short_name(who))}</b> · {secs} s left"
                     f'<div class="ss-countdown"><i style="width:{100 * secs / max(1, SECONDS):.0f}%"></i></div></div>'
                 )
                 if j["status"] == "offered"
@@ -133,7 +131,7 @@ def render_job(j: dict, w: dict) -> None:
                 + f'<span class="ss-tag">{theme.esc(j["urgency"])}</span></div>'
                 f'<div style="color:#6b6a65;font-size:.78rem;margin-top:4px">{theme.esc(j["source"])} · {j["created_at"][11:16]}'
                 + (
-                    f" · assigned to <b>{theme.esc(ui.short_name(who))}</b>"
+                    f" · done by <b>{theme.esc(ui.short_name(who))}</b>"
                     if j["status"] in ("accepted", "in_progress", "done") and who
                     else ""
                 )
@@ -146,25 +144,26 @@ def render_job(j: dict, w: dict) -> None:
             if j["status"] in ("unassigned", "new"):
                 opts = [e for e, d in w.items() if d == j["department"]]
                 if opts:
-                    pick = st.selectbox("Assign to", opts, key=f"pick_{j['id']}", format_func=ui.short_name, label_visibility="collapsed")
-                    if st.button("Offer", key=f"offer_{j['id']}", width="stretch"):
-                        ui.safe(platform.job_action, j["id"], "offer", pick, what="offer the job")
+                    pick = st.selectbox("Send to", opts, key=f"pick_{j['id']}", format_func=ui.short_name, label_visibility="collapsed")
+                    if st.button("Send to them", key=f"offer_{j['id']}", width="stretch"):
+                        ui.safe(platform.job_action, j["id"], "offer", pick, what="send the job")
                         st.rerun(scope="fragment")
-                if st.button("Retry auto", key=f"retry_{j['id']}", width="stretch"):
-                    ui.safe(platform.retry, j["id"], what="retry")
+                if st.button("Try again", key=f"retry_{j['id']}", width="stretch"):
+                    ui.safe(platform.retry, j["id"], what="try again")
                     st.rerun(scope="fragment")
         if j.get("ranking"):
-            with st.expander("Why this worker?"):
+            with st.expander("Why this person?"):
+                st.caption("Fewer open jobs, fewer jobs already done this shift, nearer the room, and not overloaded = picked first.")
                 for i, r in enumerate(j["ranking"][:5], 1):
                     p = r["parts"]
                     st.caption(
-                        f"{i}. {ui.short_name(r['employee_id'])}: score {r['score']} = 100 "
-                        f"{p['open_jobs']:+d} open jobs {p['done_this_shift']:+d} fairness {p['distance']:+d} distance (floor {r['floor']}) "
-                        f"{p['retention_guard']:+d} retention guard ({r['band']})"
+                        f"{i}. {ui.short_name(r['employee_id'])}: {r['score']} points · open jobs {p['open_jobs']:+d} · "
+                        f"fair share {p['done_this_shift']:+d} · distance {p['distance']:+d} (floor {r['floor']}) · "
+                        f"go easy {p['retention_guard']:+d}"
                     )
                 tried = [f"{ui.short_name(a['employee_id'])}: {a['outcome']}" for a in j.get("attempts", [])]
                 if tried:
-                    st.caption("Offer history: " + " → ".join(tried))
+                    st.caption("Sent to: " + " → ".join(tried))
         if j["status"] in ("in_progress", "done"):
             ph = platform.job_photos(j["id"])
             if ph:
@@ -188,23 +187,23 @@ def live() -> None:
     ui.html(
         theme.tiles(
             [
-                theme.tile("Pinging now", str(len(by["offered"])), "waiting for a worker to accept", "alert"),
-                theme.tile("Assigned", str(len(by["accepted"]) + len(by["in_progress"])), "accepted or in progress", "user"),
-                theme.tile("Done", str(len(by["done"])), "with before/after photo", "check"),
-                theme.tile("Needs supervisor", str(len(by["unassigned"]) + len(by["new"])), "no one accepted / manual mode", "flag"),
+                theme.tile("Waiting for a yes", str(len(by["offered"])), "sent to someone, not taken yet", "alert"),
+                theme.tile("Being done", str(len(by["accepted"]) + len(by["in_progress"])), "someone took it", "user"),
+                theme.tile("Done", str(len(by["done"])), "with before and after photo", "check"),
+                theme.tile("Needs supervisor", str(len(by["unassigned"]) + len(by["new"])), "nobody took it, or sending is off", "flag"),
             ]
         )
     )
     left, right = st.columns([1.55, 1])
     with left:
-        ui.html(theme.section("Requests", "Live"))
+        ui.html(theme.section("Jobs", "Live"))
         if not all_jobs:
-            ui.empty("No requests yet. Type one above or press Simulate incoming request.")
+            ui.empty("No jobs yet. Type one above or press Try a guest request.")
         order = ["offered", "unassigned", "new", "accepted", "in_progress", "done"]
         for j in sorted(all_jobs, key=lambda j: (order.index(j["status"]), j["created_at"]))[:25]:
             render_job(j, working)
     with right:
-        ui.html(theme.section(f"On shift · {len(working)}", "Workers", "Open jobs and risk band per worker."))
+        ui.html(theme.section(f"On shift · {len(working)}", "Workers", "Open jobs for each person."))
         load: dict[str, int] = {}
         for j in all_jobs:
             who = (
@@ -222,7 +221,7 @@ def live() -> None:
             rows.append(
                 f'<div class="ss-wrow">{ui.avatar_img(dpt, 34, "ping" if pinging else "")}'
                 f'<div style="flex:1"><b>{theme.esc(ui.short_name(emp))}</b><div class="m">{theme.esc(theme.dept_label(dpt))}</div></div>'
-                f'{theme.band_chip(bands.get(emp, "low"))}<span class="ss-tag">{load.get(emp, 0)} open</span></div>'
+                f'<span class="ss-tag">{load.get(emp, 0)} open</span></div>'
             )
         if rows:
             ui.html('<div class="ss-card" style="padding:10px 14px">' + "".join(rows) + "</div>")
@@ -233,7 +232,7 @@ live()
 
 def performance_section() -> None:
     """Performance score per worker (plan 4.1) from the platform API: own-baseline delta, parts, reasons."""
-    st.caption("A coaching aid compared with each person's own baseline; not for disciplinary use.")
+    st.caption("To help people improve, compared with their own usual work. Not for punishment.")
     days = st.selectbox("Period", [7, 14, 28], index=1, format_func=lambda d: f"Last {d} days", key="perf_days")
     try:
         out = platform.performance(days)
@@ -241,7 +240,7 @@ def performance_section() -> None:
         ui.html(theme.banner(theme.esc(e.message), "red", "alert"))
         return
     if not out["workers"]:
-        ui.empty("No completed or offered jobs in this period yet.")
+        ui.empty("No jobs in this period yet.")
         return
     pct = lambda c: None if c.get("value") is None else round(c["value"] * 100)  # noqa: E731
     rows = [
@@ -250,14 +249,14 @@ def performance_section() -> None:
             "Employee": ui.short_name(w["employee_id"]),
             "Department": theme.dept_label(w.get("department")),
             "Score": w["score"],
-            "Δ vs own baseline": w["delta"],
+            "Change vs their usual": w["delta"],
             "On time %": pct(w["components"]["on_time"]),
             "Speed %": pct(w["components"]["speed"]),
-            "Quality %": pct(w["components"]["quality"]),
-            "Responsiveness %": pct(w["components"]["responsiveness"]),
-            "Reliability %": pct(w["components"]["reliability"]),
+            "Room check passed %": pct(w["components"]["quality"]),
+            "Says yes quickly %": pct(w["components"]["responsiveness"]),
+            "Turns up and finishes %": pct(w["components"]["reliability"]),
             "Jobs": w["completed_jobs"],
-            "Reasons": " ".join(w["reasons"]),
+            "Why": " ".join(w["reasons"]),
             "_ok": w["status"] == "ok",
         }
         for w in out["workers"]
@@ -265,30 +264,29 @@ def performance_section() -> None:
     df = pd.DataFrame(rows)
     ok = df.pop("_ok")
     grey = lambda r: [("" if ok[r.name] else "color:#9b9a96;background:#f6f6f4")] * len(r)  # noqa: E731
-    main = ["Role", "Employee", "Score", "Δ vs own baseline", "Reasons"]
-    if not st.toggle("Details", key="perf_details", help="Show each part of the score"):
+    main = ["Role", "Employee", "Score", "Change vs their usual", "Why"]
+    if not st.toggle("More columns", key="perf_details", help="Show each part of the score"):
         df = df[main]
     st.dataframe(
         df.style.apply(grey, axis=1).format(
             {
-                "Score": lambda v: "insufficient data" if pd.isna(v) else f"{v:.1f}",
-                "Δ vs own baseline": lambda v: "" if pd.isna(v) else f"{v:+.1f}",
+                "Score": lambda v: "not enough jobs yet" if pd.isna(v) else f"{v:.1f}",
+                "Change vs their usual": lambda v: "" if pd.isna(v) else f"{v:+.1f}",
             },
             na_rep="",
         ),
         hide_index=True,
         width="stretch",
-        column_config={"Role": st.column_config.ImageColumn("Role", width="small"), "Reasons": st.column_config.TextColumn(width="large")},
+        column_config={"Role": st.column_config.ImageColumn("Role", width="small"), "Why": st.column_config.TextColumn(width="large")},
     )
     w = out["weights"]
     st.caption(
-        f"Weights: on-time {w['on_time']:.0%}, speed {w['speed']:.0%}, quality {w['quality']:.0%}, responsiveness "
-        f"{w['responsiveness']:.0%}, reliability {w['reliability']:.0%}. Quality is left out (weights re-normalised) when no "
-        f"cleaning job was inspected. Fewer than {out['min_jobs']} completed jobs = insufficient data (greyed). Thresholds are "
-        "ASSUMED starting points. SYNTHETIC demo data."
+        f"The score is made of: on time {w['on_time']:.0%}, speed {w['speed']:.0%}, room check passed {w['quality']:.0%}, "
+        f"says yes quickly {w['responsiveness']:.0%}, turns up and finishes {w['reliability']:.0%}. "
+        f"Fewer than {out['min_jobs']} jobs = not enough to judge (shown in grey)."
     )
 
 
-with st.expander("Performance (coaching aid)"):
+with st.expander("How people are doing (to help, not to punish)"):
     performance_section()
 ui.footer()

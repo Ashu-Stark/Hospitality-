@@ -12,7 +12,7 @@ with right:
         theme.section(
             "What a staff member sees",
             "Staff app preview",
-            "Act as any on-shift worker to try the flow; every action is logged as acting as.",
+            "Pick anyone on shift to try their screen. What you do is logged under your name.",
         )
     )
     try:
@@ -23,26 +23,28 @@ with right:
     mine = {j["assigned_to"] for j in jobs if j["status"] in ("accepted", "in_progress")}
     opts = sorted(working, key=lambda e: (e not in pending, e not in mine, e))
     if not opts:
-        ui.empty("Nobody is on shift. Pick a day/shift on the Dispatch page or generate a roster.")
+        ui.empty("Nobody is on shift. Pick a day and shift on the Jobs page, or make a shift plan.")
         ui.footer()
         st.stop()
     me = st.selectbox(
-        "Act as worker",
+        "See the screen of",
         opts,
         format_func=lambda e: (
-            f"{ui.short_name(e)} · {theme.dept_label(working[e])}" + (" · ping" if e in pending else "") + (" · job" if e in mine else "")
+            f"{ui.short_name(e)} · {theme.dept_label(working[e])}"
+            + (" · new job" if e in pending else "")
+            + (" · job" if e in mine else "")
         ),
         key="worker_me",
     )
     allow_upload = st.toggle(
-        "Allow photo upload (demo only)",
+        "Allow photo upload (practice only)",
         value=False,
-        help="Production uses the live camera only, so gallery photos cannot be reused. Turn on only when a laptop has no camera.",
+        help="Staff phones use the live camera only, so old photos cannot be reused. Turn on only if this computer has no camera.",
     )
     ui.html(
         theme.banner(
-            "Photos are stamped with <b>server time</b>, the job and the worker, and hashed (SHA-256) on arrival. "
-            "This proves when the server received the photo; it cannot stop someone photographing a screen.",
+            "Each photo gets the <b>server's time</b>, the job and the person. "
+            "It shows when the photo arrived. It cannot stop a photo of a screen.",
             "gray",
             "shield",
         )

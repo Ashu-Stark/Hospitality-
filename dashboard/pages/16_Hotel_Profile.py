@@ -76,13 +76,13 @@ ui.html(
         [
             theme.tile("Profile complete", f"{len(SECTIONS) - len(missing)} of {len(SECTIONS)}", "sections filled in", "check"),
             theme.tile("Dining items", str(len(prof.get("dining") or [])), "with prices guests can see", "rupee"),
-            theme.tile("FAQ answers", str(len(prof.get("faq") or [])), "questions answered", "info"),
+            theme.tile("Answers to common questions", str(len(prof.get("faq") or [])), "questions answered", "info"),
             theme.tile("Last updated", str(prof.get("updated_at") or "never")[:16].replace("T", " "), "saved profile", "clock"),
         ]
     )
 )
 if missing:
-    st.caption("Still empty: " + ", ".join(missing) + ". The concierge says it does not know and offers the front desk instead.")
+    st.caption("Still empty: " + ", ".join(missing) + ". For these, the guest assistant says it does not know and offers the front desk.")
 
 
 # ------------------------------------------------------------------ helpers
@@ -166,7 +166,7 @@ def submit(label: str = "Save") -> bool:
 
 
 T = st.column_config.TextColumn
-tabs = st.tabs(["Basics", "Stay & contacts", "Amenities & dining", "Policies & nearby", "FAQ", "What guests see"])
+tabs = st.tabs(["Basics", "Stay & contacts", "Amenities & dining", "Rules & nearby", "FAQ", "What guests see"])
 
 # ------------------------------------------------------------------ basics
 with tabs[0], st.form("hp_basics"):
@@ -183,7 +183,7 @@ with tabs[0], st.form("hp_basics"):
     cin = c1.time_input("Check-in from", parse_time(prof.get("checkin_time"), "12:00"), step=900, disabled=not CAN_EDIT)
     cout = c2.time_input("Check-out by", parse_time(prof.get("checkout_time"), "11:00"), step=900, disabled=not CAN_EDIT)
     langs = c3.multiselect(
-        "Languages the concierge replies in",
+        "Languages the guest assistant uses",
         list(LANGS),
         default=[x for x in (prof.get("languages") or ["en", "hi"]) if x in LANGS],
         format_func=LANGS.get,
@@ -244,7 +244,7 @@ with tabs[2], st.form("hp_amen"):
     amen = editor(
         "amenities", name=T("Amenity", required=True), hours=T("Hours", help="e.g. 07:00-22:30"), where=T("Where"), note=T("Note")
     )
-    st.markdown("**Dining menu** (prices in rupees; the concierge never quotes a price that is not here)")
+    st.markdown("**Dining menu** (prices in rupees; the guest assistant never gives a price that is not here)")
     dining = editor(
         "dining",
         item=T("Dish", required=True),
@@ -258,15 +258,15 @@ with tabs[2], st.form("hp_amen"):
 # ------------------------------------------------------------------ policies & nearby
 with tabs[3], st.form("hp_pol"):
     st.markdown("**House policies**")
-    pol = editor("policies", title=T("Policy", required=True), text=T("What guests should know", width="large"))
+    pol = editor("policies", title=T("Rule", required=True), text=T("What guests should know", width="large"))
     st.markdown("**Nearby places**")
     near = editor("nearby", name=T("Place", required=True), distance_note=T("Distance"), tip=T("Tip", width="large"))
-    if submit("Save policies & nearby"):
-        save({"policies": records("policies", pol), "nearby": records("nearby", near)}, "Policies and nearby")
+    if submit("Save rules & nearby"):
+        save({"policies": records("policies", pol), "nearby": records("nearby", near)}, "Rules and nearby")
 
 # ------------------------------------------------------------------ faq
 with tabs[4], st.form("hp_faq"):
-    st.caption("Short, factual answers work best. The concierge quotes these and does not make up anything else.")
+    st.caption("Short, clear answers work best. The guest assistant uses only these and does not make up anything else.")
     faq = editor("faq", q=T("Question", required=True, width="medium"), a=T("Answer", width="large"))
     if submit("Save FAQ"):
         save({"faq": records("faq", faq)}, "FAQ")
@@ -338,7 +338,7 @@ background:radial-gradient(circle,#a3461f 40%,transparent 45%)}
         + block("Call us", contacts)
         + block("Amenities", amen)
         + block("Dining", dine)
-        + block("House policies", pol)
+        + block("House rules", pol)
         + block("Nearby", near)
         + block("Questions", faq)
         + (f'<div class="gp-sec" style="color:#6b6a65;font-size:.78rem">{e(late.get("note"))}</div>' if late.get("note") else "")
@@ -349,7 +349,7 @@ background:radial-gradient(circle,#a3461f 40%,transparent 45%)}
 with tabs[5]:
     a, b = st.columns([1.3, 1])
     with a:
-        st.caption("The saved profile, as the guest concierge's Explore view shows it. Unsaved edits are not included.")
+        st.caption("What guests see on their phone (saved changes only).")
         ui.html(preview_html(prof))
     with b:
         ui.html(theme.section("Try it as a guest", "QR page"))
@@ -359,7 +359,7 @@ with tabs[5]:
             rooms = []
         if rooms:
             rid = st.selectbox(
-                "Sample room",
+                "Room",
                 [r["id"] for r in rooms],
                 format_func=lambda i: next(f"Room {r['number']}" for r in rooms if r["id"] == i),
                 key="hp_room",
@@ -368,7 +368,7 @@ with tabs[5]:
             url = f"{platform.public_url()}/guest/?t={room['guest_token']}"
             st.link_button(f"Open the guest page for room {room['number']}", url, icon=":material/open_in_new:", width="stretch")
             st.code(url, language=None)
-            st.caption("The same link the room's QR code opens. Needs the platform API running as a service.")
+            st.caption("The same link the room's QR code opens.")
         else:
             st.caption("The owner can open a room's guest page here or print its QR code on the Rooms page.")
 ui.footer()

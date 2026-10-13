@@ -20,29 +20,32 @@ PAGE, CARD, FIELD, LINE = "#f2f2f0", "#ffffff", "#f4f4f2", "#e6e5e0"
 BLUE, BLUE_SOFT = "#1f6fe5", "#e8f1ff"
 
 BAND = {
-    "high": {"label": "High", "fg": "#a32020", "bg": "#fdeceb", "border": "#efa3a1", "dot": "#d03b3b"},
-    "watch": {"label": "Watch", "fg": "#7a5000", "bg": "#fff6df", "border": "#f2cd6f", "dot": "#fab219"},
-    "low": {"label": "Low", "fg": "#0a6b12", "bg": "#ecfbea", "border": "#62d36b", "dot": "#0ca30c"},
-    "unknown": {"label": "n/a", "fg": INK2, "bg": FIELD, "border": LINE, "dot": MUTED},
+    "high": {"label": "Check in this week", "fg": "#a32020", "bg": "#fdeceb", "border": "#efa3a1", "dot": "#d03b3b"},
+    "watch": {"label": "Keep an eye on", "fg": "#7a5000", "bg": "#fff6df", "border": "#f2cd6f", "dot": "#fab219"},
+    "low": {"label": "Doing fine", "fg": "#0a6b12", "bg": "#ecfbea", "border": "#62d36b", "dot": "#0ca30c"},
+    "unknown": {"label": "Not known", "fg": INK2, "bg": FIELD, "border": LINE, "dot": MUTED},
 }
 BAND_ORDER = ["high", "watch", "low"]
 BAND_COLOR = {k: v["dot"] for k, v in BAND.items()}
 
-# Driver support levels: one blue ramp (ordered) + gray for unsupported.
+# How clear a reason ("why") is: one blue ramp (ordered) + gray for "no sign".
 SUPPORT = {
-    "supported": {"label": "Supported", "color": "#2a78d6"},
-    "weakly_supported": {"label": "Weakly supported", "color": "#86b6ef"},
-    "unsupported": {"label": "Unsupported", "color": "#c3c2b7"},
+    "supported": {"label": "Clear sign", "color": "#2a78d6"},
+    "weakly_supported": {"label": "Weak sign", "color": "#86b6ef"},
+    "unsupported": {"label": "No sign", "color": "#c3c2b7"},
 }
 SUPPORT_HELP = (
-    "**Supported**: the synthetic data generator really encodes this effect, so the model can learn it.  \n"
-    "**Weakly supported**: the effect is only partly encoded; treat the bar as a hint, not a finding.  \n"
-    "**Unsupported**: there is no signal for it in the data (e.g. manager relationship), so it is never shown as a cause."
+    "**Clear sign**: the numbers show this clearly.  \n"
+    "**Weak sign**: only a small hint. Ask, don't assume.  \n"
+    "**No sign**: we cannot see this in the numbers, so it is never shown as a reason."
 )
 
 BASIS = {
-    "model_rank": ("basis: model rank", "Permanent staff are banded by rank within this week's scores: top 10% high, next 15% watch."),
-    "contract_date": ("basis: contract date", "Seasonal staff are banded by a contract-end-date rule, not by the resignation model."),
+    "model_rank": (
+        "compared with the team",
+        "Compared with the rest of the team this week: top 10% = check in this week, next 15% = keep an eye on.",
+    ),
+    "contract_date": ("contract ends soon", "Seasonal staff: based on when their contract ends."),
 }
 
 
@@ -413,6 +416,7 @@ div[class*="st-key-card"], .stPlotlyChart {{ animation: ss-rise .45s cubic-bezie
   .ss-tiles {{ grid-template-columns: 1fr; }}
   .ss-hero h1 {{ font-size:1.8rem; }}
   .ss-topbar {{ flex-wrap:wrap; }}
+  .ss-util .ss-poweredby {{ display:none; }}  /* the HOI mark is already in the corner */
 }}
 
 .ss-footer {{ margin-top:40px; background:#e9e9e6; border-radius:24px; padding:20px 24px; color:var(--ink2); font-size:.8rem;
@@ -449,9 +453,10 @@ TILE_TONE = {"alert": "warn", "flag": "warn", "check": "ok", "rupee": "info", "c
 
 def tile(label: str, value: str, sub: str = "", ic: str = "info", assumption: str = "") -> str:
     """A big number with its label and a one-line meaning (same look as ui.big_numbers)."""
-    a = f'<span class="assume">ASSUMED: {esc(assumption)}</span>' if assumption else ""
+    a = ""  # an assumption stays in the hover text, never a visible pill
+    tip = f' title="{esc(assumption)}"' if assumption else ""
     return (
-        f'<div class="ss-big {TILE_TONE.get(ic, "info")}"><div class="v">{esc(value)}</div><div class="l">{esc(label)}</div>'
+        f'<div class="ss-big {TILE_TONE.get(ic, "info")}"{tip}><div class="v">{esc(value)}</div><div class="l">{esc(label)}</div>'
         f'<div class="m">{esc(sub)}</div>{a}</div>'
     )
 

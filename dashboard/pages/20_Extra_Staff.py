@@ -10,7 +10,9 @@ import streamlit as st
 from lib import platform, theme, ui
 
 ui.setup("pages/20_Extra_Staff.py", "Extra staff")
-ui.page_head("Extra staff", "Ask local staffing partners (through the Uttarakhand tourism portal) for people when your roster is short.")
+ui.page_head(
+    "Extra staff", "Ask local staffing partners (through the Uttarakhand tourism portal) for people when your shift plan is short."
+)
 DEPTS = ["housekeeping", "front_office", "fnb_service", "kitchen", "maintenance", "security"]
 STATUS = {"sent": ("Sent to the portal", "low"), "pending_send": ("Not sent yet", "watch")}
 
@@ -63,7 +65,7 @@ ui.big_numbers(
 pre = st.session_state.get("staffing_prefill")
 with st.expander("Request staff", expanded=bool(pre) or not rows):
     if pre:
-        st.caption(f"Filled in from the roster: {theme.dept_label(pre['department'])} is short on {pre['date_from']}.")
+        st.caption(f"Filled in from the shift plan: {theme.dept_label(pre['department'])} is short on {pre['date_from']}.")
     request_form(pre)
 
 for r in pending:  # one clear action per card
@@ -90,7 +92,7 @@ if rows:
                 "People": r["openings"],
                 "Dates": f"{r['date_from']} → {r['date_to']}",
                 "Skill": r.get("skill") or "",
-                "Portal reference": r.get("portal_ref") or "",
+                "Portal number": r.get("portal_ref") or "",
                 "Tries": r.get("attempts"),
                 "From": "roster" if r.get("source") == "roster_shortage" else "manual",
                 "Created": str(r.get("created_at", ""))[:16].replace("T", " "),
@@ -101,7 +103,7 @@ if rows:
     ui.html('<h3 class="ss-h3">All requests</h3>')
     ui.table(df, ["Status", "Department", "People", "Dates"], key="stf_tbl")
 st.caption(
-    "Your property's portal API key is saved in Settings and is never shown or logged. Requests contain no personal data. "
-    "Concept integration with the tourism portal (not an official government service)."
+    "Your portal key is saved in Settings and is never shown. Requests contain no personal details. "
+    "The tourism portal is an HOI project, not a government website."
 )
 ui.footer()

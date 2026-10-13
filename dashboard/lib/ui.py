@@ -47,8 +47,6 @@ def setup(page_file: str, title: str, *, employee: bool = False) -> None:
 
 
 def _topbar(page_file: str, t: dict, u: dict | None) -> None:
-    s = current_settings()
-    mode_cls = "mock" if s.use_mocks else "live"
     who = ""
     if u and config.is_super():  # hotel portal: the signed-in user is shown in the sidebar (a calmer top bar)
         who = f'<span class="ss-userchip">{theme.icon("user", 14)}{theme.esc(u["username"])} · {theme.esc(auth.ROLES[u["role"]].split(" (")[0])}</span>'
@@ -59,8 +57,7 @@ def _topbar(page_file: str, t: dict, u: dict | None) -> None:
         if t.get("id"):
             where += f'<span class="ss-poweredby">{portal.hoi_mark(20)}HOI</span>'
     st.markdown(
-        f'<div class="{cls}">{portal.brand_html(t)}'
-        f'<div class="ss-util">{who}{where}<span class="ss-mode {mode_cls}">{s.mode_label}</span></div></div>',
+        f'<div class="{cls}">{portal.brand_html(t)}<div class="ss-util">{who}{where}</div></div>',
         unsafe_allow_html=True,
     )
     nav = st.session_state.get("_nav") or access.HOTEL_PAGES
@@ -128,17 +125,12 @@ def _sidebar(t: dict, u: dict | None) -> None:
         if config.is_super():  # platform console: no hotel workspace, no scoring week
             html(
                 f'<div class="ss-card" style="padding:12px 14px"><div style="color:#6b6a65;font-size:.75rem">Portal</div>'
-                f"<b>HOI Platform Admin</b><div style='font-size:.8rem;margin-top:6px'>Hotel admin portal: "
+                f"<b>HOI Platform Admin</b><div style='font-size:.8rem;margin-top:6px'>Hotel sign-in: "
                 f"{portal.link(config.hotel_portal_url())}</div></div>"
             )
             if st.button("Refresh", icon=":material/refresh:", width="stretch"):
                 data.clear()
                 st.rerun()
-            st.divider()
-            st.markdown(
-                theme.banner("All hotel data is <b>synthetic</b>. Every console action is audited.", "gray", "shield"),
-                unsafe_allow_html=True,
-            )
             return
         if u and u["role"] == "platform_admin":
             try:
@@ -148,17 +140,17 @@ def _sidebar(t: dict, u: dict | None) -> None:
             ids = [x["id"] for x in ts]
             if ids:
                 pick = st.selectbox(
-                    "Hotel workspace (platform admin)",
+                    "Hotel",
                     ids,
                     index=ids.index(t["id"]) if t["id"] in ids else 0,
                     format_func=lambda i: next(x["name"] for x in ts if x["id"] == i),
                     key="ws_pick",
                 )
                 if pick != t["id"]:
-                    auth.open_workspace(pick)  # audited server-side
+                    auth.open_workspace(pick)  # recorded in the activity log server-side
                     tenancy.on_tenant_change()
                     st.rerun()
-            if st.button("Exit to hotel selection", icon=":material/logout:", width="stretch", key="imp_exit_sb"):
+            if st.button("Back to all hotels", icon=":material/logout:", width="stretch", key="imp_exit_sb"):
                 portal.exit_hotel()
         else:
             html(
@@ -166,21 +158,19 @@ def _sidebar(t: dict, u: dict | None) -> None:
                 f"<b>{theme.esc(u['username'] if u else '')}</b> · {theme.esc(auth.ROLES.get((u or {}).get('role'), '').split(' (')[0])}"
                 f'<div style="color:#6b6a65;font-size:.8rem;margin-top:4px">{theme.esc(t["name"])}</div></div>'
             )
-        st.markdown(f'<span class="ss-mode {"mock" if s.use_mocks else "live"}">{s.mode_label}</span>', unsafe_allow_html=True)
-        st.caption("Demo data (captured from the API)." if s.use_mocks else f"Backend: {s.api_base_url}")
         anchor = None if tenancy.is_homestay() else ensure_demo_week()  # homestay: no scoring week, no risk model
         if anchor:
             opts = data.week_options(anchor)
             cur = st.session_state.get("week_start", anchor)
             st.selectbox(
-                "Scoring week (Monday)",
+                "Week (starts Monday)",
                 opts,
                 index=opts.index(cur) if cur in opts else 0,
                 key="week_start",
-                help="Global week used by Risk list, Employee and Overview. The demo week is the latest week in the synthetic data.",
+                help="The week shown on the check-in, person and week-numbers pages.",
             )
             if s.use_mocks and st.session_state.get("week_start") != anchor:
-                st.caption("Demo data only holds the demo week; other weeks need a live backend.")
+                st.caption("Practice data has only one week.")
         c1, c2 = st.columns(2)
         if c1.button("Refresh", icon=":material/refresh:", width="stretch"):
             data.clear()
@@ -188,18 +178,6 @@ def _sidebar(t: dict, u: dict | None) -> None:
         if t.get("is_demo") and not tenancy.is_homestay() and (u is None or u["role"] in ("owner", "platform_admin")):
             if c2.button("Tour", icon=":material/explore:", width="stretch"):
                 tour.start()
-        st.divider()
-        st.markdown(
-            theme.banner(
-                "All data is <b>synthetic</b>. Thank-you points and check-ins exist to <b>support</b> people, never for discipline."
-                if tenancy.is_homestay()
-                else "All data is <b>synthetic</b>. Risk flags exist to <b>offer support</b>, never for adverse action. "
-                "Bands are rankings, not predictions that someone will leave.",
-                "gray",
-                "shield",
-            ),
-            unsafe_allow_html=True,
-        )
 
 
 def ensure_demo_week() -> str | None:
@@ -225,7 +203,7 @@ def safe(fn: Callable[..., Any], *args, what: str = "load data", **kwargs) -> An
         return fn(*args, **kwargs)
     except ApiError as e:
         st.markdown(theme.banner(f"<b>Could not {theme.esc(what)}.</b> {theme.esc(e.message)}", "red", "alert"), unsafe_allow_html=True)
-        with st.expander("Technical detail"):
+        with st.expander("More detail (for support)"):
             st.write({"endpoint": e.endpoint, "status": e.status, "detail": e.detail})
         return None
 
@@ -318,11 +296,7 @@ def go_to_employee(employee_id: str) -> None:
 
 
 def footer() -> None:
-    s = current_settings()
-    html(
-        f'<div class="ss-footer"><span>Hospitality Operations Intelligence (HOI) · AI-Tourism Hackathon 2026 · synthetic data, TRL 4</span>'
-        f"<span>{s.mode_label} · {theme.esc(s.api_base_url if not s.use_mocks else 'dashboard/mocks')}</span></div>"
-    )
+    html('<div class="ss-footer"><span>HOI · hotel admin</span></div>')
 
 
 def inr(v: float | None) -> str:
@@ -345,8 +319,8 @@ NEEDS_API = "missing"  # returned by api() when the platform API has no such rou
 def needs_api_banner(what: str) -> None:
     html(
         theme.banner(
-            f"<b>This feature needs the updated platform API.</b> The server you are connected to does not offer "
-            f"{theme.esc(what)} yet. Update and restart the platform API, then press Refresh.",
+            f"<b>This is not switched on yet.</b> {theme.esc(what).capitalize()} needs an update on the server. "
+            "Ask your HOI contact, then press Refresh.",
             "amber",
             "info",
         )
@@ -453,7 +427,7 @@ def table(df, main: list[str], *, key: str, height: int | None = None, column_co
         empty("Nothing to show yet.")
         return
     extra = [c for c in df.columns if c not in main]
-    show_all = bool(extra) and st.toggle("Details", key=f"{key}_details", help="Show the technical columns too")
+    show_all = bool(extra) and st.toggle("More columns", key=f"{key}_details", help="Show all columns")
     cols = [c for c in df.columns if c in main or show_all]
     kw = {"height": height} if height else {}
     st.dataframe(df[cols], hide_index=True, width="stretch", column_config=column_config or {}, **kw)

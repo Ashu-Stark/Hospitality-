@@ -14,66 +14,68 @@
 
   const T = {
     en: {
-      offline: "You are offline. We'll reconnect automatically.", room: "Room", demo: "Demo hotel · synthetic data",
-      ask: "Ask", explore: "Explore", requests: "My requests", checkout: "Checkout", ask_title: "Ask me anything",
+      offline: "You are offline. We'll reconnect automatically.", room: "Room",
+      ask: "Ask", explore: "Hotel info", requests: "My requests", checkout: "Check-out", ask_title: "Ask me anything",
       sound_on: "Sound on", sound_off: "Muted", voice: "Voice",
-      ai_notice: "Messages and voice are processed by a third-party AI service; please don't share personal details (names, phone, payment).",
-      consent: "I agree that my voice is sent to a third-party AI service to turn it into text. It is not stored.",
+      ai_notice: "Please don't share personal details like phone or card numbers.",
+      consent: "OK to send my voice to an outside service that turns it into text. It is not saved.",
       type_instead: "Type instead", allow_mic: "Allow and speak", type_here: "Type your message",
-      sub: "Tap a request. The right team member is notified at once.", quick_requests: "Quick requests", note: "Anything to add? (optional)",
+      sub: "Tap what you need. The right person is told at once.", quick_requests: "Quick requests", note: "Anything to add? (if you like)",
       status: "Your requests", none: "No requests yet.", sent: "Request sent. The team has been notified.",
-      privacy: "We don't ask for your name or phone number. For emergencies, call the front desk.",
+      privacy: "For emergencies, call the front desk.",
       received: "received", "on the way": "on the way", done: "done", bad: "This QR code is not valid. Please call the front desk.",
       net: "Network problem. Please try again.", listening: "Listening… tap again to stop", working: "Understanding…",
       heard: "Heard", no_catch: "Didn't catch that — try again or type.", mic_denied: "Microphone blocked. Allow it in your browser settings, or type.",
-      no_mic: "Voice isn't supported on this browser. Please type.", hello: "Namaste! I'm your digital concierge. Ask me about Wi-Fi, meals, checkout or anything you need.",
+      no_mic: "Voice isn't supported on this browser. Please type.", hello: "Namaste! I'm here to help. Ask me about Wi-Fi, food, check-out or anything you need.",
       confirm: "Confirm", not_now: "Not now", done_ok: "Done! ", cancelled: "Okay, nothing was sent.",
       problems: "Report a problem", requests_h: "Ask for something", alert_now: "Alert front desk now", call: "Call",
       alert_sent: "The front desk has been alerted. Stay calm; help is coming.",
-      chips: ["Wi-Fi?", "Breakfast time?", "Towels please", "Late checkout", "Checkout time?", "Nearby places"],
-      express: "Express checkout", leave_time: "What time will you leave?", luggage: "I'd like help with my luggage", book_checkout: "Book express checkout",
-      co_hint: "Checkout is at {t}. The front desk gets everything ready; your room is released at the time you choose.",
-      co_booked: "Express checkout booked for {t}{l}.", co_lug: " with luggage help", co_done: "Checked out. Thank you for staying with us!",
-      late: "Late checkout", until: "Until", reason: "Reason (optional)", ask_late: "Ask for late checkout",
-      late_hint: "Possible until {t}, subject to availability. The manager approves it.", late_none: "Late checkout is not offered here.",
-      late_pending: "Requested until {t}. Waiting for the manager's approval.", late_ok: "Approved until {t}.", late_no: "Sorry, late checkout until {t} was declined.",
-      feedback: "How was your stay?", comment: "Comment", comment_ph: "Tell us more (optional)", send_feedback: "Send feedback",
-      fb_thanks: "Thank you for your feedback!", bill: "Your bill", bill_est: "Estimate from listed prices", total: "Estimated total",
-      wifi: "Wi-Fi", network: "Network", password: "Password", times: "Check-in & checkout", checkin: "Check-in", checkout_t: "Checkout",
-      amenities: "Amenities", dining: "Dining menu", policies: "House rules", nearby: "Nearby", faq: "Questions", contacts: "Call us (dial from the room phone)",
+      chips: ["Wi-Fi?", "Breakfast time?", "Towels please", "Late check-out", "Check-out time?", "Nearby places"],
+      express: "Quick check-out", leave_time: "What time will you leave?", luggage: "I'd like help with my bags", book_checkout: "Book quick check-out",
+      co_hint: "Check-out is at {t}. Tell us when you leave and we will have everything ready.",
+      co_booked: "Quick check-out booked for {t}{l}.", co_lug: " with help for your bags", co_done: "Checked out. Thank you for staying with us!",
+      late: "Late check-out", until: "Until", reason: "Reason (if you like)", ask_late: "Ask for late check-out",
+      late_hint: "Possible until {t} if the room is free. The manager will say yes or no.", late_none: "Late check-out is not possible here.",
+      late_pending: "Asked until {t}. Waiting for the manager.", late_ok: "Yes, you can stay until {t}.", late_no: "Sorry, late check-out until {t} is not possible.",
+      feedback: "How was your stay?", comment: "Comment", comment_ph: "Tell us more (if you like)", send_feedback: "Send feedback",
+      fb_thanks: "Thank you for your feedback!", bill: "Your bill", bill_est: "Worked out from menu prices", total: "Total (about)",
+      bill_note: "Please get your final bill from the front desk.", bill_est_note: "This is only a guide. The front desk has the final bill.",
+      wifi: "Wi-Fi", network: "Network", password: "Password", times: "Check-in & check-out", checkin: "Check-in", checkout_t: "Check-out",
+      amenities: "Amenities", dining: "Dining menu", policies: "House rules", nearby: "Nearby", faq: "Common questions", contacts: "Call us (dial from the room phone)",
       ext: "ext.", stage_open: "Received", stage_accepted: "Accepted", stage_in_progress: "In progress", stage_done: "Done",
       tooLong: "Recording stopped at 60 seconds.",
       team: { housekeeping: "Housekeeping", fnb_service: "Room service", kitchen: "Kitchen", maintenance: "Maintenance", front_office: "Front desk", security: "Security", generic: "Hotel team" },
     },
     hi: {
-      offline: "आप ऑफ़लाइन हैं। इंटरनेट आते ही फिर जुड़ जाएगा।", room: "कमरा", demo: "डेमो होटल · सिंथेटिक डेटा",
-      ask: "पूछें", explore: "होटल", requests: "मेरी माँगें", checkout: "चेकआउट", ask_title: "कुछ भी पूछिए",
+      offline: "इंटरनेट नहीं है। इंटरनेट आते ही फिर जुड़ जाएगा।", room: "कमरा",
+      ask: "पूछें", explore: "होटल की जानकारी", requests: "मेरी माँगें", checkout: "चेक-आउट", ask_title: "कुछ भी पूछिए",
       sound_on: "आवाज़ चालू", sound_off: "आवाज़ बंद", voice: "आवाज़",
-      ai_notice: "संदेश और आवाज़ एक थर्ड-पार्टी AI सेवा प्रोसेस करती है; कृपया निजी जानकारी (नाम, फ़ोन, भुगतान) न लिखें।",
-      consent: "मैं सहमत हूँ कि मेरी आवाज़ को टेक्स्ट बनाने के लिए थर्ड-पार्टी AI सेवा को भेजा जाए। इसे सेव नहीं किया जाता।",
-      type_instead: "टाइप करूँगा", allow_mic: "अनुमति दें और बोलें", type_here: "अपना संदेश लिखें",
-      sub: "एक विकल्प चुनें। सही स्टाफ़ को तुरंत सूचना मिलेगी।", quick_requests: "जल्दी माँगें", note: "कुछ और बताना है? (वैकल्पिक)",
+      ai_notice: "कृपया फ़ोन नंबर या कार्ड नंबर जैसी निजी बातें न लिखें।",
+      consent: "मेरी आवाज़ को टेक्स्ट बनाने के लिए बाहर की सर्विस को भेजना ठीक है। यह सेव नहीं होती।",
+      type_instead: "लिखकर बताएँ", allow_mic: "ठीक है, बोलें", type_here: "अपना संदेश लिखें",
+      sub: "जो चाहिए उस पर टैप करें। सही स्टाफ़ को तुरंत पता चलेगा।", quick_requests: "जल्दी माँगें", note: "कुछ और बताना है? (अगर चाहें)",
       status: "आपकी माँगें", none: "अभी कोई माँग नहीं।", sent: "माँग भेज दी गई। टीम को सूचना मिल गई है।",
-      privacy: "हम आपका नाम या फ़ोन नंबर नहीं माँगते। आपात स्थिति में फ़्रंट डेस्क को कॉल करें।",
-      received: "मिल गई", "on the way": "रास्ते में", done: "पूरा", bad: "यह QR कोड मान्य नहीं है। फ़्रंट डेस्क को कॉल करें।",
+      privacy: "इमरजेंसी में फ़्रंट डेस्क को कॉल करें।",
+      received: "मिल गई", "on the way": "रास्ते में", done: "पूरा", bad: "यह QR कोड काम नहीं कर रहा। फ़्रंट डेस्क को कॉल करें।",
       net: "नेटवर्क की समस्या। फिर कोशिश करें।", listening: "सुन रही हूँ… रोकने के लिए फिर दबाएँ", working: "समझ रही हूँ…",
       heard: "सुना", no_catch: "समझ नहीं आया — फिर बोलें या टाइप करें।", mic_denied: "माइक बंद है। ब्राउज़र सेटिंग में अनुमति दें, या टाइप करें।",
-      no_mic: "इस ब्राउज़र में आवाज़ नहीं चलती। कृपया टाइप करें।", hello: "नमस्ते! मैं आपका डिजिटल कंसीयर्ज हूँ। वाई-फ़ाई, खाना, चेकआउट या कुछ भी पूछिए।",
-      confirm: "पक्का करें", not_now: "अभी नहीं", done_ok: "हो गया! ", cancelled: "ठीक है, कुछ नहीं भेजा।",
-      problems: "कोई परेशानी बताएँ", requests_h: "कुछ मँगवाएँ", alert_now: "फ़्रंट डेस्क को अभी अलर्ट करें", call: "कॉल करें",
-      alert_sent: "फ़्रंट डेस्क को अलर्ट भेज दिया गया है। घबराइए नहीं, मदद आ रही है।",
-      chips: ["वाई-फ़ाई?", "नाश्ता कब है?", "तौलिये चाहिए", "लेट चेकआउट", "चेकआउट कब है?", "आसपास घूमने की जगह"],
-      express: "एक्सप्रेस चेकआउट", leave_time: "आप कितने बजे निकलेंगे?", luggage: "सामान में मदद चाहिए", book_checkout: "एक्सप्रेस चेकआउट बुक करें",
-      co_hint: "चेकआउट {t} बजे है। फ़्रंट डेस्क सब तैयार रखेगा; आपके चुने समय पर कमरा खाली माना जाएगा।",
-      co_booked: "एक्सप्रेस चेकआउट {t} बजे बुक है{l}।", co_lug: ", सामान में मदद के साथ", co_done: "चेकआउट हो गया। हमारे साथ रहने के लिए धन्यवाद!",
-      late: "लेट चेकआउट", until: "कब तक", reason: "कारण (वैकल्पिक)", ask_late: "लेट चेकआउट माँगें",
-      late_hint: "{t} बजे तक संभव, उपलब्धता के अनुसार। मैनेजर मंज़ूरी देंगे।", late_none: "यहाँ लेट चेकआउट नहीं है।",
-      late_pending: "{t} बजे तक का अनुरोध भेजा गया। मैनेजर की मंज़ूरी का इंतज़ार।", late_ok: "{t} बजे तक मंज़ूर।", late_no: "माफ़ कीजिए, {t} बजे तक लेट चेकआउट मंज़ूर नहीं हुआ।",
-      feedback: "आपका स्टे कैसा रहा?", comment: "टिप्पणी", comment_ph: "और बताइए (वैकल्पिक)", send_feedback: "फ़ीडबैक भेजें",
-      fb_thanks: "आपके फ़ीडबैक के लिए धन्यवाद!", bill: "आपका बिल", bill_est: "सूची के दामों से अनुमान", total: "अनुमानित कुल",
-      wifi: "वाई-फ़ाई", network: "नेटवर्क", password: "पासवर्ड", times: "चेक-इन और चेकआउट", checkin: "चेक-इन", checkout_t: "चेकआउट",
+      no_mic: "इस ब्राउज़र में आवाज़ नहीं चलती। कृपया टाइप करें।", hello: "नमस्ते! मैं आपकी मदद के लिए हूँ। Wi-Fi, खाना, check-out या कुछ भी पूछिए।",
+      confirm: "हाँ, भेज दो", not_now: "अभी नहीं", done_ok: "हो गया! ", cancelled: "ठीक है, कुछ नहीं भेजा।",
+      problems: "कोई परेशानी बताएँ", requests_h: "कुछ मँगवाएँ", alert_now: "फ़्रंट डेस्क को अभी बताएँ", call: "कॉल करें",
+      alert_sent: "मैंने फ़्रंट डेस्क को बता दिया है। घबराइए नहीं, मदद आ रही है।",
+      chips: ["Wi-Fi?", "नाश्ता कब है?", "तौलिये चाहिए", "लेट check-out", "check-out कब है?", "आसपास घूमने की जगह"],
+      express: "जल्दी check-out", leave_time: "आप कितने बजे निकलेंगे?", luggage: "सामान उठाने में मदद चाहिए", book_checkout: "जल्दी check-out बुक करें",
+      co_hint: "Check-out {t} बजे है। बताइए आप कब निकलेंगे, हम सब तैयार रखेंगे।",
+      co_booked: "जल्दी check-out {t} बजे बुक है{l}।", co_lug: ", सामान में मदद के साथ", co_done: "Check-out हो गया। हमारे साथ रहने के लिए धन्यवाद!",
+      late: "लेट check-out", until: "कब तक", reason: "वजह (अगर चाहें)", ask_late: "लेट check-out माँगें",
+      late_hint: "अगर कमरा खाली हो तो {t} बजे तक रुक सकते हैं। मैनेजर हाँ या ना बताएँगे।", late_none: "यहाँ लेट check-out नहीं होता।",
+      late_pending: "{t} बजे तक की माँग भेज दी। मैनेजर के जवाब का इंतज़ार है।", late_ok: "हाँ, आप {t} बजे तक रुक सकते हैं।", late_no: "माफ़ कीजिए, {t} बजे तक लेट check-out नहीं हो पाएगा।",
+      feedback: "आपका स्टे कैसा रहा?", comment: "आपकी बात", comment_ph: "और बताइए (अगर चाहें)", send_feedback: "फ़ीडबैक भेजें",
+      fb_thanks: "आपके फ़ीडबैक के लिए धन्यवाद!", bill: "आपका बिल", bill_est: "मेन्यू के दामों से जोड़ा गया", total: "कुल (लगभग)",
+      bill_note: "पूरा बिल फ़्रंट डेस्क से लें।", bill_est_note: "यह सिर्फ़ अंदाज़ा है। पूरा बिल फ़्रंट डेस्क देगा।",
+      wifi: "Wi-Fi", network: "नेटवर्क", password: "पासवर्ड", times: "चेक-इन और चेक-आउट", checkin: "चेक-इन", checkout_t: "चेक-आउट",
       amenities: "सुविधाएँ", dining: "खाने का मेन्यू", policies: "होटल के नियम", nearby: "आसपास", faq: "सवाल-जवाब", contacts: "कॉल करें (कमरे के फ़ोन से)",
-      ext: "एक्सटें.", stage_open: "मिल गई", stage_accepted: "स्वीकार", stage_in_progress: "काम जारी", stage_done: "पूरा",
+      ext: "एक्सटेंशन", stage_open: "मिल गई", stage_accepted: "स्टाफ़ ने ले लिया", stage_in_progress: "काम जारी", stage_done: "पूरा",
       tooLong: "60 सेकंड पर रिकॉर्डिंग रुक गई।",
       team: { housekeeping: "हाउसकीपिंग", fnb_service: "रूम सर्विस", kitchen: "किचन", maintenance: "मेंटेनेंस", front_office: "फ़्रंट डेस्क", security: "सिक्योरिटी", generic: "होटल टीम" },
     },
@@ -92,6 +94,7 @@
     const m = (S.data.menu || []).find((x) => title === x.label || title.startsWith(x.label + ":"));
     return (m && KEY_DEPT[m.key]) || "generic";
   }
+  $("#photoCredit").addEventListener("click", (e) => { if (e.currentTarget.title) toast(e.currentTarget.title); });
   $("#hotelLogo").addEventListener("error", () => { $("#logoPlate").classList.add("hidden"); $("#hotel").classList.remove("hidden"); });
   const token = new URLSearchParams(location.search).get("t") || "";
   const base = `/public/guest/${encodeURIComponent(token)}`;
@@ -133,7 +136,6 @@
     paintCover(window.HOI_SAFE_IMG(p.cover_photo_url), p.cover_photo_credit || "");
     $("#roomNo").textContent = d.room;
     $("#welcome").textContent = p.welcome || "";
-    $("#demoTag").classList.toggle("hidden", !d.synthetic && !p.synthetic);
     if (!$("#thread").children.length) bot(tr("hello"), null, null, true);
     paintMenu(); paintRequests(); paintExplore(); paintCheckout();
   }
@@ -147,13 +149,13 @@
     plate.classList.remove("hidden"); $("#hotel").classList.add("hidden");
   }
 
-  // Property photo behind the header (licensed photo of the area; credit line shown under the header).
+  // Property photo behind the header (licensed photo of the area; credit in a small (i) tooltip, not a caption).
   function paintCover(url, credit) {
     const hero = $("#hero");
     if (!url) { hero.classList.remove("photo"); hero.style.backgroundImage = ""; $("#photoCredit").classList.add("hidden"); return; }
     hero.classList.add("photo");
     hero.style.backgroundImage = `linear-gradient(180deg,rgba(10,20,40,.35),rgba(10,20,40,.78)),url("${url}")`;
-    $("#photoCredit").textContent = credit; $("#photoCredit").classList.toggle("hidden", !credit);
+    const pc = $("#photoCredit"); pc.title = credit ? "Photo: " + credit : ""; pc.setAttribute("aria-label", credit ? "Photo: " + credit : "Photo credit"); pc.classList.toggle("hidden", !credit);
   }
 
   function paintMenu() {
@@ -235,7 +237,7 @@
     try {
       const b = await api("GET", "/bill");
       const rows = (b.requests_with_charges || []).map((x) => `<div class="est"><span>${esc(x.item)}</span><span>₹${esc(x.price_inr)}</span></div>`).join("");
-      $("#bill").innerHTML = `<p class="muted">${esc(b.note)}.</p>` + (rows ? `<div class="eyebrow">${esc(tr("bill_est"))}</div>${rows}<div class="est"><b>${esc(tr("total"))}</b><b>₹${esc(b.estimate_total_inr)}</b></div><p class="muted">${esc(b.estimate_note)}</p>` : "");
+      $("#bill").innerHTML = `<p class="muted">${esc(tr("bill_note"))}</p>` + (rows ? `<div class="eyebrow">${esc(tr("bill_est"))}</div>${rows}<div class="est"><b>${esc(tr("total"))}</b><b>₹${esc(b.estimate_total_inr)}</b></div><p class="muted">${esc(tr("bill_est_note"))}</p>` : "");
     } catch (e) { $("#bill").innerHTML = `<p class="muted">${esc(e.message)}</p>`; }
   }
 

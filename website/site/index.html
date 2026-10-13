@@ -7,7 +7,7 @@
 <link rel="apple-touch-icon" href="img/brand/hoi-icon-180.png">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>HOI · Hospitality Operations Intelligence</title>
-<meta name="description" content="One platform, five apps for hill hotels: super-admin and hotel admin portals, a voice-ready worker app, a QR guest concierge and a concept Uttarakhand tourism portal.">
+<meta name="description" content="Simple apps for hill hotels and homestays: shift plans, jobs with photos, stock, and a guest helper on the room QR code.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -247,8 +247,8 @@ a:focus-visible,button:focus-visible,summary:focus-visible,input:focus-visible{o
   <div class="wrap topbar">
     <a class="brand" href="#"><i class="brandmark"><img src="img/brand/hoi-mark.svg" alt="" width="38" height="38"></i>HOI <small>Hospitality Operations Intelligence</small></a>
     <nav class="util" aria-label="Main">
-      <a href="#apps">Apps</a><a href="#flow">Guest requests</a><a href="#loop">How it works</a><a href="#inventory">Inventory</a>
-      <a href="#compare">Compare</a><a href="#faq">FAQ</a>
+      <a href="#apps">Apps</a><a href="#flow">Guest requests</a><a href="#loop">How it works</a><a href="#inventory">Stock</a>
+      <a href="#compare">Compare</a><a href="#faq">Questions</a>
     </nav>
     <div style="display:flex;gap:8px">
       <a class="btn" data-app href="#">Sign in</a>
@@ -267,77 +267,76 @@ a:focus-visible,button:focus-visible,summary:focus-visible,input:focus-visible{o
     <div class="hero-in">
       <div class="eyebrow">For hill hotels and homestays · built in Uttarakhand</div>
       <h1>Run a calmer hotel.<br>Keep your best people.</h1>
-      <p class="lead">One platform, five apps: portals for owners and managers, a phone app for staff, a QR concierge for guests, and a concept tourism portal that ties the region together.</p>
+      <p class="lead">Plan shifts for busy days, send jobs to staff phones, never run out of towels, and know early who needs a friendly chat. Guests ask for things from a QR code in the room.</p>
       <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:22px">
         <a class="btn primary" href="https://hoi-portal.vercel.app" target="_blank" rel="noopener">Try the tourism portal</a>
-        <a class="btn" style="color:var(--ink)" href="#apps">See the five apps</a>
+        <a class="btn" style="color:var(--ink)" href="#apps">See the apps</a>
       </div>
       <div class="searchcard">
         <div class="pillnav" role="tablist" aria-label="Preview a module" id="tabs">
-          <button class="on" data-tab="roster">Roster</button><button data-tab="dispatch">Dispatch</button>
-          <button data-tab="inventory">Inventory</button><button data-tab="retention">Retention</button><button data-tab="guest">Guest</button>
+          <button class="on" data-tab="roster">Shift plan</button><button data-tab="dispatch">Jobs</button>
+          <button data-tab="inventory">Stock</button><button data-tab="retention">Check-ins</button><button data-tab="guest">Guests</button>
         </div>
         <div class="panel">
           <div class="fields" id="fields"></div>
         </div>
-        <div class="perks"><span>✓ Works offline on demo data</span><span>✓ Staff identified by ID only</span><span>✓ Every score explained</span><span>✓ No adverse action from risk flags</span></div>
+        <div class="perks"><span>✓ Staff known by ID only</span><span>✓ Every number explained</span><span>✓ Hindi and English</span><span>✓ Never used to punish staff</span></div>
       </div>
     </div>
-    <a class="pcredit" href="https://commons.wikimedia.org/wiki/File:Panchachuli_Peaks.jpg" target="_blank" rel="noopener">Photo: Mukul.pandey07, CC BY-SA 4.0 (Wikimedia Commons)</a>
   </div>
 
   <!-- QUICK ROW -->
   <div class="quick reveal">
-    <a href="#loop"><span class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="m3 17 6-6 4 4 8-8"/><path d="M15 7h6v6"/></svg></span>Forecast</a>
-    <a href="#loop"><span class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/></svg></span>Roster</a>
-    <a href="#dispatch"><span class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M13 2 4 14h7l-1 8 9-12h-7z"/></svg></span>Dispatch</a>
-    <a href="#dispatch"><span class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="6" width="18" height="14" rx="3"/><circle cx="12" cy="13" r="3.5"/><path d="M8 6l1.5-2h5L16 6"/></svg></span>Photo proof</a>
-    <a href="#inventory"><span class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 7l9-4 9 4v10l-9 4-9-4z"/><path d="M3 7l9 4 9-4M12 11v10"/></svg></span>Inventory</a>
-    <a href="#loop"><span class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/></svg></span>Retention</a>
-    <a href="#dispatch"><span class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></span>Voice to task</a>
+    <a href="#loop"><span class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="m3 17 6-6 4 4 8-8"/><path d="M15 7h6v6"/></svg></span>How full</a>
+    <a href="#loop"><span class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/></svg></span>Shift plan</a>
+    <a href="#dispatch"><span class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M13 2 4 14h7l-1 8 9-12h-7z"/></svg></span>Jobs</a>
+    <a href="#dispatch"><span class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="6" width="18" height="14" rx="3"/><circle cx="12" cy="13" r="3.5"/><path d="M8 6l1.5-2h5L16 6"/></svg></span>Photos</a>
+    <a href="#inventory"><span class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 7l9-4 9 4v10l-9 4-9-4z"/><path d="M3 7l9 4 9-4M12 11v10"/></svg></span>Stock</a>
+    <a href="#loop"><span class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/></svg></span>Check-ins</a>
+    <a href="#dispatch"><span class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></span>Voice notes</a>
     <a href="#apps"><span class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3v3h-3zM20 14v.01M14 20h.01M17 20h4v-3"/></svg></span>Guest QR</a>
   </div>
 
   <!-- FIVE APPS -->
   <section id="apps">
-    <div class="sechead reveal"><div><div class="eyebrow">The suite</div><h2>One platform, five apps</h2>
-      <p>Everyone gets a screen built for their job. One platform underneath keeps each hotel group's data separate.</p></div></div>
+    <div class="sechead reveal"><div><div class="eyebrow">The apps</div><h2>A screen for every job</h2>
+      <p>Owners, staff and guests each get a simple screen. Each hotel's data stays separate.</p></div></div>
     <div class="apps">
       <article class="app a reveal">
         <div class="art"><svg viewBox="0 0 132 84" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <path d="M12 76h108"/><rect x="22" y="46" width="20" height="30" rx="2"/><rect x="50" y="34" width="22" height="42" rx="2"/><rect x="80" y="52" width="18" height="24" rx="2"/>
           <path d="M28 54h8M28 62h8M56 42h10M56 50h10M56 58h10M85 60h8"/><path d="M18 28l24-8 18 8 22-14 24-6"/><circle cx="108" cy="8" r="3"/></svg></div>
-        <div class="body"><span class="tag">HOI TEAM</span><h3>Super-admin portal</h3>
-          <ul><li>Onboard hotel groups and their properties</li><li>Portfolio view of jobs, guest requests and feedback</li><li>Compare on-time rates and response times per hotel</li></ul></div>
+        <div class="body"><span class="tag">HOI TEAM</span><h3>HOI team console</h3>
+          <ul><li>Add hotels and choose what each can use</li><li>See jobs, guest requests and ratings for all hotels</li><li>See which hotels answer guests fastest</li></ul></div>
       </article>
       <article class="app b reveal">
         <div class="art"><svg viewBox="0 0 132 84" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <rect x="12" y="8" width="108" height="68" rx="8"/><path d="M12 22h108M40 22v54M20 32h12M20 42h12M20 52h12"/><circle cx="21" cy="15" r="1.5"/><circle cx="28" cy="15" r="1.5"/>
           <rect x="50" y="30" width="30" height="22" rx="3"/><path d="M50 41h30M65 30v22M50 62h30M50 69h18M92 68V54M102 68V42M112 68V48"/></svg></div>
-        <div class="body"><span class="tag">OWNER · HR · DEPT HEADS</span><h3>Hotel admin portal</h3>
-          <ul><li>Fair rosters, live dispatch and the room board</li><li>Inventory with GST purchase orders</li><li>Retention signals, guest services and the hotel profile</li></ul></div>
+        <div class="body"><span class="tag">OWNER · MANAGERS</span><h3>Hotel dashboard</h3>
+          <ul><li>Fair shift plans, jobs and which rooms are ready</li><li>Stock and orders with GST</li><li>Who may need a chat, guest requests and hotel info</li></ul></div>
       </article>
       <article class="app c reveal">
         <div class="art"><svg viewBox="0 0 132 84" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <rect x="44" y="4" width="40" height="76" rx="8"/><path d="M58 10h12"/><rect x="58" y="22" width="12" height="20" rx="6"/><path d="M52 36a12 12 0 0 0 24 0M64 48v6M54 66h20"/>
           <path d="M32 28q-6 10 0 20M24 22q-10 16 0 32"/><circle cx="104" cy="24" r="12"/><path d="M98 24l4 4 8-8"/></svg></div>
-        <div class="body"><span class="tag">FRONTLINE STAFF</span><h3>Worker app</h3>
-          <ul><li>Task pings to accept or decline</li><li>Before and after photo proof from the live camera</li><li>Voice commands in Hindi or English</li></ul></div>
+        <div class="body"><span class="tag">HOTEL STAFF</span><h3>Staff app</h3>
+          <ul><li>New jobs arrive on the phone: take it or say no</li><li>A photo before and after each job</li><li>Speak in Hindi or English</li></ul></div>
       </article>
       <article class="app d reveal">
         <div class="art"><svg viewBox="0 0 132 84" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <rect x="10" y="14" width="56" height="56" rx="6"/><rect x="18" y="22" width="14" height="14" rx="2"/><rect x="44" y="22" width="14" height="14" rx="2"/><rect x="18" y="48" width="14" height="14" rx="2"/>
           <path d="M44 48h6v6M56 54v8h-6M44 62h1"/><path d="M80 16h38a6 6 0 0 1 6 6v20a6 6 0 0 1-6 6H96l-10 8v-8h-6a6 6 0 0 1-6-6V22a6 6 0 0 1 6-6z"/><path d="M86 28h26M86 36h16"/></svg></div>
-        <div class="body"><span class="tag">HOTEL GUESTS · NO LOGIN</span><h3>Guest concierge</h3>
-          <ul><li>Scan the room QR to explore the hotel</li><li>Ask anything by voice or text, and make requests</li><li>Express or late checkout, and feedback</li></ul></div>
+        <div class="body"><span class="tag">HOTEL GUESTS · NO SIGN-IN</span><h3>Guest helper</h3>
+          <ul><li>Scan the QR code in the room</li><li>Ask anything by voice or text, and ask for things</li><li>Quick or late check-out, and a rating</li></ul></div>
       </article>
       <article class="app e reveal">
         <div class="art"><svg viewBox="0 0 132 84" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <path d="M6 76h120M8 76l28-40 18 22 16-26 28 44"/><path d="M30 44l6-8 6 8"/><path d="M18 76q20-14 40-8t44-26" stroke-dasharray="3 5"/>
           <path d="M106 40c-8-10-12-16-12-22a12 12 0 0 1 24 0c0 6-4 12-12 22z"/><circle cx="106" cy="18" r="4"/></svg></div>
         <div class="body"><span class="tag">TOURISTS · OFFICIALS · BUSINESSES</span><h3>Uttarakhand tourism portal</h3>
-          <span class="concept">Concept, not an official site</span>
-          <ul><li>Destinations with weather, roads and crowd</li><li>Festivals, local phrases, rules and grievances</li><li>Business registration and officials' analytics</li></ul>
+          <span class="concept">Not a government site</span>
+          <ul><li>Places to visit, with weather, roads and crowds</li><li>Festivals, local words, rules and complaints</li><li>Business sign-up and numbers for officials</li></ul>
           <a class="more" href="https://hoi-portal.vercel.app" target="_blank" rel="noopener">Open the portal →<span class="sr"> (opens in a new tab)</span></a></div>
       </article>
     </div>
@@ -345,101 +344,95 @@ a:focus-visible,button:focus-visible,summary:focus-visible,input:focus-visible{o
 
   <!-- REGIONS -->
   <section>
-    <div class="sechead reveal"><div><div class="eyebrow">Made for seasonal demand</div><h2>Built for hill hotels</h2>
-      <p>Char Dham peaks, festival weekends and winter troughs swing occupancy hard. HOI plans staff and stock around them.</p></div>
+    <div class="sechead reveal"><div><div class="eyebrow">Made for busy and quiet seasons</div><h2>Built for hill hotels</h2>
+      <p>Char Dham season, festival weekends and quiet winters change how full you are. HOI plans staff and stock around them.</p></div>
       <a class="btn ghost" href="#loop">How it works</a></div>
     <div class="regions">
       <div class="region reveal"><div class="art hasphoto" style="background:linear-gradient(180deg,#7fb2ff,#1d4fa8)"><img src="img/region-rishikesh.jpg" alt="" width="480" height="320" loading="lazy" decoding="async"><b>Rishikesh</b><small>RIVER RETREATS</small></div><div class="meta">Peak: May–June →</div></div>
-      <div class="region reveal"><div class="art hasphoto" style="background:linear-gradient(180deg,#9be2c4,#167a52)"><img src="img/hill-town_sm.jpg" alt="" width="480" height="320" loading="lazy" decoding="async"><b>Mussoorie</b><small>WEEKEND HILLS</small></div><div class="meta">Weekend uplift →</div></div>
-      <div class="region reveal"><div class="art hasphoto" style="background:linear-gradient(180deg,#c6b5ff,#5a3fc0)"><img src="img/region-nainital.jpg" alt="" width="480" height="320" loading="lazy" decoding="async"><b>Nainital</b><small>LAKE TOWNS</small></div><div class="meta">Festival spikes →</div></div>
+      <div class="region reveal"><div class="art hasphoto" style="background:linear-gradient(180deg,#9be2c4,#167a52)"><img src="img/hill-town_sm.jpg" alt="" width="480" height="320" loading="lazy" decoding="async"><b>Mussoorie</b><small>WEEKEND HILLS</small></div><div class="meta">Busy weekends →</div></div>
+      <div class="region reveal"><div class="art hasphoto" style="background:linear-gradient(180deg,#c6b5ff,#5a3fc0)"><img src="img/region-nainital.jpg" alt="" width="480" height="320" loading="lazy" decoding="async"><b>Nainital</b><small>LAKE TOWNS</small></div><div class="meta">Festival rush →</div></div>
       <div class="region reveal"><div class="art hasphoto" style="background:linear-gradient(180deg,#e6f0ff,#7d93b8)"><img src="img/region-auli.jpg" alt="" width="480" height="320" loading="lazy" decoding="async"><b>Auli</b><small>SNOW SEASON</small></div><div class="meta">Winter peak →</div></div>
       <div class="region reveal"><div class="art hasphoto" style="background:linear-gradient(180deg,#ffc28a,#c9481a)"><img src="img/region-char-dham.jpg" alt="" width="480" height="320" loading="lazy" decoding="async"><b>Char Dham</b><small>PILGRIM ROUTES</small></div><div class="meta">Seasonal staff →</div></div>
     </div>
-    <p class="photonote">Photos: Wikimedia Commons contributors (CC BY / CC BY-SA), illustrative only, not official tourism imagery. <a href="credits.html">Photo credits</a></p>
   </section>
 
   <!-- LOOP BANNER -->
   <section id="loop">
     <div class="banner reveal">
-      <div class="eyebrow" style="color:rgba(255,255,255,.8);text-transform:uppercase;letter-spacing:.1em">The closed loop</div>
-      <h2>From a busy Saturday to a fair roster to a calmer team.</h2>
-      <p>Most tools either forecast and schedule, or score attrition. HOI connects the two and measures what changed.</p>
+      <div class="eyebrow" style="color:rgba(255,255,255,.8);text-transform:uppercase;letter-spacing:.1em">How it works</div>
+      <h2>From a busy Saturday to a fair shift plan to a calmer team.</h2>
+      <p>Most tools either plan shifts or look at who may leave. HOI does both, and checks if things got better.</p>
       <a class="btn" style="color:var(--ink)" data-app href="#">See it in the demo</a>
       <div class="steps">
-        <div class="step"><div class="n">1</div><b>Forecast</b><span>Occupancy for 1, 7 and 30 days, with an honest uncertainty band.</span></div>
-        <div class="step"><div class="n">2</div><b>Roster</b><span>Constraint solver respects leave, rest and skills, and says why a week can't be staffed.</span></div>
-        <div class="step"><div class="n">3</div><b>Flag & fix</b><span>Explainable drivers, matched actions, protected weekends in the next roster.</span></div>
-        <div class="step"><div class="n">4</div><b>Measure</b><span>Re-score under the new roster. Small effects are shown as small.</span></div>
+        <div class="step"><div class="n">1</div><b>How full we'll be</b><span>For tomorrow, next week and next month, with a likely range.</span></div>
+        <div class="step"><div class="n">2</div><b>Shift plan</b><span>Follows the rules (rest, leave, weekly off) and says clearly when there are not enough people.</span></div>
+        <div class="step"><div class="n">3</div><b>Check in</b><span>See why someone may be tired or unhappy, and a suggested next step, like a weekend off.</span></div>
+        <div class="step"><div class="n">4</div><b>Check again</b><span>See if things got better. A small change is shown as small.</span></div>
       </div>
     </div>
   </section>
 
   <!-- GUEST REQUEST FLOW -->
   <section id="flow">
-    <div class="sechead reveal"><div><div class="eyebrow">Guest concierge → worker app → hotel admin</div><h2>How a guest request flows</h2></div></div>
+    <div class="sechead reveal"><div><div class="eyebrow">Guest → staff → manager</div><h2>How a guest request works</h2></div></div>
     <ol class="flow reveal">
       <li><span class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></span><b>Guest asks by voice</b><span>Scans the room QR and speaks in Hindi or English.</span></li>
-      <li><span class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 5h16v11H9l-5 4z"/><path d="M8 9h8M8 12h5"/></svg></span><b>Concierge understands</b><span>Turns it into a request; the guest taps Confirm.</span></li>
-      <li><span class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M13 2 4 14h7l-1 8 9-12h-7z"/></svg></span><b>Right worker pinged</b><span>Best on-shift person; no reply in time, the next one.</span></li>
-      <li><span class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="3" y="6" width="18" height="14" rx="3"/><circle cx="12" cy="13" r="3.5"/><path d="M8 6l1.5-2h5L16 6"/></svg></span><b>Before / after photo</b><span>Live camera, server time stamp, hashed.</span></li>
+      <li><span class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 5h16v11H9l-5 4z"/><path d="M8 9h8M8 12h5"/></svg></span><b>The app understands</b><span>Turns it into a request. The guest taps Confirm.</span></li>
+      <li><span class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M13 2 4 14h7l-1 8 9-12h-7z"/></svg></span><b>Right person gets it</b><span>The best free person on shift. No reply in time? The next one.</span></li>
+      <li><span class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="3" y="6" width="18" height="14" rx="3"/><circle cx="12" cy="13" r="3.5"/><path d="M8 6l1.5-2h5L16 6"/></svg></span><b>Photo before and after</b><span>Taken in the app, with the time added.</span></li>
       <li><span class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/></svg></span><b>Guest sees done</b><span>Status on the room page moves to done.</span></li>
-      <li><span class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg></span><b>Manager sees the SLA</b><span>Response and completion times, per hotel.</span></li>
+      <li><span class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg></span><b>Manager sees the time</b><span>How fast each request was answered and done.</span></li>
     </ol>
-    <div class="statusrow notes reveal" aria-label="Honest notes">
-      <div class="status w"><div class="row"><span>Status</span></div><div class="big">Prototype · TRL 4</div><p>All data is synthetic. Not yet validated on a real hotel.</p></div>
-      <div class="status b"><div class="row"><span>AI voice and chat</span></div><div class="big">Third-party AI service</div><p>Guests are asked not to share personal details; audio is not stored.</p></div>
-      <div class="status w"><div class="row"><span>Bills and payment</span></div><div class="big">Needs a PMS integration</div><p>Not included. Bills come from the hotel's PMS.</p></div>
-    </div>
   </section>
 
   <!-- DISPATCH APP BANNER -->
   <div class="appban reveal" id="dispatch">
     <h2>Every request,<br>to the right person.</h2>
-    <p>A guest asks for towels; a voice note says the AC is broken. HOI pings the best on-shift person. If they don't accept in time, the next one gets it. Before and after photos are stamped with server time and hashed.</p>
+    <p>A guest asks for towels. A voice note says the AC is broken. HOI sends it to the best free person on shift. If they don't say yes in time, the next person gets it. Photos before and after show the job is done.</p>
     <div style="display:flex;gap:10px;flex-wrap:wrap">
-      <a class="btn dark" data-app href="#">Try live dispatch</a>
-      <a class="btn" style="background:transparent;color:#fff;border-color:rgba(255,255,255,.6)" href="#faq">How photos are verified</a>
+      <a class="btn dark" data-app href="#">Try it</a>
+      <a class="btn" style="background:transparent;color:#fff;border-color:rgba(255,255,255,.6)" href="#faq">How photos are checked</a>
     </div>
     <div class="phones" aria-hidden="true">
       <div class="phone"><div class="screen"><div class="notch"></div>
         <div style="padding:12px 14px 0;font-size:.75rem;color:var(--muted)">E134 · Housekeeping · morning</div>
-        <div class="ping"><div class="ring">20</div><div class="t">NEW REQUEST</div><div class="big">Extra towels, room 204</div>
-          <div style="font-size:.75rem;color:var(--ink2)">medium urgency · floor 2</div><div class="bar"><i></i></div></div>
-        <div class="pbtns"><span>Decline</span><span class="p">Accept</span></div>
+        <div class="ping"><div class="ring">20</div><div class="t">NEW JOB</div><div class="big">Extra towels, room 204</div>
+          <div style="font-size:.75rem;color:var(--ink2)">normal · floor 2</div><div class="bar"><i></i></div></div>
+        <div class="pbtns"><span>Not now</span><span class="p">Take it</span></div>
         <div class="photo"></div></div></div>
       <div class="phone"><div class="screen" style="background:linear-gradient(170deg,#ff9a4d,#f05a1f);color:#fff"><div class="notch"></div>
-        <div style="padding:28px 18px"><div style="font-size:.7rem;letter-spacing:.1em;opacity:.85">WHY THIS WORKER?</div>
-          <div style="font-size:1.4rem;font-weight:600;letter-spacing:-.03em;margin:8px 0 12px">Score 88</div>
-          <div style="font-size:.78rem;line-height:1.9">100 base<br>−0 open jobs<br>−8 fairness<br>−4 distance<br>−0 retention guard</div>
-          <div style="margin-top:16px;font-size:.72rem;opacity:.85">Staff flagged for overload get fewer extra jobs.</div></div></div></div>
+        <div style="padding:28px 18px"><div style="font-size:.7rem;letter-spacing:.1em;opacity:.85">WHY THIS PERSON?</div>
+          <div style="font-size:1.4rem;font-weight:600;letter-spacing:-.03em;margin:8px 0 12px">Free and nearby</div>
+          <div style="font-size:.78rem;line-height:1.9">No open jobs<br>Fair share today<br>Same floor<br>Not overloaded</div>
+          <div style="margin-top:16px;font-size:.72rem;opacity:.85">Tired staff get fewer extra jobs.</div></div></div></div>
     </div>
   </div>
 
   <!-- INVENTORY -->
   <section id="inventory">
-    <div class="sechead reveal"><div><div class="eyebrow">Stores & purchasing</div><h2>Inventory that follows the forecast</h2>
-      <p>Static par levels miss busy weeks. HOI sizes orders from usage per occupied room and the same occupancy forecast that drives the roster.</p></div></div>
+    <div class="sechead reveal"><div><div class="eyebrow">Store and orders</div><h2>Stock that knows a busy week is coming</h2>
+      <p>A fixed "normal level" misses busy weeks. HOI orders by how much each guest room uses and how full you will be.</p></div></div>
     <div class="split">
       <div class="card reveal">
-        <div class="chips"><span class="chip">✓ Requests → issue</span><span class="chip">✓ PO → GRN, partial receipts</span><span class="chip">✓ Stock counts & variance</span>
-          <span class="chip">✓ Wastage with reasons</span><span class="chip">✓ One ledger, no drift</span><span class="chip">✓ Cost per occupied room</span></div>
+        <div class="chips"><span class="chip">✓ Staff request → store gives</span><span class="chip">✓ Order → delivery received</span><span class="chip">✓ Stock counts</span>
+          <span class="chip">✓ Waste with reasons</span><span class="chip">✓ One history for all stock</span><span class="chip">✓ Cost per guest room</span></div>
         <div class="statusrow">
-          <div class="status"><div class="row"><span>Bath towel</span><span>3.4 par</span></div><div class="big">153</div><span class="badge">OK</span></div>
-          <div class="status w"><div class="row"><span>Shampoo 30 ml</span><span>busy week</span></div><div class="big">+205</div><span class="badge">Forecast-aware</span></div>
-          <div class="status r"><div class="row"><span>Geyser element</span><span>reorder</span></div><div class="big">2</div><span class="badge">Below point</span></div>
+          <div class="status"><div class="row"><span>Bath towel</span><span>3.4 sets per room</span></div><div class="big">153</div><span class="badge">OK</span></div>
+          <div class="status w"><div class="row"><span>Shampoo 30 ml</span><span>busy week</span></div><div class="big">+205</div><span class="badge">Order more</span></div>
+          <div class="status r"><div class="row"><span>Geyser part</span><span>order now</span></div><div class="big">2</div><span class="badge">Running low</span></div>
         </div>
       </div>
       <div class="card reveal">
-        <b>Order size: static par vs forecast-aware</b>
-        <div class="minichart" aria-label="Illustrative bar chart">
+        <b>How much to order: fixed level vs busy-week aware</b>
+        <div class="minichart" aria-label="Example bar chart">
           <div style="height:10%"></div><div class="f" style="height:72%"></div>
           <div style="height:12%"></div><div class="f" style="height:64%"></div>
           <div style="height:62%"></div><div class="f" style="height:62%"></div>
           <div style="height:8%"></div><div class="f" style="height:58%"></div>
           <div style="height:60%"></div><div class="f" style="height:60%"></div>
         </div>
-        <div class="legend"><span><i style="background:#2a78d6"></i>Static par rule</span><span><i style="background:#86b6ef"></i>Forecast-aware</span></div>
-        <p style="color:var(--muted);font-size:.8rem;margin-top:8px">Illustrative, from the demo hotel's synthetic data: amenities that look fine on par would run short in a forecast busy week.</p>
+        <div class="legend"><span><i style="background:#2a78d6"></i>Fixed level</span><span><i style="background:#86b6ef"></i>Busy-week aware</span></div>
+        <p style="color:var(--muted);font-size:.8rem;margin-top:8px">Example: soaps and shampoos look fine on a fixed level but run short in a busy week.</p>
       </div>
     </div>
   </section>
@@ -447,41 +440,40 @@ a:focus-visible,button:focus-visible,summary:focus-visible,input:focus-visible{o
   <!-- COMPARE -->
   <section id="compare">
     <div class="sechead reveal"><div><div class="eyebrow">Where HOI fits</div><h2>Compared by category</h2>
-      <p>Each category is strong at its own job. HOI's bet is connecting them. "Partial" means limited or not publicly evidenced.</p></div></div>
+      <p>Each kind of tool is good at its own job. HOI joins them up. "Partial" means only some of it.</p></div></div>
     <div class="tablewrap reveal"><table>
-      <thead><tr><th>Capability</th><th>HOI</th><th>Scheduling / WFM</th><th>HR attrition analytics</th><th>Hotel task apps</th><th>Inventory tools</th></tr></thead>
+      <thead><tr><th>What it does</th><th>HOI</th><th>Shift planning tools</th><th>HR tools</th><th>Hotel task apps</th><th>Stock tools</th></tr></thead>
       <tbody>
-        <tr><td>Demand forecast → roster</td><td class="y">Yes</td><td class="y">Yes</td><td class="n">No</td><td class="n">No</td><td class="n">No</td></tr>
-        <tr><td>Individual, explained attrition risk</td><td class="y">Yes</td><td class="n">No</td><td class="y">Yes</td><td class="n">No</td><td class="n">No</td></tr>
-        <tr><td>Risk → action → roster → re-score loop</td><td class="y">Yes</td><td class="n">No</td><td class="p">Partial</td><td class="n">No</td><td class="n">No</td></tr>
-        <tr><td>Live dispatch with photo proof</td><td class="y">Yes</td><td class="p">Partial</td><td class="n">No</td><td class="y">Yes</td><td class="n">No</td></tr>
-        <tr><td>Forecast-aware purchasing</td><td class="y">Yes</td><td class="n">No</td><td class="n">No</td><td class="n">No</td><td class="p">Partial</td></tr>
-        <tr><td>Payroll / attendance system of record</td><td class="n">No</td><td class="p">Partial</td><td class="y">Yes</td><td class="n">No</td><td class="n">No</td></tr>
-        <tr><td>Proven on real hotel data</td><td class="n">Not yet</td><td class="y">Yes</td><td class="y">Yes</td><td class="y">Yes</td><td class="y">Yes</td></tr>
+        <tr><td>How full we'll be → shift plan</td><td class="y">Yes</td><td class="y">Yes</td><td class="n">No</td><td class="n">No</td><td class="n">No</td></tr>
+        <tr><td>Who may leave soon, and why</td><td class="y">Yes</td><td class="n">No</td><td class="y">Yes</td><td class="n">No</td><td class="n">No</td></tr>
+        <tr><td>Check in → next step → new shifts → check again</td><td class="y">Yes</td><td class="n">No</td><td class="p">Partial</td><td class="n">No</td><td class="n">No</td></tr>
+        <tr><td>Jobs to staff phones, with photos</td><td class="y">Yes</td><td class="p">Partial</td><td class="n">No</td><td class="y">Yes</td><td class="n">No</td></tr>
+        <tr><td>Orders that know a busy week is coming</td><td class="y">Yes</td><td class="n">No</td><td class="n">No</td><td class="n">No</td><td class="p">Partial</td></tr>
+        <tr><td>Salary and attendance records</td><td class="n">No</td><td class="p">Partial</td><td class="y">Yes</td><td class="n">No</td><td class="n">No</td></tr>
+        <tr><td>Tested in a real hotel</td><td class="n">Not yet</td><td class="y">Yes</td><td class="y">Yes</td><td class="y">Yes</td><td class="y">Yes</td></tr>
       </tbody></table></div>
-    <p style="color:var(--muted);font-size:.8rem;margin-top:10px">Based on public vendor material and review sites, October 2026. HOI is a prototype on synthetic data (TRL 4), ready for a real-property pilot.</p>
+    <p style="color:var(--muted);font-size:.8rem;margin-top:10px">Based on public product pages and reviews, October 2026.</p>
   </section>
 
   <!-- FAQ -->
   <section id="faq">
     <div class="sechead reveal"><div><div class="eyebrow">Straight answers</div><h2>Questions hotels ask</h2></div></div>
-    <details class="reveal" open><summary>Does HOI predict who will quit?</summary><p>No. It ranks who may need support this week and explains why (for example sustained overtime, no weekend off, a pay gap). Flags exist to offer help, never to punish or decide dismissals. Every reason shows how strongly the data supports it.</p></details>
-    <details class="reveal"><summary>What employee data do you need?</summary><p>Employee ID, department, skills, contract type, shifts, leave and task records. Names, gender, religion, caste, health and family status are not collected, and staff imports with such columns are rejected.</p></details>
-    <details class="reveal"><summary>How are before/after photos verified?</summary><p>Photos are taken in the app's live camera, stamped with the server's time (never the phone's), tied to the job and worker, and hashed with SHA-256 so later edits are detectable. This cannot stop someone photographing a screen; a code shown at capture time raises the bar.</p></details>
-    <details class="reveal"><summary>Is it proven on real hotels?</summary><p>Not yet. Everything shown runs on a realistic synthetic hotel. Accuracy numbers are reported beside simple baselines, and the next step is a pilot with a real property.</p></details>
-    <details class="reveal"><summary>Can each hotel group keep its own data?</summary><p>Yes. Each group is a separate workspace with its own properties, staff, jobs, inventory and data source, and can point to its own backend.</p></details>
+    <details class="reveal" open><summary>Does HOI say who will quit?</summary><p>No. It shows who may need a friendly chat this week, and why (for example a lot of overtime, no weekend off, or lower pay). It is there to help people, never to punish or fire anyone.</p></details>
+    <details class="reveal"><summary>What staff details do you need?</summary><p>Staff ID, department, skills, contract type, shifts, leave and jobs. We never take names, gender, religion, caste, health or family details. Staff lists with these are not accepted.</p></details>
+    <details class="reveal"><summary>How are before and after photos checked?</summary><p>Photos are taken in the app, not picked from the gallery. Our server adds the time (not the phone), the job and the person, and can tell if a photo was changed later. It cannot stop a photo of a screen.</p></details>
+    <details class="reveal"><summary>Has it been tested in a real hotel?</summary><p>Not yet. The demo uses a made-up practice hotel. The next step is a trial with a real hotel.</p></details>
+    <details class="reveal"><summary>Is each hotel's data kept separate?</summary><p>Yes. Each hotel has its own staff, jobs, stock and data, and can use its own server.</p></details>
   </section>
 
   <!-- CTA -->
   <section id="contact">
     <div class="hero cta hasphoto reveal" style="min-height:auto;padding:56px 24px 64px;text-align:center">
       <svg class="mtn" viewBox="0 0 1200 360" preserveAspectRatio="none" aria-hidden="true"><path fill="rgba(255,255,255,.14)" d="M0 360 L0 230 L160 150 L280 210 L420 110 L560 200 L700 140 L860 230 L1000 150 L1200 230 L1200 360Z"/></svg>
-      <div style="position:relative"><h2 style="font-size:clamp(2rem,4.6vw,3.6rem)">See the suite in action</h2>
-        <p style="max-width:560px;margin:12px auto 24px;color:rgba(255,255,255,.9)">Open the demo, try the concept tourism portal, or write to us about a pilot.</p>
+      <div style="position:relative"><h2 style="font-size:clamp(2rem,4.6vw,3.6rem)">See it working</h2>
+        <p style="max-width:560px;margin:12px auto 24px;color:rgba(255,255,255,.9)">Open the demo, try the tourism portal, or write to us about a trial.</p>
         <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap"><a class="btn dark" data-app href="#">See the demo</a>
           <a class="btn primary" href="https://hoi-portal.vercel.app" target="_blank" rel="noopener">Try the tourism portal</a>
-          <a class="btn" style="color:var(--ink)" data-mail href="#">Ask about a pilot</a></div></div>
-      <a class="pcredit" href="https://commons.wikimedia.org/wiki/File:Traditional_Kumaoni_house.jpg" target="_blank" rel="noopener">Photo: Harshit SR, CC BY-SA 4.0 (Wikimedia Commons)</a>
+          <a class="btn" style="color:var(--ink)" data-mail href="#">Ask about a trial</a></div></div>
     </div>
   </section>
 </main>
@@ -492,12 +484,12 @@ a:focus-visible,button:focus-visible,summary:focus-visible,input:focus-visible{o
       <div><a class="brand" href="#"><i class="brandmark"><img src="img/brand/hoi-mark.svg" alt="" width="38" height="38"></i>HOI</a>
         <p style="color:var(--ink2);font-size:.88rem;margin-top:10px">Hospitality Operations Intelligence</p>
         <div class="mail"><input type="email" placeholder="Your email for updates" aria-label="Email"><a data-mail href="#" aria-label="Send">→</a></div></div>
-      <div><h4>Product</h4><a href="#loop">Forecast & roster</a><a href="#dispatch">Dispatch</a><a href="#flow">Guest requests</a><a href="#inventory">Inventory</a><a href="#loop">Retention</a></div>
-      <div><h4>Apps</h4><a href="#apps">Super-admin portal</a><a href="#apps">Hotel admin portal</a><a href="#apps">Worker app</a><a href="#apps">Guest concierge</a><a href="https://hoi-portal.vercel.app" target="_blank" rel="noopener">Tourism portal (concept)</a></div>
-      <div><h4>Trust</h4><a href="#faq">Data we collect</a><a href="#faq">Photo verification</a><a href="#faq">Purpose limitation</a></div>
+      <div><h4>Product</h4><a href="#loop">Shift plan</a><a href="#dispatch">Jobs</a><a href="#flow">Guest requests</a><a href="#inventory">Stock</a><a href="#loop">Check-ins</a></div>
+      <div><h4>Apps</h4><a href="#apps">HOI team console</a><a href="#apps">Hotel dashboard</a><a href="#apps">Staff app</a><a href="#apps">Guest helper</a><a href="https://hoi-portal.vercel.app" target="_blank" rel="noopener">Tourism portal</a></div>
+      <div><h4>Trust</h4><a href="#faq">Data we collect</a><a href="#faq">How photos are checked</a><a href="#faq">Never used to punish</a></div>
       <div><h4>Company</h4><a href="#contact">Contact</a><a data-app href="#">Sign in</a><a href="https://github.com/Ashu-Stark/Hospitality-" target="_blank" rel="noopener">Code on GitHub</a><a href="credits.html">Photo credits</a></div>
     </div>
-    <div class="legal"><span>© 2026 HOI · AI-Tourism Hackathon 2026 · demo data is synthetic</span><span>No real person appears in the demo</span></div>
+    <div class="legal"><span>© 2026 HOI · Hospitality Operations Intelligence</span></div>
   </footer>
 </div>
 
@@ -516,11 +508,11 @@ const ICON = {
   bolt:'<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M13 2 4 14h7l-1 8 9-12h-7z"/></svg>'
 };
 const TABS = {
-  roster:[["cal","Week","Mon 24 – Sun 30"],["user","Busiest day","Sat · ~85% occupancy"],["bolt","Solve","CP-SAT · coverage & fairness"]],
-  dispatch:[["bolt","Request","AC not cooling · room 204"],["user","Pinged","Best on-shift technician"],["cal","Proof","Before + after photo"]],
-  inventory:[["box","Item","Shampoo 30 ml"],["cal","Forecast week","Busy · order +205"],["user","Flow","Request → issue → PO → GRN"]],
-  retention:[["user","Flagged for review","6 permanent staff"],["bolt","Top driver","Overtime overload"],["cal","Fix","Protected weekends"]],
-  guest:[["user","Guest asks","“Ek extra blanket milega?”"],["bolt","Concierge","Confirms, sends to housekeeping"],["cal","Status","Open → in progress → done"]]
+  roster:[["cal","Week","Mon 24 – Sun 30"],["user","Busiest day","Sat · about 85% full"],["bolt","Plan","Enough people, shared fairly"]],
+  dispatch:[["bolt","Request","AC not cooling · room 204"],["user","Sent to","Best free technician on shift"],["cal","Proof","Photo before + after"]],
+  inventory:[["box","Item","Shampoo 30 ml"],["cal","Next week","Busy · order 205 more"],["user","Steps","Request → give → order → delivery"]],
+  retention:[["user","Check in this week","6 staff"],["bolt","Main reason","Too much overtime"],["cal","Next step","A weekend off"]],
+  guest:[["user","Guest asks","“Ek extra blanket milega?”"],["bolt","The app","Checks, sends to housekeeping"],["cal","Status","Received → in progress → done"]]
 };
 const fields = document.getElementById("fields");
 function show(t){

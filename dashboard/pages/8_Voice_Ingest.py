@@ -13,20 +13,15 @@ with st.container(key="card_voice"):
     a, b, c = st.columns([1.2, 2, 1])
     with a:
         ui.html(
-            '<div class="ss-field"><span>' + theme.icon("mic", 22, "#1f6fe5") + '</span><div><div class="lbl">Demo clip</div>'
+            '<div class="ss-field"><span>' + theme.icon("mic", 22, "#1f6fe5") + '</span><div><div class="lbl">Example voice note</div>'
             f'<div class="v">{DEMO_CLIP}</div></div></div>'
         )
-        use_demo = st.button("Use demo clip", type="primary", icon=":material/play_arrow:", width="stretch")
+        use_demo = st.button("Use the example", type="primary", icon=":material/play_arrow:", width="stretch")
     with b:
-        clip = st.text_input(
-            "Or a clip name on the server",
-            placeholder="clip_01.wav",
-            help="The backend reads audio from its clips folder (ml/voice/clips). Browser upload is not wired to the API yet.",
-        )
-        st.caption("Uploading audio from the browser needs a backend upload endpoint; today the API takes a server-side clip name.")
+        clip = st.text_input("Or the name of a saved voice note", placeholder="clip_01.wav")
     with c:
         ui.html('<div style="height:26px"></div>')
-        go = st.button("Transcribe", icon=":material/graphic_eq:", width="stretch", disabled=not clip)
+        go = st.button("Turn into text", icon=":material/graphic_eq:", width="stretch", disabled=not clip)
 
 
 def ingest(name: str, create_task: bool) -> dict | None:
@@ -36,8 +31,8 @@ def ingest(name: str, create_task: bool) -> dict | None:
         if e.status == 503:
             ui.html(
                 theme.banner(
-                    f"<b>The clip '{theme.esc(name)}' could not be processed.</b> The server does not have this audio file, "
-                    f"or speech-to-text is unavailable right now. Try the demo clip ({DEMO_CLIP}).",
+                    f"<b>We could not read '{theme.esc(name)}'.</b> The file is missing, or voice-to-text is not working right now. "
+                    f"Try the example ({DEMO_CLIP}).",
                     "amber",
                     "mic",
                 )
@@ -45,20 +40,20 @@ def ingest(name: str, create_task: bool) -> dict | None:
         elif e.status in (400, 422, 403):
             ui.html(
                 theme.banner(
-                    f"<b>That clip name is not valid.</b> Use a plain file name such as <code>{DEMO_CLIP}</code> "
+                    f"<b>That name does not work.</b> Use a plain file name such as <code>{DEMO_CLIP}</code> "
                     "(no folders or special characters).",
                     "amber",
                     "info",
                 )
             )
         else:
-            ui.html(theme.banner(f"<b>Voice ingest failed.</b> {theme.esc(e.message)}", "red", "alert"))
+            ui.html(theme.banner(f"<b>The voice note did not work.</b> {theme.esc(e.message)}", "red", "alert"))
         return None
 
 
 if use_demo or go:
     name = DEMO_CLIP if use_demo else clip.strip()
-    with st.spinner("Transcribing and extracting…"):
+    with st.spinner("Listening and writing it down…"):
         res = ingest(name, False)
     if res:
         st.session_state["voice_res"] = {"file": name, "res": res}
@@ -71,21 +66,14 @@ if state:
     left, right = st.columns(2)
     with left:
         ui.html(
-            f'<div class="ss-card" style="min-height:230px"><div style="color:#6b6a65;font-size:.82rem">Transcript · {theme.esc(v.get("audio_file"))}</div>'
-            f'<div style="font-size:1.35rem;letter-spacing:-.02em;margin:10px 0 14px;line-height:1.35">“{theme.esc(v.get("transcript"))}”</div>'
-            f'<div style="display:flex;gap:6px;flex-wrap:wrap"><span class="ss-tag">provider: {theme.esc(v.get("provider"))}</span>'
-            + (
-                '<span class="ss-tag" style="background:#fff6df;border-color:#f2cd6f;color:#7a5000">fallback used</span>'
-                if v.get("fallback_used")
-                else ""
-            )
-            + "</div></div>"
+            f'<div class="ss-card" style="min-height:230px"><div style="color:#6b6a65;font-size:.82rem">What we heard · {theme.esc(v.get("audio_file"))}</div>'
+            f'<div style="font-size:1.35rem;letter-spacing:-.02em;margin:10px 0 14px;line-height:1.35">“{theme.esc(v.get("transcript"))}”</div></div>'
         )
     with right:
         urg = str(ex.get("urgency") or "unknown")
         tone = {"high": "high", "medium": "watch", "low": "low"}.get(urg, "unknown")
         ui.html(
-            '<div class="ss-card" style="min-height:230px"><div style="color:#6b6a65;font-size:.82rem;margin-bottom:10px">Structured extraction</div>'
+            '<div class="ss-card" style="min-height:230px"><div style="color:#6b6a65;font-size:.82rem;margin-bottom:10px">What we understood</div>'
             + theme.kv(
                 [
                     ("Room", theme.esc(ex.get("room") or "—")),
@@ -94,13 +82,13 @@ if state:
                     ("Urgency", theme.band_chip(tone, urg)),
                 ]
             )
-            + f'<div style="color:#6b6a65;font-size:.78rem;margin-top:10px">Matched glossary terms: {theme.esc(", ".join(ex.get("matched_terms") or []) or "—")}</div></div>'
+            + f'<div style="color:#6b6a65;font-size:.78rem;margin-top:10px">Key words heard: {theme.esc(", ".join(ex.get("matched_terms") or []) or "—")}</div></div>'
         )
     task = st.session_state.get("voice_task")
     if task:
         ui.html(
             theme.banner(
-                f"<b>Task #{task.get('id')} created:</b> {theme.esc(task.get('title'))} · assigned to {theme.esc(task.get('assignee'))} · "
+                f"<b>Task #{task.get('id')} made:</b> {theme.esc(task.get('title'))} · for {theme.esc(task.get('assignee'))} · "
                 f"due {theme.esc(str(task.get('deadline', ''))[:16].replace('T', ' '))}",
                 "blue",
                 "check",
@@ -109,16 +97,16 @@ if state:
     else:
         c1, c2 = st.columns([1, 3])
         with c1:
-            if st.button("Confirm & create task", type="primary", icon=":material/add_task:", width="stretch"):
-                with st.spinner("Creating task…"):
+            if st.button("Looks right: make a task", type="primary", icon=":material/add_task:", width="stretch"):
+                with st.spinner("Making the task…"):
                     res = ingest(state["file"], True)
                 if res and res.get("task"):
                     st.session_state["voice_task"] = res["task"]
                     st.rerun()
                 elif res:
-                    ui.html(theme.banner("The backend did not create a task for this clip (no task returned).", "amber", "info"))
+                    ui.html(theme.banner("No task was made for this voice note.", "amber", "info"))
         with c2:
-            if st.button("Confirm & auto-dispatch to an on-shift worker", icon=":material/bolt:"):
+            if st.button("Looks right: send as a job to a free person on shift", icon=":material/bolt:"):
                 data.ops_inputs(st.session_state.get("ops_day"), st.session_state.get("ops_shift_val"))  # publish who is on shift
                 ui.safe(
                     platform.create_job,
@@ -127,17 +115,17 @@ if state:
                     ex.get("room"),
                     {"high": "high", "low": "low"}.get(urg, "medium"),
                     "voice",
-                    what="dispatch the voice request",
+                    what="send the job",
                 )
                 st.session_state["voice_task"] = {
-                    "id": "dispatch",
-                    "title": "Sent to Live dispatch",
-                    "assignee": "best on-shift worker",
+                    "id": "job",
+                    "title": "Sent as a job",
+                    "assignee": "the best free person on shift",
                     "deadline": "",
                 }
                 st.switch_page(nav.page("pages/10_Dispatch.py"))
-            st.caption("Nothing is created until you confirm. Check the room and issue first: speech-to-text can mishear.")
+            st.caption("Nothing is made until you press a button. Check the room and problem first: voice-to-text can mishear.")
 else:
-    ui.empty("Press Use demo clip to try the flow.")
+    ui.empty("Press Use the example to try it.")
 
 ui.footer()

@@ -25,8 +25,17 @@ ui.html(
     f'<div class="ss-photohead" style="{style}">'
     + (f'<img class="logo" src="{theme.esc(logo)}" alt="">' if logo else "")
     + f'<div><div class="eyebrow">{theme.esc(greet)} · {"Homestay" if HOMESTAY else "Hotel"} mode</div>'
-    f"<h1>{theme.esc(name)}</h1></div></div>"
-    + (f'<div class="ss-credit">{theme.esc(prof.get("cover_photo_credit") or "")}</div>' if cover_src else "")
+    f"<h1>{theme.esc(name)}</h1></div>"
+    + (  # photo credit: a small (i) with the credit on hover, not a visible caption
+        f'<span class="ss-photoinfo" title="Photo: {theme.esc(prof.get("cover_photo_credit"))}" aria-label="Photo credit">i</span>'
+        if cover_src and prof.get("cover_photo_credit")
+        else ""
+    )
+    + "</div>"
+)
+ui.html(
+    "<style>.ss-photohead{position:relative}.ss-photoinfo{position:absolute;right:12px;bottom:10px;width:18px;height:18px;"
+    "border-radius:50%;background:rgba(255,255,255,.75);color:#0b0b0b;font:600 11px/18px serif;text-align:center;cursor:help}</style>"
 )
 _pp, _ = st.columns([1, 2])
 with _pp:
@@ -76,17 +85,17 @@ nums = [
     (
         "Team today" if HOMESTAY else "Staff on shift",
         today.n(d.get("on_shift")),
-        "Your whole team (no roster needed)" if HOMESTAY else "Working right now (from the roster)",
+        "Your whole team (no roster needed)" if HOMESTAY else "Working right now (from the shift plan)",
         "info",
     ),
-    ("Low stock", today.n(low), "Items at or below their reorder level" if low else "Stock is fine", tone(low, 1, 4)),
+    ("Low stock", today.n(low), "Running out: time to order" if low else "Stock is fine", tone(low, 1, 4)),
 ]
 if checkin or not HOMESTAY:
     nums.append(
         (
             "People to check in with",
             str(len(checkin)),
-            "A friendly chat may help (support, not discipline)" if checkin else "No one flagged this week",
+            "A friendly chat may help" if checkin else "No one this week",
             "warn" if checkin else "ok",
         )
     )
@@ -122,8 +131,8 @@ for j in d.get("waiting_jobs") or []:
     todo.append(
         (
             f"Nobody has taken: {j['title']}",
-            "Offer it again to whoever is free.",
-            "Offer again",
+            "Send it again to whoever is free.",
+            "Send again",
             f"act_retry_{j['id']}",
             lambda jid=j["id"]: platform.retry(jid),
         )
@@ -152,9 +161,9 @@ if reqs:
 if s.get("inspection"):
     todo.append(
         (
-            f"{s['inspection']} room(s) waiting for inspection",
-            "Pass them so they can be sold.",
-            "Inspect rooms",
+            f"{s['inspection']} room(s) waiting for a check",
+            "Check them so the next guest can have them.",
+            "Check rooms",
             "act_insp",
             "pages/14_Rooms.py",
         )
@@ -163,7 +172,7 @@ if low:
     todo.append(
         (
             f"Low stock: {', '.join(i['name'] for i in low[:3])}" + (" …" if len(low) > 3 else ""),
-            "Reorder before you run out.",
+            "Order before you run out.",
             "Open stock",
             "act_stock",
             "pages/13_Inventory.py",
@@ -174,7 +183,7 @@ if checkin and not HOMESTAY:
         (
             f"Check in with {', '.join(ui.short_name(e) for e in checkin[:3])}",
             "Ask how they are doing; offer support.",
-            "See check-ins",
+            "See who",
             "act_checkin",
             "pages/2_Risk_List.py",
         )

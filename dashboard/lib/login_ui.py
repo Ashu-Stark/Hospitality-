@@ -27,9 +27,23 @@ def render() -> None:
         _render_hotel()
 
 
+# Everyday words for the demo-account cards (the API's descriptions use internal page names); unknown accounts keep theirs.
+DEMO_TEXT = {
+    "platform": "Add and manage hotels",
+    "demo.owner": "Sees everything for the hotel",
+    "demo.hr": "Check-ins and people, no shifts or stock",
+    "demo.housekeeping": "Shift plan, jobs and stock requests",
+    "demo.frontoffice": "Guest requests, late check-outs, jobs",
+    "demo.store": "Stock only",
+    "demo.homestay": "The simple app for a 6-room homestay",
+    "DN03": "A simple task list",
+}
+
+
 def _demo_card(d: dict, primary: bool) -> None:
+    desc = DEMO_TEXT.get(d["username"]) or str(d["description"]).replace("Employee app:", "Staff app:")
     st.markdown(
-        f'<div class="ss-demo-card ss-anim"><b>{theme.esc(d["label"])}</b><div>{theme.esc(d["description"])}</div></div>',
+        f'<div class="ss-demo-card ss-anim"><b>{theme.esc(d["label"])}</b><div>{theme.esc(desc)}</div></div>',
         unsafe_allow_html=True,
     )
     if st.button("Enter", key=f"demo_{d['username']}", width="stretch", type="primary" if primary else "secondary"):
@@ -60,34 +74,33 @@ def _signin_form(label: str = "Username or employee ID") -> None:
 def _render_super() -> None:
     st.markdown(
         f'<div class="ss-topbar ss-super">{portal.brand_html({})}'
-        '<div class="ss-util"><span>Hotels</span><span>Insights</span><span>Audit</span></div></div>',
+        '<div class="ss-util"><span>Hotels</span><span>Insights</span><span>Activity log</span></div></div>',
         unsafe_allow_html=True,
     )
     left, right = st.columns([1.25, 1], gap="large")
     with left:
         st.markdown(
             theme.hero(
-                "HOI platform console",
-                "For the HOI team only: onboard hotel groups, set plans and modules, follow usage across hotels, and review the "
-                "audit log. Every action here is recorded.",
-                eyebrow="Platform admin",
+                "HOI team console",
+                "For the HOI team only. Add hotels, choose what each hotel can use, see how hotels use HOI, and check the "
+                "activity log. Everything you do here is logged.",
+                eyebrow="HOI team",
                 variant="dark",
-                pills=["Hotels", "Plans & modules", "Insights", "Audit log"],
+                pills=["Hotels", "Plans", "Insights", "Activity log"],
             ),
             unsafe_allow_html=True,
         )
     with right:
         with st.container(key="login_card"):
             st.markdown(
-                '<div style="font-size:1.6rem;font-weight:600;letter-spacing:-.03em">Platform sign-in</div>'
-                '<div style="color:#6b6a65;margin-bottom:8px">HOI staff accounts only</div>',
+                '<div style="font-size:1.6rem;font-weight:600;letter-spacing:-.03em">HOI team sign-in</div>'
+                '<div style="color:#6b6a65;margin-bottom:8px">For HOI team accounts only</div>',
                 unsafe_allow_html=True,
             )
             _signin_form("Username")
     st.markdown(
         theme.banner(
-            "<b>Work at a hotel?</b> Owners, HR, department heads, storekeepers and employees sign in at the hotel admin portal: "
-            + portal.link(config.hotel_portal_url()),
+            "<b>Work at a hotel?</b> Owners, managers and staff sign in here instead: " + portal.link(config.hotel_portal_url()),
             "blue",
             "user",
         ),
@@ -95,23 +108,17 @@ def _render_super() -> None:
     )
     demos = [d for d in auth.demo_accounts() if d["username"] == "platform"]
     if demos:
-        st.markdown(
-            theme.section("Try it without an account", "Demo", "One click, platform admin, synthetic data."), unsafe_allow_html=True
-        )
+        st.markdown(theme.section("Try it without an account", "Demo", "One click. Practice data."), unsafe_allow_html=True)
         c, _ = st.columns([1, 3])
         with c:
-            _demo_card({**demos[0], "label": "Platform admin"}, True)
-    st.markdown(
-        '<div class="ss-footer"><span>HOI Platform Admin · synthetic demo data · no real person appears anywhere</span></div>',
-        unsafe_allow_html=True,
-    )
+            _demo_card({**demos[0], "label": "HOI team"}, True)
 
 
 # ------------------------------------------------------------------ hotel admin portal
 def _render_hotel() -> None:
     st.markdown(
         f'<div class="ss-topbar">{portal.brand_html({})}'
-        '<div class="ss-util"><span>Retention</span><span>Roster</span><span>Dispatch</span><span>Inventory</span></div></div>',
+        '<div class="ss-util"><span>Shift plan</span><span>Jobs</span><span>Stock</span><span>Your team</span></div></div>',
         unsafe_allow_html=True,
     )
     left, right = st.columns([1.25, 1], gap="large")
@@ -119,10 +126,10 @@ def _render_hotel() -> None:
         st.markdown(
             theme.hero(
                 "Run a calmer hotel.<br>Keep your best people.",
-                "Forecast-driven rosters, live job dispatch with photo proof, inventory that follows demand, and early, explainable "
-                "signals about who may need support.",
-                eyebrow="Hotel admin portal",
-                pills=["Retention", "Roster", "Dispatch", "Inventory", "Forecast"],
+                "Plan shifts for how busy you will be. Send jobs to staff phones and get photo proof. Know when stock runs low. "
+                "See early who may need a friendly chat.",
+                eyebrow="For hotel owners and managers",
+                pills=["Shift plan", "Jobs", "Stock", "How full we'll be", "Check-ins"],
             ),
             unsafe_allow_html=True,
         )
@@ -130,7 +137,7 @@ def _render_hotel() -> None:
         with st.container(key="login_card"):
             st.markdown(
                 '<div style="font-size:1.6rem;font-weight:600;letter-spacing:-.03em">Welcome back</div>'
-                '<div style="color:#6b6a65;margin-bottom:8px">Sign in to your hotel workspace</div>',
+                '<div style="color:#6b6a65;margin-bottom:8px">Sign in to your hotel</div>',
                 unsafe_allow_html=True,
             )
             t_in, t_join = st.tabs(["Sign in", "Join with invite code"])
@@ -152,7 +159,7 @@ def _render_hotel() -> None:
     st.markdown(
         theme.banner(
             f"<b>Hotel staff?</b> Use the staff app on your phone: <b>{theme.esc(_pf.public_url())}/worker/</b> "
-            "(shifts, job pings, photo proof, supplies). Add it to your home screen.",
+            "(your shifts, new jobs, photos, supplies). Add it to your home screen.",
             "blue",
             "user",
         ),
@@ -165,7 +172,7 @@ def _render_hotel() -> None:
             theme.section(
                 "Try it without an account",
                 "Demo",
-                "One click, one role, on the demo hotel with synthetic data. Each role sees only what it is allowed to.",
+                "One click. Each role sees only its own pages. Practice data.",
             ),
             unsafe_allow_html=True,
         )
@@ -177,16 +184,9 @@ def _render_hotel() -> None:
     if any(d["username"] == "platform" for d in all_demos):
         a, b = st.columns([3, 1], vertical_alignment="center")
         a.markdown(
-            f'<div style="color:#6b6a65;font-size:.85rem">HOI staff: the platform console is at {portal.link(config.super_portal_url())}. '
-            "A platform account can also sign in here to open one hotel (audited).</div>",
+            f'<div style="color:#6b6a65;font-size:.85rem">HOI team: your console is at {portal.link(config.super_portal_url())}. '
+            "You can also open one hotel from here (it is logged).</div>",
             unsafe_allow_html=True,
         )
-        if b.button("Platform admin: choose a hotel", key="demo_platform", type="tertiary", icon=":material/shield:"):
+        if b.button("HOI team: choose a hotel", key="demo_platform", type="tertiary", icon=":material/shield:"):
             _demo("platform")
-
-    st.markdown(
-        '<div class="ss-footer"><span>Hospitality Operations Intelligence (HOI) · hotel admin portal · synthetic demo data · '
-        "no real person appears anywhere</span>"
-        "<span>Product site: website/site/index.html (live at /site on the portal domain)</span></div>",
-        unsafe_allow_html=True,
-    )

@@ -5,10 +5,13 @@ from lib import api_client as api
 from lib import data, models, theme, ui
 from lib.config import current_settings
 
-ui.setup("pages/4_What_If_Simulator.py", "What-if")
-ui.page_head("What-if", "Try different working conditions for one person and see how their score moves. A simulation, not a promise.")
+ui.setup("pages/4_What_If_Simulator.py", "Try a change")
+ui.page_head(
+    "Try a change",
+    "Change one person's work (for example, more weekends off) and see if they are less likely to leave. A guess, not a promise.",
+)
 
-scores = ui.safe(data.scores, ui.week(), what="load risk scores")
+scores = ui.safe(data.scores, ui.week(), what="load the check-in list")
 if not scores:
     ui.footer()
     st.stop()
@@ -22,29 +25,29 @@ default = "H901" if mock and "H901" in options else st.session_state.get("select
 c1, c2 = st.columns([2, 3])
 with c1:
     emp = st.selectbox(
-        "Employee (permanent staff)", options, index=options.index(default) if default in options else 0, format_func=ui.display_name
+        "Person (permanent staff)", options, index=options.index(default) if default in options else 0, format_func=ui.display_name
     )
 with c2:
     if mock:
         ui.html(
             '<div style="height:26px"></div>'
             + theme.banner(
-                "MOCK mode holds one captured what-if: <b>Sunita, 2 protected weekends off</b>. Switch to LIVE to try any person or value.",
+                "Practice data has one example: <b>Sunita, 2 weekends off</b>.",
                 "amber",
                 "info",
             )
         )
-st.caption("Seasonal staff are excluded: their band follows the contract-date rule, which roster changes do not affect.")
+st.caption("Seasonal staff are not here: their group depends on when their contract ends.")
 
 
 @st.cache_data(ttl=120, show_spinner=False)
 def probe(base: str, use_mocks: bool, employee_id: str, week: str | None) -> dict:
-    """Ask the backend which features a rescore touches and their current values (protected_weekends_off=1)."""
+    """Ask the ML API which inputs a rescore touches and their current values (protected_weekends_off=1)."""
     return api.rescore_attrition(employee_id, protected_weekends_off=2 if use_mocks else 1, week_start=week)
 
 
 s = current_settings()
-with st.spinner("Reading this employee's current features…"):
+with st.spinner("Reading this person's numbers…"):
     try:
         pr = models.parse_rescore(probe(s.api_base_url, s.use_mocks, emp, ui.week()))
         current_feats = pr.features_before
@@ -54,15 +57,11 @@ with st.spinner("Reading this employee's current features…"):
 
 # ------------------------------------------------------------------ inputs (from the API schema)
 with st.container(key="card_inputs"):
-    ui.html(
-        '<div style="font-weight:600;font-size:1.1rem;margin-bottom:4px">Scenario</div>'
-        '<div style="color:#6b6a65;font-size:.82rem;margin-bottom:10px">Inputs come from the rescore API: '
-        "<code>protected_weekends_off</code> plus the feature values it reports for this person.</div>"
-    )
-    pw = st.slider("Protected weekends off this period", 0, 4, 2, help="RescoreRequest.protected_weekends_off")
+    ui.html('<div style="font-weight:600;font-size:1.1rem;margin-bottom:4px">What do you want to change?</div>')
+    pw = st.slider("Weekends off (kept free) this month", 0, 4, 2)
     overrides: dict[str, float] = {}
     if current_feats:
-        st.markdown("**Or override features directly** (leave unchanged to let the backend derive them from the protected weekends)")
+        st.markdown("**Or change these numbers yourself** (leave them as they are to work them out from the weekends off)")
         cols = st.columns(min(3, len(current_feats)))
         for i, (k, v) in enumerate(current_feats.items()):
             with cols[i % len(cols)]:
@@ -74,16 +73,16 @@ with st.container(key="card_inputs"):
                     value=float(v),
                     step=1.0,
                     key=f"ov_{emp}_{k}",
-                    help=f"feature_overrides.{k} · current {v}",
+                    help=f"Now: {v}",
                 )
                 if nv != float(v):
                     overrides[k] = nv
-    go = st.button("Rescore", type="primary", icon=":material/refresh:")
+    go = st.button("See the result", type="primary", icon=":material/refresh:")
 
 hist = st.session_state.setdefault("whatif_history", [])
 if go:
-    with st.spinner("Re-scoring…"):
-        raw = ui.safe(api.rescore_attrition, emp, overrides or None, pw or None, ui.week(), what="re-score this employee")
+    with st.spinner("Working it out…"):
+        raw = ui.safe(api.rescore_attrition, emp, overrides or None, pw or None, ui.week(), what="work out the result")
     if raw:
         r = models.parse_rescore(raw)
         hist.insert(0, {"r": r, "pw": pw, "ov": overrides, "mismatch": raw.get("_mock_mismatch")})
@@ -96,34 +95,38 @@ if latest:
     if latest["mismatch"]:
         ui.html(
             theme.banner(
-                f"MOCK: you asked for {theme.esc(latest['mismatch']['requested'])}; showing the captured response for "
+                f"Practice data: you asked for {theme.esc(latest['mismatch']['requested'])}; showing the saved example for "
                 f"{theme.esc(latest['mismatch']['served'])}.",
                 "amber",
                 "info",
             )
         )
-    ui.html(theme.section("Before vs after", "Result"))
+    ui.html(theme.section("Before and after", "Result", "Chance of leaving in the next 90 days."))
     a, mid, b = st.columns([1, 0.35, 1])
     for col, side, label in ((a, r.before, "Before"), (b, r.after, "After")):
         with col:
             ui.html(
                 f'<div class="ss-card"><div style="color:#6b6a65;font-size:.85rem">{label}</div>'
-                f'<div style="font-size:2.4rem;font-weight:600;letter-spacing:-.04em">{side.risk:.3f}</div>'
-                f'<div style="display:flex;gap:6px;flex-wrap:wrap">{theme.band_chip(side.band)}<span class="ss-tag">rank {side.rank}/{side.group_size}</span></div></div>'
+                f'<div style="font-size:2.4rem;font-weight:600;letter-spacing:-.04em">{side.risk:.1%}</div>'
+                f'<div style="display:flex;gap:6px;flex-wrap:wrap">{theme.band_chip(side.band)}<span class="ss-tag">place {side.rank} of {side.group_size}</span></div></div>'
             )
     with mid:
         rank_d = (r.after.rank or 0) - (r.before.rank or 0)
         ui.html(
             f'<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:150px;gap:8px">'
-            f"{theme.icon('arrow', 28, '#6b6a65')}{theme.delta_chip(r.risk_change)}"
-            f'<span class="ss-tag">rank {rank_d:+d}</span></div>'
+            f"{theme.icon('arrow', 28, '#6b6a65')}{theme.delta_chip(r.risk_change * 100, fmt='{:.1f} points')}"
+            f'<span class="ss-tag">place {rank_d:+d}</span></div>'
         )
     small = abs(r.risk_change) < 0.02
     ui.html(
         theme.banner(
-            f"<b>{'A small effect.' if small else 'A noticeable effect.'}</b> Risk moved by {r.risk_change:+.4f}"
-            + (f"; band {r.before.band} → {r.after.band}." if r.before.band != r.after.band else "; band unchanged.")
-            + f" {theme.esc(r.note or 'This is a simulation based on the model’s learned relationships, not a causal guarantee.')}",
+            f"<b>{'A small change.' if small else 'A clear change.'}</b> The chance moved by {r.risk_change * 100:+.1f} points"
+            + (
+                f"; group: {theme.BAND[r.before.band]['label']} → {theme.BAND[r.after.band]['label']}."
+                if r.before.band != r.after.band
+                else "; same group."
+            )
+            + " This is a guess from past patterns, not a promise.",
             "blue",
             "info",
         )
@@ -132,27 +135,26 @@ if latest:
         keys = sorted(set(r.features_before) | set(r.features_after))
         st.dataframe(
             pd.DataFrame(
-                [{"Feature": models.pretty(k), "Before": r.features_before.get(k), "After": r.features_after.get(k)} for k in keys]
+                [{"What changed": models.pretty(k), "Before": r.features_before.get(k), "After": r.features_after.get(k)} for k in keys]
             ),
             hide_index=True,
             width="stretch",
         )
 elif not hist:
-    ui.empty("Set a scenario and press Rescore.")
+    ui.empty("Choose a change and press See the result.")
 
 if hist:
-    ui.html(theme.section("This session's simulations", "History", "Kept in this browser session only."))
+    ui.html(theme.section("What you tried", "History", "Kept only until you close this tab."))
     st.dataframe(
         pd.DataFrame(
             [
                 {
-                    "Employee": ui.display_name(h["r"].employee_id),
-                    "Protected weekends": h["pw"],
-                    "Overrides": ", ".join(f"{k}={v:g}" for k, v in h["ov"].items()) or "—",
-                    "Risk before": round(h["r"].before.risk, 4),
-                    "Risk after": round(h["r"].after.risk, 4),
-                    "Δ risk": round(h["r"].risk_change, 4),
-                    "Band": f"{h['r'].before.band} → {h['r'].after.band}",
+                    "Person": ui.display_name(h["r"].employee_id),
+                    "Weekends off": h["pw"],
+                    "Other changes": ", ".join(f"{models.pretty(k)}={v:g}" for k, v in h["ov"].items()) or "—",
+                    "Chance before": f"{h['r'].before.risk:.1%}",
+                    "Chance after": f"{h['r'].after.risk:.1%}",
+                    "Group": f"{theme.BAND[h['r'].before.band]['label']} → {theme.BAND[h['r'].after.band]['label']}",
                 }
                 for h in hist
             ]

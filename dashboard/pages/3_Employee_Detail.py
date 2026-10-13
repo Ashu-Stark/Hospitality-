@@ -3,13 +3,14 @@ import streamlit as st
 
 from lib import api_client as api
 from lib import charts, data, theme, ui
+from lib.models import PLAIN_REASON
 
 ui.setup("pages/3_Employee_Detail.py", "Employee")
 
-scores = ui.safe(data.scores, ui.week(), what="load risk scores")
+scores = ui.safe(data.scores, ui.week(), what="load the check-in list")
 if not scores:
     if scores is not None:
-        ui.empty("No scores available.")
+        ui.empty("Nothing to show yet.")
     ui.footer()
     st.stop()
 
@@ -23,7 +24,7 @@ default = st.session_state.get("selected_employee") or (heroes[0] if heroes else
 c_sel, c_hint = st.columns([2, 3])
 with c_sel:
     emp = st.selectbox(
-        "Employee (search by ID, or a demo hero's name)",
+        "Person (search by ID or name)",
         options,
         index=options.index(default) if default in options else 0,
         format_func=ui.display_name,
@@ -33,12 +34,12 @@ with c_hint:
     ui.html(
         '<div style="height:26px"></div>'
         + " ".join(f'<span class="ss-tag" style="margin-right:4px">{theme.esc(n)}</span>' for n in names.values())
-        + '<span style="color:#6b6a65;font-size:.78rem;margin-left:6px">scripted demo heroes · everyone else is shown by ID only</span>'
+        + '<span style="color:#6b6a65;font-size:.78rem;margin-left:6px">example people · everyone else is shown by ID only</span>'
     )
 
 s = by_id[emp]
 dept = data.dept_map().get(emp)
-hero = next((h for h in (ui.safe(data.heroes, what="load hero trajectories") or []) if h.employee_id == emp), None)
+hero = next((h for h in (ui.safe(data.heroes, what="load the last 12 weeks") or []) if h.employee_id == emp), None)
 
 # ------------------------------------------------------------------ header card
 with st.container(key="card_head"):
@@ -47,7 +48,7 @@ with st.container(key="card_head"):
         ui.html(
             f'<div class="ss-person">{ui.avatar_img(dept, 64)}<div><div style="font-size:1.6rem;font-weight:600;letter-spacing:-.03em">'
             f'{theme.esc(ui.display_name(emp))}</div><div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap">'
-            f"{theme.band_chip(s.band, theme.BAND[s.band]['label'] + ' · flagged for review' if s.band == 'high' else None)}"
+            f"{theme.band_chip(s.band)}"
             f"{theme.basis_tag(s.band_basis)}{theme.contract_tag(s.contract_type)}</div>"
             f'<div style="color:#52514e;font-size:.88rem;margin-top:8px;max-width:420px">{theme.esc(hero.story if hero else "")}</div></div></div>'
         )
@@ -55,32 +56,21 @@ with st.container(key="card_head"):
         ui.html(
             theme.kv(
                 [
-                    ("Risk (90-day)", f"{s.risk:.3f}"),
-                    ("Rank", f"{s.rank} / {s.group_size}" + (" (tied)" if s.rank_is_tied else "")),
+                    ("Chance of leaving (90 days)", f"{s.risk:.0%}"),
+                    ("Place in team", f"{s.rank} of {s.group_size}" + (" (shared)" if s.rank_is_tied else "")),
                     ("Department", theme.esc(theme.dept_label(dept) if dept else "—")),
                     ("Contract", s.contract_type),
-                    ("Model", theme.esc(s.model)),
-                    ("Scoring week", s.week_start),
+                    ("Week", s.week_start),
                 ]
             )
-        )
-        st.caption(
-            "Role and tenure are not returned by the score API, so they are not shown. Risk is a calibrated probability "
-            "on synthetic data; the band is a within-week ranking."
         )
 
 # ------------------------------------------------------------------ season-end callout (separate from resignation framing)
 if s.contract_type == "seasonal":
     ui.html(
         theme.banner(
-            "<b>Season-end, not resignation.</b> This person is on a seasonal contract, so the band uses the "
-            "<b>contract-date rule</b>, not the resignation model. "
-            + (
-                "The contract end falls inside the 30-day window, so a renewal or retainer decision is due now. "
-                if s.band == "high"
-                else ""
-            )
-            + "Days remaining: <i>the API does not expose the contract end date</i>, so it is not shown here.",
+            "<b>Season contract.</b> This person is grouped by when their contract ends. "
+            + ("It ends within 30 days, so decide now whether to keep them on. " if s.band == "high" else ""),
             "amber",
             "calendar",
         )
@@ -90,7 +80,7 @@ if s.contract_type == "seasonal":
 with st.expander("Last 12 weeks"):
     if hero and hero.weeks:
         if hero.illustrative:
-            st.caption("Illustrative trajectory from heroes.json, anchored to today's live score. The API serves only the current week.")
+            st.caption("Example history, to show how it works.")
         xs = [w.week_start for w in hero.weeks]
         t1, t2 = st.columns(2)
         with t1:
@@ -99,11 +89,11 @@ with st.expander("Last 12 weeks"):
                     x=xs,
                     y=[w.risk for w in hero.weeks],
                     mode="lines+markers",
-                    name="risk",
+                    name="chance",
                     line=dict(color="#2a78d6", width=2),
                     marker=dict(size=9, color=[theme.BAND_COLOR[w.band] for w in hero.weeks], line=dict(color="#fff", width=2)),
                     customdata=[[w.band, w.rank] for w in hero.weeks],
-                    hovertemplate="%{x}<br>risk %{y:.3f}<br>band %{customdata[0]} · rank %{customdata[1]}<extra></extra>",
+                    hovertemplate="%{x}<br>chance %{y:.0%}<br>place %{customdata[1]}<extra></extra>",
                 )
             )
             for w in hero.weeks:
@@ -120,7 +110,8 @@ with st.expander("Last 12 weeks"):
                         bgcolor="#fff",
                         bordercolor="#e6e5e0",
                     )
-            fig.update_layout(title="Risk score (marker color = band that week)")
+            fig.update_layout(title="Chance of leaving (dot color = group that week)")
+            fig.update_yaxes(tickformat=".0%")
             st.plotly_chart(theme.style_fig(fig, 300, legend=False), width="stretch", config={"displayModeBar": False})
         with t2:
             fig = go.Figure(
@@ -130,10 +121,10 @@ with st.expander("Last 12 weeks"):
                     mode="lines+markers",
                     line=dict(color="#52514e", width=2, shape="hv"),
                     marker=dict(size=8, color="#52514e", line=dict(color="#fff", width=2)),
-                    hovertemplate="%{x}<br>rank %{y}<extra></extra>",
+                    hovertemplate="%{x}<br>place %{y}<extra></extra>",
                 )
             )
-            fig.update_layout(title=f"Rank within group (1 = highest risk, of {s.group_size})")
+            fig.update_layout(title=f"Place in team (1 = most likely to leave, of {s.group_size})")
             theme.style_fig(fig, 300, legend=False)
             fig.update_yaxes(autorange="reversed")
             st.plotly_chart(fig, width="stretch", config={"displayModeBar": False})
@@ -145,15 +136,12 @@ with st.expander("Last 12 weeks"):
                 f"weeks since a weekend off: {last.weeks_since_weekend_off}."
             )
     else:
-        ui.empty(
-            "No weekly history is available for this employee. The API serves the current week only; trajectories exist "
-            "for the five demo heroes."
-        )
+        ui.empty("No weekly history for this person yet.")
 
 # ------------------------------------------------------------------ drivers
 ui.html('<h3 class="ss-h3">Why this person may need support</h3>')
 if s.drivers:
-    ui.takeaway(f"Biggest reason: {max(s.drivers, key=lambda d: d.contribution_logodds).title}. Bars to the right push the score up.")
+    ui.takeaway(f"Biggest reason: {max(s.drivers, key=lambda d: d.contribution_logodds).title}. A longer bar means a bigger reason.")
 pb = data.playbook()
 d1, d2 = st.columns([1.4, 1])
 with d1:
@@ -162,7 +150,9 @@ with d1:
             charts.driver_bars(s.drivers, height=max(260, 80 * len(s.drivers) + 80)), width="stretch", config={"displayModeBar": False}
         )
     else:
-        ui.empty("No active risk drivers." if s.contract_type == "permanent" else "Seasonal: banded by contract date, no driver breakdown.")
+        ui.empty(
+            "No reasons to show." if s.contract_type == "permanent" else "Season contract: grouped by when it ends, no list of reasons."
+        )
 with d2:
     st.markdown("**In plain language**", help=theme.SUPPORT_HELP)
     for d in s.drivers:
@@ -176,13 +166,13 @@ with d2:
     mr = pb.get("manager_relationship") or {}
     ui.html(
         f'<div class="ss-card" style="padding:14px 16px;opacity:.75"><div style="display:flex;justify-content:space-between">'
-        f'<b>Manager relationship</b>{theme.support_chip("unsupported")}</div><div style="font-size:.8rem;color:#6b6a65;margin-top:4px">'
-        f"{theme.esc(mr.get('explanation', 'No manager signal in the data; never shown as a cause.'))}</div></div>"
+        f'<b>Trouble with the manager</b>{theme.support_chip("unsupported")}</div><div style="font-size:.8rem;color:#6b6a65;margin-top:4px">'
+        "We cannot see this in the numbers, so it is never shown as a reason. Ask the person.</div></div>"
     )
 
 # ------------------------------------------------------------------ interventions
 ui.html('<h3 class="ss-h3">What could help</h3>')
-st.caption("Up to two actions per reason. Each one creates a follow-up task.")
+st.caption("Suggested next steps, up to two for each reason. Each one can become a task.")
 actions = []
 for d in s.drivers:
     acts = [a for a in s.actions if a.driver == d.category]
@@ -222,7 +212,7 @@ if s.contract_type == "seasonal" and not actions:
         for x in (pb.get("season_end_exit") or {}).get("actions", [])[:2]
     ]
 if not actions:
-    ui.empty("No interventions suggested: there are no active risk drivers.")
+    ui.empty("No next steps: there are no reasons to act on.")
 created = st.session_state.setdefault("created_tasks", {})
 for i, (d, a) in enumerate(actions):
     key = f"ui:{emp}:{a.driver}:{i}"
@@ -232,9 +222,9 @@ for i, (d, a) in enumerate(actions):
             done = key in created
             ui.html(
                 f'<div style="display:flex;gap:10px;align-items:flex-start">{theme.icon("check" if done else "flag", 20, "#0ca30c" if done else "#1f6fe5")}'
-                f'<div><b>{theme.esc(a.action)}</b><div style="font-size:.8rem;color:#6b6a65">{theme.esc(theme.dept_label(a.driver))} · owner: '
-                f"{theme.esc(a.owner)}{f' · check after {a.check_after_weeks} wk' if a.check_after_weeks else ''}</div>"
-                f'<div style="font-size:.78rem;color:#6b6a65">{theme.esc(a.expected_effect)}</div></div></div>'
+                f'<div><b>{theme.esc(a.action)}</b><div style="font-size:.8rem;color:#6b6a65">'
+                f"{theme.esc(PLAIN_REASON.get(a.driver) or theme.dept_label(a.driver))} · who: "
+                f"{theme.esc(a.owner)}{f' · check again in {a.check_after_weeks} weeks' if a.check_after_weeks else ''}</div></div></div>"
             )
         with y:
             if key in created:
@@ -246,7 +236,7 @@ for i, (d, a) in enumerate(actions):
                     f"{a.action} ({emp})",
                     a.owner or "manager",
                     employee_id=emp,
-                    description=f"Driver: {a.driver}. Expected effect: {a.expected_effect}",
+                    description=f"Reason: {PLAIN_REASON.get(a.driver) or a.driver}.",
                     due_in_minutes=int((a.check_after_weeks or 1) * 7 * 24 * 60),
                     what="create the task",
                 )

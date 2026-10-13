@@ -124,8 +124,8 @@ def open_hotel_help() -> None:
     """One-line instructions above a list of "Open in hotel portal" buttons (super-admin portal)."""
     st.markdown(
         theme.banner(
-            f"<b>Open a hotel in the hotel admin portal</b> ({link(config.hotel_portal_url())}): sign in there with your platform "
-            "account, then choose the hotel. Opening a hotel is audited.",
+            f"<b>To open a hotel</b>, go to {link(config.hotel_portal_url())}, sign in with your HOI team account and pick the "
+            "hotel. This is saved in the activity log.",
             "blue",
             "info",
         ),
@@ -138,13 +138,13 @@ def open_hotel_control(container, tid: str, *, disabled: bool = False, key: str 
     Hotel portal: the in-app audited impersonation (open_workspace)."""
     if config.is_super():
         container.link_button(
-            "Open in hotel portal",
+            "Open hotel",
             hotel_portal_link(tid),
             type="primary",
             icon=":material/open_in_new:",
             width="stretch",
             disabled=disabled,
-            help="Opens the hotel admin portal in a new tab. Sign in with your platform account and choose this hotel (audited).",
+            help="Opens the hotel sign-in in a new tab. Sign in with your HOI team account and pick this hotel. This is logged.",
         )
         return
     if container.button("Open this hotel", key=key, type="primary", icon=":material/login:", width="stretch", disabled=disabled):
@@ -168,9 +168,9 @@ def impersonation_banner(t: dict) -> None:
     u = auth.current() or {}
     a, b = st.columns([5, 1], vertical_alignment="center")
     a.markdown(
-        f'<div class="ss-imp">{theme.icon("shield", 18)}<span><b>Viewing as platform admin — audited.</b> '
-        f"You ({theme.esc(u.get('username', ''))}) are inside <b>{theme.esc(t['name'])}</b>. Every action is logged "
-        "against your account.</span></div>",
+        f'<div class="ss-imp">{theme.icon("shield", 18)}<span><b>Viewing as HOI team.</b> '
+        f"You ({theme.esc(u.get('username', ''))}) are inside <b>{theme.esc(t['name'])}</b>. What you do here is saved in "
+        "the activity log.</span></div>",
         unsafe_allow_html=True,
     )
     if b.button("Exit", key="imp_exit", icon=":material/logout:", width="stretch", help="Close this hotel and choose another"):

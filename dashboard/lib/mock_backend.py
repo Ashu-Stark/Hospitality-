@@ -93,11 +93,11 @@ def _apply_reminders() -> None:
         frac = (now - c).total_seconds() / (d - c).total_seconds()
         kinds = {e["kind"] for e in t.get("events", [])}
         if frac >= 0.5 and "reminder_50" not in kinds:
-            _event(t, "reminder_50", f"Reminder to {t['assignee']}: 50% of the time to deadline has passed")
+            _event(t, "reminder_50", f"Reminder to {t['assignee']}: half the time is gone")
         if frac >= 0.9 and "reminder_90" not in kinds:
-            _event(t, "reminder_90", f"Reminder to {t['assignee']}: 90% of the time to deadline has passed")
+            _event(t, "reminder_90", f"Reminder to {t['assignee']}: almost no time left")
         if frac >= 1.0 and t["status"] == "open" and "escalated" not in kinds:
-            _event(t, "escalated", f"Escalated to {t.get('supervisor') or 'supervisor'}: deadline passed without acknowledgement")
+            _event(t, "escalated", f"Passed to {t.get('supervisor') or 'the supervisor'}: time is up and nobody marked it seen")
 
 
 # ------------------------------------------------------------------ tasks
@@ -208,7 +208,7 @@ def rescore(body: dict) -> dict:
             "note": canned.get("note", ""),
         }
     if emp != canned["employee_id"]:
-        raise MockError(501, "MOCK mode only holds a captured what-if for Sunita (H901). Switch to LIVE to simulate anyone else.")
+        raise MockError(501, "Practice data only has an example for Sunita (H901). Pick Sunita to try it.")
     out = copy.deepcopy(canned)
     if overrides or pw != 2:
         out["_mock_mismatch"] = {"requested": {"protected_weekends_off": pw, **overrides}, "served": {"protected_weekends_off": 2}}
@@ -373,8 +373,7 @@ def _onb() -> dict[str, Any]:
         except ImportError as e:
             raise MockError(
                 501,
-                f"Hotel setup in MOCK mode runs the backend onboarding engine in-process and needs the repo checkout "
-                f"(backend/ and ml/). Switch to LIVE on the Admin page. ({e})",
+                f"Setup by voice is not available with practice data on this server. Ask your HOI contact. ({e})",
             ) from None
         db = mongomock.MongoClient(tz_aware=True)[ONB_DB]
         cfg = load_config()
