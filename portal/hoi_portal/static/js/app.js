@@ -16,6 +16,7 @@ import * as biz from './pages/business.js';
 import * as off from './pages/officer.js';
 import * as ops from './pages/officer_ops.js';
 import * as plan from './pages/plan.js';
+import { loadPhotos } from './photos.js';
 
 const OFF = ['district_officer', 'state_admin'];
 const BIZ = ['business'];
@@ -45,6 +46,7 @@ route('/helplines', info.helplines);
 route('/about', info.about);
 route('/accessibility', info.accessibility);
 route('/sitemap', info.sitemap);
+route('/credits', info.credits);
 route('/grievance', griev.file);
 route('/grievance/track', griev.track);
 route('/signin', auth.signin);
@@ -142,7 +144,7 @@ function drawShell() {
   $('#morebtn').addEventListener('click', () => toggleSheet());
   $('#sheetclose').addEventListener('click', () => { toggleSheet(false); $('#morebtn').focus(); });
   $('#signout2')?.addEventListener('click', doSignOut);
-  mount($('#footlinks'), html`<a href="#/about">${lbl('about')}</a><a href="#/accessibility">${lbl('accessibility')}</a><a href="#/sitemap">${lbl('sitemap')}</a><a href="#/grievance">${lbl('file')}</a><a href="#/signin?need=official">${lbl('officials_signin')}</a>`);
+  mount($('#footlinks'), html`<a href="#/about">${lbl('about')}</a><a href="#/accessibility">${lbl('accessibility')}</a><a href="#/sitemap">${lbl('sitemap')}</a><a href="#/credits">${lbl('credits')}</a><a href="#/grievance">${lbl('file')}</a><a href="#/signin?need=official">${lbl('officials_signin')}</a>`);
   $('#skip-link').textContent = lbl('skip');
   $('#ts-label').textContent = lbl('textsize');
   $('#u-sitemap').textContent = lbl('sitemap');
@@ -197,7 +199,8 @@ window.addEventListener('auth-expired', () => {
 // Officials pages share a sub-navigation rendered by the pages themselves; expose helpers.
 export { isOfficial };
 drawShell();
-start();
+// The photo manifest is tiny; load it before the first render so cards and headers can use it synchronously.
+loadPhotos().then(start);
 
 // The skip link must not change the hash (the router owns it): move focus instead.
 $('#skip-link').addEventListener('click', (e) => {

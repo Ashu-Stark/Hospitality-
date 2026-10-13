@@ -17,7 +17,7 @@ const STR = {
     officials: 'Officials', business: 'Business', all_results: 'See all results',
     explore: 'Explore', experiences: 'Experiences', plan: 'Plan', verify_biz: 'Verify a business', verify_short: 'Verify', help: 'Help', more: 'More',
     business_signin: 'Business sign in', officials_signin: 'Officials sign in', create_account: 'Create business account',
-    task_plan: 'Plan a trip', task_check: 'Check a business', task_help: 'Get help or complain', alerts: 'Alerts', coming_up: 'Coming up', see_all: 'See all',
+    task_plan: 'Plan a trip', task_check: 'Check a business', task_help: 'Get help or complain', alerts: 'Alerts', coming_up: 'Coming up', see_all: 'See all', credits: 'Photo credits',
   },
   hi: {
     home: 'मुखपृष्ठ', destinations: 'गंतव्य', directory: 'निर्देशिका', festivals: 'त्योहार', dictionary: 'शब्दकोश',
@@ -34,7 +34,7 @@ const STR = {
     officials: 'अधिकारी', business: 'व्यवसाय', all_results: 'सभी परिणाम देखें',
     explore: 'घूमें', experiences: 'अनुभव', plan: 'योजना', verify_biz: 'व्यवसाय सत्यापित करें', verify_short: 'सत्यापन', help: 'सहायता', more: 'और',
     business_signin: 'व्यवसाय साइन इन', officials_signin: 'अधिकारी साइन इन', create_account: 'व्यवसाय खाता बनाएँ',
-    task_plan: 'यात्रा की योजना', task_check: 'व्यवसाय जाँचें', task_help: 'सहायता या शिकायत', alerts: 'सूचनाएँ', coming_up: 'आगामी', see_all: 'सभी देखें',
+    task_plan: 'यात्रा की योजना', task_check: 'व्यवसाय जाँचें', task_help: 'सहायता या शिकायत', alerts: 'सूचनाएँ', coming_up: 'आगामी', see_all: 'सभी देखें', credits: 'फ़ोटो श्रेय',
   },
 };
 

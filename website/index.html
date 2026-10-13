@@ -190,13 +190,27 @@ footer{margin:80px 0 24px;background:#e9e9e6;border-radius:28px;padding:44px}
   .hero{border-radius:24px;min-height:auto;padding-bottom:20px} .hero-in{padding:48px 16px 0}
   .searchcard .pillnav{overflow-x:auto;max-width:100%}
   .quick{grid-template-columns:repeat(4,1fr);row-gap:14px} .quick a:nth-child(4n){border-right:0}
-  .regions{grid-template-columns:repeat(2,1fr)} .region .art{height:170px}
+  .regions{grid-template-columns:repeat(2,minmax(0,1fr))} .region .art{height:170px}
   .banner{padding:36px 22px} .steps{grid-template-columns:1fr}
   .plans{grid-template-columns:1fr} .fgrid{grid-template-columns:1fr}
   .phone{width:190px;height:380px} footer{padding:28px}
   .wrap{padding:0 16px} section{padding-top:56px}
   .sechead{flex-direction:column;align-items:flex-start}
 }
+/* photos (Wikimedia Commons, illustrative; see credits.html) */
+.hero.hasphoto{background:linear-gradient(180deg,rgba(6,12,30,.64) 0%,rgba(6,12,30,.6) 45%,rgba(6,12,30,.72) 100%),url(img/hills.jpg) center 35%/cover no-repeat,#1d2a48;animation:none}
+.hero.hasphoto .mtn{display:none}
+.hero.hasphoto h1,.hero.hasphoto .eyebrow,.hero.hasphoto p.lead{text-shadow:0 1px 12px rgba(0,0,0,.35)}
+.hero.cta.hasphoto{background:linear-gradient(180deg,rgba(6,12,30,.66),rgba(6,12,30,.72)),url(img/hill-house.jpg) center 45%/cover no-repeat,#1d2a48}
+.pcredit{position:absolute;right:14px;bottom:10px;font-size:.72rem;line-height:1.3;color:#fff;background:rgba(0,0,0,.5);padding:3px 8px;border-radius:8px;max-width:calc(100% - 28px);text-align:right}
+.pcredit:hover,.pcredit:focus-visible{text-decoration:underline}
+.region .art > img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.region .art.hasphoto::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,0) 35%,rgba(0,0,0,.66))}
+.region .art.hasphoto b,.region .art.hasphoto small{z-index:1;text-shadow:0 1px 6px rgba(0,0,0,.4)}
+.hero#product .pcredit{top:12px;bottom:auto}
+.photonote{font-size:.8rem;color:var(--muted);margin-top:12px}
+.photonote a{text-decoration:underline}
+@media (max-width:760px){.hero.hasphoto{background-image:linear-gradient(180deg,rgba(6,12,30,.6),rgba(6,12,30,.7)),url(img/hills_sm.jpg)}.hero.hasphoto{padding-bottom:46px}.pcredit,.hero#product .pcredit{right:10px;left:10px;top:auto;bottom:10px;text-align:center;max-width:none}}
 </style>
 </head>
 <body>
@@ -217,7 +231,7 @@ footer{margin:80px 0 24px;background:#e9e9e6;border-radius:28px;padding:44px}
 
 <main class="wrap">
   <!-- HERO -->
-  <div class="hero" id="product">
+  <div class="hero hasphoto" id="product">
     <svg class="mtn" viewBox="0 0 1200 360" preserveAspectRatio="none" aria-hidden="true">
       <path fill="rgba(255,255,255,.14)" d="M0 360 L0 210 L140 120 L230 180 L360 70 L470 170 L560 110 L700 210 L820 90 L940 190 L1060 120 L1200 200 L1200 360Z"/>
       <path fill="rgba(255,255,255,.12)" d="M0 360 L0 280 L180 200 L300 250 L440 170 L600 260 L760 190 L900 260 L1040 210 L1200 270 L1200 360Z"/>
@@ -237,6 +251,7 @@ footer{margin:80px 0 24px;background:#e9e9e6;border-radius:28px;padding:44px}
         <div class="perks"><span>✓ Works offline on demo data</span><span>✓ Staff identified by ID only</span><span>✓ Every score explained</span><span>✓ No adverse action from risk flags</span></div>
       </div>
     </div>
+    <a class="pcredit" href="https://commons.wikimedia.org/wiki/File:Panchachuli_Peaks.jpg" target="_blank" rel="noopener">Photo: Mukul.pandey07, CC BY-SA 4.0 (Wikimedia Commons)</a>
   </div>
 
   <!-- QUICK ROW -->
@@ -257,12 +272,13 @@ footer{margin:80px 0 24px;background:#e9e9e6;border-radius:28px;padding:44px}
       <p>Char Dham peaks, festival weekends and winter troughs swing occupancy hard. HOI plans staff and stock around them.</p></div>
       <a class="btn ghost" href="#loop">How it works</a></div>
     <div class="regions">
-      <div class="region reveal"><div class="art" style="background:linear-gradient(180deg,#7fb2ff,#1d4fa8)"><svg viewBox="0 0 200 220" preserveAspectRatio="none"><path fill="rgba(255,255,255,.18)" d="M0 220 L0 120 L50 70 L90 110 L140 50 L200 120 L200 220Z"/></svg><b>Rishikesh</b><small>RIVER RETREATS</small></div><div class="meta">Peak: May–June →</div></div>
-      <div class="region reveal"><div class="art" style="background:linear-gradient(180deg,#9be2c4,#167a52)"><svg viewBox="0 0 200 220" preserveAspectRatio="none"><path fill="rgba(255,255,255,.18)" d="M0 220 L0 140 L60 80 L100 120 L150 60 L200 130 L200 220Z"/></svg><b>Mussoorie</b><small>WEEKEND HILLS</small></div><div class="meta">Weekend uplift →</div></div>
-      <div class="region reveal"><div class="art" style="background:linear-gradient(180deg,#c6b5ff,#5a3fc0)"><svg viewBox="0 0 200 220" preserveAspectRatio="none"><path fill="rgba(255,255,255,.18)" d="M0 220 L0 130 L40 90 L110 140 L160 70 L200 110 L200 220Z"/></svg><b>Nainital</b><small>LAKE TOWNS</small></div><div class="meta">Festival spikes →</div></div>
-      <div class="region reveal"><div class="art" style="background:linear-gradient(180deg,#e6f0ff,#7d93b8)"><svg viewBox="0 0 200 220" preserveAspectRatio="none"><path fill="rgba(255,255,255,.35)" d="M0 220 L0 110 L70 40 L120 100 L170 60 L200 90 L200 220Z"/></svg><b>Auli</b><small>SNOW SEASON</small></div><div class="meta">Winter peak →</div></div>
-      <div class="region reveal"><div class="art" style="background:linear-gradient(180deg,#ffc28a,#c9481a)"><svg viewBox="0 0 200 220" preserveAspectRatio="none"><path fill="rgba(255,255,255,.18)" d="M0 220 L0 150 L50 90 L100 130 L150 40 L200 120 L200 220Z"/></svg><b>Char Dham</b><small>PILGRIM ROUTES</small></div><div class="meta">Seasonal staff →</div></div>
+      <div class="region reveal"><div class="art hasphoto" style="background:linear-gradient(180deg,#7fb2ff,#1d4fa8)"><img src="img/region-rishikesh.jpg" alt="" width="480" height="320" loading="lazy" decoding="async"><b>Rishikesh</b><small>RIVER RETREATS</small></div><div class="meta">Peak: May–June →</div></div>
+      <div class="region reveal"><div class="art hasphoto" style="background:linear-gradient(180deg,#9be2c4,#167a52)"><img src="img/hill-town_sm.jpg" alt="" width="480" height="320" loading="lazy" decoding="async"><b>Mussoorie</b><small>WEEKEND HILLS</small></div><div class="meta">Weekend uplift →</div></div>
+      <div class="region reveal"><div class="art hasphoto" style="background:linear-gradient(180deg,#c6b5ff,#5a3fc0)"><img src="img/region-nainital.jpg" alt="" width="480" height="320" loading="lazy" decoding="async"><b>Nainital</b><small>LAKE TOWNS</small></div><div class="meta">Festival spikes →</div></div>
+      <div class="region reveal"><div class="art hasphoto" style="background:linear-gradient(180deg,#e6f0ff,#7d93b8)"><img src="img/region-auli.jpg" alt="" width="480" height="320" loading="lazy" decoding="async"><b>Auli</b><small>SNOW SEASON</small></div><div class="meta">Winter peak →</div></div>
+      <div class="region reveal"><div class="art hasphoto" style="background:linear-gradient(180deg,#ffc28a,#c9481a)"><img src="img/region-char-dham.jpg" alt="" width="480" height="320" loading="lazy" decoding="async"><b>Char Dham</b><small>PILGRIM ROUTES</small></div><div class="meta">Seasonal staff →</div></div>
     </div>
+    <p class="photonote">Photos: Wikimedia Commons contributors (CC BY / CC BY-SA), illustrative only, not official tourism imagery. <a href="credits.html">Photo credits</a></p>
   </section>
 
   <!-- LOOP BANNER -->
@@ -385,12 +401,13 @@ footer{margin:80px 0 24px;background:#e9e9e6;border-radius:28px;padding:44px}
 
   <!-- CTA -->
   <section id="contact">
-    <div class="hero reveal" style="min-height:auto;padding:56px 24px;text-align:center">
+    <div class="hero cta hasphoto reveal" style="min-height:auto;padding:56px 24px 64px;text-align:center">
       <svg class="mtn" viewBox="0 0 1200 360" preserveAspectRatio="none" aria-hidden="true"><path fill="rgba(255,255,255,.14)" d="M0 360 L0 230 L160 150 L280 210 L420 110 L560 200 L700 140 L860 230 L1000 150 L1200 230 L1200 360Z"/></svg>
       <div style="position:relative"><h2 style="font-size:clamp(2rem,4.6vw,3.6rem)">See your hotel's week in HOI</h2>
         <p style="max-width:560px;margin:12px auto 24px;color:rgba(255,255,255,.9)">Open the live demo with one click, or write to us about a pilot.</p>
         <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap"><a class="btn dark" data-app href="#">Open the live demo</a>
           <a class="btn" style="color:var(--ink)" data-mail href="#">Ask about a pilot</a></div></div>
+      <a class="pcredit" href="https://commons.wikimedia.org/wiki/File:Traditional_Kumaoni_house.jpg" target="_blank" rel="noopener">Photo: Harshit SR, CC BY-SA 4.0 (Wikimedia Commons)</a>
     </div>
   </section>
 </main>
@@ -404,7 +421,7 @@ footer{margin:80px 0 24px;background:#e9e9e6;border-radius:28px;padding:44px}
       <div><h4>Product</h4><a href="#loop">Forecast & roster</a><a href="#dispatch">Dispatch</a><a href="#dispatch">Photo proof</a><a href="#inventory">Inventory</a><a href="#loop">Retention</a></div>
       <div><h4>For</h4><a href="#plans">Single properties</a><a href="#plans">Hotel groups</a><a href="#plans">Homestays</a></div>
       <div><h4>Trust</h4><a href="#faq">Data we collect</a><a href="#faq">Photo verification</a><a href="#faq">Purpose limitation</a></div>
-      <div><h4>Company</h4><a href="#contact">Contact</a><a data-app href="#">Sign in</a></div>
+      <div><h4>Company</h4><a href="#contact">Contact</a><a data-app href="#">Sign in</a><a href="credits.html">Photo credits</a></div>
     </div>
     <div class="legal"><span>© 2026 HOI · AI-Tourism Hackathon 2026 · demo data is synthetic</span><span>No real person appears in the demo</span></div>
   </footer>

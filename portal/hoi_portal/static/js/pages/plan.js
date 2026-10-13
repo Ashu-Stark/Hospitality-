@@ -5,6 +5,7 @@ import { api, meta } from '../api.js';
 import { setQuery } from '../router.js';
 import { BAND_FILL, bandLegend } from '../charts.js';
 import { EXP_ART, paintTones } from '../art.js';
+import { photo, img, photoHead, thumbsNote } from '../photos.js';
 
 const short = (iso) => fmtDate(iso, { weekday: true, noYear: true });
 const ext = (url, label) => html`<a class="btn sm dark" href="${url}" target="_blank" rel="noopener noreferrer">${label} <span aria-hidden="true">↗</span><span class="sr-only"> (official site, opens in a new tab)</span></a>`;
@@ -12,7 +13,8 @@ const wxText = (w) => (!w ? 'Weather not loaded yet' : !w.available ? 'Weather u
 
 // ------------------------------------------------------------------ experiences
 export function expTile(e, cls = 'exptile') {
-  return html`<a class="${cls}" data-tone="${e.id}" href="${href('/experiences/' + e.id)}"><span class="art">${raw(EXP_ART[e.icon] || '')}</span><span class="nm">${e.name}</span>${e.short && cls === 'exptile big' ? html`<span class="sh">${e.short}</span>` : ''}</a>`;
+  const p = cls === 'exptile big' ? photo('exp-' + e.id) : null;
+  return html`<a class="${cls}${p ? ' hasphoto' : ''}" data-tone="${e.id}" href="${href('/experiences/' + e.id)}">${p ? img(p, { cls: 'cover', alt: '' }) : html`<span class="art">${raw(EXP_ART[e.icon] || '')}</span>`}<span class="nm">${e.name}</span>${e.short && cls === 'exptile big' ? html`<span class="sh">${e.short}</span>` : ''}</a>`;
 }
 
 export async function experiences(ctx) {
@@ -20,7 +22,7 @@ export async function experiences(ctx) {
   mount(el, html`<div class="pagehead"><div><h1>Experiences</h1><p>Start from what you want to do; each experience lists places with today's crowd estimate.</p></div></div><div id="ex"></div>`);
   await load($('#ex', el), async () => {
     const r = await api('/experiences');
-    mount($('#ex', el), html`<div class="expgrid">${r.items.map((e) => html`${expTile(e, 'exptile big')}`)}</div>`);
+    mount($('#ex', el), html`<div class="expgrid">${r.items.map((e) => html`${expTile(e, 'exptile big')}`)}</div>${thumbsNote()}`);
     $$('.exptile', el).forEach((a, i) => { const c = r.items[i].destination_count; a.insertAdjacentHTML('beforeend', `<span class="ct">${c} place${c === 1 ? '' : 's'}</span>`); });
     paintTones(el);
   }, { skel: 'cards', n: 6 });
@@ -32,9 +34,10 @@ export async function experience(ctx) {
   await load($('#e1', el), async () => {
     const e = await api('/experiences/' + encodeURIComponent(ctx.params.id));
     mount(el, html`${crumbs([['Home', '#/'], ['Experiences', '#/experiences'], [e.name]])}
-      <section class="exphero" data-tone="${e.id}"><span class="art">${raw(EXP_ART[e.icon] || '')}</span><div><h1>${e.name}</h1><p>${e.intro}</p></div></section>
+      ${photoHead('exp-' + e.id)}
+      <section class="exphero" data-tone="${e.id}">${photo('exp-' + e.id) ? '' : html`<span class="art">${raw(EXP_ART[e.icon] || '')}</span>`}<div><h1>${e.name}</h1><p>${e.intro}</p></div></section>
       <section class="section" aria-labelledby="pl-h"><div class="sechead"><h2 id="pl-h">Places <span class="pill syn">crowd: estimate</span>${infoNote(e.crowd_note)}</h2><a href="${href('/plan/map', { theme: e.id })}">See on map</a></div>
-        ${moreList(e.destinations, placeCard, 6, 'cards placecards')}</section>
+        ${moreList(e.destinations, placeCard, 6, 'cards placecards')}${thumbsNote()}</section>
       ${e.itineraries.length ? html`<section class="section" aria-labelledby="it-h"><div class="sechead"><h2 id="it-h">Sample trips <span class="pill syn">sample</span></h2></div><div class="cards">${e.itineraries.map(itinCard)}</div></section>` : ''}
       <div class="grid g2 section">
         <section class="card tight" aria-labelledby="fe-h"><h2 id="fe-h">Festivals</h2>${e.festivals.length ? html`<ul class="lines">${e.festivals.slice(0, 4).map((f) => html`<li><a href="${href('/festivals', { view: 'list', q: f.name })}">${f.name}</a><span class="muted small">${f.window || ''}</span></li>`)}</ul><p class="hint">Usual timing; lunar dates are announced each year.</p>` : html`<p class="muted">None listed.</p>`}</section>
@@ -47,7 +50,8 @@ export async function experience(ctx) {
 
 function placeCard(d) {
   const w = d.weather_now;
-  return html`<a class="card tight placecard" href="${href('/destinations/' + d.id)}"><strong>${d.name}</strong><span class="muted small">${d.district_name} · ${d.division}</span>
+  const p = photo(d.id);
+  return html`<a class="card tight placecard" href="${href('/destinations/' + d.id)}">${p ? img(p, { cls: 'pthumb', alt: '' }) : ''}<strong>${d.name}</strong><span class="muted small">${d.district_name} · ${d.division}</span>
     <span class="row">${bandPill(d.crowd_today.band, d.crowd_today.index, 'Crowd')}</span>
     <span class="small">${wxText(w)}${w?.warning ? html` · <strong class="warnx">⚠ ${w.warning.kind === 'snow' ? 'snow' : 'heavy rain'} ${short(w.warning.date)}</strong>` : ''}</span></a>`;
 }
@@ -92,14 +96,15 @@ export async function itinerary(ctx) {
         <div class="bsx">${bandPill(b.band, b.avg_index, 'Avg crowd')}<span class="small">${better ? html`vs ${b.if_start_today.avg_index} (${b.if_start_today.band.replace('_', ' ')}) if you start today` : 'Starting today is as good as any day in the next two weeks'}</span></div>
       </section>
       <h2 class="section">Stop by stop, today</h2>
-      <ol class="stops section">${i.stops.map((s) => html`<li><span class="n" aria-hidden="true">${s.order}</span><div class="stopc">
+      <ol class="stops section">${i.stops.map((s) => html`<li><span class="n" aria-hidden="true">${s.order}</span><div class="stopc ${photo(s.destination_id) ? 'hasimg' : ''}">
+          ${photo(s.destination_id) ? img(photo(s.destination_id), { cls: 'sthumb', alt: '' }) : ''}<div class="stopb">
           <div class="sh"><a class="t" href="${href('/destinations/' + s.destination_id)}">${s.name}</a><span class="muted small">${s.district_name} · ${s.suggested_days} day${s.suggested_days > 1 ? 's' : ''} suggested</span></div>
           <div class="st">${bandPill(s.crowd_today.band, s.crowd_today.index, 'Crowd')}
             <span class="pill ${s.weather?.warning ? 'bad' : 'neutral'} noicon">${s.weather?.warning ? `⚠ ${s.weather.warning.kind === 'snow' ? 'Snow' : 'Heavy rain'} ${short(s.weather.warning.date)}` : wxText(s.weather)}</span>
             ${s.road ? html`<span class="roadx">Road: ${roadPill(s.road.status)}${s.road.sample ? html`<span class="pill syn">sample</span>` : ''}</span>` : html`<span class="pill neutral noicon">No road alerts</span>`}</div>
           ${s.best_months?.length ? html`<div class="small muted">Usually best: ${s.best_months.map((m) => monthName(m, true)).join(', ')}</div>` : ''}
-        </div></li>`)}</ol>
-      <p class="hint">${i.note}</p>
+        </div></div></li>`)}</ol>
+      <p class="hint">${i.note}</p>${thumbsNote()}
       ${lastUpdated(i.generated_at, 'Crowd levels are estimates; road alerts marked sample are illustrative')}`);
   });
 }
@@ -240,6 +245,6 @@ export async function services(ctx) {
 export async function nearbyPanel(box, dest) {
   const r = await api(`/destinations/${encodeURIComponent(dest.id)}/nearby`, { query: { limit: 8 } });
   mount(box, html`<h2 id="ph">Nearby places</h2>
-    ${moreList(r.items, (p) => html`<a class="item nearby" href="${href('/destinations/' + p.id)}"><div class="main"><strong>${p.name}</strong><div class="sub">${p.district_name} · about ${num(p.distance_km)} km straight-line</div></div><div class="side">${bandPill(p.crowd_today.band, p.crowd_today.index, '')}</div></a>`, 5)}
-    <p class="hint section">${r.distance_note}</p>`);
+    ${moreList(r.items, (p) => html`<a class="item nearby" href="${href('/destinations/' + p.id)}">${photo(p.id) ? img(photo(p.id), { cls: 'nthumb', alt: '' }) : html`<span class="nthumb ph" aria-hidden="true"></span>`}<div class="main"><strong>${p.name}</strong><div class="sub">${p.district_name} · about ${num(p.distance_km)} km straight-line</div></div><div class="side">${bandPill(p.crowd_today.band, p.crowd_today.index, '')}</div></a>`, 5)}
+    <p class="hint section">${r.distance_note}</p>${thumbsNote()}`);
 }

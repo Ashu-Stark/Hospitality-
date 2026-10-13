@@ -1,10 +1,11 @@
-// Rules & licences explainer, helplines & advisories, About, Accessibility statement, Sitemap.
+// Rules & licences explainer, helplines & advisories, About, Accessibility statement, Sitemap, Photo credits.
 import { html, mount, href, load, $, $$, empty, raw, crumbs, lastUpdated, announce, collapseFilters, moreList } from '../ui.js';
 import { api, meta } from '../api.js';
 import { setQuery } from '../router.js';
 import { t } from '../i18n.js';
 import { advisoryRow } from './common.js';
 import { SITEMAP } from '../nav.js';
+import { photos, photosNote, img } from '../photos.js';
 
 function ruleCard(r, m, full = false) {
   const types = (r.business_types || []).map((k) => m.business_types.find((b) => b.key === k)?.label || k);
@@ -145,5 +146,21 @@ export function accessibility(ctx) {
 export function sitemap(ctx) {
   mount(ctx.el, html`${crumbs([['Home', '#/'], ['Sitemap']])}<h1>Sitemap</h1><p class="lead section">Every page of the portal. Pages under “sign in” need an account.</p>
     <div class="grid g3 section">${SITEMAP.map(([h, items]) => html`<section class="card"><h2>${h}</h2><ul class="bullets">${items.map(([n, p]) => html`<li><a href="#${p}">${n}</a></li>`)}</ul></section>`)}</div>
+    ${lastUpdated(null)}`);
+}
+
+const KIND_LABEL = [['hero', 'Home page'], ['destination', 'Destinations'], ['experience', 'Experiences']];
+export function credits(ctx) {
+  const all = photos();
+  mount(ctx.el, html`${crumbs([['Home', '#/'], ['Photo credits']])}
+    <div class="pagehead"><div><h1>Photo credits</h1><p>Every photo on this portal, with its author and licence.</p></div></div>
+    <p class="flag amber">${photosNote() || 'Illustrative photos from Wikimedia Commons.'} Each photo was resized and compressed; nothing else was changed. Photos licensed CC BY-SA may be reused under the same licence.</p>
+    ${all.length ? KIND_LABEL.filter(([k]) => all.some((p) => p.kind === k)).map(([k, label]) => html`<section class="section" aria-labelledby="pc-${k}"><h2 id="pc-${k}">${label}</h2>
+      <ul class="plain creditlist">${all.filter((p) => p.kind === k).map((p) => html`<li>${img(p)}<div><strong>${p.alt}</strong>
+        <span class="small">Author: ${p.author}</span>
+        <span class="small">Licence: ${p.license_url ? html`<a href="${p.license_url}" target="_blank" rel="noopener">${p.license}<span class="sr-only"> (opens in a new tab)</span></a>` : p.license}</span>
+        <span class="small">Source: <a href="${p.source_url}" target="_blank" rel="noopener">${p.title}<span class="sr-only"> (Wikimedia Commons, opens in a new tab)</span></a> · ${p.modified}</span></div></li>`)}</ul></section>`)
+      : html`<p class="muted section">No photos are loaded.</p>`}
+    <p class="hint section">Places without a suitable freely licensed photo show a drawn illustration instead.</p>
     ${lastUpdated(null)}`);
 }

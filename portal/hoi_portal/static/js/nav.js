@@ -43,5 +43,5 @@ export const SITEMAP = [
     ['Grievance queue', '/officer/grievances'], ['Advisories manager', '/officer/advisories'], ['Events manager', '/officer/events'],
     ['Business registry (officials)', '/officer/businesses'], ['Officer management (state admin)', '/officer/officers'], ['Audit log (state admin)', '/officer/audit'],
   ]],
-  ['About this portal', [['About the concept', '/about'], ['Accessibility statement', '/accessibility'], ['Sitemap', '/sitemap']]],
+  ['About this portal', [['About the concept', '/about'], ['Accessibility statement', '/accessibility'], ['Photo credits', '/credits'], ['Sitemap', '/sitemap']]],
 ];

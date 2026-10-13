@@ -6,6 +6,7 @@ import { setQuery, go } from '../router.js';
 import { ICONS, resultLink, resultTitle, resultSub, TYPE_LABEL, advisoryLine } from './common.js';
 import { expTile } from './plan.js';
 import { paintTones } from '../art.js';
+import { photo, img, credit } from '../photos.js';
 
 const ORDER = ['destinations', 'businesses', 'events', 'dictionary', 'rules', 'advisories'];
 
@@ -13,8 +14,9 @@ export async function home(ctx) {
   const el = ctx.el;
   el.classList.remove('page');
   el.classList.add('homepage');
+  const hp = photo('hero');
   mount(el, html`
-  <section class="hero" aria-labelledby="hero-h">
+  <section class="hero ${hp ? 'photo' : ''}" aria-labelledby="hero-h">
     <div class="hero-in">
       <p class="eyebrow">Uttarakhand · concept portal</p>
       <h1 id="hero-h">${t('hero_title')}</h1>
@@ -27,6 +29,7 @@ export async function home(ctx) {
         <div class="typeahead" id="ta" role="listbox" aria-label="Search suggestions" hidden></div>
       </div>
     </div>
+    ${hp ? credit(hp, 'pcredit herocredit') : ''}
   </section>
   <section class="tasks" aria-label="What do you want to do?">
     <div class="task"><span class="ic">${raw(ICONS.plan)}</span><h2>${t('task_plan')}</h2><p>Weather, roads and how crowded it will be.</p>
@@ -64,8 +67,8 @@ export async function home(ctx) {
       const d = await api('/destinations');
       const top = d.items.filter((x) => x.crowd_today).sort((a, b) => b.crowd_today.index - a.crowd_today.index).slice(0, 6);
       mount($('#crowd', el), top.length ? html`<div class="crowdstrip" role="list">${top.map((x) => html`<a role="listitem" class="crowdcard" href="${href('/destinations/' + x.id)}">
-        <b>${x.name}</b><span class="muted small">${x.district_name}</span>
-        <div class="idxrow"><span class="idx">${x.crowd_today.index}<small> / 100</small></span>${bandPill(x.crowd_today.band, null, '')}</div></a>`)}</div>` : empty('No crowd estimates yet'));
+        ${photo(x.id) ? img(photo(x.id), { cls: 'cthumb', alt: '' }) : ''}<b>${x.name}</b><span class="muted small">${x.district_name}</span>
+        <div class="idxrow"><span class="idx">${x.crowd_today.index}<small> / 100</small></span>${bandPill(x.crowd_today.band, null, '')}</div></a>`)}</div><p class="hint photonote">Photos: Wikimedia Commons contributors, illustrative only. <a href="#/credits">Photo credits</a></p>` : empty('No crowd estimates yet'));
     }, { skel: 'block' }),
     load($('#adv', el), async () => {
       const a = await api('/advisories');

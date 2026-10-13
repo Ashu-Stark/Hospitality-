@@ -7,6 +7,7 @@ import { t } from '../i18n.js';
 import { barChart, BAND_FILL, bandLegend, bandOf } from '../charts.js';
 import { bizRow, advisoryRow, kv } from './common.js';
 import { nearbyPanel } from './plan.js';
+import { photo, img, photoHead, thumbsNote } from '../photos.js';
 
 const EXP_NAMES = { spiritual: 'Spiritual & Char Dham', adventure: 'Adventure & Treks', wildlife: 'Wildlife & Nature', wellness: 'Yoga & Wellness', leisure: 'Hill towns & Leisure', culture: 'Culture & Fairs' };
 
@@ -18,7 +19,7 @@ export async function list(ctx) {
     <p>Pick a place to see weather, road alerts and how crowded it will be.</p></div></div>
     <form class="card tight filters" id="dfilters" aria-label="Filter destinations"></form>
     <p class="small muted" id="dcount" aria-live="polite"></p>
-    <div id="dlist"></div>`);
+    <div id="dlist"></div>${thumbsNote()}`);
   await load($('#dlist', el), async () => {
     const [m, d] = await Promise.all([meta(), api('/destinations')]);
     const form = $('#dfilters', el);
@@ -54,8 +55,9 @@ export async function list(ctx) {
 
 function card(x) {
   const c = x.crowd_today;
+  const p = photo(x.id);
   return html`<a class="dcard" href="${href('/destinations/' + x.id)}">
-    <div class="art">${landscape(x.id)}<b>${x.name}</b><small>${x.district_name} · ${x.division}</small></div>
+    <div class="art ${p ? 'photo' : ''}">${p ? img(p, { cls: 'cover', alt: '' }) : landscape(x.id)}<b>${x.name}</b><small>${x.district_name} · ${x.division}</small></div>
     <div class="body"><div class="meta">${c ? bandPill(c.band, c.index) : html`<span class="pill neutral">Crowd: no estimate</span>`}</div>
       <div class="meta">${x.tags.slice(0, 3).map((tg) => html`<span class="tag">${tg}</span>`)}</div></div></a>`;
 }
@@ -94,6 +96,7 @@ export async function detail(ctx) {
     const wWarn = (w?.warnings || [])[0];
     const base = '/destinations/' + x.id;
     mount(el, html`${crumbs([['Home', '#/'], ['Destinations', '#/destinations'], [x.name]])}
+      ${photoHead(x.id)}
       <div class="pagehead tightb"><div><p class="eyebrow">${x.district_name} · ${x.division}</p><h1>${x.name}</h1></div>
         <div class="chips">${x.tags.map((tg) => html`<span class="tag">${tg}</span>`)}</div></div>
       <section aria-label="At a glance" class="glance">
