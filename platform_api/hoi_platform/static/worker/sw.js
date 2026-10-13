@@ -1,5 +1,5 @@
 // Offline shell for the staff app. API calls always go to the network (never cached).
-const CACHE = "hoi-staff-v11";
+const CACHE = "hoi-staff-v12";
 const SHELL = ["/worker/", "/worker/index.html", "/worker/app.css", "/worker/app.js", "/worker/i18n.js", "/worker/icon.svg", "/shared/brand/hoi/hoi-mark.svg", "/shared/brand/hoi/hoi-icon-192.png", "/shared/base.css", "/shared/voice.js", "/shared/roles.js",
   ...["hotel_manager", "front_office", "housekeeping", "fnb_service", "kitchen", "maintenance", "security", "storekeeper", "generic"].map((r) => `/shared/avatars/${r}.svg`)];
 self.addEventListener("install", (e) => e.waitUntil(caches.open(CACHE).then((c) => c.addAll(SHELL)).then(() => self.skipWaiting())));
