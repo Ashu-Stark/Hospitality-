@@ -68,3 +68,12 @@ messages:
   verify_legal:
     en: "Verify with a qualified person: this depends on labour rules."
     hi: "किसी योग्य व्यक्ति से जाँच करवाएँ: यह श्रम नियमों पर निर्भर है।"
+  consent:
+    en: "This recording is my own voice. It contains no staff names or salaries. I understand that free AI services give no privacy guarantee."
+    hi: "यह रिकॉर्डिंग मेरी अपनी आवाज़ है। इसमें किसी कर्मचारी का नाम या वेतन नहीं है। मैं समझता/समझती हूँ कि मुफ़्त AI सेवाएँ गोपनीयता की कोई गारंटी नहीं देतीं।"
+  cloud_stt_off:
+    en: "Speech-to-text for owner recordings is switched off on this server. Please type your answer."
+    hi: "इस सर्वर पर मालिक की रिकॉर्डिंग से टेक्स्ट बनाना बंद है। कृपया जवाब टाइप करें।"
+  consent_needed:
+    en: "Please tick the consent box before sending a recording, or type your answer."
+    hi: "रिकॉर्डिंग भेजने से पहले सहमति वाला बॉक्स चुनें, या जवाब टाइप करें।"

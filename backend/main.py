@@ -19,6 +19,11 @@ from backend import demo, loop
 from backend.config import Settings, default_settings
 from backend.db import audit, ensure_seeded
 from backend.mongo import database_kind, get_database
+from backend.onboarding import api as onboarding_api
+from backend.onboarding.config import load_config as load_onboarding_config
+from backend.onboarding.llm import default_adapter
+from backend.onboarding.seed import ensure_demo_properties
+from backend.onboarding.stt import CloudSTT
 from backend.roster import service as roster_service
 from backend.schemas import (
     AttritionScore,
@@ -68,6 +73,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     @asynccontextmanager
     async def lifespan(app: FastAPI):  # noqa: ANN202
         ensure_seeded(app.state.db, settings.config.data_source)  # indexes + seed if empty
+        ensure_demo_properties(app.state.db, app.state.onboarding_cfg)  # 3 SYNTHETIC hotels
         scheduler = task_api.start_scheduler(app)
         yield
         if scheduler is not None:
@@ -84,11 +90,16 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.state.db = get_database(settings)  # pymongo connects lazily, on first use
     app.state.service = MockService() if settings.mock else ModelService()
     app.state.clock = VirtualClock()
+    # hotel onboarding by voice (backend/onboarding); tests replace the adapters with fakes
+    app.state.onboarding_cfg = load_onboarding_config()
+    app.state.onboarding_llm = default_adapter(app.state.onboarding_cfg)
+    app.state.onboarding_stt = CloudSTT(app.state.onboarding_cfg.audio.stt_providers)
     register_core_routes(app)
     app.include_router(roster_service.router(get_db, get_service, source_of))
     app.include_router(task_api.router(get_db, source_of))
     app.include_router(loop.router(get_db, get_service, source_of))
     app.include_router(demo.router(get_db, get_service, source_of))
+    app.include_router(onboarding_api.router(get_db, source_of))
     return app
 
 

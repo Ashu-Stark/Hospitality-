@@ -13,6 +13,8 @@ Collections (dates as ISO "YYYY-MM-DD" strings, times as timezone-aware UTC date
   intervention       closed-loop actions (B4)
   audit_log          every state change (detail is a JSON-safe dict)
   onboarding_session hotel onboarding: draft profile, flow state, answers (backend/onboarding)
+  property           a confirmed property (one per onboarding session; property_id is a string)
+  property_settings  the confirmed profile of one property (FieldValue per field)
   counters           {_id: collection name, seq: last id}
 """
 
@@ -32,8 +34,9 @@ EMPLOYEES, ROSTERS, TASKS, EVENTS = "employee_snapshot", "roster", "task", "task
 INTERVENTIONS, AUDIT, COUNTERS = "intervention", "audit_log", "counters"
 COLLECTIONS = (EMPLOYEES, ROSTERS, TASKS, EVENTS, INTERVENTIONS, AUDIT)
 # Hotel onboarding by voice (backend/onboarding): every document carries property_id.
-ONBOARDING_SESSIONS = "onboarding_session"
-ONBOARDING_COLLECTIONS = (ONBOARDING_SESSIONS,)
+ONBOARDING_SESSIONS, PROPERTIES, PROPERTY_SETTINGS = (
+    "onboarding_session", "property", "property_settings")
+ONBOARDING_COLLECTIONS = (ONBOARDING_SESSIONS, PROPERTIES, PROPERTY_SETTINGS)
 NO_ID = {"_id": 0}  # projection: never return Mongo's ObjectId
 
 
@@ -91,6 +94,9 @@ def ensure_indexes(db: Database) -> None:
     db[AUDIT].create_index([("action", ASCENDING), ("id", DESCENDING)])
     db[ONBOARDING_SESSIONS].create_index("session_id", unique=True)
     db[ONBOARDING_SESSIONS].create_index("property_id", unique=True)
+    db[PROPERTIES].create_index("property_id", unique=True)            # idempotent confirm
+    db[PROPERTIES].create_index("onboarding_session_id", unique=True)
+    db[PROPERTY_SETTINGS].create_index("property_id", unique=True)
 
 
 def drop_all(db: Database) -> None:

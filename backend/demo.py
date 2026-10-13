@@ -8,7 +8,7 @@ replacement_cost_inr comes from config (ASSUMED) and can be overridden per reque
 employed" is all that is known: the synthetic data ends with the demo week, so the 90-day outcome
 of the interventions is NOT known; the response says so.
 POST /demo/reset: drop every hoi_ops collection, rebuild the indexes, reseed, demo clock back
-to x1.
+to x1, and recreate the three SYNTHETIC demo properties (hotel onboarding, template path).
 POST /voice/ingest: voice.extract on a clip in ml/voice/clips (file name only), then a task for
 the department owner, due by urgency; a clear 4xx/503 error otherwise.
 """
@@ -34,6 +34,7 @@ from backend.db import (
     ensure_indexes,
     seed,
 )
+from backend.onboarding.seed import seed_demo_properties
 from backend.services import NotAvailable, Service
 from backend.tasks import engine
 from backend.tasks.api import TaskOut, task_out
@@ -97,15 +98,16 @@ def overview(db: Database, replacement_cost: float, now: datetime) -> MetricsOve
         replacement_cost_inr=replacement_cost, roi_inr=still * replacement_cost)
 
 
-def reset(request: Request) -> int:
+def reset(request: Request) -> tuple[int, list[str]]:
     app = request.app
     db = app.state.db
     drop_all(db)
     ensure_indexes(db)
     app.state.clock.set_multiplier(1.0)
     n = seed(db, app.state.settings.config.data_source)
-    audit(db, "demo.reset", {"rows": n}, "api")
-    return n
+    properties = seed_demo_properties(db, app.state.onboarding_cfg)
+    audit(db, "demo.reset", {"rows": n, "demo_properties": properties}, "api")
+    return n, properties
 
 
 def ingest(db: Database, service: Service, request: Request, body: VoiceIngest,
@@ -152,7 +154,9 @@ def router(get_db, get_service, source_of) -> APIRouter:  # noqa: ANN001
 
     @r.post("/demo/reset")
     def demo_reset(request: Request) -> dict:
-        return {"status": "reset", "employee_snapshot_rows": reset(request), "synthetic": True}
+        rows, properties = reset(request)
+        return {"status": "reset", "employee_snapshot_rows": rows,
+                "demo_property_ids": properties, "synthetic": True}
 
     @r.post("/voice/ingest", response_model=VoiceIngestOut)
     def voice_ingest(body: VoiceIngest, request: Request,

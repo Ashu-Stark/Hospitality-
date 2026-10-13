@@ -71,6 +71,23 @@ class LlmConfig(_Strict):
     allow_cloud_llm_for_owner_text: bool
 
 
+class AudioConfig(_Strict):
+    allow_cloud_stt_for_owner_audio: bool
+    store_audio: bool
+    audio_dir: str
+    max_megabytes: float = Field(gt=0)
+    allowed_types: list[str]
+    allowed_extensions: list[str]
+    stt_providers: list[str]
+
+
+class DemoProperty(_Strict):
+    hotel_name: str
+    hotel_type: str
+    rooms: int = Field(ge=1)
+    location: str
+
+
 class OnboardingConfig(_Strict):
     review: dict[str, str | bool]
     size_bands: dict[str, Band]
@@ -83,6 +100,8 @@ class OnboardingConfig(_Strict):
     confidence: Confidence
     extraction: ExtractionConfig
     llm: LlmConfig
+    audio: AudioConfig
+    demo_properties: list[DemoProperty]
 
     @model_validator(mode="after")
     def _types(self) -> OnboardingConfig:

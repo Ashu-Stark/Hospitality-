@@ -76,3 +76,24 @@ llm:
   max_tokens: 1500
   timeout_seconds: 30
   allow_cloud_llm_for_owner_text: false   # ASSUMED default: owner answers stay local
+
+# Owner audio (Part D). Cloud speech-to-text (ml/voice adapters: Groq Whisper, Sarvam) runs on an
+# owner's recording ONLY if allow_cloud_stt_for_owner_audio is true AND the request carries
+# consent=true (checkbox: own voice, no staff names or salaries, free AI tiers give no privacy
+# guarantee). Otherwise the answer endpoint says so and asks for typed text. Audio is never
+# stored after transcription unless store_audio is true (temp files are deleted in `finally`).
+audio:
+  allow_cloud_stt_for_owner_audio: false    # ASSUMED default: off
+  store_audio: false                        # ASSUMED default: off
+  audio_dir: backend/onboarding/audio       # only used when store_audio is true (gitignored)
+  max_megabytes: 10
+  allowed_types: [audio/wav, audio/x-wav, audio/wave, audio/vnd.wave, audio/mpeg, audio/mp3,
+                  audio/mp4, audio/x-m4a, audio/m4a, audio/webm, audio/ogg]
+  allowed_extensions: [.wav, .mp3, .m4a, .mp4, .webm, .ogg]
+  stt_providers: [groq, sarvam]             # names from ml/voice/config.yaml, tried in order
+
+# Demo properties (Part F), created through the template path by /demo/reset. SYNTHETIC.
+demo_properties:
+  - {hotel_name: "Demo Pine Homestay (SYNTHETIC)", hotel_type: homestay, rooms: 12, location: Mussoorie}
+  - {hotel_name: "Demo Ridge Hotel (SYNTHETIC)", hotel_type: small_hotel, rooms: 35, location: Nainital}
+  - {hotel_name: "Demo Valley Resort (SYNTHETIC)", hotel_type: resort, rooms: 80, location: Rishikesh}

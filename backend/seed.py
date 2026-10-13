@@ -10,6 +10,8 @@ from __future__ import annotations
 from backend.config import default_settings
 from backend.db import drop_all, ensure_indexes, seed
 from backend.mongo import database_kind, get_database
+from backend.onboarding.config import load_config as load_onboarding_config
+from backend.onboarding.seed import seed_demo_properties
 
 
 def main() -> int:
@@ -18,6 +20,8 @@ def main() -> int:
     drop_all(db)
     ensure_indexes(db)
     n = seed(db, settings.config.data_source)
+    properties = seed_demo_properties(db, load_onboarding_config())
+    print(f"seeded demo properties (SYNTHETIC): {', '.join(properties)}")
     print(
         f"seeded {n} employee snapshot documents (SYNTHETIC) into "
         f"{database_kind(settings)} database {settings.database_name}"
