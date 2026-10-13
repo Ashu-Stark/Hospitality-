@@ -24,6 +24,19 @@ config.reload()
 from hoi_platform.main import create_app  # noqa: E402
 
 
+@pytest.fixture(autouse=True)
+def _places_offline():
+    """The concierge's places lookup (tourism portal) never reaches the network in tests; tests that need it inject a fake."""
+    from hoi_platform.services import places
+
+    def offline(url, params, timeout=None):
+        raise OSError("tests are offline")
+
+    places.set_http(offline)
+    yield
+    places.set_http(offline)
+
+
 @pytest.fixture(scope="session")
 def client() -> TestClient:
     return TestClient(create_app())

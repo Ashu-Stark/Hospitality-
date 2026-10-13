@@ -25,6 +25,7 @@ class Settings:
     demo_login: bool
     admin_password: str | None = field(repr=False)
     seed_demo: bool
+    seed_homestay: bool = True  # the demo homestay next to the demo hotel; off for hotel-only simulations
     cors_origins: list[str] = field(default_factory=list)
     public_base_url: str = ""
     login_rate_per_minute: int = 10
@@ -60,6 +61,9 @@ class Settings:
     guest_action_rate_per_minute: int = 10
     feedback_max_chars: int = 1000
     hotel_utc_offset_minutes: int = 330  # hotel local time for "HH:MM" checkout times (India, no DST)
+    # Concierge "places to visit": look up the tourism portal when a hotel's own list is short (services/places.py)
+    places_lookup: bool = True
+    places_cache_hours: float = 24.0
 
     @property
     def is_production(self) -> bool:
@@ -86,6 +90,7 @@ def load() -> Settings:
         demo_login=_bool(os.getenv("HOI_DEMO_LOGIN"), env != "production"),
         admin_password=os.getenv("HOI_ADMIN_PASSWORD"),
         seed_demo=_bool(os.getenv("HOI_SEED_DEMO"), env != "production"),
+        seed_homestay=_bool(os.getenv("HOI_SEED_HOMESTAY"), True),
         cors_origins=[o.strip() for o in os.getenv("HOI_CORS_ORIGINS", "*" if env != "production" else "").split(",") if o.strip()],
         public_base_url=os.getenv("HOI_PUBLIC_BASE_URL", "").rstrip("/"),
         login_rate_per_minute=int(os.getenv("HOI_LOGIN_RATE_PER_MINUTE", "10")),
@@ -117,6 +122,8 @@ def load() -> Settings:
         guest_action_rate_per_minute=int(os.getenv("HOI_GUEST_ACTION_RATE_PER_MINUTE", "10")),
         feedback_max_chars=int(os.getenv("HOI_FEEDBACK_MAX_CHARS", "1000")),
         hotel_utc_offset_minutes=int(os.getenv("HOI_HOTEL_UTC_OFFSET_MINUTES", "330")),
+        places_lookup=_bool(os.getenv("HOI_PLACES_LOOKUP"), True),
+        places_cache_hours=float(os.getenv("HOI_PLACES_CACHE_HOURS") or "24"),
     )
 
 

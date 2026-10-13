@@ -1,6 +1,6 @@
 """People: recognition points (positive-only incentives) and staffing requests to the tourism portal."""
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Path, Query
 
 from ..deps import Principal, roles, tenant_of
 from ..schemas import StaffingRequestIn
@@ -45,3 +45,27 @@ def list_staffing_requests(property_id: str | None = PID, p: Principal = Depends
 def resend_staffing_request(rid: str, p: Principal = Depends(roles("owner", "dept_head", "hr"))) -> dict:
     """Retry sending a pending request."""
     return staffing.send(tenant_of(p), rid, p.username)
+
+
+# ------------------------------------------------------------------ retention cover (high chance of leaving)
+EMP = Path(max_length=20, pattern=r"^[A-Za-z0-9_-]+$")
+
+
+def _cover_scope(p: Principal, employee_id: str) -> str:
+    """Department heads only for their own department."""
+    tid = tenant_of(p)
+    if p.role == "dept_head" and staffing.staff_member(tid, employee_id)["department"] != users.department_of(p.user_id):
+        raise HTTPException(403, "Only for your own department.")
+    return tid
+
+
+@router.get("/staffing/cover/{employee_id}")
+def find_cover(employee_id: str = EMP, property_id: str | None = PID, p: Principal = Depends(roles("owner", "dept_head", "hr"))) -> dict:
+    """High chance of leaving: how many job seekers on the tourism portal could fit this person's role (anonymised)."""
+    return staffing.find_cover(_cover_scope(p, employee_id), p.username, employee_id, property_id)
+
+
+@router.post("/staffing/cover/{employee_id}/post")
+def post_cover_job(employee_id: str = EMP, property_id: str | None = PID, p: Principal = Depends(roles("owner", "dept_head", "hr"))) -> dict:
+    """The owner's one click when nobody fits: post one job for this role on the portal. Idempotent while that post is open."""
+    return staffing.post_cover_job(_cover_scope(p, employee_id), p.username, employee_id, property_id)

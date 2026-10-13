@@ -15,7 +15,7 @@ from fastapi import Depends, FastAPI, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pymongo.database import Database
 
-from backend import demo, loop
+from backend import demo, loop, retention
 from backend.config import Settings, default_settings
 from backend.db import audit, ensure_seeded
 from backend.mongo import database_kind, get_database
@@ -101,6 +101,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(roster_service.router(get_db, get_service, source_of))
     app.include_router(task_api.router(get_db, source_of))
     app.include_router(loop.router(get_db, get_service, source_of))
+    app.include_router(retention.router(get_db, get_service, source_of))
     app.include_router(demo.router(get_db, get_service, source_of))
     app.include_router(onboarding_api.router(get_db, source_of))
     return app

@@ -270,8 +270,8 @@ def live_platform(url: str, assignments: list[dict] | None) -> list[dict]:
     )
     props = L.call("GET", "/workspace/properties", headers=owner).json()
     L.check(
-        "property is the fictional hotel",
-        [p["name"] for p in props] == ["Himsagar Ridge Resort, Mussoorie (fictional)"] and props[0]["rooms"] == 24,
+        "property is the demo hotel",
+        [p["name"] for p in props] == ["Himsagar Ridge Resort, Mussoorie (demo)"] and props[0]["rooms"] == 24,
         [(p["name"], p["rooms"]) for p in props],
     )
     rooms = L.call("GET", "/rooms", headers=owner).json()
@@ -285,7 +285,7 @@ def live_platform(url: str, assignments: list[dict] | None) -> list[dict]:
         f"{len(sids)} staff; role_title present: {all(x.get('role_title') for x in staff if x['employee_id'] in HS_IDS)}",
     )
     prof = L.call("GET", "/hotel/profile", headers=owner).json()
-    L.check("hotel profile", "fictional" in prof.get("display_name", ""), prof.get("display_name"))
+    L.check("hotel profile", "(demo)" in prof.get("display_name", ""), prof.get("display_name"))
     L.check("profile logo_url", prof.get("logo_url") == "/shared/brand/himsagar-logo.svg", prof.get("logo_url"))
     accts = L.call("GET", "/auth/demo-accounts").json()
     names = {a["username"] if isinstance(a, dict) else a[0] for a in accts}
@@ -294,7 +294,7 @@ def live_platform(url: str, assignments: list[dict] | None) -> list[dict]:
     g = L.call("GET", f"/public/guest/{tok}").json()
     L.check(
         "guest page profile",
-        "fictional" in (g.get("profile") or {}).get("display_name", ""),
+        "(demo)" in (g.get("profile") or {}).get("display_name", ""),
         {"hotel": g.get("hotel"), "logo_url": (g.get("profile") or {}).get("logo_url")},
     )
     L.check(
@@ -441,7 +441,7 @@ def main(argv: list[str]) -> int:
     ap.add_argument("--json", type=Path)
     args = ap.parse_args(argv)
     report: dict = {
-        "hotel": "Himsagar Ridge Resort, Mussoorie (fictional)",
+        "hotel": "Himsagar Ridge Resort, Mussoorie (demo)",
         "synthetic": True,
         "generated_at": datetime.now().isoformat(timespec="seconds"),
     }

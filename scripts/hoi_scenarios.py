@@ -62,6 +62,7 @@ def configure_offline_env() -> None:
     for k, v in {
         "HOI_DEMO_LOGIN": "true",
         "HOI_SEED_DEMO": "true",
+        "HOI_SEED_HOMESTAY": "false",  # the simulations cover the 24-room hotel only
         "HOI_GUEST_AI_ENABLED": "false",
         "HOI_LOGIN_RATE_PER_MINUTE": "100000",
         "HOI_GUEST_CHAT_RATE_PER_MINUTE": "100000",
@@ -1070,7 +1071,7 @@ ONBOARDING_ANSWERS = {
 def onboarding_demo(ops) -> dict:  # noqa: ANN001
     """Typed (no audio, no keys) onboarding that creates the hotel as a confirmed property."""
     s = ops.post(
-        "/onboarding/start", json={"hotel_type": "resort", "language": "en", "hotel_name": "Himsagar Ridge Resort (fictional)"}
+        "/onboarding/start", json={"hotel_type": "resort", "language": "en", "hotel_name": "Himsagar Ridge Resort (demo)"}
     ).json()
     asked = []
     for _ in range(12):

@@ -72,6 +72,8 @@ python run.py eval-onboarding # onboarding extraction eval on SYNTHETIC utteranc
 | POST/GET | /demo/clock | demo clock multiplier (reminders fire in seconds) |
 | POST | /loop/run | closed loop: score, interventions, baseline vs protected roster, rescore |
 | GET | /interventions?status=open\|done\|all&employee_id=&week_start= | stored interventions with their linked task status (open / acked / done / overdue = not done past its deadline); open = not done |
+| GET | /retention/plan?week_start=&employee_id= | per person: level (low / moderate / high from the band), next step (talk, or find cover on the job portal when high), 2-3 plain talking points from the top drivers, talk logged? (backend/retention.py) |
+| POST | /retention/talks | log that the talk happened: a done task (key talk:{week}:{employee}) + an intervention kind "talk"; idempotent per person and week; no free-text notes |
 | GET | /metrics/overview | overtime, understaffing, task on-time rate, flagged count, ROI (ASSUMPTION) |
 | POST | /demo/reset | drop the hoi_ops collections, recreate indexes, reseed, clock x1 |
 | POST | /voice/ingest | voice.extract on a clip in ml/voice/clips -> structured task |

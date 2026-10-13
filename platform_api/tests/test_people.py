@@ -289,7 +289,7 @@ def test_staffing_request_validation_and_roles(client, owner, store):
 
 
 def test_portal_client_uses_env_url_and_key_header(monkeypatch):
-    seen = {}
+    seen = []
 
     class R:
         status_code = 201
@@ -297,13 +297,17 @@ def test_portal_client_uses_env_url_and_key_header(monkeypatch):
         def json(self):
             return {"id": "x1"}
 
-    def fake_post(url, json, headers, timeout):
-        seen.update(url=url, headers=headers, json=json)
+    def fake_request(method, url, json=None, params=None, headers=None, timeout=None):
+        seen.append(dict(method=method, url=url, headers=headers, json=json, params=params))
         return R()
 
     monkeypatch.setenv("PORTAL_API_URL", "https://portal.example.test/")
-    monkeypatch.setattr(portal_client.httpx, "post", fake_post)
+    monkeypatch.setattr(portal_client.httpx, "request", fake_request)
     assert portal_client.send({"external_id": "a"}, "k1") == {"id": "x1"}
-    assert seen["url"] == "https://portal.example.test/api/v1/ingest/staffing-request" and seen["headers"] == {"X-API-Key": "k1"}
+    assert seen[0]["url"] == "https://portal.example.test/api/v1/ingest/staffing-request" and seen[0]["headers"] == {"X-API-Key": "k1"}
+    portal_client.candidate_matches("housekeeping", "k1", limit=3)
+    assert seen[1]["method"] == "GET" and seen[1]["url"].endswith("/api/v1/ingest/candidate-matches")
+    assert seen[1]["params"] == {"skill": "housekeeping", "limit": 3} and seen[1]["headers"] == {"X-API-Key": "k1"}
+    assert portal_client.job_url("JOB-000001") == "https://portal.example.test/#/jobs/JOB-000001"
     monkeypatch.delenv("PORTAL_API_URL")
     assert portal_client.base_url() == "https://hoi-portal.vercel.app"

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, Header, Request, Response
+from fastapi import APIRouter, Depends, Header, Query, Request, Response
 
 from .. import config, ratelimit
 from ..deps import Principal, business_only
@@ -102,3 +102,17 @@ def ingest_staffing_request(
     if out["result"] != "created":
         response.status_code = 200
     return out
+
+
+@ingest_router.get("/candidate-matches")
+def ingest_candidate_matches(
+    request: Request,
+    skill: str = Query(min_length=2, max_length=40, description="Skill key from GET /api/v1/jobs/meta (HOI department names are mapped)"),
+    limit: int = Query(staffing.MATCH_PREVIEW_MAX, ge=0, le=staffing.MATCH_PREVIEW_MAX),
+    x_api_key: str | None = Header(default=None),
+) -> dict:
+    """HOI retention check: how many public job seekers fit one skill in the hotel's own district, with up to 5 anonymised
+    previews (no names, no contact details). Business API key (X-API-Key), active registration only. Read-only."""
+    ratelimit.hit(f"ingest:{ratelimit.client_ip(request)}", config.settings.ingest_rate_per_minute)
+    b, _ = ingest.business_for_key(x_api_key)
+    return staffing.candidate_matches(b, skill, limit)

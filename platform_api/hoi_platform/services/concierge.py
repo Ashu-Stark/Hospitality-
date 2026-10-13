@@ -22,7 +22,7 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
 from .. import config
-from . import ai, guest, issues, profiles, rooms
+from . import ai, guest, issues, places, profiles, rooms
 from .errors import DomainError
 
 log = logging.getLogger("hoi.platform.concierge")
@@ -215,6 +215,7 @@ def context(token: str) -> dict:
         "stay": guest.stay_status(r),
         "local_time": now.strftime("%H:%M"),
         "local_date": now.strftime("%A %d %B %Y"),
+        "place": {"tenant_id": r["tenant_id"], "property_id": r.get("property_id")},  # for the places lookup only
     }
 
 
@@ -436,6 +437,102 @@ REQUEST_TYPES = [  # order matters: hot water before water, tea before food
         ("light", "bulb", " tv", "television", "socket", "switch", "fan", "remote", "लाइट", "बत्ती", "टीवी", "पंखा", "बिजली", "स्विच"),
     ),
 ]
+# "Places to visit" questions (English, Hindi, Hinglish). Answered with place cards (services/places.py), never by the LLM.
+PLACES_WORDS = (
+    "nearby",
+    "near by",
+    "near here",
+    "around here",
+    "places",
+    "place to",
+    "spots",
+    "to visit",
+    "visiting",
+    "visit kar",
+    "sightseeing",
+    "sight seeing",
+    "things to do",
+    "attractions",
+    "tourist",
+    "explore",
+    "घूमने",
+    "घूमना",
+    "घुमने",
+    "ghoomne",
+    "ghumne",
+    "ghoomna",
+    "ghumna",
+    "आसपास",
+    "आस पास",
+    "aas paas",
+    "aaspaas",
+    "aas-paas",
+    "dekhne layak",
+    "dekhne laayak",
+    "देखने लायक",
+)
+# ...and the guest wants quiet, lesser-known ones (counts as a places question on its own)
+OFFBEAT_WORDS = (
+    "offbeat",
+    "off beat",
+    "off-beat",
+    "off the beaten",
+    "hidden place",
+    "hidden spot",
+    "hidden gem",
+    "unexplored",
+    "unknown place",
+    "unrecognised",
+    "unrecognized",
+    "less known",
+    "lesser known",
+    "lesser-known",
+    "less-known",
+    "little known",
+    "less crowded",
+    "less crowd",
+    "not crowded",
+    "uncrowded",
+    "without crowd",
+    "less touristy",
+    "not touristy",
+    "away from the crowd",
+    "quiet place",
+    "quiet spot",
+    "quieter place",
+    "quieter spot",
+    "secret place",
+    "secret spot",
+    "peaceful place",
+    "kam bheed",
+    "kam bhid",
+    "kam bheer",
+    "bheed kam",
+    "bhid kam",
+    "bina bheed",
+    "कम भीड़",
+    "भीड़ कम",
+    "बिना भीड़",
+    "कम लोग",
+    "kam log",
+    "log nahi jaate",
+    "log nahi jate",
+    "log kam jaate",
+    "log kam jate",
+    "लोग नहीं जाते",
+    "लोग कम जाते",
+    "अनजान",
+    "anjaan",
+    "अनछुई",
+    "अनछुए",
+    "chhupi",
+    "छुपी",
+    "छिपी",
+    "shant jagah",
+    "शांत जगह",
+    "sukoon",
+    "सुकून",
+)
 GREETING = ("hello", "hi", "hey", "namaste", "namaskar", "नमस्ते", "नमस्कार", "good morning", "good evening")
 THANKS = ("thank", "thanks", "shukriya", "dhanyavad", "धन्यवाद", "शुक्रिया")
 SYNONYMS = {  # Hindi / Hinglish words -> profile vocabulary (English)
@@ -660,6 +757,74 @@ def problem_reply(message: str, lang: str, ctx: dict) -> dict | None:
     return {"reply": reply, "proposed_action": prop}
 
 
+def wants_places(t: str) -> bool:
+    return has(t, PLACES_WORDS) or has(t, OFFBEAT_WORDS)
+
+
+def places_reply(lang: str, ctx: dict, message: str = "") -> dict | None:
+    """Places to visit as cards (name, tip, distance, picture, Open in Maps). `reply` names a few places for the chat;
+    `speak` is one short sentence for the voice (no lists, no links). None = no places known: the caller falls through."""
+    offbeat = has(" " + norm(message) + " ", OFFBEAT_WORDS)
+    where = ctx.get("place") or {}
+    found = places.find(where.get("tenant_id"), where.get("property_id"), ctx["profile"], offbeat=offbeat)
+    cards, near = found["cards"], found["near"]
+    en, hi, hg = (f"near {near}", f"{near} के पास", f"{near} ke paas") if near else ("near here", "यहाँ आसपास", "yahan aas paas")
+    if not cards:
+        if not offbeat:
+            return None
+        return {
+            "reply": _t(
+                lang,
+                f"I could not find lesser-known spots {en}, and I have no list of places yet. The front desk can suggest some.",
+                f"माफ़ कीजिए, {hi} कम भीड़ वाली जगहें मुझे नहीं मिलीं, और जगहों की सूची भी अभी मेरे पास नहीं है। फ़्रंट डेस्क बता देगा।",
+                f"Sorry, {hg} kam bheed wali jagah mujhe nahi mili, aur jagahon ki list bhi abhi mere paas nahi hai. Front desk bata dega.",
+            ),
+            "proposed_action": None,
+            "cards": [],
+        }
+    names = "; ".join(c["name"] for c in cards[:3])
+    if offbeat and found["offbeat_found"]:
+        reply = _t(
+            lang,
+            f"Here are some quieter, less-visited spots {en}: {names}. Tap a card to open the map.",
+            f"{hi} कुछ कम भीड़ वाली जगहें मैं दिखा रही हूँ: {names}। मैप खोलने के लिए कार्ड पर टैप कीजिए।",
+            f"{hg} kuch kam bheed wali jagah main dikha rahi hoon: {names}. Map ke liye card par tap kijiye.",
+        )
+        speak = _t(
+            lang,
+            f"Here are some quieter spots {en}. I've put them on cards below.",
+            f"{hi} कुछ कम भीड़ वाली जगहें मैं नीचे दिखा रही हूँ।",
+            f"{hg} kuch kam bheed wali jagah main neeche dikha rahi hoon.",
+        )
+    elif offbeat:
+        reply = _t(
+            lang,
+            f"I could not find lesser-known spots {en}; here are the popular ones: {names}.",
+            f"माफ़ कीजिए, {hi} कम भीड़ वाली जगहें मुझे नहीं मिलीं; ये लोकप्रिय जगहें हैं: {names}।",
+            f"Sorry, {hg} kam bheed wali jagah mujhe nahi mili; yeh popular jagah hain: {names}.",
+        )
+        speak = _t(
+            lang,
+            f"I could not find lesser-known spots {en}, so I'm showing the popular ones.",
+            f"{hi} कम भीड़ वाली जगहें मुझे नहीं मिलीं, इसलिए लोकप्रिय जगहें दिखा रही हूँ।",
+            f"{hg} kam bheed wali jagah nahi mili, isliye popular jagah dikha rahi hoon.",
+        )
+    else:
+        reply = _t(
+            lang,
+            f"Places to visit {en}: {names}. Tap a card to open the map.",
+            f"{hi} घूमने की जगहें: {names}। मैप खोलने के लिए कार्ड पर टैप कीजिए।",
+            f"{hg} ghoomne ki jagah: {names}. Map ke liye card par tap kijiye.",
+        )
+        speak = _t(
+            lang,
+            f"Here are some places to visit {en}. I've put them on cards below.",
+            f"{hi} घूमने की कुछ जगहें मैं नीचे दिखा रही हूँ।",
+            f"{hg} ghoomne ki kuch jagah main neeche dikha rahi hoon.",
+        )
+    return {"reply": reply, "speak": speak, "proposed_action": None, "cards": cards}
+
+
 def rules(message: str, lang: str, ctx: dict) -> dict:
     """Deterministic concierge: always answers, never invents (every fact comes from the profile)."""
     t = " " + norm(message) + " "
@@ -809,8 +974,8 @@ def rules(message: str, lang: str, ctx: dict) -> dict:
                 _t(
                     lang,
                     f"Happy to set up express checkout at {when}{lug_en}. The front desk will have everything ready; tap Confirm.",
-                    f"{when} बजे एक्सप्रेस चेकआउट तय कर देता हूँ{lug_hi}। फ़्रंट डेस्क सब तैयार रखेगा; Confirm दबाइए।",
-                    f"{when} baje express checkout set kar deta hoon{lug_hg}. Front desk sab ready rakhega; Confirm dabaiye.",
+                    f"{when} बजे एक्सप्रेस चेकआउट तय कर देती हूँ{lug_hi}। फ़्रंट डेस्क सब तैयार रखेगा; Confirm दबाइए।",
+                    f"{when} baje express checkout set kar deti hoon{lug_hg}. Front desk sab ready rakhega; Confirm dabaiye.",
                 ),
                 "checkout",
                 {"time": when, "luggage_help": lug},
@@ -823,7 +988,12 @@ def rules(message: str, lang: str, ctx: dict) -> dict:
                 f"Checkout {co} baje aur check-in {prof['checkin_time']} baje hai. Express checkout ke liye time bataiye, jaise '10 baje checkout'.",
             )
         )
-    # 5. service requests (something to be done)
+    # 5. places to visit (hotel list + tourism portal) as cards; "offbeat" asks get quiet spots or an honest "none found"
+    if wants_places(t):
+        pr = places_reply(lang, ctx, message)
+        if pr is not None:
+            return pr
+    # 6. service requests (something to be done)
     asking = has(t, ASK_WORDS) or has(t, PROBLEM_WORDS)
     typ = next((k for k, ws in REQUEST_TYPES if has(t, ws)), None)
     dish = next((d for d in prof.get("dining") or [] if d["item"].lower().split(" with ")[0] in t), None)
@@ -842,15 +1012,15 @@ def rules(message: str, lang: str, ctx: dict) -> dict:
             reply = _t(
                 lang,
                 f"Sorry about that! I'll ask {team[0]} to come and check it in room {room}. Tap Confirm to send.",
-                f"माफ़ कीजिए! मैं {team[1]} को कमरे {room} में देखने के लिए भेजता हूँ। Confirm दबाइए।",
-                f"Sorry! Main {team[2]} ko room {room} mein check karne bhejta hoon. Confirm dabaiye.",
+                f"माफ़ कीजिए! मैं {team[1]} को कमरे {room} में देखने के लिए भेजती हूँ। Confirm दबाइए।",
+                f"Sorry! Main {team[2]} ko room {room} mein check karne bhejti hoon. Confirm dabaiye.",
             )
         else:
             reply = _t(
                 lang,
                 f"Of course. I'll ask {team[0]} for {what_en} to room {room}. Tap Confirm to send.",
-                f"ज़रूर। मैं {team[1]} से कमरे {room} में {what_hi} भिजवाता हूँ। Confirm दबाइए।",
-                f"Zaroor. Main {team[2]} se room {room} mein {what_en} bhijwata hoon. Confirm dabaiye.",
+                f"ज़रूर। मैं {team[1]} से कमरे {room} में {what_hi} भिजवाती हूँ। Confirm दबाइए।",
+                f"Zaroor. Main {team[2]} se room {room} mein {what_en} bhijwati hoon. Confirm dabaiye.",
             )
         if typ == "food" and dish and dish.get("hours"):
             reply += _t(
@@ -860,7 +1030,7 @@ def rules(message: str, lang: str, ctx: dict) -> dict:
                 f" ({dish['item']} {dish['hours']} milta hai.)",
             )
         return out(reply, "request", {"type": typ, "note": message})
-    # 6. information from the profile
+    # 7. information from the profile
     if has(t, ("wifi", "wi-fi", "wi fi", "internet", "password", "वाईफाई", "वाई-फाई", "वाई फाई", "इंटरनेट", "पासवर्ड")):
         w = prof.get("wifi") or {}
         if not w.get("network"):
@@ -899,18 +1069,6 @@ def rules(message: str, lang: str, ctx: dict) -> dict:
                 f"You can dial: {_contacts(prof)}.",
                 f"आप डायल कर सकते हैं: {_contacts(prof)}।",
                 f"Aap dial kar sakte hain: {_contacts(prof)}.",
-            )
-        )
-    if has(
-        t, ("nearby", "around", "places", "visit", "sightseeing", "घूमने", "ghoomne", "ghumne", "आसपास", "aas paas", "aaspaas")
-    ) and prof.get("nearby"):
-        names = "; ".join(f"{n['name']} ({n.get('distance_note') or ''})".replace(" ()", "") for n in prof["nearby"][:3])
-        return out(
-            _t(
-                lang,
-                f"Nearby: {names}. Ask me about any of them.",
-                f"आसपास: {names}। किसी के बारे में भी पूछिए।",
-                f"Aas paas: {names}. Kisi ke baare mein bhi poochiye.",
             )
         )
     q = _expand(t)
@@ -960,8 +1118,8 @@ def rules(message: str, lang: str, ctx: dict) -> dict:
             _t(
                 lang,
                 f"Namaste! I'm the digital concierge for room {room}. Ask me about Wi-Fi, meals, checkout, or anything you need.",
-                f"नमस्ते! मैं कमरे {room} का डिजिटल कंसीयर्ज हूँ। वाई-फ़ाई, खाना, चेकआउट या किसी भी ज़रूरत के बारे में पूछिए।",
-                f"Namaste! Main room {room} ka digital concierge hoon. Wi-Fi, khana, checkout ya kuch bhi poochiye.",
+                f"नमस्ते! मैं कमरे {room} की डिजिटल कंसीयर्ज हूँ। वाई-फ़ाई, खाना, चेकआउट या किसी भी ज़रूरत के बारे में पूछिए।",
+                f"Namaste! Main room {room} ki digital concierge hoon. Wi-Fi, khana, checkout ya kuch bhi poochiye.",
             )
         )
     if typ:  # mentioned a service without clearly asking: offer it
@@ -1102,8 +1260,8 @@ def consistent(message: str, lang: str, ctx: dict, reply: str, prop: dict | None
                 _t(
                     lang,
                     f"Sorry about that. I'll ask {team_name} to help in room {ctx['room']}. Tap Confirm to send.",
-                    f"माफ़ कीजिए। मैं {team_name} से कमरे {ctx['room']} में मदद करवाता हूँ। Confirm दबाइए।",
-                    f"Sorry. Main {team_name} se room {ctx['room']} mein madad karwata hoon. Confirm dabaiye.",
+                    f"माफ़ कीजिए। मैं {team_name} से कमरे {ctx['room']} में मदद करवाती हूँ। Confirm दबाइए।",
+                    f"Sorry. Main {team_name} se room {ctx['room']} mein madad karwati hoon. Confirm dabaiye.",
                 ),
                 prop,
                 "team mismatch: generic reply",
@@ -1279,7 +1437,10 @@ def chat(token: str, message: str, lang_hint: str | None, history: list[dict]) -
         else []
     )
     lang = detect_lang(message, lang_hint)
-    res, why = llm(ctx, message, hist)
+    t = " " + norm(message) + " "
+    res, why = None, "places question (answered from place data, with cards)"
+    if not (wants_places(t) and not has(t, INJECTION) and not issues.classify(message)):
+        res, why = llm(ctx, message, hist)
     if res is not None:
         source = "llm"
     else:
@@ -1287,7 +1448,14 @@ def chat(token: str, message: str, lang_hint: str | None, history: list[dict]) -
         res, source = rules(message, lang, ctx), "rules"
         res["lang"] = lang
     reply = res["reply"][: config.settings.chat_max_reply_chars]
-    return {"reply": reply, "lang": res["lang"], "proposed_action": res["proposed_action"], "source": source}
+    return {
+        "reply": reply,
+        "lang": res["lang"],
+        "proposed_action": res["proposed_action"],
+        "source": source,
+        "cards": res.get("cards") or [],
+        "speak": res.get("speak") or None,  # one short sentence for the voice; the cards and links are not read out
+    }
 
 
 def execute(token: str, action: str, params: dict) -> dict:

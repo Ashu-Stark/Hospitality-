@@ -10,6 +10,10 @@
   marked "Staffing request via HOI" and notifies every active agency whose skills and districts match (in-portal
   notifications). Idempotent per (business, source_id): repeating a call never creates a second post or re-notifies.
 * Agencies respond to a request with how many workers they can supply; the hotel owner sees the responses on the job.
+* HOI retention check (GET /api/v1/ingest/candidate-matches, same API key): before posting a job, a hotel can ask how many
+  PUBLIC job-seeker profiles fit one skill in its own district. It gets a count and a few anonymised previews (candidate
+  code, skills with years, districts, availability, match score). Never a name, headline, bio or contact detail: the hotel
+  follows up on the portal itself (interest request -> the job seeker decides whether to share contact details).
 """
 
 from __future__ import annotations
@@ -22,7 +26,8 @@ from ..errors import Conflict, Forbidden, Invalid, NotFound
 from ..seed.destinations import BY_ID_DEST
 from ..seed.districts import BY_ID as DISTRICTS
 from ..seed.skills import BY_KEY as SKILLS
-from . import registry
+from ..seed.skills import JOB_TYPES
+from . import matching, registry
 
 MAX_OPEN_HOI_REQUESTS = 30  # per business
 MAX_OPEN_OFFERS = 20  # per agency
@@ -34,8 +39,10 @@ SKILL_ALIASES = {
     "kitchen": "kitchen_helper",
     "chef": "cook_indian",
     "security": "security_guard",
+    "fnb_service": "fb_service",
 }
 HOI_LABEL = "Staffing request via HOI"
+MATCH_PREVIEW_MAX = 5
 NOTE = "Agencies and offers shown here are synthetic sample data unless marked otherwise."
 
 
@@ -515,4 +522,41 @@ def ingest_request(business: dict, key_prefix: str, body: dict) -> dict:
         "agencies_notified": notified,
         "agencies_matching": d.notifications.count_documents({"kind": "staffing_request", "job_id": job["id"]}),
         "label": HOI_LABEL,
+    }
+
+
+def candidate_matches(business: dict, skill_raw: str, limit: int = MATCH_PREVIEW_MAX) -> dict:
+    """Count + anonymised previews of PUBLIC job-seeker profiles with this skill who prefer the hotel's district (or any
+    district). Shows less than the signed-in candidate search: no display name, headline or bio (free text that may hold
+    personal details), never phone or e-mail. Only an ACTIVE registration may ask (same rule as candidate search)."""
+    if registry.effective_status(business) != "active":
+        raise Forbidden("This registration is not active, so it cannot search candidates. Renew first.")
+    skill = _skill_key(skill_raw)
+    district = business["district"]
+    flt = {"visibility": "public", "skill_keys": skill, "$or": [{"districts": district}, {"districts": {"$size": 0}}]}
+    profs = [mongo.clean(p) for p in mongo.db().seeker_profiles.find(flt, {"phone": 0, "email": 0, "user_id": 0})]
+    target = {"skills": [skill], "district": district}
+    scored = sorted(((matching.score(target, p), p) for p in profs), key=lambda x: (-(x[0]["score"] or 0), x[1]["code"]))
+    items = [
+        {
+            "code": p["code"],
+            "skills": [{"label": SKILLS[s["key"]]["label"], "years": s.get("years", 0)} for s in p.get("skills", []) if s["key"] in SKILLS],
+            "districts": [DISTRICTS[d]["name"] for d in p.get("districts", []) if d in DISTRICTS] or ["Any district"],
+            "availability": JOB_TYPES.get(p.get("availability") or "", p.get("availability") or ""),
+            "available_from": p.get("available_from"),
+            "available_to": p.get("available_to"),
+            "match": m["score"],
+            "synthetic": bool(p.get("synthetic")),
+            "open_path": f"#/business/hiring/candidates/{p['code']}",
+        }
+        for m, p in scored[: max(0, min(limit, MATCH_PREVIEW_MAX))]
+    ]
+    return {
+        "skill": {"key": skill, "label": SKILLS[skill]["label"]},
+        "district": {"id": district, "name": DISTRICTS[district]["name"]},
+        "total": len(scored),
+        "items": items,
+        "search_path": f"#/business/hiring/candidates?skill={skill}&district={district}",
+        "privacy": "Anonymised previews only. Contact details are shared only if the job seeker accepts your interest request on the portal.",
+        "note": "Profiles marked synthetic are sample data.",
     }

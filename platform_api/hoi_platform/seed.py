@@ -163,9 +163,9 @@ def ensure_demo() -> None:
         _create_demo()
     inventory.seed_demo(DEMO_ID, rooms=FLOORS * ROOMS_PER_FLOOR)
     profiles.seed_demo(DEMO_ID)  # SYNTHETIC hotel profile for the guest concierge
-    homestay = ensure_homestay()
+    homestay = ensure_homestay() if s.seed_homestay else None
     if s.demo_login:
-        users.ensure_demo_users(DEMO_ID, s.admin_password, {"demo.homestay": homestay["id"]})
+        users.ensure_demo_users(DEMO_ID, s.admin_password, {"demo.homestay": homestay["id"]} if homestay else None)
 
 
 def main(argv: list[str]) -> int:

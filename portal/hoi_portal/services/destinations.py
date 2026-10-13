@@ -50,10 +50,12 @@ def list_destinations(district: str | None = None, tag: str | None = None, q: st
 
     ctx = crowd.Context() if with_crowd else None
     lx = local_experiences.counts_by_destination()
+    docs = list(mongo.db().destinations.find(f).sort("name", 1))
+    wx = weather.cached_summaries([d["id"] for d in docs])  # cache only, never calls the forecast service
     items = []
-    for d in mongo.db().destinations.find(f).sort("name", 1):
+    for d in docs:
         s = summary(d, ctx)
-        s["weather_now"] = weather.cached_summary(d["id"])  # cache only, never calls the forecast service
+        s["weather_now"] = wx[d["id"]]
         s["local_experiences"] = lx.get(d["id"], 0)
         items.append(s)
     tags = sorted({t for d in mongo.db().destinations.find({}, {"tags": 1}) for t in d.get("tags", [])})

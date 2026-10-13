@@ -324,6 +324,20 @@ class Nearby(_Strict):
     name: Short
     distance_note: Short = ""
     tip: Medium = ""
+    # optional: a quiet / lesser-known spot (the concierge offers it for "offbeat" questions), map point, same-origin photo
+    offbeat: bool = False
+    lat: float | None = Field(default=None, ge=-90, le=90)
+    lon: float | None = Field(default=None, ge=-180, le=180)
+    photo_url: str | None = Field(default=None, max_length=200, pattern=r"^/[A-Za-z0-9._~/-]+$")
+
+
+class HotelLocation(_Strict):
+    """Where the hotel is, so the concierge can look up places from the tourism portal (town / district, or a map point)."""
+
+    town: Short = ""
+    district: Short = ""
+    lat: float | None = Field(default=None, ge=-90, le=90)
+    lon: float | None = Field(default=None, ge=-180, le=180)
 
 
 class Faq(_Strict):
@@ -347,6 +361,7 @@ class HotelProfileIn(_Strict):
     dining: list[DiningItem] = Field(default_factory=list, max_length=120)
     policies: list[Policy] = Field(default_factory=list, max_length=30)
     nearby: list[Nearby] = Field(default_factory=list, max_length=30)
+    location: HotelLocation | None = None
     faq: list[Faq] = Field(default_factory=list, max_length=40)
     languages: list[Literal["en", "hi"]] = Field(default_factory=lambda: ["en", "hi"], min_length=1, max_length=2)
     synthetic: bool = False

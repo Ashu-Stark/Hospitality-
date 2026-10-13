@@ -44,6 +44,8 @@
       amenities: "Amenities", dining: "Dining menu", policies: "House rules", nearby: "Nearby", faq: "Common questions", contacts: "Call us (dial from the room phone)",
       ext: "ext.", stage_open: "Received", stage_accepted: "Accepted", stage_in_progress: "In progress", stage_done: "Done",
       tooLong: "Recording stopped at 60 seconds.",
+      open_maps: "Open in Maps", about_km: "About {d} km", sample: "Sample listing", quiet: "Quieter",
+      places_note: "Distances are straight-line and approximate. Check the road and timings before you go.",
       team: { housekeeping: "Housekeeping", fnb_service: "Room service", kitchen: "Kitchen", maintenance: "Maintenance", front_office: "Front desk", security: "Security", generic: "Hotel team" },
     },
     hi: {
@@ -77,6 +79,8 @@
       amenities: "सुविधाएँ", dining: "खाने का मेन्यू", policies: "होटल के नियम", nearby: "आसपास", faq: "सवाल-जवाब", contacts: "कॉल करें (कमरे के फ़ोन से)",
       ext: "एक्सटेंशन", stage_open: "मिल गई", stage_accepted: "स्टाफ़ ने ले लिया", stage_in_progress: "काम जारी", stage_done: "पूरा",
       tooLong: "60 सेकंड पर रिकॉर्डिंग रुक गई।",
+      open_maps: "मैप में खोलें", about_km: "लगभग {d} km", sample: "नमूना जानकारी", quiet: "कम भीड़",
+      places_note: "दूरी सीधी लाइन में और अंदाज़े से है। जाने से पहले रास्ता और समय पता कर लें।",
       team: { housekeeping: "हाउसकीपिंग", fnb_service: "रूम सर्विस", kitchen: "किचन", maintenance: "मेंटेनेंस", front_office: "फ़्रंट डेस्क", security: "सिक्योरिटी", generic: "होटल टीम" },
     },
   };
@@ -273,8 +277,28 @@
   // The thread ends the Ask tab and the tab has bottom padding for the fixed dock, so the page bottom shows the newest message.
   function scrollThread() { requestAnimationFrame(() => window.scrollTo({ top: document.documentElement.scrollHeight, behavior: "smooth" })); }
   function me(text, cls) { const el = document.createElement("div"); el.className = "msg " + (cls || "me"); el.textContent = text; $("#thread").appendChild(el); scrollThread(); return el; }
-  function bot(text, action, lang, silent) {
+  // Place cards (places to visit): picture, name, one-line tip, distance, "quieter" reason, Open in Maps. Fixed-size
+  // picture boxes so nothing jumps while images load. Only Google Maps search links are accepted.
+  const MAPS_RE = /^https:\/\/www\.google\.com\/maps\/search\/\?api=1&query=[^\s"'<>]+$/;
+  function placeCards(cards) {
+    const wrap = document.createElement("div"); wrap.className = "places";
+    wrap.innerHTML = cards.slice(0, 6).map((c) => {
+      const img = window.HOI_SAFE_IMG(c.image) || "/shared/places/mountain.svg";
+      const url = MAPS_RE.test(c.maps_url || "") ? c.maps_url : "";
+      const dist = c.distance_km != null ? fmt("about_km", { d: c.distance_km }) : (c.distance_note || "");
+      const quiet = c.offbeat ? ((S.lang === "hi" && c.why_quiet_hi) || c.why_quiet || tr("quiet")) : "";
+      return `<article class="place"><img class="pimg" src="${esc(img)}" alt="" width="88" height="88" loading="lazy" decoding="async">` +
+        `<div class="pbody"><b class="pname">${esc(c.name)}</b>${c.tip ? `<p class="ptip">${esc(c.tip)}</p>` : ""}` +
+        `<div class="pmeta">${dist ? `<span class="pchip">${esc(dist)}</span>` : ""}${quiet ? `<span class="pchip quiet">${esc(quiet)}</span>` : ""}` +
+        `${c.sample ? `<span class="pchip">${esc(tr("sample"))}</span>` : ""}</div></div>` +
+        (url ? `<a class="pmap" href="${esc(url)}" target="_blank" rel="noopener noreferrer">📍 ${esc(tr("open_maps"))}</a>` : "") + `</article>`;
+    }).join("") + `<p class="pnote">${esc(tr("places_note"))}</p>`;
+    return wrap;
+  }
+  function bot(text, action, lang, silent, extra) {
     const el = document.createElement("div"); el.className = "msg bot"; el.textContent = text; $("#thread").appendChild(el);
+    const cards = (extra && Array.isArray(extra.cards)) ? extra.cards : [];
+    if (cards.length) $("#thread").appendChild(placeCards(cards));
     if (action && action.urgent) {  // safety / medical: one big button + emergency numbers (tap to call)
       const c = document.createElement("div"); c.className = "confirm urgent";
       const nums = (action.emergency || []).filter((n) => /^\d{3,4}$/.test(n.tel)).map((n) => `<a class="tel" href="tel:${esc(n.tel)}">${esc(tr("call"))} ${esc(n.label)}</a>`).join("");
@@ -286,7 +310,7 @@
       c._action = action; $("#thread").appendChild(c);
     }
     scrollThread();
-    if (!silent) speak(text, lang);
+    if (!silent) speak((extra && extra.speak) || text, lang);  // cards: only the short sentence is read out, never the list or links
   }
   function typing(on) {
     let el = $("#typing");
@@ -303,7 +327,7 @@
       typing(false);
       S.history.push({ role: "user", text }, { role: "assistant", text: r.reply });
       S.history = S.history.slice(-6);
-      bot(r.reply, r.proposed_action, r.lang);
+      bot(r.reply, r.proposed_action, r.lang, false, { cards: r.cards, speak: r.speak });
     } catch (e) { typing(false); bot(e.message, null, null, true); }
   }
   async function confirmAction(card, yes) {

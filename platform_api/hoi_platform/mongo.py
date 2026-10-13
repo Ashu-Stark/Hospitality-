@@ -140,6 +140,9 @@ INDEXES: dict[str, list[tuple[list, dict]]] = {
     "staffing_requests": [(_ix("id"), {"unique": True}), (_ix("tenant_id", "-created_at"), {}), (_ix("tenant_id", "property_id"), {})],
     # spoken-reply audio cache (server TTS only): expires after 24 h
     "tts_cache": [(_ix("key"), {"unique": True}), (_ix("created_at"), {"expireAfterSeconds": 86400})],
+    # concierge places looked up from the tourism portal (services/places.py): freshness is checked in code (24 h);
+    # documents are removed 7 days after the last good fetch
+    "places_cache": [(_ix("key"), {"unique": True}), (_ix("fetched_at"), {"expireAfterSeconds": 7 * 86400})],
     "guest_feedback": [
         (_ix("id"), {"unique": True}),
         (_ix("tenant_id", "room_id", "stay"), {"unique": True}),  # one feedback per stay

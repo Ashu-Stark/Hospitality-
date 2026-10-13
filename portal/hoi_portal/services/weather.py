@@ -212,7 +212,16 @@ def _shape(doc: dict, cached_hit: bool) -> dict:
 
 def cached_summary(dest_id: str) -> dict | None:
     """Compact current weather from the cache only (never calls Open-Meteo). None when nothing is cached."""
-    doc = mongo.db().weather_cache.find_one({"destination_id": dest_id})
+    return _compact(mongo.db().weather_cache.find_one({"destination_id": dest_id}))
+
+
+def cached_summaries(dest_ids: list[str]) -> dict[str, dict | None]:
+    """`cached_summary` for many destinations in one database round trip."""
+    docs = {d["destination_id"]: d for d in mongo.db().weather_cache.find({"destination_id": {"$in": dest_ids}})}
+    return {i: _compact(docs.get(i)) for i in dest_ids}
+
+
+def _compact(doc: dict | None) -> dict | None:
     if not doc:
         return None
     if not doc.get("ok"):
