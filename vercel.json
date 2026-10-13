@@ -10,10 +10,12 @@
       "root": "website/"
     }
   },
+  "redirects": [
+    { "source": "/site", "destination": "/site/", "permanent": false }
+  ],
   "rewrites": [
     {
-      "source": "/(.*)",
-      "has": [{ "type": "host", "value": { "pre": "hoi." } }],
+      "source": "/site/(.*)",
       "destination": { "service": "website" }
     },
     {

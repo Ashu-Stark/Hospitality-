@@ -106,6 +106,6 @@ def render() -> None:
 
     st.markdown(
         '<div class="ss-footer"><span>Hospitality Operations Intelligence (HOI) · synthetic demo data · no real person appears anywhere</span>'
-        "<span>Product site: website/index.html</span></div>",
+        "<span>Product site: website/site/index.html (live at /site on the portal domain)</span></div>",
         unsafe_allow_html=True,
     )

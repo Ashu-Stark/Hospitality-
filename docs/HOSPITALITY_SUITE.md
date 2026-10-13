@@ -4,7 +4,7 @@
 
 | App | Who | Where | Built with |
 |---|---|---|---|
-| Marketing site | prospects, judges | `website/` (Vercel, host `hoi.*`) | static HTML |
+| Marketing site | prospects, judges | `website/site/` (Vercel, `/site/`) | static HTML |
 | Super-admin portal | HOI team (platform admin) | dashboard `console/` pages (Render) | Streamlit |
 | Hotel admin portal | owner, HR, dept heads, storekeeper | dashboard `pages/` (Render) | Streamlit |
 | Worker app (voice) | frontline staff | `platform_api/.../static/worker/` → `/worker/` (Render) | vanilla JS PWA |

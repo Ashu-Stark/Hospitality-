@@ -13,7 +13,7 @@ Built for the AI-Tourism Hackathon 2026 (TBI-GEU). **All data is synthetic** (TR
 | `platform_api/` | HOI platform API: accounts, hotel groups, dispatch, rooms, photo proof, inventory with GST, audit. Serves the **staff app** (`/worker/`) and **guest QR pages** (`/guest/`) | 8100 | `hoi_platform` |
 | `portal/` | Tourism portal (concept, not an official site): directory, destinations with weather/roads/crowd, festivals, dictionary, rules, grievances, business registration, officials' analytics | 8200 | `hoi_portal` |
 | `dashboard/` | Streamlit manager dashboard: login, platform console, 15 hotel pages, employee view | 8501 | none |
-| `website/` | Static marketing site (`index.html`) | none | none |
+| `website/` | Static marketing site (`site/index.html`), live at https://hoi-portal.vercel.app/site/ | none | none |
 | `docs/` | Tech stack, MongoDB conventions, portal spec and API, scope, competitors, TimesFM, UX review | | |
 
 Flow diagrams: https://claude.ai/artifact/JHsoddyLwTtaLm3ktCohgK (private until shared).
