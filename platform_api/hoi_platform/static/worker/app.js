@@ -248,36 +248,71 @@
     const active = S.jobs.filter((j) => ["accepted", "in_progress"].includes(j.status) && j.assigned_to === me);
     const done = S.jobs.filter((j) => j.status === "done" && j.assigned_to === me).slice(0, 5);
     const oEl = $("#offer");
-    if (offer && isHomestay()) {  // homestay: a plain task card, no countdown ring or timer bar
-      oEl.innerHTML = `<div class="offer simple anim"><div class="t">${esc(t("new_task"))}</div>` +
-        `<h2>${esc(offer.title)}</h2><div class="muted jmeta">${roleImg(offer.department)}<span>${offer.room ? esc(t("room")) + " " + esc(offer.room) + " · " : ""}${esc(t("urgency_" + offer.urgency))}</span></div>` +
-        `<div class="row"><button class="btn" data-act="decline" data-id="${esc(offer.id)}">${esc(t("not_now_task"))}</button>` +
-        `<button class="btn primary" data-act="accept" data-id="${esc(offer.id)}">${esc(t("take_it"))}</button></div></div>`;
+    if (offer && oEl.dataset.oid === offer.id && oEl.dataset.mode === (isHomestay() ? "hs" : "hotel") && oEl.dataset.lang === S.lang) {
+      // same offer as on screen: only the time left changes (no re-render, no flicker every poll)
+      const left = offer.seconds_left || 0, total = Math.max(left, Number(oEl.dataset.total) || 30);
+      const ol = oEl.querySelector(".oleft"); if (ol) ol.textContent = fill(t("answer_in"), { n: left });
+      const bar = oEl.querySelector(".bar i"); if (bar) bar.style.width = Math.round((100 * left) / total) + "%";
+    } else if (offer && isHomestay()) {  // homestay: a plain task card, no timer
+      oEl.innerHTML = `<div class="offer simple anim"><div class="otop"><span class="sbadge s-new">${esc(t("new_task"))}</span></div>` +
+        `<h2>${esc(offer.title)}</h2><div class="jmeta">${roleImg(offer.department)}<span class="jroom">${offer.room ? esc(t("room")) + " " + esc(offer.room) : ""}</span>` +
+        `<span class="urg">${esc(t("urgency_" + offer.urgency))}</span></div>` +
+        `<button class="btn primary big" data-act="accept" data-id="${esc(offer.id)}">${esc(t("take_it"))}</button>` +
+        `<button class="btn quiet" data-act="decline" data-id="${esc(offer.id)}">${esc(t("not_now_task"))}</button></div>`;
     } else if (offer) {
+      // New job: one big Accept; "Can't now" is the quiet second choice. The bar shows the time left to answer.
       const left = offer.seconds_left || 0, total = Math.max(left, 30);
-      oEl.innerHTML = `<div class="offer anim"><div class="ring" aria-live="polite">${left}</div><div class="t">${esc(t("new_request"))}</div>` +
-        `<h2>${esc(offer.title)}</h2><div class="muted jmeta">${roleImg(offer.department)}<span>${offer.department ? esc(dept(offer.department)) + " · " : ""}${offer.room ? esc(t("room")) + " " + esc(offer.room) + " · " : ""}${esc(t("urgency_" + offer.urgency))}</span></div>` +
+      const urgent = ["high", "urgent"].includes(offer.urgency);
+      oEl.dataset.total = String(total);
+      oEl.innerHTML = `<div class="offer anim"><div class="otop"><span class="sbadge s-new">${esc(t("new_request"))}</span>` +
+        `<span class="oleft" aria-live="off">${esc(fill(t("answer_in"), { n: left }))}</span></div>` +
+        `<h2>${esc(offer.title)}</h2><div class="jmeta">${roleImg(offer.department)}<span class="jroom">${offer.room ? esc(t("room")) + " " + esc(offer.room) : esc(dept(offer.department))}</span>` +
+        `<span class="urg ${urgent ? "hi" : ""}">${esc(t("urgency_" + offer.urgency))}</span></div>` +
         `<div class="bar"><i data-w="${Math.round((100 * left) / total)}"></i></div>` +
-        `<div class="row"><button class="btn" data-act="decline" data-id="${esc(offer.id)}">${esc(t("decline"))}</button>` +
-        `<button class="btn primary" data-act="accept" data-id="${esc(offer.id)}">${esc(t("accept"))}</button></div></div>`;
+        `<button class="btn primary big" data-act="accept" data-id="${esc(offer.id)}">${esc(t("accept"))}</button>` +
+        `<button class="btn quiet" data-act="decline" data-id="${esc(offer.id)}">${esc(t("decline"))}</button></div>`;
       oEl.querySelectorAll("[data-w]").forEach((i) => { i.style.width = i.dataset.w + "%"; });
     } else oEl.innerHTML = "";
-    $("#active").innerHTML = active.map((j) => {
-      const step = j.status === "accepted" ? 1 : 2;
-      return `<div class="job anim"><div class="row"><h3>${esc(j.title)}</h3><span class="chip ${step === 1 ? "watch" : "low"}">${esc(t(j.status))}</span></div>` +
-        `<div class="muted jmeta">${roleImg(j.department)}<span>${esc(dept(j.department))}${j.room ? " · " + esc(t("room")) + " " + esc(j.room) : ""}</span></div><div class="steps"><span class="on"></span><span class="${step === 2 ? "on" : ""}"></span><span></span></div>` +
-        `<button class="btn primary" data-act="photo" data-kind="${step === 1 ? "before" : "after"}" data-id="${esc(j.id)}">📷 ${esc(t(step === 1 ? "before_photo" : "after_photo"))}</button></div>`;
-    }).join("");
+    oEl.dataset.oid = offer ? offer.id : ""; oEl.dataset.mode = isHomestay() ? "hs" : "hotel"; oEl.dataset.lang = S.lang;
+    // Active jobs: only the job being worked on is open, with ONE next step (Start, then Done). The photo is part of
+    // that step (Start takes the before photo, Done the finish photo) and the camera opens only when it is tapped.
+    // Other accepted jobs stay as short rows; "Open" makes one the current job.
+    active.sort((a, b) => (a.status === "in_progress" ? 0 : 1) - (b.status === "in_progress" ? 0 : 1));
+    if (!active.some((j) => j.id === S.focus)) S.focus = active.length ? active[0].id : null;
+    const cur = active.find((j) => j.id === S.focus);
+    const rest = active.filter((j) => j !== cur);
+    const label = (j) => (j.status === "in_progress" ? "in_progress" : "accepted");
+    let html = "";
+    if (cur) {
+      const working = cur.status === "in_progress";
+      html += `<div class="job focus s-${label(cur)} anim"><div class="jtop"><span class="sbadge s-${label(cur)}">${esc(t(label(cur)))}</span>` +
+        `${cur.room ? `<span class="jroomb">${esc(t("room"))} ${esc(cur.room)}</span>` : ""}</div>` +
+        `<h3>${esc(cur.title)}</h3>` +
+        `<ol class="steps3" aria-label="${esc(t("steps"))}"><li class="done">${esc(t("step_accept"))}</li><li class="${working ? "done" : "now"}">${esc(t("step_start"))}</li><li class="${working ? "now" : ""}">${esc(t("step_done"))}</li></ol>` +
+        `<button class="btn primary big ${working ? "go-done" : "go-start"}" data-act="photo" data-kind="${working ? "after" : "before"}" data-id="${esc(cur.id)}">` +
+        `${working ? "✓" : "▶"} ${esc(t(working ? "finish" : "start"))}</button>` +
+        `<p class="jhint"><span aria-hidden="true">📷</span> ${esc(t(working ? "done_hint" : "start_hint"))}</p></div>`;
+    }
+    if (rest.length) {
+      html += `<h3 class="subh">${esc(t("other_jobs"))}</h3>` + rest.map((j) =>
+        `<div class="jrow s-${label(j)}"><i class="sdot" aria-hidden="true"></i><div class="jrowt"><b>${esc(j.title)}</b>` +
+        `<span class="muted">${j.room ? esc(t("room")) + " " + esc(j.room) + " · " : ""}${esc(t(label(j)))}</span></div>` +
+        `<button class="btn small" data-act="focus" data-id="${esc(j.id)}">${esc(t("open"))}</button></div>`).join("");
+    }
+    if ($("#active")._h !== html) { $("#active").innerHTML = html; $("#active")._h = html; }  // unchanged: keep the DOM (no flicker)
     $("#noJobs").classList.toggle("hidden", !!offer || active.length > 0);
-    $("#doneList").innerHTML = done.length ? `<h3>${esc(t("completed_recent"))}</h3>` + done.map((j) =>
-      `<div class="req"><div class="row"><b>${esc(j.title)}</b><span class="chip low">${esc(t("done"))}</span></div>` +
-      `<div class="muted">${esc((j.done_at || "").slice(11, 16))}</div></div>`).join("") : "";
+    const doneHtml = done.length ? `<h3 class="subh">${esc(t("completed_recent"))}</h3>` + done.map((j) =>
+      `<div class="jrow s-done"><i class="sdot" aria-hidden="true"></i><div class="jrowt"><b>${esc(j.title)}</b>` +
+      `<span class="muted">${j.room ? esc(t("room")) + " " + esc(j.room) + " · " : ""}${esc((j.done_at || "").slice(11, 16))}</span></div>` +
+      `<span class="sbadge s-done">${esc(t("done"))}</span></div>`).join("") : "";
+    if ($("#doneList")._h !== doneHtml) { $("#doneList").innerHTML = doneHtml; $("#doneList")._h = doneHtml; }
   }
 
   document.addEventListener("click", async (e) => {
     const b = e.target.closest("[data-act]");
     if (!b) return;
     const id = b.dataset.id;
+    if (b.dataset.act === "focus") { S.focus = id; renderJobs(); window.scrollTo({ top: 0, behavior: "auto" }); return; }
     b.disabled = true;
     try {
       if (b.dataset.act === "accept") { await api("POST", `/dispatch/jobs/${encodeURIComponent(id)}/accept`, {}); }

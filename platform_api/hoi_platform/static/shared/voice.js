@@ -110,16 +110,29 @@
   }
 
   // ---------------------------------------------------------------- speaking
-  const S = { muted: store.get("hoi.voice.mute") === "1", audio: null, gen: 0, serverOff: false };
+  // Pages follow the speaking state through the "hoivoice" window event (detail: {speaking: true|false}) or
+  // HOIVoice.speaking, e.g. to show a Stop button. It turns on as soon as a reply is queued (also while the server
+  // voice is being fetched) and off when the last sentence ends, on stop(), on mute or on an error.
+  const S = { muted: store.get("hoi.voice.mute") === "1", audio: null, gen: 0, serverOff: false, speaking: false, watch: null };
+  function setSpeaking(on) {
+    on = !!on;
+    if (!on && S.watch) { clearInterval(S.watch); S.watch = null; }
+    if (on === S.speaking) return;
+    S.speaking = on;
+    try { window.dispatchEvent(new CustomEvent("hoivoice", { detail: { speaking: on } })); } catch (e) { /* old browser */ }
+  }
   function stop() {
     S.gen++;
     if (hasSynth()) { try { window.speechSynthesis.cancel(); } catch (e) { /* ignore */ } }
     if (S.audio) { try { S.audio.pause(); URL.revokeObjectURL(S.audio.src); } catch (e) { /* ignore */ } S.audio = null; }
+    setSpeaking(false);
   }
   async function speak(text, lang, opts) {
     stop();
     if (S.muted || !text) return;
     const gen = S.gen;
+    const done = () => { if (gen === S.gen) setSpeaking(false); };
+    setSpeaking(true);
     const fetcher = opts && opts.server;
     if (fetcher && !S.serverOff) {
       try {
@@ -128,28 +141,38 @@
         if (blob && blob.size) {
           const a = new Audio(URL.createObjectURL(blob));
           a.volume = 0.9; S.audio = a;
-          a.onended = () => { URL.revokeObjectURL(a.src); if (S.audio === a) S.audio = null; };
-          await a.play();
+          a.onended = () => { URL.revokeObjectURL(a.src); if (S.audio === a) S.audio = null; done(); };
+          a.onerror = done;
+          try { await a.play(); } catch (e) { done(); }
           return;
         }
         S.serverOff = true;  // 204: the server has no voice configured; use the browser for the rest of the session
       } catch (e) { /* fall through to the browser voice */ }
     }
-    if (!hasSynth()) return;  // text only, silently
+    if (!hasSynth()) { done(); return; }  // text only, silently
     await whenReady();
     if (gen !== S.gen) return;
     const v = pick(lang);
-    if (!v) return;  // no voice for this language (e.g. no Hindi voice installed): text only, silently
+    if (!v) { done(); return; }  // no voice for this language (e.g. no Hindi voice installed): text only, silently
     const parts = sentences(normalize(text, voiceLang(lang) === "hi" ? "hi" : "en"));
-    for (const part of parts) {
+    if (!parts.length) { done(); return; }
+    parts.forEach((part, i) => {
       const u = new SpeechSynthesisUtterance(part);
       if (v) u.voice = v;
       u.lang = v ? v.lang : (voiceLang(lang) === "hi" ? "hi-IN" : "en-IN");
       u.rate = 0.92; u.pitch = 1.05; u.volume = 0.9;
+      u.onerror = done;
+      if (i === parts.length - 1) u.onend = done;
       window.speechSynthesis.speak(u);
-    }
-  }
-  function setMuted(m) { S.muted = !!m; store.set("hoi.voice.mute", S.muted ? "1" : "0"); if (S.muted) stop(); }
+    });
+    // Some browsers drop the last "end" event: when the engine has been idle for two checks in a row, call it finished.
+    let idle = 0;
+    S.watch = setInterval(() => {
+      if (gen !== S.gen) { clearInterval(S.watch); S.watch = null; return; }
+      idle = window.speechSynthesis.speaking || window.speechSynthesis.pending ? 0 : idle + 1;
+      if (idle >= 2) done();
+    }, 700);
+  }  function setMuted(m) { S.muted = !!m; store.set("hoi.voice.mute", S.muted ? "1" : "0"); if (S.muted) stop(); }
 
   // A <select> listing the ranked voices for one language; the choice is remembered on this device.
   async function fillPicker(select, lang) {
@@ -171,6 +194,7 @@
   window.HOIVoice = {
     normalize, sentences, speak, stop, fillPicker, whenReady,
     get muted() { return S.muted; }, setMuted,
+    get speaking() { return S.speaking; },
     voices: (lang) => ranked(lang).map((v) => ({ name: v.name, lang: v.lang })),
     chosen: (lang) => { const v = pick(lang); return v ? v.name : null; },
   };

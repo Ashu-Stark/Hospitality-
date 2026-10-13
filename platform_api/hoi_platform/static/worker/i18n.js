@@ -11,10 +11,10 @@ window.HOI_I18N = {
     my_requests: "My requests", employee_id: "Employee ID", department: "Department", hotel: "Hotel", language: "Language",
     privacy: "Your job photos are kept to show the work is done. Your manager cannot see anything else on your phone.",
     install: "Add to home screen", signout: "Sign out", cancel: "Cancel", take_photo: "Take photo", retake: "Retake", use_photo: "Use photo",
-    camera_note: "Take the photo now with the camera. The time is added for you.",
-    new_request: "New request", accept: "Take the job", decline: "Can't now", seconds: "s", room: "Room", urgency_high: "Urgent",
-    urgency_urgent: "Very urgent (safety or medical)", urgency_medium: "Normal", urgency_low: "When free", before_photo: "Take a photo before you start", after_photo: "Take a photo when you finish",
-    accepted: "Accepted", in_progress: "In progress", done: "Done", today_shift: "shift", day_off: "Day off", rest: "No shift today. Rest well.",
+    camera_note: "Point the camera at the room and tap the button. The time is added for you.",
+    new_request: "New job", accept: "Accept", decline: "Can't now", seconds: "s", room: "Room", urgency_high: "Urgent",
+    urgency_urgent: "Very urgent (safety or medical)", urgency_medium: "Normal", urgency_low: "When free", before_photo: "Photo before you start", after_photo: "Photo of the finished work",
+    accepted: "To start", in_progress: "Working", done: "Done", today_shift: "shift", day_off: "Day off", rest: "No shift today. Rest well.",
     hours: "hours", shifts_week: "shifts this week", weekend_off: "weekend off", no_roster: "Your manager has not shared this week's shifts yet.",
     sent: "Request sent to the store", job_done: "Job complete. Thank you!", started: "Started. Do the job, then take the finish photo.",
     camera_denied: "The camera is blocked. Allow the camera in your browser settings, then try again.",
@@ -34,7 +34,9 @@ window.HOI_I18N = {
     rec_never: "Points only go up. They are never used to punish you or cut pay.", rec_capped: "You reached this month's points limit. Take it easy: more work does not add more points.",
     rec_top: "Team board (your owner turned this on)",
     your_team: "Your team", hs_tasks: "Your tasks", hs_tasks_sub: "Small team: pick up what comes in. No shift plan needed.", hs_none: "Nothing to do right now.",
-    new_task: "New task", take_it: "I'll do it", not_now_task: "Not now"
+    new_task: "New task", take_it: "I'll do it", not_now_task: "Not now",
+    start: "Start", finish: "Done", start_hint: "Takes a quick photo of the room first", done_hint: "Takes a photo of the finished work",
+    open: "Open", other_jobs: "Next jobs", answer_in: "{n} s to answer", steps: "Steps", step_accept: "Accepted", step_start: "Start", step_done: "Done"
   },
   hi: {
     offline: "इंटरनेट नहीं है। इंटरनेट आने तक बदलाव सेव नहीं होंगे।",
@@ -47,10 +49,10 @@ window.HOI_I18N = {
     my_requests: "मेरी माँगें", employee_id: "कर्मचारी ID", department: "विभाग", hotel: "होटल", language: "भाषा",
     privacy: "काम की फ़ोटो सबूत के लिए रखी जाती है। मैनेजर आपके फ़ोन में और कुछ नहीं देख सकते।",
     install: "होम स्क्रीन पर जोड़ें", signout: "साइन आउट", cancel: "रद्द करें", take_photo: "फ़ोटो लें", retake: "फिर से लें", use_photo: "यही फ़ोटो",
-    camera_note: "अभी कैमरे से फ़ोटो लें। समय अपने-आप लग जाता है।",
-    new_request: "नया काम", accept: "काम लें", decline: "मना करें", seconds: "से", room: "कमरा", urgency_high: "ज़रूरी",
-    urgency_urgent: "बहुत ज़रूरी (सेफ़्टी / मेडिकल)", urgency_medium: "नॉर्मल", urgency_low: "फ़ुर्सत में", before_photo: "शुरू करने से पहले फ़ोटो लें", after_photo: "काम ख़त्म करके फ़ोटो लें",
-    accepted: "ले लिया", in_progress: "चल रहा है", done: "पूरा", today_shift: "शिफ़्ट", day_off: "छुट्टी", rest: "आज शिफ़्ट नहीं है। आराम करें।",
+    camera_note: "कैमरा कमरे की ओर करें और बटन दबाएँ। समय अपने-आप लग जाता है।",
+    new_request: "नया काम", accept: "काम लें", decline: "अभी नहीं", seconds: "से", room: "कमरा", urgency_high: "ज़रूरी",
+    urgency_urgent: "बहुत ज़रूरी (सेफ़्टी / मेडिकल)", urgency_medium: "नॉर्मल", urgency_low: "फ़ुर्सत में", before_photo: "शुरू करने से पहले की फ़ोटो", after_photo: "पूरे काम की फ़ोटो",
+    accepted: "शुरू करना है", in_progress: "चल रहा है", done: "पूरा", today_shift: "शिफ़्ट", day_off: "छुट्टी", rest: "आज शिफ़्ट नहीं है। आराम करें।",
     hours: "घंटे", shifts_week: "शिफ़्ट इस हफ़्ते", weekend_off: "वीकेंड छुट्टी", no_roster: "मैनेजर ने इस हफ़्ते की शिफ़्ट अभी नहीं डाली है।",
     sent: "माँग स्टोर को भेज दी गई", job_done: "काम पूरा। धन्यवाद!", started: "शुरू हो गया। काम करें, फिर ख़त्म करके फ़ोटो लें।",
     camera_denied: "कैमरा बंद है। ब्राउज़र सेटिंग में कैमरा चालू करें, फिर दोबारा कोशिश करें।",
@@ -70,6 +72,8 @@ window.HOI_I18N = {
     rec_never: "पॉइंट सिर्फ़ बढ़ते हैं। इनसे कभी सज़ा नहीं मिलती, न तनख़्वाह कटती है।", rec_capped: "इस महीने की पॉइंट सीमा पूरी हो गई। आराम से काम करें: ज़्यादा काम से ज़्यादा पॉइंट नहीं मिलते।",
     rec_top: "टीम बोर्ड (मालिक ने चालू किया है)",
     your_team: "आपकी टीम", hs_tasks: "आपके काम", hs_tasks_sub: "छोटी टीम: जो काम आए, उठा लें। शिफ़्ट प्लान की ज़रूरत नहीं।", hs_none: "अभी कोई काम नहीं।",
-    new_task: "नया काम", take_it: "मैं कर दूँगी/दूँगा", not_now_task: "अभी नहीं"
+    new_task: "नया काम", take_it: "मैं कर दूँगी/दूँगा", not_now_task: "अभी नहीं",
+    start: "शुरू करें", finish: "काम पूरा", start_hint: "पहले कमरे की एक फ़ोटो लें", done_hint: "पूरे काम की एक फ़ोटो लें",
+    open: "खोलें", other_jobs: "आगे के काम", answer_in: "{n} सेकंड में जवाब दें", steps: "क़दम", step_accept: "लिया", step_start: "शुरू", step_done: "पूरा"
   }
 };

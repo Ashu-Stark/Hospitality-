@@ -4,7 +4,7 @@
 .hero h1{font-size:1.8rem;margin:16px 0 8px}
 .hero p{color:var(--ink2)}
 .logo{width:64px;height:64px;border-radius:20px;margin:0 auto;display:block;box-shadow:0 10px 24px rgba(91,110,245,.35)}
-.lang .btn{min-height:40px;padding:8px 12px;font-size:.9rem}
+.lang .btn{min-height:48px;padding:8px 12px;font-size:.9rem}
 .lang .btn.on,.btn[data-lang].on{background:var(--ink);color:#fff;border-color:var(--ink)}
 .check{display:flex;gap:10px;align-items:center;font-size:.9rem;color:var(--ink2);margin-top:12px}
 .check input{width:20px;height:20px}
@@ -59,19 +59,19 @@
 .item .name{flex:1}
 .item .name small{display:block;color:var(--muted)}
 .stepper{display:flex;align-items:center;gap:6px}
-.stepper button{width:40px;height:40px;border-radius:999px;border:1.5px solid var(--line);background:#fff;font-size:1.2rem;font-weight:700}
+.stepper button{width:48px;height:48px;border-radius:999px;border:1.5px solid var(--line);background:#fff;font-size:1.2rem;font-weight:700}
 .stepper b{min-width:28px;text-align:center}
 .req{background:#fff;border-radius:18px;padding:14px 16px}
 
 .sheet{position:fixed;inset:0;z-index:40;background:rgba(11,11,11,.6);display:flex;align-items:flex-end}
 .sheet-in{background:#fff;width:100%;border-radius:26px 26px 0 0;padding:18px;max-height:95vh;overflow:auto}
 .sheet video,.sheet img{width:100%;border-radius:18px;background:#000;margin:12px 0;aspect-ratio:3/4;object-fit:cover}
-.btn.small{min-height:36px;padding:6px 12px;width:auto;flex:0 0 auto}
+.btn.small{min-height:48px;padding:6px 16px;width:auto;flex:0 0 auto}
 
 .tabbar{position:fixed;left:0;right:0;bottom:0;z-index:30;display:flex;background:#fff;border-top:1px solid var(--line);
   padding:8px 8px calc(8px + env(safe-area-inset-bottom))}
 .tabbar button{flex:1;border:0;background:transparent;display:flex;flex-direction:column;align-items:center;gap:2px;font-size:.75rem;
-  color:var(--muted);padding:6px;border-radius:16px;position:relative;cursor:pointer}
+  color:var(--muted);padding:6px;min-height:56px;justify-content:center;border-radius:16px;position:relative;cursor:pointer}
 .tabbar .ico{font-size:1.25rem}
 .tabbar button.on{color:var(--ink);background:var(--field);font-weight:600}
 .dot{position:absolute;top:4px;right:28%;width:10px;height:10px;border-radius:999px;background:#d03b3b;border:2px solid #fff}
@@ -133,3 +133,43 @@
 .top{min-height:70px;box-sizing:border-box}
 .topr{min-height:34px}
 .hsnote{margin:10px 0 0;color:var(--ink2);font-size:1rem;line-height:1.45}
+
+/* ---------------------------------------------------------------- jobs: one clear next step per card
+   Status colours: New = blue, To start = amber, Working = violet, Done = green (always with a word, never colour only). */
+.sbadge{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:4px 12px;font-size:.8rem;font-weight:700;white-space:nowrap}
+.sbadge::before{content:"";width:8px;height:8px;border-radius:50%;background:currentColor}
+.s-new.sbadge{background:#e8f1ff;color:#1557c0}
+.s-accepted.sbadge{background:var(--amber-bg);color:#6b4500}
+.s-in_progress.sbadge{background:#efeafe;color:#4b2fb0}
+.s-done.sbadge{background:var(--green-bg);color:#0a6b12}
+.otop,.jtop{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.oleft{font-size:.85rem;font-weight:600;color:#1557c0}
+.offer h2{padding-right:0;margin:10px 0 6px}
+.urg{border-radius:999px;padding:2px 10px;font-size:.8rem;background:var(--field);color:var(--ink2);font-weight:600;white-space:nowrap}
+.urg.hi{background:var(--red-bg);color:#8a1c1c}
+.jroom{font-weight:600;color:var(--ink2)}
+.jmeta{flex-wrap:wrap}
+.btn.big{min-height:60px;font-size:1.12rem;margin-top:4px}
+.btn.quiet{background:transparent;border:0;color:var(--ink2);min-height:48px;margin-top:6px;font-weight:600}
+.job.focus{border:2px solid var(--line);padding:18px 18px 14px}
+.job.focus.s-accepted{border-color:var(--amber-line)}
+.job.focus.s-in_progress{border-color:#c9bbf6}
+.job.focus h3{font-size:1.35rem;margin:10px 0 4px}
+.jroomb{font-weight:700;font-size:1rem}
+.steps3{list-style:none;display:flex;gap:6px;margin:12px 0 14px;padding:0}
+.steps3 li{flex:1;text-align:center;font-size:.75rem;color:var(--muted);padding-top:10px;border-top:5px solid var(--line);border-radius:2px}
+.steps3 li.done{border-top-color:var(--green-line);color:#0a6b12}
+.steps3 li.now{border-top-color:var(--blue);color:var(--ink);font-weight:700}
+.btn.go-done{background:linear-gradient(180deg,#22a83a,#0f7a22);box-shadow:0 8px 18px rgba(15,122,34,.28)}
+.jhint{margin:10px 0 0;text-align:center;font-size:.85rem;color:var(--ink2)}
+.subh{font-size:.95rem;margin:6px 4px 0;color:var(--ink2)}
+.jrow{display:flex;align-items:center;gap:12px;background:#fff;border-radius:18px;padding:10px 12px 10px 14px;min-height:64px}
+.jrow+.jrow{margin-top:8px}
+.jrow .sdot{width:10px;height:10px;border-radius:50%;flex:0 0 auto;background:var(--muted)}
+.jrow.s-accepted .sdot{background:#d99a00}
+.jrow.s-in_progress .sdot{background:#6b4fd8}
+.jrow.s-done .sdot{background:#2e9b3e}
+.jrowt{flex:1;min-width:0;display:flex;flex-direction:column}
+.jrowt b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* camera: the shutter is the one big button */
+#snap{min-height:60px;font-size:1.1rem}#active{padding-bottom:96px}  /* room so the round Speak button never covers the last row's button */

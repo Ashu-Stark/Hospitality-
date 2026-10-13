@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
 <meta name="theme-color" content="#b03f14">
 <meta name="robots" content="noindex">
 <title>Your stay</title>
@@ -26,33 +26,40 @@
 <main class="wrap">
   <div id="err" class="banner red hidden" role="alert"></div>
 
-  <!-- ASK -->
+  <!-- ASK: assistant bar (hotel, live status, voice on/off), welcome starters, thread, sticky dock -->
   <section id="tab-ask" class="tab" aria-labelledby="t-ask">
-    <div class="asktop">
-      <h2 id="t-ask" data-t="ask_title">Ask me anything</h2>
-      <button type="button" id="mute" class="iconbtn" aria-pressed="false"><span id="muteIco" aria-hidden="true">🔊</span> <span id="muteTxt" data-t="sound_on">Sound on</span></button>
+    <div class="abar" id="abar" data-state="idle">
+      <span class="aface" aria-hidden="true"><img src="/shared/brand/hoi/hoi-mark.svg" alt="" width="26" height="26"><i class="eq"><b></b><b></b><b></b></i></span>
+      <div class="ameta">
+        <h2 id="t-ask" class="aname"><span id="aHotel">&nbsp;</span></h2>
+        <div class="astatus"><i class="sdot" aria-hidden="true"></i><span data-t="assistant">Assistant</span> · <span id="aStatus" aria-live="polite">Ready to help</span></div>
+      </div>
+      <button type="button" id="mute" class="spk" aria-pressed="true" aria-label="Voice replies: on"><span id="muteIco" aria-hidden="true">🔊</span><span id="muteTxt">Voice on</span></button>
     </div>
-    <p class="notice" data-t="ai_notice">Please don't share personal details like phone or card numbers.</p>
-    <label class="voicepick hidden" id="voiceRow"><span data-t="voice">Voice</span> <select id="voicePick" class="field"></select></label>
     <div id="thread" class="thread" aria-live="polite"></div>
-    <div class="dock">
-    <div id="chips" class="chips" aria-label="Suggestions"></div>
-    <div id="consent" class="card consent hidden">
-      <label class="check"><input type="checkbox" id="consentBox"> <span data-t="consent">OK to send my voice to an outside service that turns it into text. It is not saved.</span></label>
-      <div class="row"><button type="button" class="btn" id="consentNo" data-t="type_instead">Type instead</button><button type="button" class="btn primary" id="consentYes" data-t="allow_mic">Allow and speak</button></div>
+    <div id="starter" class="starter">
+      <div class="wgrid" id="wgrid" aria-label="Suggestions"></div>
+      <p class="notice" data-t="ai_notice">Please don't share personal details like phone or card numbers.</p>
+      <details class="vset hidden" id="voiceRow"><summary data-t="voice">Choose the voice</summary><label for="voicePick" class="sr" data-t="voice">Choose the voice</label><select id="voicePick" class="field"></select></details>
     </div>
-    <div class="composer">
-      <button type="button" id="mic" class="mic" aria-label="Tap to talk"><span class="micico" aria-hidden="true">🎙</span></button>
-      <form id="askForm" class="askform">
-        <label for="msg" class="sr" data-t="type_here">Type your message</label>
-        <input id="msg" class="field" maxlength="500" autocomplete="off" enterkeyhint="send" data-tph="type_here" placeholder="Type your message">
-        <button class="send" type="submit" aria-label="Send"><span aria-hidden="true">➤</span></button>
-      </form>
-    </div>
-    <p id="micState" class="muted center micstate" aria-live="polite"></p>
+    <div class="dock" id="dock">
+      <button type="button" id="stopSpeak" class="stopbtn hidden" aria-label="Stop speaking"><i class="sq" aria-hidden="true"></i><span data-t="stop">Stop speaking</span></button>
+      <div id="chips" class="chips hidden" aria-label="Suggestions"></div>
+      <div id="consent" class="card consent hidden">
+        <label class="check"><input type="checkbox" id="consentBox"> <span data-t="consent">OK to send my voice to an outside service that turns it into text. It is not saved.</span></label>
+        <div class="row"><button type="button" class="btn" id="consentNo" data-t="type_instead">Type instead</button><button type="button" class="btn primary" id="consentYes" data-t="allow_mic">Allow and speak</button></div>
+      </div>
+      <div class="composer">
+        <button type="button" id="mic" class="mic" aria-label="Tap to talk"><span class="miclvl" aria-hidden="true"></span><span class="micico" aria-hidden="true">🎙</span></button>
+        <form id="askForm" class="askform">
+          <label for="msg" class="sr" data-t="type_here">Type your message</label>
+          <input id="msg" class="field" maxlength="500" autocomplete="off" enterkeyhint="send" data-tph="type_here" placeholder="Type your message">
+          <button class="send" type="submit" aria-label="Send"><span aria-hidden="true">➤</span></button>
+        </form>
+      </div>
+      <p id="micState" class="muted center micstate" aria-live="polite"></p>
     </div>
   </section>
-
   <!-- EXPLORE -->
   <section id="tab-explore" class="tab hidden" aria-labelledby="t-explore">
     <h2 id="t-explore" class="sr" data-t="explore">Explore</h2>
