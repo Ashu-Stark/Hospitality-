@@ -52,6 +52,8 @@ def summary(d: dict, ctx: crowd.Context | None = None) -> dict:
     if ctx is not None:
         t = crowd.day_index(ctx, d["id"], date.today())
         out["crowd_today"] = {"index": t["index"], "band": t["band"], "label": "estimate"}
+        # Usual band per month (Jan..Dec), the same estimate as the detail page's usual_by_month; feeds the month strip.
+        out["usual_busy"] = [m["band"] for m in crowd.usual_by_month(ctx, d["id"])]
     return out
 
 

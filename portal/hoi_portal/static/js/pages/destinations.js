@@ -1,57 +1,220 @@
 // Destinations list + destination detail. Detail answers "should I go this week?" first (At a glance tiles), then
 // shows ONE tab panel at a time (deep-linkable: #/destinations/<id>/<tab>).
-import { html, mount, href, load, bandPill, trafficPill, $, $$, empty, monthName, MONTH_NAMES, fmtDate, relTime, roadPill, impactPill, lastUpdated, crumbs, num, raw, samplePill, collapseFilters, pager, moreList, infoNote, dayStrip, takeaway, details } from '../ui.js';
+import { html, mount, href, load, bandPill, trafficPill, $, $$, empty, monthName, MONTH_NAMES, fmtDate, relTime, roadPill, impactPill, lastUpdated, crumbs, num, raw, samplePill, pager, moreList, infoNote, dayStrip, takeaway, details, icon, BANDS, monthChips, debounce, announce, errorBox } from '../ui.js';
 import { api, meta } from '../api.js';
 import { setQuery } from '../router.js';
 import { t } from '../i18n.js';
 import { barChart, BAND_FILL, bandOf, miniBars, PALETTE } from '../charts.js';
 import { bizRow, advisoryRow, kv } from './common.js';
 import { nearbyPanel } from './plan.js';
-import { photoHead, thumbsNote } from '../photos.js';
-import { destCard, localCards } from '../cards.js';
+import { photoHead, thumbsNote, photo, img } from '../photos.js';
+import { localCards } from '../cards.js';
 
 const EXP_NAMES = { spiritual: 'Spiritual & Char Dham', adventure: 'Adventure & Treks', wildlife: 'Wildlife & Nature', wellness: 'Yoga & Wellness', leisure: 'Hill towns & Leisure', culture: 'Culture & Fairs' };
 
 // ------------------------------------------------------------------ list
+// Results layout: filter panel on the left (a slide-up sheet on phones), a 12-month strip with the usual busy level,
+// then one row card per place (photo; name, district, weather, how busy, road; tags).
+const CHIPS = [
+  ['quiet', 'quiet', 'Quiet now'],
+  ['chardham', 'temple', 'Char Dham'],
+  ['treks', 'trek', 'Treks'],
+  ['lakes', 'lake', 'Lakes'],
+  ['family', 'people', 'Family'],
+];
+const BAND_ORDER = ['low', 'moderate', 'high', 'very_high'];
+const ROAD_WORD = { closed: 'Closed', caution: 'Slow, take care', open: 'Open' };
+const csv = (v) => (v ? String(v).split(',').filter(Boolean) : []);
+
 export async function list(ctx) {
   const el = ctx.el;
-  const f = { district: ctx.query.district || '', division: ctx.query.division || '', tag: ctx.query.tag || '', q: ctx.query.q || '' };
+  const nowM = new Date().getMonth() + 1;
+  const f = {
+    q: ctx.query.q || '', district: ctx.query.district || '', division: ctx.query.division || '', tag: ctx.query.tag || '',
+    chip: csv(ctx.query.chip), month: Number(ctx.query.month) || 0, busy: csv(ctx.query.busy),
+  };
+  let d = null;
+  let roads = new Map();
+  const bandAt = (x) => (f.month ? x.usual_busy?.[f.month - 1] : x.crowd_today?.band) || null;
+  const chipOk = (x, c) => {
+    if (c === 'quiet') return bandAt(x) === 'low';
+    if (c === 'chardham') return x.tags.includes('Char Dham');
+    if (c === 'treks') return x.tags.includes('trek');
+    if (c === 'lakes') return x.tags.includes('lake');
+    if (c === 'family') return (x.themes || []).some((t) => t === 'leisure' || t === 'wildlife') && !x.tags.includes('trek');
+    return true;
+  };
+  // Everything except the month and how-busy filters (the month strip summarises this set).
+  const baseOk = (x) => (!f.district || x.district === f.district) && (!f.division || x.division === f.division) && (!f.tag || x.tags.includes(f.tag))
+    && (!f.q || x.name.toLowerCase().includes(f.q.toLowerCase())) && f.chip.filter((c) => c !== 'quiet').every((c) => chipOk(x, c));
+  const fullOk = (x) => baseOk(x) && (!f.chip.includes('quiet') || chipOk(x, 'quiet'))
+    && (!f.month || !x.best_months?.length || x.best_months.includes(f.month)) && (!f.busy.length || f.busy.includes(bandAt(x)));
+  const active = () => [f.district, f.division, f.tag, f.month, ...f.chip, ...f.busy].filter(Boolean).length;
+
   mount(el, html`<div class="pagehead"><div><h1>${t('destinations')}</h1>
     <p>Pick a place to see the weather, roads, how busy it will be, registered stays and local experiences.</p></div></div>
-    <form class="card tight filters" id="dfilters" aria-label="Filter destinations"></form>
-    <p class="small muted" id="dcount" aria-live="polite"></p>
-    <div id="dlist"></div>${thumbsNote()}`);
-  await load($('#dlist', el), async () => {
-    const [m, d] = await Promise.all([meta(), api('/destinations')]);
-    const form = $('#dfilters', el);
-    mount(form, html`
-      <div class="fld"><label class="lbl" for="f-q">Name</label><input class="field" id="f-q" name="q" type="search" value="${f.q}" placeholder="e.g. Auli"></div>
-      <div class="fld"><label class="lbl" for="f-division">Division</label><select class="field" id="f-division" name="division"><option value="">All divisions</option>
-        ${['Garhwal', 'Kumaon'].map((x) => html`<option ${f.division === x ? raw('selected') : ''}>${x}</option>`)}</select></div>
-      <div class="fld"><label class="lbl" for="f-district">District</label><select class="field" id="f-district" name="district"><option value="">All districts</option>
-        ${m.districts.map((x) => html`<option value="${x.id}" ${f.district === x.id ? raw('selected') : ''}>${x.name}</option>`)}</select></div>
-      <div class="fld"><label class="lbl" for="f-tag">Theme</label><select class="field" id="f-tag" name="tag"><option value="">All themes</option>
-        ${d.tags.map((x) => html`<option ${f.tag === x ? raw('selected') : ''}>${x}</option>`)}</select></div>
-      <div class="fld"><button type="reset" class="btn ghost">Clear</button></div>`);
-    collapseFilters(form);
-    const draw = () => {
-      const q = f.q.toLowerCase();
-      const items = d.items.filter((x) => (!f.district || x.district === f.district) && (!f.division || x.division === f.division) && (!f.tag || x.tags.includes(f.tag)) && (!q || x.name.toLowerCase().includes(q)));
-      $('#dcount', el).textContent = `${items.length} places`;
-      if (!items.length) { mount($('#dlist', el), empty('No destinations match', 'Try clearing a filter.')); return; }
-      pager($('#dlist', el), items, (slice) => html`<div class="mcgrid g3c">${slice.map((x, i) => destCard(x, { eager: i < 3 }))}</div>`, 12);
-    };
-    const sync = () => {
-      const fd = new FormData(form);
-      Object.keys(f).forEach((k) => { f[k] = (fd.get(k) || '').toString().trim(); });
-      setQuery(f);
-      draw();
-    };
-    form.addEventListener('input', sync);
-    form.addEventListener('reset', () => setTimeout(sync));
-    form.addEventListener('submit', (e) => { e.preventDefault(); sync(); });
+    <div class="dres">
+      <div class="dres-shade" id="dshade" hidden></div>
+      <aside class="dres-side" id="fpanel" aria-labelledby="fp-h">
+        <div class="fp-head"><h2 id="fp-h">Filter results</h2><button type="button" class="btn sm ghost fp-close" id="fp-close">Close</button></div>
+        <form id="dfilters" class="fp" aria-label="Filter destinations">
+          <div class="fp-chips" role="group" aria-label="Quick filters">${CHIPS.map(([k, ic, l]) => html`<button type="button" class="fp-chip" data-chip="${k}" aria-pressed="${String(f.chip.includes(k))}">${icon(ic)}<span>${l}</span></button>`)}</div>
+          <details class="fp-g" ${f.district || f.division ? raw('open') : ''}><summary>District ${icon('chevron')}</summary>
+            <div class="fp-in"><div class="fp-seg" role="group" aria-label="Division">${[['', 'All'], ['Garhwal', 'Garhwal'], ['Kumaon', 'Kumaon']].map(([v, l]) => html`<label><input type="radio" name="division" value="${v}" ${f.division === v ? raw('checked') : ''}><span>${l}</span></label>`)}</div>
+              <label class="lbl" for="f-district">District</label><select class="field" id="f-district" name="district"><option value="">All districts</option></select></div></details>
+          <details class="fp-g" ${f.month ? raw('open') : ''}><summary>Best month ${icon('chevron')}</summary>
+            <div class="fp-in"><label class="lbl" for="f-month">Going in</label><select class="field" id="f-month" name="month"><option value="">Any month</option>${MONTH_NAMES.map((n, i) => html`<option value="${i + 1}" ${f.month === i + 1 ? raw('selected') : ''}>${n}</option>`)}</select></div></details>
+          <details class="fp-g" ${f.busy.length ? raw('open') : ''}><summary>How busy ${icon('chevron')}</summary>
+            <div class="fp-in fp-checks">${BAND_ORDER.map((b) => html`<label class="check"><input type="checkbox" name="busy" value="${b}" ${f.busy.includes(b) ? raw('checked') : ''}><span class="hv-dot b-${b}" aria-hidden="true"></span>${BANDS[b].label}</label>`)}
+              <p class="small muted">Today, or the usual level in the month you pick. Estimate from sample data.</p></div></details>
+          <details class="fp-g" ${f.tag ? raw('open') : ''}><summary>Type of place ${icon('chevron')}</summary>
+            <div class="fp-in"><label class="lbl" for="f-tag">Type</label><select class="field" id="f-tag" name="tag"><option value="">All types</option></select></div></details>
+          <div class="fp-foot"><button type="button" class="btn ghost" id="fp-clear">Clear all</button><button type="button" class="btn primary fp-show" id="fp-show">Show places</button></div>
+        </form>
+      </aside>
+      <div class="dres-main">
+        <div class="dres-bar">
+          <label class="dres-q"><span class="sr-only">Search by name</span>${icon('search')}<input id="f-q" type="search" placeholder="Search by name" value="${f.q}" maxlength="60" autocomplete="off"></label>
+          <button type="button" class="btn ghost dres-fbtn" id="fp-open" aria-controls="fpanel" aria-expanded="false">${icon('filter')}<span id="fp-n">Filters</span></button>
+        </div>
+        <div class="mstrip-card">
+          <div class="mstrip" id="mstrip" role="group" aria-label="Pick a month">${MONTH_NAMES.map((n, i) => html`<button type="button" data-m="${i + 1}" class="${i + 1 === nowM ? 'now' : ''}" aria-pressed="${String(f.month === i + 1)}"><b>${n.slice(0, 3)}</b><span class="mb">&nbsp;</span></button>`)}</div>
+          <p class="mstrip-note small muted">Usual busy level for the places shown. Estimate from sample data.${raw('&nbsp;')}<span class="mnow">Ring = this month.</span></p>
+        </div>
+        <p class="dres-count" id="dcount" aria-live="polite">&nbsp;</p>
+        <div id="dlist"><div class="rclist" aria-hidden="true">${[0, 1, 2, 3].map(() => html`<div class="rc sk"></div>`)}</div></div>
+      </div>
+    </div>`);
+
+  // Phones: the strip scrolls; start with this month in view (before any data, so nothing shifts later).
+  const ms = $('#mstrip', el);
+  const nowB = $('#mstrip .now', el);
+  if (nowB && ms.scrollWidth > ms.clientWidth) ms.scrollLeft = nowB.getBoundingClientRect().left - ms.getBoundingClientRect().left - 8;
+  const form = $('#dfilters', el);
+  const side = $('#fpanel', el);
+  const shade = $('#dshade', el);
+  const openBtn = $('#fp-open', el);
+  const sheet = (open) => {
+    side.classList.toggle('open', open);
+    shade.hidden = !open;
+    openBtn.setAttribute('aria-expanded', String(open));
+    document.documentElement.classList.toggle('sheet-open', open);
+    if (open) $('#fp-close', el).focus(); else openBtn.focus();
+  };
+  openBtn.addEventListener('click', () => sheet(true));
+  $('#fp-close', el).addEventListener('click', () => sheet(false));
+  $('#fp-show', el).addEventListener('click', () => sheet(false));
+  shade.addEventListener('click', () => sheet(false));
+  const onKey = (e) => { if (e.key === 'Escape' && side.classList.contains('open')) sheet(false); };
+  document.addEventListener('keydown', onKey);
+
+  const strip = () => {
+    if (!d) return;
+    const base = d.items.filter(baseOk);
+    $$('#mstrip button', el).forEach((b) => {
+      const m = Number(b.dataset.m);
+      const bands = base.map((x) => x.usual_busy?.[m - 1]).filter(Boolean).map((x) => BAND_ORDER.indexOf(x)).sort((a, c) => a - c);
+      const mid = bands.length ? BAND_ORDER[bands[Math.floor((bands.length - 1) / 2)]] : null;
+      const word = mid ? BANDS[mid].label : '–';
+      b.querySelector('.mb').textContent = word;
+      b.querySelector('.mb').className = 'mb ' + (mid ? 'b-' + mid : '');
+      b.setAttribute('aria-pressed', String(f.month === m));
+      b.setAttribute('aria-label', `${MONTH_NAMES[m - 1]}${m === nowM ? ' (this month)' : ''}: usually ${word.toLowerCase()}`);
+    });
+  };
+  const card = (x, i) => {
+    const p = photo(x.id);
+    const w = x.weather_now;
+    const band = bandAt(x);
+    const road = roads.get(x.id);
+    const best = x.best_months?.length ? monthChips(x.best_months, 2).join(', ') : 'All year';
+    const url = href('/destinations/' + x.id);
+    return html`<article class="rc">
+      <a class="rc-ph" href="${url}" tabindex="-1" aria-hidden="true">${p ? img(p, { alt: '', eager: i < 2 }) : ''}</a>
+      <div class="rc-body">
+        <h2 class="rc-t"><a href="${url}">${x.name}</a></h2>
+        <p class="rc-d">${icon('pin')}${x.district_name} · ${x.division}</p>
+        ${x.why_go ? html`<p class="rc-why">${x.why_go}</p>` : ''}
+        <dl class="rc-facts">
+          <div><dt>${icon('weather')}Weather</dt><dd>${w?.available && w.temperature_c != null ? `${Math.round(w.temperature_c)}°C${w.summary ? ' · ' + w.summary : ''}` : html`<span class="muted">See forecast</span>`}</dd></div>
+          <div><dt>${icon('people')}${f.month ? 'Busy in ' + MONTH_NAMES[f.month - 1].slice(0, 3) : 'How busy'}</dt><dd>${band ? html`<span class="hv-dot b-${band}" aria-hidden="true"></span>${BANDS[band].label}` : 'No estimate'}</dd></div>
+          <div><dt>${icon('road')}Road</dt><dd>${road ? html`<span class="rd rd-${road.status}">${ROAD_WORD[road.status] || road.status}</span>${road.segment ? html`<span class="muted"> · ${road.segment}</span>` : ''}` : html`<span class="muted">No alerts posted</span>`}</dd></div>
+          <div><dt>${icon('calendar')}Best</dt><dd>${best}</dd></div>
+        </dl>
+      </div>
+      <div class="rc-side">
+        <ul class="rc-tags">${x.tags.slice(0, 3).map((tg) => html`<li>${tg}</li>`)}</ul>
+        <span class="rc-go" aria-hidden="true">View ${icon('arrow')}</span>
+      </div></article>`;
+  };
+  const draw = () => {
+    if (!d) return;
+    const items = d.items.filter(fullOk);
+    if (f.chip.includes('quiet') || f.busy.length || f.month) items.sort((a, b) => BAND_ORDER.indexOf(bandAt(a)) - BAND_ORDER.indexOf(bandAt(b)));
+    const n = active();
+    $('#fp-n', el).textContent = n ? `Filters (${n})` : 'Filters';
+    $('#fp-show', el).textContent = `Show ${items.length} place${items.length === 1 ? '' : 's'}`;
+    $('#dcount', el).textContent = `${items.length} place${items.length === 1 ? '' : 's'}${f.month ? ' good in ' + MONTH_NAMES[f.month - 1] : ''}`;
+    strip();
+    $$('[data-chip]', el).forEach((b) => b.setAttribute('aria-pressed', String(f.chip.includes(b.dataset.chip))));
+    if (!items.length) { mount($('#dlist', el), empty('No destinations match', 'Try clearing a filter.', html`<button type="button" class="btn ghost" data-clear>Clear all filters</button>`)); return; }
+    pager($('#dlist', el), items, (slice) => html`<div class="rclist">${slice.map(card)}</div>`, 12);
+  };
+  const sync = () => {
+    const fd = new FormData(form);
+    f.district = (fd.get('district') || '').toString();
+    f.division = (fd.get('division') || '').toString();
+    f.tag = (fd.get('tag') || '').toString();
+    f.month = Number(fd.get('month')) || 0;
+    f.busy = fd.getAll('busy').map(String);
+    setQuery({ q: f.q, district: f.district, division: f.division, tag: f.tag, chip: f.chip.join(','), month: f.month || '', busy: f.busy.join(',') });
     draw();
-  }, { skel: 'cards', n: 6 });
+  };
+  const clearAll = () => {
+    Object.assign(f, { q: '', district: '', division: '', tag: '', chip: [], month: 0, busy: [] });
+    form.reset();
+    $('#f-q', el).value = '';
+    $$('input[name="division"]', form).forEach((r) => { r.checked = r.value === ''; });
+    $('#f-month', el).value = '';
+    sync();
+    announce('Filters cleared');
+  };
+  form.addEventListener('change', sync);
+  form.addEventListener('submit', (e) => { e.preventDefault(); sync(); });
+  $('#f-q', el).addEventListener('input', debounce(() => { f.q = $('#f-q', el).value.trim(); sync(); }, 200));
+  $$('[data-chip]', el).forEach((b) => b.addEventListener('click', () => {
+    const k = b.dataset.chip;
+    f.chip = f.chip.includes(k) ? f.chip.filter((c) => c !== k) : [...f.chip, k];
+    sync();
+  }));
+  $('#mstrip', el).addEventListener('click', (e) => {
+    const b = e.target.closest('button[data-m]');
+    if (!b) return;
+    const m = Number(b.dataset.m);
+    $('#f-month', el).value = f.month === m ? '' : String(m);
+    sync();
+    announce(f.month ? `Showing places good in ${MONTH_NAMES[f.month - 1]}` : 'Any month');
+  });
+  $('#fp-clear', el).addEventListener('click', clearAll);
+  el.addEventListener('click', (e) => { if (e.target.closest('[data-clear]')) clearAll(); });
+
+  try {
+    const [m, dd, adv] = await Promise.all([meta(), api('/destinations'), api('/advisories').catch(() => ({ items: [] }))]);
+    d = dd;
+    const order = { closed: 0, caution: 1, open: 2 };
+    roads = new Map();
+    for (const a of adv.items) {
+      if (a.kind !== 'road' || !a.destination_id) continue;
+      const cur = roads.get(a.destination_id);
+      if (!cur || (order[a.status] ?? 3) < (order[cur.status] ?? 3)) roads.set(a.destination_id, a);
+    }
+    mount($('#f-district', el), html`<option value="">All districts</option>${m.districts.map((x) => html`<option value="${x.id}" ${f.district === x.id ? raw('selected') : ''}>${x.name}</option>`)}`);
+    mount($('#f-tag', el), html`<option value="">All types</option>${d.tags.map((x) => html`<option value="${x}" ${f.tag === x ? raw('selected') : ''}>${x}</option>`)}`);
+    draw();
+  } catch (e) {
+    mount($('#dlist', el), errorBox(e, { retry: false }));
+  }
+  return () => { document.removeEventListener('keydown', onKey); document.documentElement.classList.remove('sheet-open'); };
 }
 
 // ------------------------------------------------------------------ detail

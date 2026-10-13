@@ -148,6 +148,13 @@ business sits under Stays. Cards share one image-led component (`ui.js mediaCard
 charts lead with a plain-language takeaway and secondary charts sit behind "Show details". See
 `docs/ZOSTEL_IA_NOTES.md` for the reference-pattern comparison.
 
+Home (v3): photo hero with one search panel and five tabs (Places, Stays, Experiences, Trips, Jobs; every field maps to a real
+filter of the target page), quick-action tiles, popular destinations (portrait cards, DM Serif Display from Google Fonts with a
+Georgia fallback), a Char Dham banner, things to do with local hosts, and a "List your property" band with CSS phone mock-ups
+labelled "Example screens". Destinations: filter panel (a slide-up sheet on phones), a 12-month strip showing the usual busy
+level of the places shown (`usual_busy` in the list response, the same estimate as the detail page's `usual_by_month`), and
+row cards (photo; district, weather, how busy, road alert, best months; tags).
+
 ## Crowd index (estimate)
 
 `index = clamp(0.8 x occupancy% + event + weekend + season, 0, 100)` with event +12/+6/+2 (high/medium/low impact),

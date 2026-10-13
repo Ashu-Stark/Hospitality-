@@ -212,7 +212,13 @@ function drawShell() {
   $('#morebtn').addEventListener('click', () => toggleSheet());
   $('#sheetclose').addEventListener('click', () => { toggleSheet(false); $('#morebtn').focus(); });
   $('#signout2')?.addEventListener('click', doSignOut);
-  mount($('#footlinks'), html`<a href="#/host">${lbl('list_property')}</a><a href="#/helplines">${lbl('help_short')}</a><a href="#/about">${lbl('about')}</a><a href="#/accessibility">${lbl('accessibility')}</a><a href="#/sitemap">${lbl('sitemap')}</a><a href="#/credits">${lbl('credits')}</a><a href="#/grievance">${lbl('file')}</a><a href="#/signin?need=official">${lbl('officials_signin')}</a>`);
+  // Footer: four short columns (popular places, travellers, businesses, about); the demo note sits in index.html.
+  const col = (title, links) => html`<div class="footcol"><h2>${title}</h2><ul>${links.map(([l, to]) => html`<li><a href="#${to}">${l}</a></li>`)}</ul></div>`;
+  mount($('#footlinks'), html`${col('Popular places', [['Kedarnath', '/destinations/kedarnath'], ['Rishikesh', '/destinations/rishikesh'], ['Nainital', '/destinations/nainital'], ['Mussoorie', '/destinations/mussoorie'], ['Auli', '/destinations/auli'], ['Valley of Flowers', '/destinations/valley-of-flowers']])}
+    ${col('For travellers', [[lbl('destinations'), '/destinations'], [lbl('stays'), '/stays'], [lbl('local_exp'), '/experiences'], [lbl('trips'), '/plan'], [lbl('festivals'), '/festivals'], [lbl('help_short'), '/helplines'], [lbl('file'), '/grievance']])}
+    ${col(lbl('for_business'), [[lbl('list_property'), '/host'], [lbl('business_signin'), '/signin?need=business'], ['Hire staff', '/jobs/hire'], [lbl('find_jobs'), '/jobs'], [lbl('verify_biz'), '/verify'], [lbl('rules'), '/rules']])}
+    ${col(lbl('about'), [[lbl('about'), '/about'], [lbl('accessibility'), '/accessibility'], [lbl('sitemap'), '/sitemap'], [lbl('credits'), '/credits'], [lbl('dictionary'), '/dictionary'], [lbl('officials_signin'), '/signin?need=official']])}`);
+  $('#foot-credits').textContent = lbl('credits');
   syncSize();
   document.documentElement.classList.add('booted');
   $('#skip-link').textContent = lbl('skip');

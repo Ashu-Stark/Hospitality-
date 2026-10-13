@@ -68,9 +68,9 @@ const LX_PHOTOS = {
   heritage_walk: ['lx-heritage_walk', 'fest-uttarayani-fair', 'bageshwar'],
   artisan_workshop: ['lx-artisan_workshop', 'exp-culture'],
 };
-const LX_SHORT = { home_meal: 'Home meal', nature_walk: 'Nature walk', heritage_walk: 'Heritage walk', farm_stay: 'Farm day', folk_music: 'Folk music', artisan_workshop: 'Craft workshop' };
+export const LX_SHORT = { home_meal: 'Home meal', nature_walk: 'Nature walk', heritage_walk: 'Heritage walk', farm_stay: 'Farm day', folk_music: 'Folk music', artisan_workshop: 'Craft workshop' };
 const hashStr = (s) => [...String(s)].reduce((h, c) => (h * 31 + c.charCodeAt(0)) >>> 0, 7);
-function lxPhotoIds(e, used) {
+export function lxPhotoIds(e, used) {
   const set = (LX_PHOTOS[e.type] || ['lx-' + e.type]).filter((id) => photo(id));
   if (!set.length) return [e.destination_id];
   // The type's own photo first; when a grid already shows it, an alternate chosen by the experience id.

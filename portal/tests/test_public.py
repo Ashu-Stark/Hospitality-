@@ -111,6 +111,9 @@ def test_crowd_endpoint_is_estimate_and_in_range(client):
         assert 0 <= x["index"] <= 100 and x["band"] == crowd.band(x["index"])
     kd = client.get("/api/v1/destinations/kedarnath/crowd").json()["usual_by_month"]
     assert kd[0]["band"] == "low"  # Char Dham closed season (January) is quiet in the synthetic pattern
+    # The list carries the same usual band per month (month strip on the destinations page).
+    listed = {x["id"]: x for x in client.get("/api/v1/destinations").json()["items"]}
+    assert listed["kedarnath"]["usual_busy"] == [m["band"] for m in kd]
 
 
 def test_dictionary_has_80_plus_terms_with_valid_links(client):

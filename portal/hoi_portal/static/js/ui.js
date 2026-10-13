@@ -427,6 +427,20 @@ export const TYPE_ICON = {
   stay: ic('<path d="M3 18V8M3 14h18v4M21 14v-3a3 3 0 00-3-3h-7v6"/><circle cx="7" cy="11" r="2"/>'),
   lang: ic('<path d="M4 5h9M8 3v2M6 5c0 4 3 7 6 8M11 5c-1 4-4 7-7 8M13 21l4-9 4 9M14.5 18h5"/>'),
   route: ic('<circle cx="6" cy="19" r="2"/><circle cx="18" cy="5" r="2"/><path d="M8 19h7a3 3 0 000-6H9a3 3 0 010-6h7"/>'),
+  weather: ic('<circle cx="8" cy="8" r="3"/><path d="M8 2v1.5M2 8h1.5M3.8 3.8l1 1M12.2 3.8l-1 1"/><path d="M8 20h9a4 4 0 00.4-8 5 5 0 00-9.6 1.5A3.3 3.3 0 008 20z"/>'),
+  road: ic('<path d="M8 3L4 21M16 3l4 18M12 4v3M12 11v3M12 18v2"/>'),
+  temple: ic('<path d="M12 2l2 4h-4z"/><path d="M8 10l4-4 4 4M6 21V10h12v11M3 21h18M10 21v-5h4v5"/>'),
+  briefcase: ic('<rect x="3" y="7" width="18" height="13" rx="2"/><path d="M9 7V5a2 2 0 012-2h2a2 2 0 012 2v2M3 13h18"/>'),
+  help: ic('<circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 015 .5c0 1.7-2.5 2-2.5 3.5M12 17v.5"/>'),
+  search: ic('<circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/>'),
+  arrow: ic('<path d="M4 12h15M13 6l6 6-6 6"/>'),
+  chevron: ic('<path d="M6 9l6 6 6-6"/>'),
+  lake: ic('<path d="M3 9c2 0 2-1.5 4.5-1.5S9.5 9 12 9s2.5-1.5 4.5-1.5S19 9 21 9M3 14c2 0 2-1.5 4.5-1.5S9.5 14 12 14s2.5-1.5 4.5-1.5S19 14 21 14M3 19c2 0 2-1.5 4.5-1.5S9.5 19 12 19s2.5-1.5 4.5-1.5S19 19 21 19"/>'),
+  trek: ic('<path d="M3 20l6-11 4 6 2-3 6 8z"/><path d="M15 4v6M15 4h4l-1 1.5 1 1.5h-4"/>'),
+  quiet: ic('<path d="M20 14.5A8 8 0 019.5 4 8 8 0 1020 14.5z"/>'),
+  shield: ic('<path d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6z"/><path d="M8.5 12l2.5 2.5 4.5-5"/>'),
+  alert: ic('<path d="M12 3l9.5 17h-19z"/><path d="M12 10v4M12 17v.5"/>'),
+  filter: ic('<path d="M4 6h16M7 12h10M10 18h4"/>'),
 };
 export const icon = (k) => raw(TYPE_ICON[k] || '');
 

@@ -12,7 +12,7 @@
 <link rel="apple-touch-icon" sizes="180x180" href="img/brand/hoi-icon-180.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600;700&amp;family=Noto+Sans+Devanagari:wght@400;600&amp;display=optional">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&amp;family=Inter+Tight:wght@400;500;600;700&amp;family=Noto+Sans+Devanagari:wght@400;600&amp;display=optional">
 <link rel="stylesheet" href="css/app.css">
 <script type="module" src="js/app.js"></script>
 </head>
@@ -53,9 +53,19 @@
 </div>
 <div class="sr-only" aria-live="polite" id="live"></div>
 <footer class="foot">
-  <div class="wrap">
-    <nav class="footlinks" id="footlinks" aria-label="Footer"></nav>
+  <div class="wrap footv">
+    <div class="foot-brand">
+      <a class="brand" href="#/" aria-label="Uttarakhand Travel Guide, home">
+        <img src="img/brand/hoi-mark.svg" alt="" width="40" height="40">
+        <span><b>Uttarakhand</b> <small>Travel Guide</small></span>
+      </a>
+      <p id="foot-about">Places, stays, local hosts, trips and jobs in the hills, with weather, roads and how busy it is.</p>
+    </div>
+    <nav class="footcols" id="footlinks" aria-label="Footer"></nav>
+  </div>
+  <div class="wrap footbar">
     <p class="footnote">Demo · not a government site.</p>
+    <a href="#/credits" id="foot-credits">Photo credits</a>
   </div>
 </footer>
 <nav class="tabbar" id="tabbar" aria-label="Main (mobile)"></nav>
