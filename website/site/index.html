@@ -2,6 +2,9 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
+<link rel="icon" type="image/svg+xml" href="img/brand/hoi-mark.svg">
+<link rel="icon" type="image/png" sizes="32x32" href="img/brand/hoi-icon-32.png">
+<link rel="apple-touch-icon" href="img/brand/hoi-icon-180.png">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>HOI · Hospitality Operations Intelligence</title>
 <meta name="description" content="One platform, five apps for hill hotels: super-admin and hotel admin portals, a voice-ready worker app, a QR guest concierge and a concept Uttarakhand tourism portal.">
@@ -36,7 +39,7 @@ h1,h2,h3{letter-spacing:-.04em;line-height:1.04;font-weight:600}
 header.top{position:sticky;top:0;z-index:40;background:rgba(242,242,240,.82);backdrop-filter:blur(12px)}
 .topbar{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:14px 0}
 .brand{display:flex;align-items:center;gap:10px;font-weight:700;font-size:1.2rem;letter-spacing:-.03em}
-.brand i{width:38px;height:38px;border-radius:12px;background:linear-gradient(135deg,#f07a2c,#d9531a);display:grid;place-items:center;color:#fff}
+.brand i{width:38px;height:38px;border-radius:11px;display:grid;place-items:center;overflow:hidden}.brand i img{display:block;width:38px;height:38px}
 .brand small{font-weight:500;color:var(--ink2);font-size:.9rem}
 .util{display:flex;gap:18px;align-items:center;font-size:.74rem;letter-spacing:.06em;text-transform:uppercase}
 .util a:hover{color:var(--blue)}
@@ -242,7 +245,7 @@ a:focus-visible,button:focus-visible,summary:focus-visible,input:focus-visible{o
 
 <header class="top">
   <div class="wrap topbar">
-    <a class="brand" href="#"><i><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><path d="M3 18V7"/><path d="M3 14h18v4"/><path d="M21 14v-2a3 3 0 0 0-3-3h-7v5"/><circle cx="7" cy="11" r="2"/></svg></i>HOI <small>Hospitality Operations Intelligence</small></a>
+    <a class="brand" href="#"><i class="brandmark"><img src="img/brand/hoi-mark.svg" alt="" width="38" height="38"></i>HOI <small>Hospitality Operations Intelligence</small></a>
     <nav class="util" aria-label="Main">
       <a href="#apps">Apps</a><a href="#flow">Guest requests</a><a href="#loop">How it works</a><a href="#inventory">Inventory</a>
       <a href="#compare">Compare</a><a href="#faq">FAQ</a>
@@ -486,7 +489,7 @@ a:focus-visible,button:focus-visible,summary:focus-visible,input:focus-visible{o
 <div class="wrap">
   <footer>
     <div class="fgrid">
-      <div><a class="brand" href="#"><i><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" aria-hidden="true"><path d="M3 18V7"/><path d="M3 14h18v4"/><path d="M21 14v-2a3 3 0 0 0-3-3h-7v5"/><circle cx="7" cy="11" r="2"/></svg></i>HOI</a>
+      <div><a class="brand" href="#"><i class="brandmark"><img src="img/brand/hoi-mark.svg" alt="" width="38" height="38"></i>HOI</a>
         <p style="color:var(--ink2);font-size:.88rem;margin-top:10px">Hospitality Operations Intelligence</p>
         <div class="mail"><input type="email" placeholder="Your email for updates" aria-label="Email"><a data-mail href="#" aria-label="Send">→</a></div></div>
       <div><h4>Product</h4><a href="#loop">Forecast & roster</a><a href="#dispatch">Dispatch</a><a href="#flow">Guest requests</a><a href="#inventory">Inventory</a><a href="#loop">Retention</a></div>

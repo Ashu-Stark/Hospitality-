@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="t">
+  <title id="t">HOI · Hospitality Operations Intelligence</title>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#3ca3fd"/>
+      <stop offset=".5" stop-color="#5a5cf6"/>
+      <stop offset="1" stop-color="#974cf4"/>
+    </linearGradient>
+    <linearGradient id="rib" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#ffffff" stop-opacity=".9"/>
+      <stop offset="1" stop-color="#c9cdfb" stop-opacity=".55"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="116" fill="url(#bg)"/>
+  <g transform="translate(-8 30) scale(1.23)" fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M148 104 V 182" stroke="#fff" stroke-width="36"/>
+    <path d="M84 266 L 146 186 Q 158 170 170 186 L 204 264 Q 214 286 226 264 L 252 124 Q 264 98 278 124 L 348 266" stroke="#fff" stroke-width="36"/>
+    <path d="M132 204 C 160 158 190 160 214 206 C 228 232 246 236 262 214" stroke="url(#rib)" stroke-width="40"/>
+  </g>
+</svg>
