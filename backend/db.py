@@ -12,6 +12,7 @@ Collections (dates as ISO "YYYY-MM-DD" strings, times as timezone-aware UTC date
   task, task_event   the task engine (B3)
   intervention       closed-loop actions (B4)
   audit_log          every state change (detail is a JSON-safe dict)
+  onboarding_session hotel onboarding: draft profile, flow state, answers (backend/onboarding)
   counters           {_id: collection name, seq: last id}
 """
 
@@ -30,6 +31,9 @@ from backend.config import ML_DATA
 EMPLOYEES, ROSTERS, TASKS, EVENTS = "employee_snapshot", "roster", "task", "task_event"
 INTERVENTIONS, AUDIT, COUNTERS = "intervention", "audit_log", "counters"
 COLLECTIONS = (EMPLOYEES, ROSTERS, TASKS, EVENTS, INTERVENTIONS, AUDIT)
+# Hotel onboarding by voice (backend/onboarding): every document carries property_id.
+ONBOARDING_SESSIONS = "onboarding_session"
+ONBOARDING_COLLECTIONS = (ONBOARDING_SESSIONS,)
 NO_ID = {"_id": 0}  # projection: never return Mongo's ObjectId
 
 
@@ -75,7 +79,7 @@ def audit(db: Database, action: str, detail: dict, source: str) -> None:
 
 def ensure_indexes(db: Database) -> None:
     """Idempotent; run at startup. Unique indexes enforce the business rules."""
-    for name in COLLECTIONS:
+    for name in (*COLLECTIONS, *ONBOARDING_COLLECTIONS):
         db[name].create_index("id", unique=True)
     db[TASKS].create_index("idempotency_key", unique=True)
     db[TASKS].create_index([("status", ASCENDING), ("id", ASCENDING)])
@@ -85,11 +89,13 @@ def ensure_indexes(db: Database) -> None:
     db[ROSTERS].create_index("week_start")
     db[INTERVENTIONS].create_index("employee_id")
     db[AUDIT].create_index([("action", ASCENDING), ("id", DESCENDING)])
+    db[ONBOARDING_SESSIONS].create_index("session_id", unique=True)
+    db[ONBOARDING_SESSIONS].create_index("property_id", unique=True)
 
 
 def drop_all(db: Database) -> None:
     """Drop every hoi_ops collection (counters too, so ids restart at 1)."""
-    for name in (*COLLECTIONS, COUNTERS):
+    for name in (*COLLECTIONS, *ONBOARDING_COLLECTIONS, COUNTERS):
         db.drop_collection(name)
 
 

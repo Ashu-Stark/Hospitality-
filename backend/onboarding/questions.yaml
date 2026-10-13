@@ -1,0 +1,70 @@
+# Onboarding questions in English and Hindi (Devanagari). DRAFT wording written by the developer:
+# the HM (hotel management) student must review every Hindi line (natural phrasing, regional
+# words) and set verified_by_hm_student: true. Each question has a short example answer.
+review:
+  status: DRAFT
+  needs_hm_review: true
+  verified_by_hm_student: false
+
+languages: [en, hi]
+
+questions:
+  rooms:
+    en: "How many guest rooms does your property have?"
+    hi: "आपकी प्रॉपर्टी में कितने कमरे हैं?"
+    example_en: "We have 12 rooms."
+    example_hi: "हमारे पास बारह कमरे हैं।"
+  location:
+    en: "Where is the property? Town or area is enough."
+    hi: "आपकी प्रॉपर्टी कहाँ है? शहर या इलाके का नाम काफ़ी है।"
+    example_en: "In Mussoorie."
+    example_hi: "मसूरी में।"
+  departments:
+    en: "Which departments do you have, and how many people work in each?"
+    hi: "आपके यहाँ कौन-कौन से विभाग हैं, और हर विभाग में कितने लोग काम करते हैं?"
+    example_en: "Housekeeping 4, kitchen 2, front desk 1."
+    example_hi: "हाउसकीपिंग में चार, किचन में दो, रिसेप्शन पर एक।"
+  peak_months:
+    en: "Which months are your busiest?"
+    hi: "साल के कौन से महीने सबसे ज़्यादा भीड़ वाले होते हैं?"
+    example_en: "May to June, and December."
+    example_hi: "मई से जून, और दिसंबर।"
+  shifts:
+    en: "What are your shift timings?"
+    hi: "आपकी शिफ्ट का समय क्या है?"
+    example_en: "Morning 7 to 3, evening 3 to 11."
+    example_hi: "सुबह सात से तीन, शाम तीन से ग्यारह।"
+  overtime_rate_multiplier:
+    en: "How is overtime paid, compared with the normal hourly rate?"
+    hi: "ओवरटाइम का भुगतान सामान्य घंटे की दर से कितने गुना होता है?"
+    example_en: "Double the normal rate."
+    example_hi: "दोगुना।"
+  min_rest_hours:
+    en: "What is the minimum rest between two shifts, in hours?"
+    hi: "दो शिफ्ट के बीच कम से कम कितने घंटे आराम मिलता है?"
+    example_en: "At least 10 hours."
+    example_hi: "कम से कम दस घंटे।"
+
+# Words that mean "skip this question, keep the template value" (whole answer, lower case).
+skip_words: [skip, next, pass, "don't know", "dont know", default, pata nahi, nahi pata,
+             chhodo, chodo, aage, "आगे", "छोड़ो", "पता नहीं", "स्किप"]
+
+messages:
+  ready:
+    en: "Thank you. Your draft is ready: please check the summary and press Confirm."
+    hi: "धन्यवाद। आपका ड्राफ़्ट तैयार है: कृपया सारांश देखें और Confirm दबाएँ।"
+  draft_banner:
+    en: "Draft: nothing is saved until you press Confirm."
+    hi: "ड्राफ़्ट: Confirm दबाने तक कुछ भी सेव नहीं होता।"
+  skip_hint:
+    en: "Say \"skip\" to keep the suggested value."
+    hi: "सुझाई गई वैल्यू रखने के लिए \"आगे\" बोलें।"
+  not_understood:
+    en: "Sorry, I could not find an answer in that. Please try again or type it."
+    hi: "माफ़ कीजिए, इसमें जवाब नहीं मिला। कृपया दोबारा बोलें या टाइप करें।"
+  stt_unavailable:
+    en: "Voice input is not available right now. Please type your answer instead."
+    hi: "अभी आवाज़ से जवाब देना उपलब्ध नहीं है। कृपया जवाब टाइप करें।"
+  verify_legal:
+    en: "Verify with a qualified person: this depends on labour rules."
+    hi: "किसी योग्य व्यक्ति से जाँच करवाएँ: यह श्रम नियमों पर निर्भर है।"

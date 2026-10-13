@@ -8,7 +8,7 @@ from pathlib import Path
 import yaml
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
-from backend.onboarding.schema import HOTEL_TYPES
+from backend.onboarding.schema import FIELD_NAMES, HOTEL_TYPES
 
 ONBOARDING_DIR = Path(__file__).resolve().parent
 CONFIG_PATH = ONBOARDING_DIR / "onboarding.yaml"
@@ -58,6 +58,8 @@ class OnboardingConfig(_Strict):
     ranges: Ranges
     staff_to_room_ratio: Band
     max_questions: int = Field(ge=1)
+    max_asks_per_field: int = Field(ge=1)
+    required_order: list[str] = Field(min_length=1)
     confidence: Confidence
 
     @model_validator(mode="after")
@@ -66,6 +68,9 @@ class OnboardingConfig(_Strict):
             raise ValueError(f"size_bands must cover exactly {HOTEL_TYPES}")
         if self.default_hotel_type not in HOTEL_TYPES:
             raise ValueError("default_hotel_type must be a hotel type")
+        unknown = set(self.required_order) - set(FIELD_NAMES)
+        if unknown or len(set(self.required_order)) != len(self.required_order):
+            raise ValueError(f"required_order: unknown or repeated fields {sorted(unknown)}")
         return self
 
     def hotel_type_for(self, rooms: int) -> str | None:

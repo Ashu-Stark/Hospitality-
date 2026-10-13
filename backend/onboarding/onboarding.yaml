@@ -29,6 +29,12 @@ staff_to_room_ratio: {min: 0.3, max: 2.5}
 
 # Question flow (Part B)
 max_questions: 8
+max_asks_per_field: 2      # a field with no usable answer is asked again once, then left to the
+                           # template; the owner can still edit it in the draft table
+# Fields asked, in this fixed order (brief). Every other field comes from the template and is
+# shown at confirm time instead of being asked.
+required_order: [rooms, location, departments, peak_months, shifts, overtime_rate_multiplier,
+                 min_rest_hours]
 
 # Confidence per way a value was produced (0-1). ASSUMED.
 confidence:
