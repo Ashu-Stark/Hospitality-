@@ -41,3 +41,9 @@ backend/onboarding/audio/
 Thumbs.db
 .DS_Store
 ~$*
+.vercel/
+
+.vercel
+.env*
+!.env.example
+!**/.env.example

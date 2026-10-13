@@ -1,5 +1,6 @@
 # Never upload secrets, local environments or runtime data to Vercel.
-.env
+.env*
+!.env.example
 **/.env
 .venv
 **/.venv
