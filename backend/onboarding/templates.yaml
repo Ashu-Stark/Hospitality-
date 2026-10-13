@@ -1,0 +1,58 @@
+# Hotel onboarding templates per hotel type. ALL VALUES ASSUMED, to be reviewed by the HM
+# (hotel management) student. All demo data built from them is SYNTHETIC.
+#
+# Work standards are NOT copied here: values written as "ml:<path>" or "backend:<path>" are read
+# at load time from ml/generator/config.yaml (the generator's ASSUMED workload standards, standard
+# weekly hours and monthly occupancy) and backend/config.yaml (the roster's ASSUMED shifts, rest,
+# consecutive days, weekly off, overtime premium and department heads). Change them there.
+#
+# Headcount per department (rounded half up, at least min_headcount):
+#   weekly hours = ml workload base_hours x base_hours_scale
+#                + ml workload per_occupied_room_night_hours x rooms x occupancy x 7
+#   headcount    = weekly hours / standard_weekly_hours
+# occupancy = mean of ml month_base_occupancy. base_hours_scale shrinks or grows the fixed
+# (occupancy-independent) hours of the 45-room reference property in ml/generator/config.yaml.
+review:
+  status: ASSUMED
+  verified_by_hm_student: false
+
+references:
+  workload: "ml:workload"
+  monthly_occupancy: "ml:month_base_occupancy"
+  roster_shifts: "backend:roster.shifts"
+  department_heads: "backend:voice.department_owner"
+
+common:
+  standard_weekly_hours: "ml:staff.standard_weekly_hours"
+  weekly_off_days: "backend:roster.min_days_off"            # legal value: needs verification
+  min_rest_hours: "backend:roster.min_rest_hours"           # legal value: needs verification
+  max_consecutive_days: "backend:roster.max_consecutive_days"
+  overtime_rate_multiplier: "backend:roster.overtime_premium"  # legal value: needs verification
+  peak_occupancy_threshold: 0.65   # ASSUMED: months with ml base occupancy >= this are peak
+  incentive_monthly_budget_cap: null   # optional; no template value
+
+hotel_types:
+  homestay:
+    typical_rooms: 10             # used when the owner skips the rooms question
+    base_hours_scale: 0.15
+    min_headcount: 1
+    departments: [housekeeping, kitchen, front_office]
+    shifts: [morning, evening]
+    roles_can_be_combined: true   # one person may hold several roles (e.g. owner runs reception)
+    head_role: "owner or family member (one person may hold several roles)"
+  small_hotel:
+    typical_rooms: 30
+    base_hours_scale: 0.8
+    min_headcount: 1
+    departments: [housekeeping, fnb_service, kitchen, front_office, maintenance, security]
+    shifts: [morning, evening, night]
+    roles_can_be_combined: false
+    head_role: null               # null = the department head from backend:voice.department_owner
+  resort:
+    typical_rooms: 80
+    base_hours_scale: 1.5
+    min_headcount: 2
+    departments: [housekeeping, fnb_service, kitchen, front_office, maintenance, security]
+    shifts: [morning, evening, night]
+    roles_can_be_combined: false
+    head_role: null

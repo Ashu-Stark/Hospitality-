@@ -1,0 +1,43 @@
+# Hotel onboarding by voice: settings. Every value is ASSUMED (a design choice or a plausible
+# placeholder, not a measured fact) and must be reviewed by the HM (hotel management) student.
+# All demo and test data is SYNTHETIC.
+review:
+  status: ASSUMED
+  verified_by_hm_student: false
+
+# Hotel type by number of rooms (inclusive bounds; max null = no upper bound). ASSUMED.
+size_bands:
+  homestay: {min: 5, max: 15}
+  small_hotel: {min: 16, max: 50}
+  resort: {min: 51, max: null}
+default_hotel_type: small_hotel   # used for the first template when the type is not known yet
+
+# Allowed ranges per field (inclusive). Out of range = an error that blocks Confirm. ASSUMED.
+ranges:
+  rooms: {min: 1, max: 500}
+  headcount_per_department: {min: 0, max: 200}
+  shift_hours: {min: 4, max: 12}
+  standard_weekly_hours: {min: 20, max: 72}
+  weekly_off_days: {min: 0, max: 3}
+  min_rest_hours: {min: 6, max: 16}
+  max_consecutive_days: {min: 1, max: 13}
+  overtime_rate_multiplier: {min: 1.0, max: 3.0}
+  incentive_monthly_budget_cap: {min: 0, max: 10000000}
+
+# Staff per room: outside this range = a warning only (it never blocks Confirm). ASSUMED.
+staff_to_room_ratio: {min: 0.3, max: 2.5}
+
+# Question flow (Part B)
+max_questions: 8
+
+# Confidence per way a value was produced (0-1). ASSUMED.
+confidence:
+  template: 0.5          # brief: template values are a guess
+  rules_pattern: 0.8     # rule-based extractor, value next to its keyword ("12 rooms")
+  rules_context: 0.7     # rule-based extractor, a bare value read from the question asked
+  rules_free_text: 0.6   # rule-based extractor, free text (location not in the place list)
+  llm_checked: 0.9       # LLM value whose numbers match the number normaliser
+  llm_unchecked: 0.75    # LLM value with no number to check (location, months, type)
+  mismatch: 0.3          # brief: LLM number differs from the normaliser -> "please confirm"
+  edit: 1.0              # the owner typed it into the draft table
+  accept_threshold: 0.6  # below this an answer is never accepted without the owner's check
