@@ -7,6 +7,7 @@ POST  /onboarding/answer     JSON {session_id, text, consent} OR multipart form
 PATCH /onboarding/field      {session_id, field, value}: the owner edits a field (always wins)
 GET   /onboarding/summary?session=   the draft with source / confidence / needs_verification
 POST  /onboarding/confirm    {session, acknowledged_legal_fields}: saves property + settings
+GET   /onboarding/demo-transcript   the cached SYNTHETIC Hindi / Hinglish demo answers
 GET   /properties/{property_id}            one property (filtered by property_id)
 GET   /properties/{property_id}/settings   its confirmed settings (filtered by property_id)
 
@@ -25,6 +26,7 @@ from pymongo.database import Database
 from starlette.concurrency import run_in_threadpool
 
 from backend.onboarding import service
+from backend.onboarding.demo import load_fixture
 from backend.onboarding.flow import load_questions
 from backend.onboarding.store import NotFound, get_session
 from backend.onboarding.stt import BYTES_PER_MB, AudioRejected, SttRefused, transcribe_upload
@@ -130,6 +132,12 @@ def router(get_db, source_of) -> APIRouter:  # noqa: ANN001
             return service.confirm(db, body, cfg_of(request), source_of(request))
         except (NotFound, service.Blocked) as e:
             raise _http(e) from e
+
+    @r.get("/onboarding/demo-transcript")
+    def demo_transcript() -> dict:
+        fx = load_fixture()
+        return {"synthetic": fx.synthetic, "language": fx.language, "answers": fx.answers,
+                "note": "SYNTHETIC: written by us, not recorded speech"}
 
     @r.get("/properties/{property_id}")
     def get_property(property_id: str, db: Database = Depends(get_db)) -> dict:

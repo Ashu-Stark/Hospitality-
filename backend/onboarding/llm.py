@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import json
 import os
+import time
 import urllib.error
 import urllib.request
 from dataclasses import dataclass
@@ -45,6 +46,14 @@ NUMERIC_FIELDS = ("rooms", "standard_weekly_hours", "weekly_off_days", "min_rest
 TOLERANCE = 1e-6
 NOON = 12
 MISMATCH_NOTE = "please confirm: this number was not heard in the answer"
+RATE_LIMITED = 429
+
+
+def _retry_after(header: str | None, default: float) -> float:
+    try:
+        return float(header) if header else default
+    except ValueError:
+        return default
 
 
 class LlmUnavailable(RuntimeError):
@@ -86,9 +95,17 @@ class GroqChat:
             s.url, data=json.dumps(body).encode("utf-8"), method="POST",
             headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json",
                      "User-Agent": "hoi-onboarding/1"})
-        with urllib.request.urlopen(req, timeout=s.timeout_seconds) as resp:  # noqa: S310
-            out = json.loads(resp.read().decode("utf-8"))
-        return str(out["choices"][0]["message"]["content"])
+        for attempt in range(s.max_retries_on_rate_limit + 1):
+            try:
+                with urllib.request.urlopen(req, timeout=s.timeout_seconds) as resp:  # noqa: S310
+                    out = json.loads(resp.read().decode("utf-8"))
+                return str(out["choices"][0]["message"]["content"])
+            except urllib.error.HTTPError as e:
+                if e.code != RATE_LIMITED or attempt == s.max_retries_on_rate_limit:
+                    raise
+                wait = _retry_after(e.headers.get("retry-after"), s.retry_wait_seconds)
+                time.sleep(min(wait, s.retry_wait_max_seconds))
+        raise LlmUnavailable("rate limited")  # not reached
 
 
 class LlmFields(BaseModel):
@@ -193,7 +210,9 @@ def extract(transcript: str, current: str | None, adapter: ChatAdapter | None,
         raw = adapter.complete_json(system, user)
     except (urllib.error.URLError, TimeoutError, OSError, LlmUnavailable, KeyError,
             IndexError, ValueError) as e:
-        return rules.model_copy(update={"fallback_reason": f"LLM call failed ({type(e).__name__})"})
+        code = f" {e.code}" if isinstance(e, urllib.error.HTTPError) else ""
+        return rules.model_copy(update={"fallback_reason":
+                                        f"LLM call failed ({type(e).__name__}{code})"})
     try:
         parsed = LlmFields.model_validate(json.loads(raw))
     except (ValueError, ValidationError):

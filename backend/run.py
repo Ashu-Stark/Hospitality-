@@ -9,6 +9,8 @@ Usage:
     python run.py roster-stress [n]  # n random scenarios (default 100): hard violations, times
     python run.py backend       # start the API on http://127.0.0.1:8000 (MOCK=1 for mock mode)
     python run.py backend-smoke # fresh process: health, forecast, score, roster, loop, task
+    python run.py onboarding-demo [--llm]  # cached Hindi onboarding demo (mongomock, no keys)
+    python run.py eval-onboarding [--no-llm]  # extraction eval on SYNTHETIC utterances
 
 Uses the repo-root .venv when present and puts the repo root on PYTHONPATH (packages `backend`
 and `ml`).
@@ -68,6 +70,14 @@ def cmd_backend_smoke() -> int:
     return _run(["backend.smoke"])
 
 
+def cmd_onboarding_demo(*args: str) -> int:
+    return _run(["backend.onboarding.demo", *args])
+
+
+def cmd_eval_onboarding(*args: str) -> int:
+    return _run(["backend.onboarding.evaluate", *args])
+
+
 def cmd_backend() -> int:
     """Local dev server on 127.0.0.1; honours PORT like the container (python -m backend.serve)."""
     return _run(["uvicorn", "--factory", "backend.main:create_app", "--host", HOST,
@@ -76,8 +86,9 @@ def cmd_backend() -> int:
 
 COMMANDS = {"test": cmd_test, "lint": cmd_lint, "seed": cmd_seed, "backend": cmd_backend,
             "roster-cache": cmd_roster_cache, "roster-stress": cmd_roster_stress,
-            "backend-smoke": cmd_backend_smoke}
-TAKES_ARGS = {"test", "roster-stress"}
+            "backend-smoke": cmd_backend_smoke, "onboarding-demo": cmd_onboarding_demo,
+            "eval-onboarding": cmd_eval_onboarding}
+TAKES_ARGS = {"test", "roster-stress", "onboarding-demo", "eval-onboarding"}
 
 
 def main(argv: list[str]) -> int:

@@ -1,0 +1,157 @@
+{
+  "synthetic": true,
+  "warning": "OPTIMISTIC: the utterances were written by us (the developers) together with the extractor's word lists; they are not recorded speech and contain no speech-to-text errors. These scores say nothing about real Hindi / Hinglish speech.",
+  "utterances": 28,
+  "languages": [
+    "english",
+    "hindi_devanagari",
+    "hindi_roman",
+    "hinglish"
+  ],
+  "rules": {
+    "fields": 34,
+    "correct": 33,
+    "accuracy": 0.9706,
+    "by_language": {
+      "english": {
+        "correct": 11,
+        "fields": 12,
+        "accuracy": 0.9167
+      },
+      "hindi_devanagari": {
+        "correct": 6,
+        "fields": 6,
+        "accuracy": 1.0
+      },
+      "hindi_roman": {
+        "correct": 4,
+        "fields": 4,
+        "accuracy": 1.0
+      },
+      "hinglish": {
+        "correct": 12,
+        "fields": 12,
+        "accuracy": 1.0
+      }
+    },
+    "extra_fields_not_expected": 0,
+    "errors": [
+      {
+        "id": "u27",
+        "field": "rooms",
+        "expected": 24,
+        "got": 12
+      }
+    ]
+  },
+  "llm": {
+    "fields": 34,
+    "correct": 28,
+    "accuracy": 0.8235,
+    "by_language": {
+      "english": {
+        "correct": 10,
+        "fields": 12,
+        "accuracy": 0.8333
+      },
+      "hindi_devanagari": {
+        "correct": 5,
+        "fields": 6,
+        "accuracy": 0.8333
+      },
+      "hindi_roman": {
+        "correct": 3,
+        "fields": 4,
+        "accuracy": 0.75
+      },
+      "hinglish": {
+        "correct": 10,
+        "fields": 12,
+        "accuracy": 0.8333
+      }
+    },
+    "extra_fields_not_expected": 0,
+    "errors": [
+      {
+        "id": "u05",
+        "field": "location",
+        "expected": "Rishikesh",
+        "got": "near Rishikesh"
+      },
+      {
+        "id": "u08",
+        "field": "location",
+        "expected": "Rishikesh",
+        "got": "ऋषिकesh"
+      },
+      {
+        "id": "u12",
+        "field": "departments",
+        "expected": {
+          "security": 2,
+          "fnb_service": 3
+        },
+        "got": {
+          "security": 1,
+          "fnb_service": 3
+        }
+      },
+      {
+        "id": "u14",
+        "field": "peak_months",
+        "expected": [
+          5,
+          6,
+          12
+        ],
+        "got": [
+          6,
+          12
+        ]
+      },
+      {
+        "id": "u19",
+        "field": "shifts",
+        "expected": [
+          {
+            "name": "morning",
+            "start": "07:00",
+            "end": "15:00"
+          },
+          {
+            "name": "night",
+            "start": "23:00",
+            "end": "07:00"
+          }
+        ],
+        "got": [
+          {
+            "name": "Morning",
+            "start": "07:00",
+            "end": "15:00"
+          },
+          {
+            "name": "Night",
+            "start": "23:00",
+            "end": "07:00"
+          }
+        ]
+      },
+      {
+        "id": "u27",
+        "field": "rooms",
+        "expected": 24,
+        "got": 12
+      }
+    ],
+    "model": "openai/gpt-oss-20b",
+    "calls_fell_back_to_rules": 0,
+    "fallback_reasons": [],
+    "cross_check": {
+      "numbers_flagged_please_confirm": 1,
+      "flags_that_were_real_llm_errors": 1,
+      "flags_on_correct_values": 0
+    }
+  },
+  "audio": "not run: no recorded onboarding clips in ml/voice/clips, so no STT word error rate and no audio extraction accuracy"
+}

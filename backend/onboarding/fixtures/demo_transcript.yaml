@@ -1,0 +1,28 @@
+# Cached demo fixture: one SYNTHETIC Hindi / Hinglish onboarding conversation (written by us, not
+# recorded speech), answer by answer, with the profile it should produce. Lets the full flow be
+# shown with no API keys and no audio: python run.py onboarding-demo, or the "Use the cached
+# Hindi demo answer" button on the Hotel setup (voice) page. Wording to be reviewed by the HM
+# student. The hotel is fictional.
+synthetic: true
+language: hi
+answers:
+  rooms: "हमारे होटल में बारह कमरे हैं, मसूरी में एक homestay है"
+  location: "मसूरी"
+  departments: "housekeeping mein teen log, kitchen mein do, aur reception pe do"
+  peak_months: "मई से जून और दिसंबर में सबसे ज़्यादा भीड़ होती है"
+  shifts: "subah saat se teen, shaam teen se gyarah"
+  overtime_rate_multiplier: "overtime ka paisa dugna milta hai"
+  min_rest_hours: "कम से कम दस घंटे आराम"
+expected:
+  rooms: 12
+  location: Mussoorie
+  hotel_type: homestay
+  departments: {housekeeping: 3, kitchen: 2, front_office: 2}
+  peak_months: [5, 6, 12]
+  shifts:
+    - {name: morning, start: "07:00", end: "15:00"}
+    - {name: evening, start: "15:00", end: "23:00"}
+  overtime_rate_multiplier: 2.0
+  min_rest_hours: 10.0
+expected_questions: [rooms, departments, peak_months, shifts, overtime_rate_multiplier,
+                     min_rest_hours]   # location is answered inside the first answer

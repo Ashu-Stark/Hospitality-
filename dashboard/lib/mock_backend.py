@@ -365,6 +365,7 @@ def _onb() -> dict[str, Any]:
             from backend.db import ensure_indexes
             from backend.onboarding import service
             from backend.onboarding.config import load_config
+            from backend.onboarding.demo import load_fixture
             from backend.onboarding.flow import load_questions
             from backend.onboarding.seed import ensure_demo_properties
             from backend.onboarding.store import NotFound
@@ -388,6 +389,7 @@ def _onb() -> dict[str, Any]:
             AudioRejected=AudioRejected,
             SttRefused=SttRefused,
             transcribe=transcribe_upload,
+            fixture=load_fixture,
         )
     return _ONB
 
@@ -455,3 +457,13 @@ def onboarding_confirm(body: dict) -> dict:
 def onboarding_property_settings(property_id: str) -> dict:
     o = _onb()
     return _onb_call(lambda: o["service"].get_settings(o["db"], property_id))
+
+
+def onboarding_demo_transcript() -> dict:
+    fx = _onb()["fixture"]()
+    return {
+        "synthetic": fx.synthetic,
+        "language": fx.language,
+        "answers": fx.answers,
+        "note": "SYNTHETIC: written by us, not recorded speech",
+    }

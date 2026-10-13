@@ -68,6 +68,9 @@ class LlmConfig(_Strict):
     reasoning_effort: str | None
     max_tokens: int = Field(ge=1)
     timeout_seconds: float = Field(gt=0)
+    max_retries_on_rate_limit: int = Field(ge=0)
+    retry_wait_seconds: float = Field(ge=0)
+    retry_wait_max_seconds: float = Field(ge=0)
     allow_cloud_llm_for_owner_text: bool
 
 

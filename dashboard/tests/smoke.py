@@ -98,6 +98,39 @@ if not only or any(o in "pages/15_Hotel_Setup.py" for o in only):  # Hotel setup
     for e in errs:
         print("     exception:", str(e)[:1500])
 
+if not only or any(o in "pages/15_Hotel_Setup.py" for o in only):  # the cached Hindi demo transcript, button by button
+    at = AppTest.from_file(str(ROOT / "app.py"), default_timeout=180)
+    for k, v in SESSIONS["platform"].items():
+        at.session_state[k] = v
+    at.session_state["_smoke_page"] = "pages/15_Hotel_Setup.py"
+    at.run()
+    try:
+        at.radio[0].set_value(at.radio[0].options[1]).run()  # Hindi
+        next(b for b in at.button if b.label == "Start a new setup").click().run()
+        n = 0
+        while at.session_state["onb"].get("question") and n < 10:
+            next(b for b in at.button if b.label == "Use the cached Hindi demo answer").click().run()
+            n += 1
+        f = at.session_state["onb"]["fields"]
+        errs = [e.value for e in at.exception]
+        got = (f["rooms"]["value"], f["location"]["value"], f["hotel_type"]["value"], f["peak_months"]["value"])
+        ok = (
+            not errs
+            and got == (12, "Mussoorie", "homestay", [5, 6, 12])
+            and f["departments"]["value"]
+            == {
+                "housekeeping": 3,
+                "kitchen": 2,
+                "front_office": 2,
+            }
+        )
+    except Exception as e:  # noqa: BLE001
+        ok, errs, got = False, [repr(e)], None
+    failed += not ok
+    print(f"{'ok' if ok else 'FAIL':4} pages/15_Hotel_Setup.py cached Hindi demo: summary {got}")
+    for e in errs:
+        print("     exception:", str(e)[:1500])
+
 if not only:  # role filtering: pages outside a role's set must not be routable for that role
     for role, must_not in (("hr", "pages/13_Inventory.py"), ("storekeeper", "pages/2_Risk_List.py"), ("worker", "pages/1_Overview.py")):
         visible = access.EMPLOYEE_PAGES if role == "worker" else [p for p in access.HOTEL_PAGES if role in auth.ACCESS.get(p[0], set())]

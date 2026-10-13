@@ -22,7 +22,7 @@ conventions (all services): docs/MONGODB.md.
   `ensure_indexes` at startup. Dates are ISO strings, times tz-aware UTC (millisecond precision).
 - Dependencies (installed for the backend batch; versions in requirements-lock.txt): fastapi
   0.143.0, uvicorn 0.54.0, pymongo 4.18.3 (+ dnspython 2.9.0), apscheduler 3.11.3, ortools
-  9.15.6755, httpx 0.28.1; mongomock 4.3.0 (dev / test only).
+  9.15.6755, httpx 0.28.1, python-multipart 0.0.32 (onboarding audio upload); mongomock 4.3.0 (dev / test only).
 
 ## Layout and commands
 
@@ -38,6 +38,7 @@ backend/            the `backend` package (repo root on PYTHONPATH, like ml/)
   tasks/            engine.py (virtual clock, idempotency, reminders), api.py
   loop.py           POST /loop/run (closed loop)
   demo.py           metrics, demo reset, voice ingest
+  onboarding/       hotel onboarding by voice (docs/onboarding.md): YAML config, flow, extractors
   smoke.py          python run.py backend-smoke
   tests/            pytest (slow marker: the 100-scenario roster test)
 ```
@@ -51,6 +52,8 @@ python run.py roster-cache    # solve the demo week and save roster/cache/roster
 python run.py roster-stress   # 100 random scenarios: hard violations + solve times
 python run.py backend         # http://127.0.0.1:8000  (MOCK=1 serves ml/data/mocks/*.json)
 python run.py backend-smoke   # fresh process, mongomock: health, forecast, score, roster, loop, task
+python run.py onboarding-demo # cached Hindi onboarding demo (mongomock, no keys)
+python run.py eval-onboarding # onboarding extraction eval on SYNTHETIC utterances (LLM if GROQ_API_KEY)
 ```
 
 ## Endpoints
@@ -72,6 +75,9 @@ python run.py backend-smoke   # fresh process, mongomock: health, forecast, scor
 | GET | /metrics/overview | overtime, understaffing, task on-time rate, flagged count, ROI (ASSUMPTION) |
 | POST | /demo/reset | drop the hoi_ops collections, recreate indexes, reseed, clock x1 |
 | POST | /voice/ingest | voice.extract on a clip in ml/voice/clips -> structured task |
+| POST | /onboarding/start, /onboarding/answer, /onboarding/confirm | hotel onboarding by voice (docs/onboarding.md): guided questions, draft, Confirm saves property + property_settings |
+| PATCH / GET | /onboarding/field, /onboarding/summary, /onboarding/demo-transcript | owner edits, the draft, the cached SYNTHETIC Hindi demo |
+| GET | /properties/{property_id}, /properties/{property_id}/settings | a confirmed property and its settings (filtered by property_id) |
 
 ## B2 roster
 

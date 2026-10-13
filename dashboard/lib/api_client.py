@@ -308,6 +308,12 @@ def onboarding_confirm(session_id: str, acknowledged_legal_fields: list[str], se
     )
 
 
+def onboarding_demo_transcript(settings: Settings | None = None) -> dict:
+    s = _s(settings)
+    path = "/onboarding/demo-transcript"
+    return _mock(mock.onboarding_demo_transcript, endpoint=path) if s.use_mocks else _http("GET", path, s)
+
+
 def property_settings(property_id: str, settings: Settings | None = None) -> dict:
     s = _s(settings)
     path = f"/properties/{property_id}/settings"

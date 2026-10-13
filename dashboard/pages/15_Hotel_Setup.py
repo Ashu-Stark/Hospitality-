@@ -93,7 +93,18 @@ if q:
             f' · wording is a draft for review</div><div style="font-size:1.3rem;margin:8px 0">{theme.esc(q["text"])}</div>'
             f'<div style="color:#6b6a65">Example: {theme.esc(q["example"])}</div></div>'
         )
-        tab_text, tab_voice = st.tabs(["Type the answer", "Speak the answer"])
+        tab_text, tab_voice, tab_demo = st.tabs(["Type the answer", "Speak the answer", "Cached Hindi demo"])
+        with tab_demo:
+            st.caption(
+                "Plays one SYNTHETIC Hindi / Hinglish conversation written by us (not recorded speech), answer by answer, "
+                "so the voice flow can be shown with no microphone and no API keys."
+            )
+            if st.button("Use the cached Hindi demo answer", icon=":material/record_voice_over:"):
+                fx = call(api.onboarding_demo_transcript, what="load the demo transcript")
+                demo_text = (fx or {}).get("answers", {}).get(q["field"])
+                if demo_text:
+                    remember(call(api.onboarding_answer, sid, text=demo_text, what="send the demo answer"))
+                    st.rerun()
         with tab_text:
             with st.form("onb_text", clear_on_submit=True):
                 text = st.text_input("Your answer", placeholder=q["example"])

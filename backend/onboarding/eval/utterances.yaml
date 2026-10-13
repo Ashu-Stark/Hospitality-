@@ -1,0 +1,37 @@
+# Onboarding extraction eval manifest. Every utterance is SYNTHETIC: written by us (the
+# developers) for this test, NOT recorded or transcribed speech. Because the same people wrote
+# the utterances and the extractor's word lists, scores on this set are OPTIMISTIC and say
+# nothing about real Hindi / Hinglish speech or speech-to-text errors.
+# question = the field asked when the answer was given (null = no question context).
+# language: english | hindi_roman (Hinglish written in Latin script) | hindi_devanagari | hinglish
+# Optional `clip`: an audio file name in ml/voice/clips (none recorded yet).
+synthetic: true
+utterances:
+  - {id: u01, language: english, question: rooms, text: "We have 12 rooms", expected: {rooms: 12}}
+  - {id: u02, language: hindi_roman, question: rooms, text: "hamare paas barah kamre hain", expected: {rooms: 12}}
+  - {id: u03, language: hindi_devanagari, question: rooms, text: "हमारे होटल में पैंतालीस कमरे हैं", expected: {rooms: 45}}
+  - {id: u04, language: hinglish, question: rooms, text: "35 rooms ka guest house hai Dehradun mein", expected: {rooms: 35, hotel_type: small_hotel, location: Dehradun}}
+  - {id: u05, language: english, question: rooms, text: "It's a resort with eighty rooms near Rishikesh", expected: {rooms: 80, hotel_type: resort, location: Rishikesh}}
+  - {id: u06, language: hindi_roman, question: rooms, text: "ek sau bees kamre", expected: {rooms: 120}}
+  - {id: u07, language: english, question: location, text: "Nainital", expected: {location: Nainital}}
+  - {id: u08, language: hindi_devanagari, question: location, text: "हमारा होटल ऋषिकेश में है", expected: {location: Rishikesh}}
+  - {id: u09, language: hinglish, question: departments, text: "housekeeping mein char log, kitchen mein do, front desk pe ek", expected: {departments: {housekeeping: 4, kitchen: 2, front_office: 1}}}
+  - {id: u10, language: english, question: departments, text: "we have 4 housekeeping, 2 cooks and 1 receptionist", expected: {departments: {housekeeping: 4, kitchen: 2, front_office: 1}}}
+  - {id: u11, language: hindi_devanagari, question: departments, text: "हाउसकीपिंग में छह लोग, किचन में चार, सिक्योरिटी में दो", expected: {departments: {housekeeping: 6, kitchen: 4, security: 2}}}
+  - {id: u12, language: hinglish, question: departments, text: "do guard hain aur teen waiter", expected: {departments: {security: 2, fnb_service: 3}}}
+  - {id: u13, language: english, question: departments, text: "Housekeeping has ten people, maintenance three, the restaurant five", expected: {departments: {housekeeping: 10, maintenance: 3, fnb_service: 5}}}
+  - {id: u14, language: hinglish, question: peak_months, text: "may se june aur december", expected: {peak_months: [5, 6, 12]}}
+  - {id: u15, language: english, question: peak_months, text: "October to November is our busy season", expected: {peak_months: [10, 11]}}
+  - {id: u16, language: hindi_devanagari, question: peak_months, text: "मई, जून और अक्टूबर", expected: {peak_months: [5, 6, 10]}}
+  - {id: u17, language: hinglish, question: shifts, text: "subah 7 se 3, shaam 3 se 11", expected: {shifts: [{name: morning, start: "07:00", end: "15:00"}, {name: evening, start: "15:00", end: "23:00"}]}}
+  - {id: u18, language: english, question: shifts, text: "morning 6am to 2pm and night 10pm to 6am", expected: {shifts: [{name: morning, start: "06:00", end: "14:00"}, {name: night, start: "22:00", end: "06:00"}]}}
+  - {id: u19, language: hindi_roman, question: shifts, text: "subah saat baje se teen baje tak, raat gyarah se saat", expected: {shifts: [{name: morning, start: "07:00", end: "15:00"}, {name: night, start: "23:00", end: "07:00"}]}}
+  - {id: u20, language: english, question: overtime_rate_multiplier, text: "We pay double for overtime", expected: {overtime_rate_multiplier: 2}}
+  - {id: u21, language: hindi_roman, question: overtime_rate_multiplier, text: "dedh guna milta hai", expected: {overtime_rate_multiplier: 1.5}}
+  - {id: u22, language: hindi_devanagari, question: overtime_rate_multiplier, text: "ओवरटाइम दोगुना मिलता है", expected: {overtime_rate_multiplier: 2}}
+  - {id: u23, language: english, question: min_rest_hours, text: "At least 10 hours of rest between shifts", expected: {min_rest_hours: 10}}
+  - {id: u24, language: hinglish, question: min_rest_hours, text: "kam se kam barah ghante aaram", expected: {min_rest_hours: 12}}
+  - {id: u25, language: hindi_devanagari, question: min_rest_hours, text: "दो शिफ्ट के बीच ग्यारह घंटे", expected: {min_rest_hours: 11}}
+  - {id: u26, language: hinglish, question: null, text: "48 hours a week kaam, hafte mein ek din chhutti, lagatar 6 din se zyada nahi", expected: {standard_weekly_hours: 48, weekly_off_days: 1, max_consecutive_days: 6}}
+  - {id: u27, language: english, question: rooms, text: "around two dozen rooms, maybe a few more", expected: {rooms: 24}}
+  - {id: u28, language: hinglish, question: departments, text: "kitchen ka staff paanch hai aur housekeeping ka saat", expected: {departments: {kitchen: 5, housekeeping: 7}}}

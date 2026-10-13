@@ -75,6 +75,9 @@ llm:
   reasoning_effort: low           # gpt-oss models only; null to leave it out
   max_tokens: 1500
   timeout_seconds: 30
+  max_retries_on_rate_limit: 4    # HTTP 429 (free tier: ~8000 tokens per minute)
+  retry_wait_seconds: 10          # when the reply has no Retry-After header
+  retry_wait_max_seconds: 30
   allow_cloud_llm_for_owner_text: false   # ASSUMED default: owner answers stay local
 
 # Owner audio (Part D). Cloud speech-to-text (ml/voice adapters: Groq Whisper, Sarvam) runs on an

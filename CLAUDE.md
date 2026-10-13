@@ -35,3 +35,23 @@ attrition.score, attrition.rescore, voice.extract) loaded from ml/artifacts.
 - `MONGODB_URI` is a secret: root `.env` (gitignored) locally, the host's secret store in deployment. Never commit or print it.
   Storage conventions: [docs/MONGODB.md](docs/MONGODB.md). Tests run offline on mongomock.
 - One venv for everything at the repo root: `py -3.12 -m venv .venv`, then install each folder's requirements.
+
+## Hotel onboarding by voice
+
+An owner sets up a hotel by answering guided questions (Hindi / English / Hinglish, voice or
+typed); a draft is saved as a property only after Confirm. Code in `backend/onboarding/`, screen
+`dashboard/pages/15_Hotel_Setup.py` ("Hotel setup (voice)", not the workspace Setup page).
+Details, endpoints, config files and eval: [docs/onboarding.md](docs/onboarding.md).
+
+- Works with no keys and no audio (typed text + rule-based extractor + number normaliser). The
+  LLM (Groq, `GROQ_API_KEY` from the environment only) and cloud speech-to-text run only when a
+  config flag in `backend/onboarding/onboarding.yaml` allows it (default off) AND the owner ticks
+  the consent box. Free AI tiers give no privacy guarantee: never send real names, salaries or
+  staff data; tests and eval use SYNTHETIC text only, tests never call the network.
+- Legal values (min rest hours, overtime multiplier, weekly off) always need verification and an
+  explicit acknowledgement at Confirm; they depend on labour rules a qualified person must confirm.
+- Hindi / Hinglish accuracy on real audio is untested; numbers are the most error-prone part.
+  Eval scores (`python run.py eval-onboarding`) come from sentences we wrote, so they are optimistic.
+- Every onboarding value is ASSUMED and in YAML (onboarding, templates, questions, numbers,
+  lexicon); Hindi wording is a draft for the HM student. Templates reference the ml / backend work
+  standards instead of copying them.
