@@ -78,6 +78,8 @@ def tables_with_heroes(data_dir: Path = DATA_DIR) -> dict[str, pd.DataFrame]:
     t = load_tables(data_dir)
     hero_emp = pd.read_csv(data_dir / "demo" / "hero_employees.csv", keep_default_na=False)
     hero_week = pd.read_csv(data_dir / "demo" / "hero_weekly.csv")
+    if hero_emp.empty:  # hotel variant: no demo heroes (header-only files); keep the dtypes
+        return t
     t["employees"] = pd.concat([t["employees"], hero_emp], ignore_index=True)
     t["behaviour"] = pd.concat([t["behaviour"], hero_week[BEHAVIOUR_COLUMNS]], ignore_index=True)
     t["signals"] = pd.concat([t["signals"], hero_week[SIGNAL_COLUMNS]], ignore_index=True)

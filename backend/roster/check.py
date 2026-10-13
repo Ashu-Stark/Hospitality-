@@ -42,6 +42,8 @@ def hard_violations(problem: Problem, assignments: list[Assignment]) -> list[str
         if s is None:
             v.append(f"{e}: not in the staff list")
             continue
+        if 0 in real and (s.last_shift, real[0]) in bad_pairs:
+            v.append(f"{e}: less than {cfg.min_rest_hours} h rest between last week and day 0")
         for d, sh in real.items():
             if d in s.leave_days:
                 v.append(f"{e}: works on approved leave (day {d})")
@@ -60,10 +62,11 @@ def hard_violations(problem: Problem, assignments: list[Assignment]) -> list[str
     for (dept, d, sh) in problem.demand:
         on = [e for e, days in work.items() if days.get(d) == sh
               and e in staff and staff[e].department == dept]
-        if len(on) < cfg.min_headcount:
-            v.append(f"{dept} day {d} {sh}: {len(on)} staff < minimum {cfg.min_headcount}")
+        need = cfg.min_on(dept, sh)
+        if len(on) < need:
+            v.append(f"{dept} day {d} {sh}: {len(on)} staff < minimum {need}")
         skill = cfg.required_skill.get(dept)
-        if skill and not any(skill in staff[e].skills for e in on):
+        if skill and (need or on) and not any(skill in staff[e].skills for e in on):
             v.append(f"{dept} day {d} {sh}: no {skill} holder")
     return v
 

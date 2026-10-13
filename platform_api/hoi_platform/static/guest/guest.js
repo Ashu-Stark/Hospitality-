@@ -41,6 +41,7 @@
       amenities: "Amenities", dining: "Dining menu", policies: "House rules", nearby: "Nearby", faq: "Questions", contacts: "Call us (dial from the room phone)",
       ext: "ext.", stage_open: "Received", stage_accepted: "Accepted", stage_in_progress: "In progress", stage_done: "Done",
       tooLong: "Recording stopped at 60 seconds.",
+      team: { housekeeping: "Housekeeping", fnb_service: "Room service", kitchen: "Kitchen", maintenance: "Maintenance", front_office: "Front desk", security: "Security", generic: "Hotel team" },
     },
     hi: {
       offline: "आप ऑफ़लाइन हैं। इंटरनेट आते ही फिर जुड़ जाएगा।", room: "कमरा", demo: "डेमो होटल · सिंथेटिक डेटा",
@@ -70,12 +71,24 @@
       amenities: "सुविधाएँ", dining: "खाने का मेन्यू", policies: "होटल के नियम", nearby: "आसपास", faq: "सवाल-जवाब", contacts: "कॉल करें (कमरे के फ़ोन से)",
       ext: "एक्सटें.", stage_open: "मिल गई", stage_accepted: "स्वीकार", stage_in_progress: "काम जारी", stage_done: "पूरा",
       tooLong: "60 सेकंड पर रिकॉर्डिंग रुक गई।",
+      team: { housekeeping: "हाउसकीपिंग", fnb_service: "रूम सर्विस", kitchen: "किचन", maintenance: "मेंटेनेंस", front_office: "फ़्रंट डेस्क", security: "सिक्योरिटी", generic: "होटल टीम" },
     },
   };
   const S = {
     lang: store.get("hoi.guest.lang") === "hi" ? "hi" : "en", data: null, history: [], muted: !!(window.HOIVoice && window.HOIVoice.muted),
     consent: store.get("hoi.guest.voice_consent") === "1", tab: "ask", rating: 0, rec: null, pendingMic: null, lastReqSig: "",
   };
+  // Request -> department, for the role avatar (never a staff id). Uses r.department when the API sends it; otherwise the
+  // quick-request menu key behind the title (mirrors GUEST_MENU in services/rooms.py).
+  const KEY_DEPT = { towels: "housekeeping", cleaning: "housekeeping", water: "housekeeping", amenities: "housekeeping", tea: "fnb_service",
+    food: "fnb_service", ac: "maintenance", hot_water: "maintenance", electrical: "maintenance", other: "front_office" };
+  function reqDept(r) {
+    if (r.department) return r.department;
+    const title = String(r.title || "");
+    const m = (S.data.menu || []).find((x) => title === x.label || title.startsWith(x.label + ":"));
+    return (m && KEY_DEPT[m.key]) || "generic";
+  }
+  $("#hotelLogo").addEventListener("error", () => { $("#logoPlate").classList.add("hidden"); $("#hotel").classList.remove("hidden"); });
   const token = new URLSearchParams(location.search).get("t") || "";
   const base = `/public/guest/${encodeURIComponent(token)}`;
   const tr = (k) => (T[S.lang] || T.en)[k] ?? T.en[k] ?? k;
@@ -112,11 +125,21 @@
     if (!S.data) return;
     const d = S.data, p = d.profile || {};
     $("#hotel").textContent = p.display_name || d.hotel;
+    paintLogo(window.HOI_SAFE_IMG(p.logo_url), p.display_name || d.hotel);
     $("#roomNo").textContent = d.room;
     $("#welcome").textContent = p.welcome || "";
     $("#demoTag").classList.toggle("hidden", !d.synthetic && !p.synthetic);
     if (!$("#thread").children.length) bot(tr("hello"), null, null, true);
     paintMenu(); paintRequests(); paintExplore(); paintCheckout();
+  }
+
+  // Hotel logo on a white plate (keeps the brand colours readable on the orange header); hotel name text otherwise.
+  function paintLogo(url, name) {
+    const img = $("#hotelLogo"), plate = $("#logoPlate");
+    if (!url) { plate.classList.add("hidden"); $("#hotel").classList.remove("hidden"); return; }
+    img.alt = name || "";
+    if (img.getAttribute("src") !== url) img.src = url;
+    plate.classList.remove("hidden"); $("#hotel").classList.add("hidden");
   }
 
   function paintMenu() {
@@ -130,7 +153,9 @@
     const tone = { open: "watch", accepted: "watch", in_progress: "watch", done: "low" };
     $("#list").innerHTML = reqs.length ? reqs.map((r) => {
       const i = order.indexOf(r.stage);
-      return `<div class="st"><div class="row"><span><b>${esc(r.title)}</b><br><span class="muted">${esc((r.at || "").slice(11, 16))}</span></span>` +
+      const dep = reqDept(r), team = (T[S.lang].team || T.en.team)[dep] || T.en.team.generic;
+      return `<div class="st"><div class="row"><img class="ravatar" src="${esc(window.HOI_AVATAR(dep))}" alt="" width="40" height="40">` +
+        `<span><b>${esc(r.title)}</b><br><span class="muted">${esc(team)} · ${esc((r.at || "").slice(11, 16))}</span></span>` +
         `<span class="chip ${tone[r.stage] || "gray"}">${esc(tr("stage_" + r.stage))}</span></div>` +
         `<div class="prog" aria-hidden="true">${order.map((_, k) => `<span class="${k <= i ? "on" : ""}"></span>`).join("")}</div></div>`;
     }).join("") : `<p class="muted">${esc(tr("none"))}</p>`;

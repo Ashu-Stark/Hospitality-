@@ -16,6 +16,8 @@ scripts
 *.png
 # generator-only hidden traits: never shipped, never read by the app
 ml/data/internal
+ml/data/hotels/*/internal
+ml/data/hotels/_*_build
 # tests and voice audio are not needed at runtime
 ml/tests
 backend/tests

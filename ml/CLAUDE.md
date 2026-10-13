@@ -620,3 +620,19 @@ numbers 4-8. Commits (oldest first) and the tasks they hold:
   SUPPORTED, demo checks replaced (both PASS), contributions in the output.
 - Fix done: replacement hires get skills (new stream replacement_skills); only employee_skill.csv
   changed; validate 65 PASS; demo-week front office has 7 fo_system holders.
+
+## Hotel variants: the fictional Himsagar Ridge Resort (served default)
+
+`ml/generator/hotel_variant.py` + `ml/generator/hotels/himsagar.yaml` (`python run.py generate-hotel himsagar`): the
+same generator stages on a config merged over config.yaml, written to `ml/data/hotels/himsagar/` (same file set as
+ml/data; `internal/` is gitignored; `demo/` hero files are header-only: no demo heroes in a variant; plus `hotel.json`
+with the staff positions and role titles). FICTIONAL hotel, SYNTHETIC data, every value ASSUMED: 24 rooms, 19 rostered
+staff (housekeeping 6, front office 3, F&B 3, kitchen 3, maintenance 2, security 2) plus the hotel manager HS01 (not in
+the ml data, not rostered or scored). Mussoorie seasonality: May-Jun summer peak, Christmas-New Year winter peak
+(festival_bump 0.18), monsoon dip. Workload standards scaled from the default hotel so load_ratio is the same function of
+occupancy. Role codes and pay are the default vocabulary, so the trained artifacts score it unchanged (identical
+feature columns; models NOT retrained). Demo-week staff are renamed HS02..HS20 in position order, earlier leavers
+HSX001.. . Seed 4243 = first seed from 4242 whose demo week fills every position and is rosterable under
+backend/hotels/himsagar.yaml (chosen once with CP-SAT; a demo-data choice). Small ml changes for this: forecast.predict
+takes `rooms=` (booking pace is divided by the room count), attrition.explain skips empty hero files, run_skills.build
+takes a cfg. The default ml/data dataset is byte-identical. Tests: tests/test_hotel_variant.py (reproducible generation).

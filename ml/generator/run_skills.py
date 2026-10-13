@@ -14,15 +14,16 @@ from pathlib import Path
 
 import pandas as pd
 
-from ml.generator.config import load_config
+from ml.generator.config import GeneratorConfig, load_config
 from ml.generator.rng import stream_rngs
 from ml.generator.skills import extend_skills_to_replacements
 
 DATA_DIR = Path(__file__).resolve().parents[1] / "data"
 
 
-def build(data_dir: Path = DATA_DIR) -> pd.DataFrame:
-    cfg = load_config()
+def build(data_dir: Path = DATA_DIR, cfg: GeneratorConfig | None = None) -> pd.DataFrame:
+    """cfg: a hotel variant's config (ml/generator/hotel_variant.py); default config.yaml."""
+    cfg = cfg if cfg is not None else load_config()
     original = set(pd.read_csv(data_dir / "employee.csv")["employee_id"])
     skills = pd.read_csv(data_dir / "employee_skill.csv")
     initial = skills[skills["employee_id"].isin(original)].reset_index(drop=True)

@@ -48,7 +48,10 @@ def test_loop_end_to_end(client) -> None:
     again = client.post("/loop/run").json()
     assert [i["task_id"] for i in again["interventions"]] == [
         i["task_id"] for i in b["interventions"]]
-    assert again["people"] == b["people"] and again["totals"] == b["totals"]  # deterministic
+    # deterministic; the rerun is served from the MongoDB roster cache (method cached_db)
+    same = lambda t: {k: {x: y for x, y in v.items() if x != "method"} for k, v in t.items()}  # noqa: E731
+    assert again["people"] == b["people"] and same(again["totals"]) == same(b["totals"])
+    assert {v["method"] for v in again["totals"].values()} == {"cached_db"}
     db = client.app.state.db
     assert db[INTERVENTIONS].count_documents({}) == len(b["interventions"])
     assert db[ROSTERS].count_documents({}) == 4

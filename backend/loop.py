@@ -29,13 +29,12 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from pydantic import BaseModel
 from pymongo.database import Database
 
-from backend.config import ML_DATA, BackendConfig
+from backend.config import BackendConfig, hotel_data
 from backend.db import INTERVENTIONS, NO_ID, TASKS, audit, insert
 from backend.roster.problem import DAYS, carry_in
 from backend.roster.service import RosterRequest, RosterResult, generate
 from backend.services import Service
 from backend.tasks import engine
-from ml.generator.config import load_config as load_ml_config
 
 ROLL_WEEKS = 4
 SIMULATION = ("SIMULATION, not causal proof: the same trained attrition model re-scored with the "
@@ -103,12 +102,14 @@ class LoopResult(BaseModel):
     synthetic: bool = True
 
 
-def history(week: date) -> pd.DataFrame:
+def history(week: date, hotel: str | None = None) -> pd.DataFrame:
     """Weekly overtime / signals per employee before `week` (staff + demo heroes)."""
-    beh = pd.concat([pd.read_csv(ML_DATA / "weekly_behaviour.csv"),
-                     pd.read_csv(ML_DATA / "demo" / "hero_weekly.csv")])
-    sig = pd.concat([pd.read_csv(ML_DATA / "weekly_signals.csv"),
-                     pd.read_csv(ML_DATA / "demo" / "hero_weekly.csv")])
+    data = hotel_data(hotel).data_dir
+    heroes = pd.read_csv(data / "demo" / "hero_weekly.csv")
+    beh = pd.read_csv(data / "weekly_behaviour.csv")
+    sig = pd.read_csv(data / "weekly_signals.csv")
+    if not heroes.empty:  # a hotel variant has no demo heroes
+        beh, sig = pd.concat([beh, heroes]), pd.concat([sig, heroes])
     cols = ["employee_id", "week_start", "weekly_off_skipped", "weeks_since_weekend_off"]
     df = beh[["employee_id", "week_start", "overtime_hours"]].drop_duplicates().merge(
         sig[cols].drop_duplicates(["employee_id", "week_start"]), on=["employee_id", "week_start"])
@@ -188,8 +189,8 @@ def run_loop(db: Database, service: Service, cfg: BackendConfig, now: datetime,
     for name, r in (("baseline", base), ("protected", prot)):
         if r.status == "infeasible":
             raise ValueError(f"{name} roster is infeasible: " + "; ".join(r.causes))
-    hist = history(week)
-    window = load_ml_config().attrition.hazard.overtime_window_weeks
+    hist = history(week, cfg.roster.hotel)
+    window = hotel_data(cfg.roster.hotel).ml.attrition.hazard.overtime_window_weeks
     carry = carry_in(week, cfg.roster)
     rows_b, rows_p = _person_rows(base, week), _person_rows(prot, week)
     people = []

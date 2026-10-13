@@ -13,6 +13,7 @@ from .errors import Invalid
 PUBLIC_FIELDS = (
     "property_id",
     "display_name",
+    "logo_url",
     "welcome",
     "checkin_time",
     "checkout_time",
@@ -44,6 +45,7 @@ def default_profile(tid: str, prop: dict | None) -> dict:
     return {
         "property_id": prop["id"] if prop else None,
         "display_name": name[:80],
+        "logo_url": None,
         "welcome": "",
         "checkin_time": "12:00",
         "checkout_time": "11:00",
@@ -96,47 +98,69 @@ def public(tid: str, property_id: str | None = None) -> dict:
 
 # ------------------------------------------------------------------ demo (SYNTHETIC)
 DEMO_PROFILE = {
-    "display_name": "Riverside Retreat, Rishikesh (demo)",
-    "welcome": "Namaste and welcome! We hope the river breeze helps you rest. Ask me anything about your stay.",
+    "display_name": "Himsagar Ridge Resort, Mussoorie (fictional)",
+    "logo_url": "/shared/brand/himsagar-logo.svg",
+    "welcome": (
+        "Namaste and welcome to Himsagar Ridge (a fictional demo resort)! Wrap up warm, enjoy the valley views and "
+        "ask me anything about your stay."
+    ),
     "checkin_time": "12:00",
     "checkout_time": "11:00",
-    "late_checkout": {"allowed": True, "latest": "14:00", "note": "Subject to availability; the duty manager approves."},
-    "wifi": {"network": "Riverside-Guest", "password_hint": "Printed on the card at your bedside; or ask the front desk (ext. 9)."},
+    "late_checkout": {
+        "allowed": True,
+        "latest": "14:00",
+        "note": "Free until 12:00 and charged after that, subject to availability; the duty manager approves.",
+    },
+    "wifi": {"network": "Himsagar-Guest", "password_hint": "Printed on the card at your bedside; or ask the front desk (ext. 9)."},
     "contacts": [
         {"label": "Front desk", "extension": "9"},
         {"label": "Room service", "extension": "4"},
         {"label": "Housekeeping", "extension": "5"},
+        {"label": "Maintenance", "extension": "6"},
     ],
     "amenities": [
-        {"name": "Restaurant (Ganga View)", "hours": "07:00-22:30", "where": "Ground floor", "note": "Breakfast buffet 07:30-10:30"},
-        {"name": "Yoga deck", "hours": "06:00-08:00", "where": "Terrace", "note": "Free morning class at 06:30; mats provided"},
+        {"name": "Restaurant (Ridge Kitchen)", "hours": "07:00-22:30", "where": "Ground floor", "note": "Breakfast buffet 07:30-10:30"},
+        {"name": "Sun deck (valley view)", "hours": "06:00-19:00", "where": "Terrace, floor 3", "note": "Sunrise tea on request"},
+        {"name": "Bonfire", "hours": "19:00-22:00", "where": "Lawn", "note": "Winter evenings, weather permitting; book at the front desk"},
         {"name": "Room service", "hours": "07:00-23:00", "where": "Dial 4", "note": ""},
-        {"name": "Parking", "hours": "24 hours", "where": "Behind the main gate", "note": "Free for guests"},
+        {"name": "Room heaters", "hours": "24 hours", "where": "In every room", "note": "Extra blankets via housekeeping"},
+        {"name": "Parking", "hours": "24 hours", "where": "Below the main gate", "note": "Free for guests; limited spaces"},
         {"name": "Laundry", "hours": "09:00-18:00", "where": "Via housekeeping", "note": "Same-day if given before 10:00"},
     ],
     "dining": [
         {"item": "Aloo paratha with curd", "price_inr": 180, "veg": True, "hours": "07:00-11:00"},
         {"item": "Poha", "price_inr": 140, "veg": True, "hours": "07:00-11:00"},
+        {"item": "Masala omelette with toast", "price_inr": 170, "veg": False, "hours": "07:00-11:00"},
         {"item": "Masala chai", "price_inr": 60, "veg": True, "hours": "07:00-23:00"},
         {"item": "Filter coffee", "price_inr": 90, "veg": True, "hours": "07:00-23:00"},
+        {"item": "Maggi noodles", "price_inr": 120, "veg": True, "hours": "07:00-23:00"},
+        {"item": "Veg momos (8 pcs)", "price_inr": 160, "veg": True, "hours": "12:00-22:30"},
+        {"item": "Chicken momos (8 pcs)", "price_inr": 200, "veg": False, "hours": "12:00-22:30"},
         {"item": "Dal tadka with jeera rice", "price_inr": 320, "veg": True, "hours": "12:00-22:30"},
-        {"item": "Paneer butter masala", "price_inr": 380, "veg": True, "hours": "12:00-22:30"},
+        {"item": "Kadhai paneer", "price_inr": 380, "veg": True, "hours": "12:00-22:30"},
+        {"item": "Garhwali thali", "price_inr": 420, "veg": True, "hours": "12:00-15:00"},
+        {"item": "Chicken curry with rice", "price_inr": 450, "veg": False, "hours": "12:00-22:30"},
         {"item": "Tandoori roti", "price_inr": 40, "veg": True, "hours": "12:00-22:30"},
+        {"item": "Gulab jamun (2 pcs)", "price_inr": 110, "veg": True, "hours": "12:00-22:30"},
     ],
     "policies": [
-        {"title": "Quiet hours", "text": "22:00-07:00. Please keep music and voices low on the balconies."},
-        {"title": "Vegetarian property", "text": "The hotel serves vegetarian food only and no alcohol."},
-        {"title": "Smoking", "text": "No smoking inside rooms. A smoking spot is near the parking."},
+        {"title": "Quiet hours", "text": "22:00-07:00. Please keep music and voices low on the balconies and the lawn."},
+        {"title": "Smoking", "text": "No smoking inside rooms. A smoking spot is next to the parking."},
         {"title": "Pets", "text": "Pets are not allowed, except service animals."},
+        {"title": "Bonfire safety", "text": "Only the staff light and put out the bonfire; children must be with an adult."},
+        {
+            "title": "Roads in the monsoon",
+            "text": "Hill roads can close after heavy rain (July-September); ask the front desk before driving out.",
+        },
+        {"title": "ID at check-in", "text": "Every guest shows a government photo ID at check-in, as required for hotels."},
     ],
     "nearby": [
-        {"name": "Laxman Jhula", "distance_note": "approx. 2 km", "tip": "Walk across early morning for fewer crowds."},
-        {
-            "name": "Triveni Ghat (Ganga aarti)",
-            "distance_note": "approx. 3 km",
-            "tip": "Evening aarti around sunset; reach 30 minutes early.",
-        },
-        {"name": "Beatles Ashram", "distance_note": "approx. 2.5 km", "tip": "Open daytime; carry water."},
+        {"name": "Mall Road", "distance_note": "", "tip": "Mussoorie's main promenade; walk it early morning or after sunset."},
+        {"name": "Gun Hill", "distance_note": "", "tip": "A ropeway goes up from Mall Road; clear mornings give the best Himalayan views."},
+        {"name": "Kempty Falls", "distance_note": "approx. 15 km from Mussoorie town", "tip": "Crowded on summer weekends; go early."},
+        {"name": "Landour and Lal Tibba", "distance_note": "", "tip": "Quiet walks and a viewpoint above town; wear good shoes."},
+        {"name": "Company Garden", "distance_note": "", "tip": "Gardens and a small lake; easy with children."},
+        {"name": "Camel's Back Road", "distance_note": "", "tip": "A level walking road, lovely at sunset."},
     ],
     "faq": [
         {
@@ -144,8 +168,13 @@ DEMO_PROFILE = {
             "a": "Breakfast is included in room rates booked with breakfast. Please check your booking or ask the front desk.",
         },
         {"q": "Can I get an extra bed?", "a": "Yes, on request, subject to availability. The front desk will confirm the charge."},
-        {"q": "Do you arrange taxis?", "a": "Yes. Ask the front desk at least one hour ahead."},
+        {"q": "Do you arrange taxis?", "a": "Yes. Ask the front desk at least one hour ahead; in snow or heavy rain allow extra time."},
+        {"q": "Will it snow?", "a": "Snow is possible on some winter days but never certain; the front desk shares the day's forecast."},
         {"q": "Is there a doctor on call?", "a": "Yes, the front desk can arrange a doctor on call at any hour."},
+        {
+            "q": "Can I check out late?",
+            "a": "Late checkout is possible until 14:00, subject to availability: request it here and the duty manager approves.",
+        },
     ],
     "languages": ["en", "hi"],
     "synthetic": True,

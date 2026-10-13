@@ -4,6 +4,9 @@ import os
 os.environ["MONGODB_URI"] = "mongomock://"
 os.environ.pop("HOI_ENV", None)
 os.environ.pop("LOCATIONIQ_API_KEY", None)  # geocoding: tests use a fake, never the network
+# These tests were written for the original dataset (ml/data: 45 rooms, 55 staff, demo heroes);
+# the fictional Himsagar hotel (the served default) is tested in test_hotel_himsagar.py.
+os.environ["HOI_HOTEL_DATA"] = "original"
 
 import uuid  # noqa: E402
 

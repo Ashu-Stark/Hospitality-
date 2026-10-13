@@ -30,6 +30,7 @@ from pathlib import Path
 import numpy as np
 from ortools.sat.python import cp_model
 
+from backend.config import ORIGINAL_HOTEL
 from backend.roster.check import Assignment, hard_violations, summarize
 from backend.roster.problem import DAYS, Problem, forbidden_pairs
 
@@ -80,6 +81,9 @@ def build_model(problem: Problem, relax: bool = False) -> tuple[cp_model.CpModel
                 for a, b in bad:  # HARD: minimum rest between consecutive days
                     if (e, d, a) in x and (e, d + 1, b) in x:
                         model.add(x[(e, d, a)] + x[(e, d + 1, b)] <= 1)
+        for a, b in bad:  # HARD: rest across the week boundary (when the last shift is known)
+            if a == s.last_shift and (e, 0, b) in x:
+                model.add(x[(e, 0, b)] == 0)
         days = [work[(e, d)] for d in range(DAYS)]
         model.add(sum(days) <= DAYS - cfg.min_days_off)  # HARD: weekly off
         m = cfg.max_consecutive_days  # HARD: consecutive days, incl. the carried-in run
@@ -101,23 +105,55 @@ def build_model(problem: Problem, relax: bool = False) -> tuple[cp_model.CpModel
     for (dept, d, sh), need in problem.demand.items():
         on = [x[(s.employee_id, d, sh)] for s in problem.staff
               if s.department == dept and (s.employee_id, d, sh) in x]
-        gap = 0
-        if relax:
+        gap, need_on = 0, cfg.min_on(dept, sh)
+        if relax and need_on:
             gap = slack[(dept, d, sh, "headcount")] = model.new_int_var(
-                0, cfg.min_headcount, f"gap_{dept}_{d}_{sh}")
-        model.add(sum(on) + gap >= cfg.min_headcount)  # HARD: minimum headcount
+                0, need_on, f"gap_{dept}_{d}_{sh}")
+        model.add(sum(on) + gap >= need_on)  # HARD: minimum headcount (per department-shift)
         skill = cfg.required_skill.get(dept)
-        if skill:  # HARD: a required-skill holder on every shift
+        if skill:  # HARD: a required-skill holder on every staffed shift
             sgap = 0
             if relax:
                 sgap = slack[(dept, d, sh, skill)] = model.new_int_var(
                     0, 1, f"sgap_{dept}_{d}_{sh}")
-            model.add(sum(x[(s.employee_id, d, sh)] for s in problem.staff
+            holders = sum(x[(s.employee_id, d, sh)] for s in problem.staff
                           if s.department == dept and skill in s.skills
-                          and (s.employee_id, d, sh) in x) + sgap >= 1)
+                          and (s.employee_id, d, sh) in x)
+            if need_on:
+                model.add(holders + sgap >= 1)
+            else:  # optional shift (minimum 0): if anyone works it, a holder must be on it
+                for v in on:
+                    model.add(holders + sgap >= v)
         short = model.new_int_var(0, int(np.ceil(need)) + 1, f"short_{dept}_{d}_{sh}")
         model.add(short >= int(np.ceil(need)) - hours[sh] * sum(on))
         penalties.append(cfg.weights.understaffed_hour * short)
+    if cfg.weights.next_monday_rested and not relax:  # SOFT: people free next Monday
+        last, m = DAYS - 1, cfg.max_consecutive_days
+        for dept, shifts in cfg.department_shifts.items():
+            members = [s.employee_id for s in problem.staff if s.department == dept]
+            need_all = sum(cfg.min_on(dept, sh) for sh in shifts)
+            need_morning = cfg.min_on(dept, "morning") if "morning" in shifts else 0
+            if not need_all or DAYS <= m:
+                continue
+            free, rested = [], []
+            for e in members:
+                # run reaches the maximum on Sunday -> must be off on Monday
+                blocked = model.new_bool_var(f"run_blocked_{e}")
+                model.add(blocked >= sum(work[(e, d)] for d in range(DAYS - m, DAYS)) - (m - 1))
+                free.append(1 - blocked)
+                # Sunday shift that breaks the rest rule before a Monday morning
+                tired = sum(x[(e, last, a)] for a, b in bad if b == "morning" and (e, last, a) in x)
+                ok = model.new_bool_var(f"rested_{e}")
+                model.add(ok <= 1 - blocked)
+                model.add(ok <= 1 - tired)
+                rested.append(ok)
+            short = model.new_int_var(0, need_all, f"free_short_{dept}")
+            model.add(short >= need_all - sum(free))
+            penalties.append(cfg.weights.next_monday_rested * short)
+            if need_morning:
+                short_m = model.new_int_var(0, need_morning, f"rested_short_{dept}")
+                model.add(short_m >= need_morning - sum(rested))
+                penalties.append(cfg.weights.next_monday_rested * short_m)
     for dept, shifts in cfg.department_shifts.items():
         members = [s.employee_id for s in problem.staff if s.department == dept]
         if len(members) < 2:
@@ -179,10 +215,12 @@ def infeasibility_causes(problem: Problem) -> list[str]:
                                                     else f"{sh} (no {kind} holder)")
     causes = []
     for (dept, d), shifts in sorted(short.items(), key=lambda k: (k[0][1], k[0][0])):
-        n_need = len(problem.shifts_of(dept))
+        mins = {sh: problem.cfg.min_on(dept, sh) for sh in problem.shifts_of(dept)}
+        n_need = sum(1 for v in mins.values() if v)
         day = problem.days[d].strftime("%A %Y-%m-%d")
-        causes.append(f"{dept}, {day}: {n_need} shifts need staff (min "
-                      f"{problem.cfg.min_headcount} each), {available_staff(problem, dept, d)} "
+        rule = "/".join(f"{sh} {v}" for sh, v in mins.items())
+        causes.append(f"{dept}, {day}: {n_need} shifts need staff (min {rule}), "
+                      f"{available_staff(problem, dept, d)} "
                       f"available after leave and carried-in consecutive days; cannot staff: "
                       f"{', '.join(shifts)} (rest and weekly-off rules also bind)")
     return causes or ["infeasible for a reason other than staffing (check leave and carry-in)"]
@@ -215,13 +253,14 @@ def greedy(problem: Problem) -> Outcome:
         for (dept, day, sh), need in sorted(problem.demand.items(), key=lambda k: -k[1]):
             if day != d:
                 continue
-            target = max(cfg.min_headcount, int(np.ceil(need / hours[sh])))
+            target = max(cfg.min_on(dept, sh), int(np.ceil(need / hours[sh])))
             def ok(s, sh=sh, d=d, dept=dept):  # noqa: ANN001, ANN202
                 e = s.employee_id
                 return (s.department == dept and d not in s.leave_days and d not in done[e]
                         and len(done[e]) < DAYS - cfg.min_days_off
                         and run[e] < cfg.max_consecutive_days
-                        and (d == 0 or (done[e].get(d - 1), sh) not in bad))
+                        and ((s.last_shift, sh) not in bad if d == 0
+                             else (done[e].get(d - 1), sh) not in bad))
             pool = [s for s in problem.staff if ok(s)]
             rng.shuffle(pool)
             pool.sort(key=lambda s: len(done[s.employee_id]))
@@ -236,9 +275,15 @@ def greedy(problem: Problem) -> Outcome:
     return Outcome("greedy", "heuristic", time.perf_counter() - start, None, out)
 
 
+def cache_dir(hotel: str) -> Path:
+    """The original hotel's cache stays in roster/cache/; a hotel variant has its own folder."""
+    return CACHE_DIR if hotel == ORIGINAL_HOTEL else CACHE_DIR / hotel
+
+
 def cache_path(problem: Problem) -> Path:
     """One file per exact problem (week + inputs + config), e.g. baseline and protected."""
-    return CACHE_DIR / f"roster_{problem.week_start}_{problem.fingerprint()[:12]}.json"
+    name = f"roster_{problem.week_start}_{problem.fingerprint()[:12]}.json"
+    return cache_dir(problem.cfg.hotel) / name
 
 
 def save_cache(problem: Problem, outcome: Outcome) -> Path:

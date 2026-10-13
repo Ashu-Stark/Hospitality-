@@ -159,16 +159,22 @@ def set_prefs(uid: str, prefs: dict) -> dict:
 
 
 # ------------------------------------------------------------------ demo accounts
+# The demo hotel is the FICTIONAL Himsagar Ridge Resort, Mussoorie (hoi_platform/seed.py); accounts link to staff ids.
 DEMO_ACCOUNTS = [
-    ("demo.owner", "owner", None, "Owner / GM", "Everything for one hotel group"),
+    ("demo.owner", "owner", "HS01", "Hotel manager (HS01)", "Everything for one hotel group"),
     ("demo.hr", "hr", None, "HR", "Retention pages, no roster or inventory"),
-    ("demo.housekeeping", "dept_head", None, "Department head", "Roster, dispatch, inventory requests"),
+    ("demo.housekeeping", "dept_head", "HS02", "Housekeeping head (HS02)", "Roster, dispatch, inventory requests"),
+    ("demo.frontoffice", "dept_head", "HS08", "Front office head (HS08)", "Guest services, late checkouts, dispatch"),
     ("demo.store", "storekeeper", None, "Storekeeper", "Inventory only"),
-    ("E134", "worker", "E134", "Employee (E134)", "Employee app: shifts, jobs, supplies"),
+    ("HS05", "worker", "HS05", "Housekeeping attendant (HS05)", "Employee app: shifts, jobs, supplies"),
+    ("HS09", "worker", "HS09", "Front office associate (HS09)", "Employee app: shifts, jobs, supplies"),
+    ("HS12", "worker", "HS12", "Restaurant server (HS12)", "Employee app: shifts, jobs, supplies"),
+    ("HS18", "worker", "HS18", "Maintenance technician (HS18)", "Employee app: shifts, jobs, supplies"),
 ]
+LEGACY_DEMO_USERS = ("E134",)  # worker account of the former demo hotel: removed from the demo tenant
 
 # Department heads are scoped to one department (e.g. GET /dispatch/performance). Stored on the user document.
-DEMO_DEPARTMENTS = {"demo.housekeeping": "housekeeping"}
+DEMO_DEPARTMENTS = {"demo.housekeeping": "housekeeping", "demo.frontoffice": "front_office"}
 
 
 def department_of(uid: str) -> str | None:
@@ -187,6 +193,15 @@ def has_platform_admin() -> bool:
 
 
 def ensure_demo_users(demo_tenant: str, admin_password: str | None) -> None:
+    legacy = [
+        u["id"]
+        for u in mongo.col("users").find(
+            {"tenant_id": demo_tenant, "_username_lc": {"$in": [x.lower() for x in LEGACY_DEMO_USERS]}}, {"id": 1}
+        )
+    ]
+    if legacy:
+        mongo.col("refresh_tokens").delete_many({"user_id": {"$in": legacy}})
+        mongo.col("users").delete_many({"id": {"$in": legacy}})
     for username, role, emp, *_ in DEMO_ACCOUNTS:
         if not by_username(username):
             try:

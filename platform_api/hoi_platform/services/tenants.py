@@ -36,6 +36,7 @@ SENSITIVE_COLUMNS = [
     "pan",
 ]
 DEPARTMENTS = ["housekeeping", "maintenance", "fnb_service", "front_office", "security", "kitchen"]
+OPTIONAL_STAFF_FIELDS = ("role_title", "avatar")
 INVITE_ROLES = {"owner", "hr", "dept_head", "storekeeper", "worker"}
 
 
@@ -57,7 +58,16 @@ def _out(t: dict) -> dict:
     t["settings"] = mongo.from_pairs(t.get("settings"))
     t["use_mocks"], t["is_demo"], t["onboarded"] = bool(t["use_mocks"]), bool(t["is_demo"]), bool(t["onboarded"])
     t["modules"] = t["settings"].get("modules") or PLANS.get(t["plan"], PLANS["starter"])["modules"]
+    t["logo_url"] = same_origin_path(t.get("logo_url"))
     return t
+
+
+def same_origin_path(v: object) -> str | None:
+    """A logo the apps may load: only a same-origin absolute path (e.g. /shared/brand/x.svg), never another host."""
+    s = str(v or "").strip()
+    if not s.startswith("/") or s.startswith("//") or "\\" in s or ".." in s or len(s) > 200:
+        return None
+    return s
 
 
 COUNTED = ("properties", "staff", "users", "jobs")
@@ -221,6 +231,9 @@ def import_staff(tid: str, rows: list[dict]) -> int:
             "skills": str(r.get("skills") or ""),
             "contract_type": str(r.get("contract_type") or "permanent"),
         }
+        for opt in OPTIONAL_STAFF_FIELDS:  # job title and avatar key (role slug): no personal data
+            if str(r.get(opt) or "").strip():
+                fields[opt] = str(r[opt]).strip()[:60]
         mongo.col("staff").update_one({"tenant_id": tid, "employee_id": emp}, {"$set": fields}, upsert=True)
     return len(rows)
 

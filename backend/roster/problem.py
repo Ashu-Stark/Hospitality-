@@ -23,8 +23,7 @@ from datetime import date, timedelta
 import numpy as np
 import pandas as pd
 
-from backend.config import ML_DATA, RosterConfig
-from ml.generator.config import load_config as load_ml_config
+from backend.config import RosterConfig, hotel_data
 
 DAYS = 7
 
@@ -38,6 +37,9 @@ class Staff:
     leave_days: frozenset[int]  # day indexes 0..6 (Mon..Sun) on approved leave
     carry_days: int  # consecutive days worked at the end of the previous week
     is_demo_hero: bool = False
+    # shift worked on the last day of the previous week, when known (rolling rosters): the minimum
+    # rest rule then also holds across the week boundary (e.g. Sunday evening -> Monday morning)
+    last_shift: str | None = None
 
 
 @dataclass
@@ -61,9 +63,10 @@ class Problem:
         payload = {
             "week": str(self.week_start), "protected": sorted(self.protected),
             "staff": [[s.employee_id, s.department, sorted(s.skills), sorted(s.leave_days),
-                       s.carry_days] for s in self.staff],
+                       s.carry_days] + ([s.last_shift] if s.last_shift else [])
+                      for s in self.staff],
             "demand": sorted([list(k) + [round(v, 3)] for k, v in self.demand.items()]),
-            "cfg": self.cfg.model_dump(mode="json"),
+            "cfg": self.cfg.rules_dump(),
         }
         return hashlib.sha256(json.dumps(payload, sort_keys=True).encode()).hexdigest()
 
@@ -79,8 +82,8 @@ def place_leave(employee_id: str, n_days: int, seed: int) -> frozenset[int]:
 
 
 def daily_demand(occupancy: list[float], cfg: RosterConfig) -> dict[tuple[str, int, str], float]:
-    """Required hours per (department, day, shift) from the ml workload standards."""
-    ml = load_ml_config()
+    """Required hours per (department, day, shift) from the hotel's ml workload standards."""
+    ml = hotel_data(cfg.hotel).ml
     out = {}
     for dept, shifts in cfg.department_shifts.items():
         std = ml.workload[dept]
@@ -95,26 +98,30 @@ def daily_demand(occupancy: list[float], cfg: RosterConfig) -> dict[tuple[str, i
 def carry_in(week_start: date, cfg: RosterConfig) -> dict[str, int]:
     """consecutive_days_worked in the previous week (ml signals + demo heroes), capped."""
     prev = str(week_start - timedelta(days=DAYS))
-    frames = [pd.read_csv(ML_DATA / "weekly_signals.csv"),
-              pd.read_csv(ML_DATA / "demo" / "hero_weekly.csv")]
+    data = hotel_data(cfg.hotel).data_dir
+    frames = [pd.read_csv(data / "weekly_signals.csv"),
+              pd.read_csv(data / "demo" / "hero_weekly.csv")]
     rows = pd.concat([f[["employee_id", "week_start", "consecutive_days_worked"]] for f in frames])
-    rows = rows[rows["week_start"] == prev]
+    rows = rows[rows["week_start"].astype(str) == prev]
     return {e: min(int(c), cfg.max_consecutive_days)
             for e, c in zip(rows["employee_id"], rows["consecutive_days_worked"], strict=True)}
 
 
 def build_problem(week_start: date, snapshot: list[dict], occupancy: list[float],
                   cfg: RosterConfig, protected: frozenset[str] = frozenset(),
-                  carry: dict[str, int] | None = None) -> Problem:
+                  carry: dict[str, int] | None = None,
+                  last_shift: dict[str, str] | None = None) -> Problem:
     carry = carry if carry is not None else carry_in(week_start, cfg)
     staff = [Staff(employee_id=r["employee_id"], department=r["department"],
                    skills=frozenset(json.loads(r["skills"])), monthly_pay=float(r["monthly_pay"]),
                    leave_days=place_leave(r["employee_id"], r["leave_days"], cfg.seed),
                    carry_days=carry.get(r["employee_id"], 0),
+                   last_shift=(last_shift or {}).get(r["employee_id"]),
                    is_demo_hero=bool(r["is_demo_hero"]))
              for r in snapshot if r["department"] in cfg.department_shifts]
     return Problem(week_start=week_start, staff=staff, demand=daily_demand(occupancy, cfg),
-                   cfg=cfg, standard_weekly_hours=load_ml_config().staff.standard_weekly_hours,
+                   cfg=cfg,
+                   standard_weekly_hours=hotel_data(cfg.hotel).ml.staff.standard_weekly_hours,
                    protected=protected)
 
 

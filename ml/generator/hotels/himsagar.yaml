@@ -1,0 +1,127 @@
+# Hotel variant: "Himsagar Ridge Resort, Mussoorie" (FICTIONAL hotel; ALL DATA SYNTHETIC).
+# Deep-merged over ml/generator/config.yaml by ml/generator/hotel_variant.py; keys not listed here keep the default
+# values. Every value is ASSUMED (a plausible small Mussoorie hill resort), not measured.
+# Generate with:  python run.py generate-hotel himsagar   (writes ml/data/hotels/himsagar/)
+
+hotel:
+  key: himsagar
+  display_name: "Himsagar Ridge Resort, Mussoorie (fictional)"
+  floors: 3
+  id_prefix: "HS"              # staff ids HS02..HS20 (HS01 = hotel manager, owner-side, not in the ml data)
+  former_id_prefix: "HSX"      # staff who left before the demo week (synthetic history): HSX001..
+  # Position order in the demo week (ids are assigned in this order, head first). Role codes reuse the default
+  # vocabulary so the trained attrition model sees known categories; role_title is display-only.
+  positions:
+    - {department: housekeeping, role: head, title: "Executive housekeeper"}
+    - {department: housekeeping, role: supervisor, title: "Housekeeping supervisor"}
+    - {department: housekeeping, role: attendant, title: "Housekeeping attendant"}
+    - {department: housekeeping, role: attendant, title: "Housekeeping attendant"}
+    - {department: housekeeping, role: attendant, title: "Housekeeping attendant"}
+    - {department: housekeeping, role: attendant, title: "Housekeeping attendant"}
+    - {department: front_office, role: head, title: "Front office manager"}
+    - {department: front_office, role: receptionist, title: "Front office associate"}
+    - {department: front_office, role: receptionist, title: "Front office associate"}
+    - {department: fnb_service, role: head, title: "F&B supervisor"}
+    - {department: fnb_service, role: waiter, title: "Restaurant server"}
+    - {department: fnb_service, role: waiter, title: "Restaurant server"}
+    - {department: kitchen, role: head_chef, title: "Head chef"}
+    - {department: kitchen, role: cook, title: "Cook"}
+    - {department: kitchen, role: helper, title: "Kitchen helper"}
+    - {department: maintenance, role: head, title: "Maintenance supervisor"}
+    - {department: maintenance, role: technician, title: "Maintenance technician"}
+    - {department: security, role: head, title: "Security supervisor"}
+    - {department: security, role: guard, title: "Security guard"}
+  manager: {employee_id: HS01, department: management, title: "Hotel manager", contract_type: permanent}
+  # The generator seed is searched upward from `seed` until the demo week has every position filled and at least
+  # min_seasonal seasonal staff (a vacancy gap would leave fewer than 19 rostered staff).
+  min_seasonal: 3
+  max_seed_tries: 40
+
+# 4243: the first seed from 4242 whose demo week is rosterable under backend/hotels/himsagar.yaml
+# (4242 fills every position but its F&B team cannot staff Monday 2029-12-24: leave + a 6-day
+# run carried in). Chosen once with the CP-SAT solver; a demo-data choice, like the heroes.
+seed: 4243
+
+property:
+  rooms: 24
+
+staff_target: 19
+
+departments:
+  housekeeping: 6
+  fnb_service: 3
+  kitchen: 3
+  front_office: 3
+  maintenance: 2
+  security: 2
+
+# Mussoorie (ASSUMED): summer peak (May-Jun, plains heat), Christmas-New Year winter peak (festival window below),
+# October holidays, monsoon dip (Jul-Sep, landslides), February low.
+month_base_occupancy:
+  1: 0.50
+  2: 0.30
+  3: 0.45
+  4: 0.60
+  5: 0.80
+  6: 0.78
+  7: 0.38
+  8: 0.30
+  9: 0.40
+  10: 0.62
+  11: 0.48
+  12: 0.62
+
+occupancy:
+  festival_bump: 0.18          # the "Christmas-New Year" window (festivals.yaml) is Mussoorie's winter peak
+  char_dham_bump: 0.06         # reused as the May-Jun summer-holiday bump (same 05-01..06-30 window)
+
+# Same role names and pay as the default hotel (pay_ratio = pay / role mean pay must stay comparable).
+roles:
+  housekeeping:
+    head: {count: 1, pay_mean: 28000, pay_sd: 3000}
+    supervisor: {count: 1, pay_mean: 20000, pay_sd: 2000}
+    attendant: {count: 4, pay_mean: 14000, pay_sd: 1500}
+  fnb_service:
+    head: {count: 1, pay_mean: 30000, pay_sd: 3000}
+    waiter: {count: 2, pay_mean: 14000, pay_sd: 1500}
+  kitchen:
+    head_chef: {count: 1, pay_mean: 45000, pay_sd: 5000}
+    cook: {count: 1, pay_mean: 24000, pay_sd: 3000}
+    helper: {count: 1, pay_mean: 13000, pay_sd: 1500}
+  front_office:
+    head: {count: 1, pay_mean: 32000, pay_sd: 3000}
+    receptionist: {count: 2, pay_mean: 18000, pay_sd: 2000}
+  maintenance:
+    head: {count: 1, pay_mean: 30000, pay_sd: 3000}
+    technician: {count: 1, pay_mean: 20000, pay_sd: 2500}
+  security:
+    head: {count: 1, pay_mean: 24000, pay_sd: 2500}
+    guard: {count: 1, pay_mean: 13000, pay_sd: 1500}
+
+# Two-person maintenance cannot hold 4 skills x 2 holders (max 3 skills each): generator dropped (ASSUMED: AMC vendor).
+skills:
+  housekeeping: [room_cleaning, turndown, laundry, deep_clean]
+  fnb_service: [table_service, banquet, bar]
+  kitchen: [tandoor, continental, prep, baking]
+  front_office: [fo_system, cash_handling, form_c_reporting]
+  maintenance: [electrical, plumbing, boiler_geyser]
+  security: [patrol, first_aid_fire]
+
+staff:
+  tenure_mean_years: 1.5
+  tenure_min_years: 0.1
+  tenure_max_years: 8
+  # Higher seasonal shares than the default so a 19-person team still has a seasonal mix (ASSUMED).
+  seasonal_share_by_role: {attendant: 0.5, waiter: 0.5, helper: 0.6}
+  seasonal_contract_end_options: ["06-30", "10-31"]
+  standard_weekly_hours: 48
+
+# Workload standards scaled from the default hotel so that load_ratio is the SAME function of occupancy:
+# base x (staff_here / staff_default), per-room-night x (staff_here / staff_default) x (45 / 24).
+workload:
+  housekeeping: {base_hours: 33.75, per_occupied_room_night_hours: 2.243}
+  fnb_service: {base_hours: 17.1, per_occupied_room_night_hours: 1.119}
+  kitchen: {base_hours: 17.1, per_occupied_room_night_hours: 1.119}
+  front_office: {base_hours: 17.25, per_occupied_room_night_hours: 1.118}
+  maintenance: {base_hours: 11.0, per_occupied_room_night_hours: 0.75}
+  security: {base_hours: 86.4, per_occupied_room_night_hours: 0}

@@ -104,7 +104,7 @@ def reset(request: Request) -> tuple[int, list[str]]:
     drop_all(db)
     ensure_indexes(db)
     app.state.clock.set_multiplier(1.0)
-    n = seed(db, app.state.settings.config.data_source)
+    n = seed(db, app.state.settings.config.data_source, hotel=app.state.settings.hotel)
     properties = seed_demo_properties(db, app.state.onboarding_cfg)
     audit(db, "demo.reset", {"rows": n, "demo_properties": properties}, "api")
     return n, properties

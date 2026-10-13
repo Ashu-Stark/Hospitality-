@@ -1,0 +1,276 @@
+{
+  "key": "himsagar",
+  "display_name": "Himsagar Ridge Resort, Mussoorie (fictional)",
+  "rooms": 24,
+  "floors": 3,
+  "demo_week": "2029-12-24",
+  "seed": 4243,
+  "staff": [
+    {
+      "employee_id": "HS01",
+      "department": "management",
+      "role": "manager",
+      "role_title": "Hotel manager",
+      "contract_type": "permanent",
+      "is_department_head": false,
+      "skills": [],
+      "rostered": false
+    },
+    {
+      "employee_id": "HS02",
+      "department": "housekeeping",
+      "role": "head",
+      "role_title": "Executive housekeeper",
+      "contract_type": "permanent",
+      "is_department_head": true,
+      "skills": [
+        "deep_clean",
+        "room_cleaning",
+        "turndown"
+      ],
+      "rostered": true
+    },
+    {
+      "employee_id": "HS03",
+      "department": "housekeeping",
+      "role": "supervisor",
+      "role_title": "Housekeeping supervisor",
+      "contract_type": "permanent",
+      "is_department_head": false,
+      "skills": [
+        "laundry",
+        "turndown"
+      ],
+      "rostered": true
+    },
+    {
+      "employee_id": "HS04",
+      "department": "housekeeping",
+      "role": "attendant",
+      "role_title": "Housekeeping attendant",
+      "contract_type": "permanent",
+      "is_department_head": false,
+      "skills": [
+        "laundry",
+        "turndown"
+      ],
+      "rostered": true
+    },
+    {
+      "employee_id": "HS05",
+      "department": "housekeeping",
+      "role": "attendant",
+      "role_title": "Housekeeping attendant",
+      "contract_type": "permanent",
+      "is_department_head": false,
+      "skills": [
+        "laundry"
+      ],
+      "rostered": true
+    },
+    {
+      "employee_id": "HS06",
+      "department": "housekeeping",
+      "role": "attendant",
+      "role_title": "Housekeeping attendant",
+      "contract_type": "seasonal",
+      "is_department_head": false,
+      "skills": [
+        "deep_clean",
+        "laundry"
+      ],
+      "rostered": true
+    },
+    {
+      "employee_id": "HS07",
+      "department": "housekeeping",
+      "role": "attendant",
+      "role_title": "Housekeeping attendant",
+      "contract_type": "seasonal",
+      "is_department_head": false,
+      "skills": [
+        "room_cleaning"
+      ],
+      "rostered": true
+    },
+    {
+      "employee_id": "HS08",
+      "department": "front_office",
+      "role": "head",
+      "role_title": "Front office manager",
+      "contract_type": "permanent",
+      "is_department_head": true,
+      "skills": [
+        "cash_handling",
+        "fo_system",
+        "form_c_reporting"
+      ],
+      "rostered": true
+    },
+    {
+      "employee_id": "HS09",
+      "department": "front_office",
+      "role": "receptionist",
+      "role_title": "Front office associate",
+      "contract_type": "permanent",
+      "is_department_head": false,
+      "skills": [
+        "cash_handling",
+        "fo_system",
+        "form_c_reporting"
+      ],
+      "rostered": true
+    },
+    {
+      "employee_id": "HS10",
+      "department": "front_office",
+      "role": "receptionist",
+      "role_title": "Front office associate",
+      "contract_type": "permanent",
+      "is_department_head": false,
+      "skills": [
+        "cash_handling",
+        "fo_system"
+      ],
+      "rostered": true
+    },
+    {
+      "employee_id": "HS11",
+      "department": "fnb_service",
+      "role": "head",
+      "role_title": "F&B supervisor",
+      "contract_type": "permanent",
+      "is_department_head": true,
+      "skills": [
+        "banquet",
+        "bar",
+        "table_service"
+      ],
+      "rostered": true
+    },
+    {
+      "employee_id": "HS12",
+      "department": "fnb_service",
+      "role": "waiter",
+      "role_title": "Restaurant server",
+      "contract_type": "permanent",
+      "is_department_head": false,
+      "skills": [
+        "banquet",
+        "table_service"
+      ],
+      "rostered": true
+    },
+    {
+      "employee_id": "HS13",
+      "department": "fnb_service",
+      "role": "waiter",
+      "role_title": "Restaurant server",
+      "contract_type": "seasonal",
+      "is_department_head": false,
+      "skills": [
+        "bar",
+        "table_service"
+      ],
+      "rostered": true
+    },
+    {
+      "employee_id": "HS14",
+      "department": "kitchen",
+      "role": "head_chef",
+      "role_title": "Head chef",
+      "contract_type": "permanent",
+      "is_department_head": true,
+      "skills": [
+        "baking",
+        "prep",
+        "tandoor"
+      ],
+      "rostered": true
+    },
+    {
+      "employee_id": "HS15",
+      "department": "kitchen",
+      "role": "cook",
+      "role_title": "Cook",
+      "contract_type": "permanent",
+      "is_department_head": false,
+      "skills": [
+        "baking",
+        "continental",
+        "tandoor"
+      ],
+      "rostered": true
+    },
+    {
+      "employee_id": "HS16",
+      "department": "kitchen",
+      "role": "helper",
+      "role_title": "Kitchen helper",
+      "contract_type": "seasonal",
+      "is_department_head": false,
+      "skills": [
+        "continental",
+        "prep",
+        "tandoor"
+      ],
+      "rostered": true
+    },
+    {
+      "employee_id": "HS17",
+      "department": "maintenance",
+      "role": "head",
+      "role_title": "Maintenance supervisor",
+      "contract_type": "permanent",
+      "is_department_head": true,
+      "skills": [
+        "boiler_geyser",
+        "electrical",
+        "plumbing"
+      ],
+      "rostered": true
+    },
+    {
+      "employee_id": "HS18",
+      "department": "maintenance",
+      "role": "technician",
+      "role_title": "Maintenance technician",
+      "contract_type": "permanent",
+      "is_department_head": false,
+      "skills": [
+        "boiler_geyser",
+        "electrical",
+        "plumbing"
+      ],
+      "rostered": true
+    },
+    {
+      "employee_id": "HS19",
+      "department": "security",
+      "role": "head",
+      "role_title": "Security supervisor",
+      "contract_type": "permanent",
+      "is_department_head": true,
+      "skills": [
+        "first_aid_fire",
+        "patrol"
+      ],
+      "rostered": true
+    },
+    {
+      "employee_id": "HS20",
+      "department": "security",
+      "role": "guard",
+      "role_title": "Security guard",
+      "contract_type": "permanent",
+      "is_department_head": false,
+      "skills": [
+        "first_aid_fire",
+        "patrol"
+      ],
+      "rostered": true
+    }
+  ],
+  "synthetic": true,
+  "note": "FICTIONAL hotel; SYNTHETIC data from ml/generator (ASSUMED parameters). Ids only."
+}

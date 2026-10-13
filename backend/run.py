@@ -6,6 +6,7 @@ Usage:
     python run.py lint          # ruff check .
     python run.py seed          # rebuild hoi_ops (MongoDB, MONGODB_URI) from the SYNTHETIC ml data
     python run.py roster-cache  # solve the demo week and save the cached demo roster
+    python run.py roster-precompute [--weeks N] [--time-limit S]  # rosters -> MongoDB roster_cache
     python run.py roster-stress [n]  # n random scenarios (default 100): hard violations, times
     python run.py backend       # start the API on http://127.0.0.1:8000 (MOCK=1 for mock mode)
     python run.py backend-smoke # fresh process: health, forecast, score, roster, loop, task
@@ -62,6 +63,10 @@ def cmd_roster_cache() -> int:
     return _run(["backend.roster.build_cache"])
 
 
+def cmd_roster_precompute(*args: str) -> int:
+    return _run(["backend.roster.precompute", *args])
+
+
 def cmd_roster_stress(*args: str) -> int:
     return _run(["backend.roster.stress", *args])
 
@@ -86,9 +91,10 @@ def cmd_backend() -> int:
 
 COMMANDS = {"test": cmd_test, "lint": cmd_lint, "seed": cmd_seed, "backend": cmd_backend,
             "roster-cache": cmd_roster_cache, "roster-stress": cmd_roster_stress,
+            "roster-precompute": cmd_roster_precompute,
             "backend-smoke": cmd_backend_smoke, "onboarding-demo": cmd_onboarding_demo,
             "eval-onboarding": cmd_eval_onboarding}
-TAKES_ARGS = {"test", "roster-stress", "onboarding-demo", "eval-onboarding"}
+TAKES_ARGS = {"test", "roster-stress", "roster-precompute", "onboarding-demo", "eval-onboarding"}
 
 
 def main(argv: list[str]) -> int:

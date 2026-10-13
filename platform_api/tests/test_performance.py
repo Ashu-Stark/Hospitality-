@@ -14,7 +14,7 @@ from hoi_platform import mongo
 from hoi_platform.services import performance
 
 NOW = datetime.now(UTC).replace(microsecond=0)
-A, B, M = "E134", "HB1", "MX1"  # A is the demo worker account; B too few jobs; M another department
+A, B, M = "HS05", "HB1", "MX1"  # A is the demo worker account; B too few jobs; M another department
 
 
 def _ctx(client, owner, working):
@@ -142,7 +142,7 @@ def test_minimum_jobs_and_quality_renormalised(client, seeded):
 
 
 def test_roles_and_scoping(client, seeded):
-    head, hr, worker = auth(client, "demo.housekeeping"), auth(client, "demo.hr"), auth(client, "E134")
+    head, hr, worker = auth(client, "demo.housekeeping"), auth(client, "demo.hr"), auth(client, "HS05")
     owner_ids = {w["employee_id"] for w in client.get("/dispatch/performance", headers=seeded).json()["workers"]}
     assert {A, B, M} <= owner_ids
     h = client.get("/dispatch/performance", headers=head).json()

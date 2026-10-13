@@ -12,6 +12,7 @@
   const SHIFTS = { en: { morning: "Morning", evening: "Evening", night: "Night" }, hi: { morning: "सुबह की", evening: "शाम की", night: "रात की" } };
   const day = (i) => (DAYS[S.lang] || DAYS.en)[i];
   const dept = (k) => (DEPTS[S.lang] || DEPTS.en)[k] || k || "";
+  const roleImg = (d) => `<img class="javatar" src="${esc(window.HOI_AVATAR(d))}" alt="" width="28" height="28">`;
   const shiftName = (k) => (SHIFTS[S.lang] || SHIFTS.en)[k] || k;
   // Local calendar date as YYYY-MM-DD. Converting through UTC would shift Indian (UTC+5:30) dates back by one day.
   const ymd = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
@@ -115,11 +116,17 @@
 
   function renderAll() {
     const emp = S.user.employee_id || S.user.username;
-    $("#avatar").textContent = emp.slice(-3);
+    $("#avatar").src = window.HOI_AVATAR(S.me?.department);
+    $("#meAvatar").src = window.HOI_AVATAR(S.me?.department);
+    // Hotel mark: tenant logo (e.g. /shared/brand/x-logo.svg) -> its square "-mark" sibling; hidden when none.
+    const logo = window.HOI_SAFE_IMG(S.tenant?.logo_url || S.tenant?.profile?.logo_url);
+    const mark = logo ? logo.replace(/-logo(\.\w+)$/, "-mark$1") : null;
+    $("#brandMark").classList.toggle("hidden", !mark);
+    if (mark) { $("#brandMark").src = mark; $("#brandMark").alt = S.tenant?.name || ""; }
     $("#whoName").textContent = emp;
     $("#whoDept").textContent = dept(S.me?.department);
     $("#shiftChip").textContent = S.me?.on_shift_now ? t("on_shift") : t("off_shift");
-    $("#meId").textContent = emp; $("#meDept").textContent = dept(S.me?.department) || "—"; $("#meHotel").textContent = S.tenant?.name || "";
+    $("#meId").textContent = emp; $("#meDeptTxt").textContent = dept(S.me?.department) || "—"; $("#meHotel").textContent = S.tenant?.name || "";
     if (S.tenant?.brand_color) document.documentElement.style.setProperty("--brand", S.tenant.brand_color);
     renderToday(); renderJobs(); renderItems(); loadRequests();
   }
@@ -191,7 +198,7 @@
     if (offer) {
       const left = offer.seconds_left || 0, total = Math.max(left, 30);
       oEl.innerHTML = `<div class="offer anim"><div class="ring" aria-live="polite">${left}</div><div class="t">${esc(t("new_request"))}</div>` +
-        `<h2>${esc(offer.title)}</h2><div class="muted">${offer.room ? esc(t("room")) + " " + esc(offer.room) + " · " : ""}${esc(t("urgency_" + offer.urgency))}</div>` +
+        `<h2>${esc(offer.title)}</h2><div class="muted jmeta">${roleImg(offer.department)}<span>${offer.department ? esc(dept(offer.department)) + " · " : ""}${offer.room ? esc(t("room")) + " " + esc(offer.room) + " · " : ""}${esc(t("urgency_" + offer.urgency))}</span></div>` +
         `<div class="bar"><i data-w="${Math.round((100 * left) / total)}"></i></div>` +
         `<div class="row"><button class="btn" data-act="decline" data-id="${esc(offer.id)}">${esc(t("decline"))}</button>` +
         `<button class="btn primary" data-act="accept" data-id="${esc(offer.id)}">${esc(t("accept"))}</button></div></div>`;
@@ -200,7 +207,7 @@
     $("#active").innerHTML = active.map((j) => {
       const step = j.status === "accepted" ? 1 : 2;
       return `<div class="job anim"><div class="row"><h3>${esc(j.title)}</h3><span class="chip ${step === 1 ? "watch" : "low"}">${esc(t(j.status))}</span></div>` +
-        `<div class="muted">${j.room ? esc(t("room")) + " " + esc(j.room) : ""}</div><div class="steps"><span class="on"></span><span class="${step === 2 ? "on" : ""}"></span><span></span></div>` +
+        `<div class="muted jmeta">${roleImg(j.department)}<span>${esc(dept(j.department))}${j.room ? " · " + esc(t("room")) + " " + esc(j.room) : ""}</span></div><div class="steps"><span class="on"></span><span class="${step === 2 ? "on" : ""}"></span><span></span></div>` +
         `<button class="btn primary" data-act="photo" data-kind="${step === 1 ? "before" : "after"}" data-id="${esc(j.id)}">📷 ${esc(t(step === 1 ? "before_photo" : "after_photo"))}</button></div>`;
     }).join("");
     $("#noJobs").classList.toggle("hidden", !!offer || active.length > 0);

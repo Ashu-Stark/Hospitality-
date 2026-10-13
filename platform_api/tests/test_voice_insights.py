@@ -19,7 +19,7 @@ def _fresh():
 
 def _setup(client, owner):
     client.post("/dispatch/reset", headers=owner)
-    client.put("/dispatch/context", json={"working": {"E134": "housekeeping", "MT1": "maintenance"}, "bands": {}}, headers=owner)
+    client.put("/dispatch/context", json={"working": {"HS05": "housekeeping", "MT1": "maintenance"}, "bands": {}}, headers=owner)
 
 
 def cmd(client, worker, text, lang="en"):
@@ -32,7 +32,7 @@ def test_worker_voice_flow(client, owner, worker):
     _setup(client, owner)
     assert cmd(client, worker, "what's next")["intent"] == "whats_next"
     job = client.post("/dispatch/jobs", json={"title": "Extra towels", "room": "305", "department": "housekeeping"}, headers=owner).json()
-    assert job["offer_to"] == "E134"
+    assert job["offer_to"] == "HS05"
     nxt = cmd(client, worker, "what's next")
     assert nxt["intent"] == "whats_next" and "Extra towels" in nxt["reply"] and nxt["proposed_action"]["action"] == "accept"
     hi = cmd(client, worker, "अगला काम क्या है", "hi")
@@ -132,7 +132,7 @@ def test_insights_scoping_and_shape(client, platform, owner):
         "properties",
     ):
         assert k in demo
-    assert demo["rooms"] == 45 and demo["properties"][0]["rooms"] == 45
+    assert demo["rooms"] == 24 and demo["properties"][0]["rooms"] == 24
     assert demo["inventory"]["stock_value"] > 0
     assert demo["performance"]["suppressed"] is True and demo["performance"]["average_score"] is None  # < 5 scored workers
 

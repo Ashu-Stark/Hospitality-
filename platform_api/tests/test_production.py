@@ -82,7 +82,7 @@ def test_room_turnaround_flow(client, owner):
     client.post("/dispatch/reset", headers=owner)
     _ctx(client, owner)
     data = client.get("/rooms", headers=owner).json()
-    assert data["summary"]["total"] == 45
+    assert data["summary"]["total"] == 24
     room = next(r for r in data["rooms"] if r["status"] == "occupied")
     r = client.post(f"/rooms/{room['id']}/checkout", headers=owner).json()
     assert r["status"] == "dirty" and r["current_job_id"]
@@ -167,13 +167,13 @@ def test_worker_sees_own_published_shifts(client, owner, worker):
         json={
             "week_start": "2029-12-24",
             "assignments": [
-                {"employee_id": "E134", "date": "2029-12-24", "shift": "morning", "hours": 9},
+                {"employee_id": "HS05", "date": "2029-12-24", "shift": "morning", "hours": 9},
                 {"employee_id": "E999", "date": "2029-12-24", "shift": "evening", "hours": 9},
             ],
         },
         headers=owner,
     )
     me = client.get("/me/shifts", headers=worker).json()
-    assert [s["employee_id"] for s in me["shifts"]] == ["E134"]
+    assert [s["employee_id"] for s in me["shifts"]] == ["HS05"]
     assert client.put("/dispatch/roster", json={"assignments": []}, headers=worker).status_code == 403
-    assert auth(client, "E134")
+    assert auth(client, "HS05")

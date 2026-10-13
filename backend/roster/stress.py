@@ -17,7 +17,7 @@ from dataclasses import replace
 
 import numpy as np
 
-from backend.config import load_backend_config
+from backend.config import hotel_data, load_backend_config
 from backend.db import snapshot_frame
 from backend.roster.problem import DAYS, build_problem
 from backend.roster.solver import solve
@@ -26,9 +26,9 @@ LEAVE_DAYS, LEAVE_P = [0, 1, 2], [0.7, 0.2, 0.1]
 OCC_RANGE = (0.30, 1.00)
 
 
-def scenarios(n: int, seed: int) -> list:
-    cfg = load_backend_config().roster
-    rows = snapshot_frame().to_dict("records")
+def scenarios(n: int, seed: int, hotel: str | None = None) -> list:
+    cfg = load_backend_config(hotel=hotel).roster
+    rows = snapshot_frame(hotel_data(hotel).data_dir).to_dict("records")
     rng = np.random.default_rng([seed, n])
     out = []
     for _ in range(n):
@@ -44,10 +44,11 @@ def scenarios(n: int, seed: int) -> list:
     return out
 
 
-def run(n: int = 100, seed: int | None = None) -> dict:
-    cfg = load_backend_config().roster
+def run(n: int = 100, seed: int | None = None, hotel: str | None = None) -> dict:
+    """hotel: which hotel dataset (default HOI_HOTEL_DATA, else himsagar)."""
+    cfg = load_backend_config(hotel=hotel).roster
     results = []
-    for p in scenarios(n, cfg.seed if seed is None else seed):
+    for p in scenarios(n, cfg.seed if seed is None else seed, hotel):
         o = solve(p)
         results.append({"method": o.method, "status": o.status, "seconds": o.solve_seconds,
                         "published": bool(o.assignments), "causes": o.causes,

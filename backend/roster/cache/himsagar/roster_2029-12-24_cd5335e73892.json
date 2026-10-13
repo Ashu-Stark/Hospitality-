@@ -1,0 +1,561 @@
+{
+ "fingerprint": "cd5335e73892c62c785770eeb2b2809c810197436d0da94ce09124a891c9bf4d",
+ "status": "optimal",
+ "assignments": [
+  {
+   "employee_id": "HS02",
+   "day": 1,
+   "shift": "morning"
+  },
+  {
+   "employee_id": "HS02",
+   "day": 2,
+   "shift": "morning"
+  },
+  {
+   "employee_id": "HS02",
+   "day": 3,
+   "shift": "evening"
+  },
+  {
+   "employee_id": "HS02",
+   "day": 4,
+   "shift": "evening"
+  },
+  {
+   "employee_id": "HS02",
+   "day": 5,
+   "shift": "evening"
+  },
+  {
+   "employee_id": "HS02",
+   "day": 6,
+   "shift": "evening"
+  },
+  {
+   "employee_id": "HS03",
+   "day": 0,
+   "shift": "evening"
+  },
+  {
+   "employee_id": "HS03",
+   "day": 1,
+   "shift": "evening"
+  },
+  {
+   "employee_id": "HS03",
+   "day": 2,
+   "shift": "evening"
+  },
+  {
+   "employee_id": "HS03",
+   "day": 3,
+   "shift": "evening"
+  },
+  {
+   "employee_id": "HS03",
+   "day": 5,
+   "shift": "morning"
+  },
+  {
+   "employee_id": "HS03",
+   "day": 6,
+   "shift": "morning"
+  },
+  {
+   "employee_id": "HS04",
+   "day": 0,
+   "shift": "morning"
+  },
+  {
+   "employee_id": "HS04",
+   "day": 1,
+   "shift": "evening"
+  },
+  {
+   "employee_id": "HS04",
+   "day": 3,
+   "shift": "morning"
+  },
+  {
+   "employee_id": "HS04",
+   "day": 4,
+   "shift": "morning"
+  },
+  {
+   "employee_id": "HS04",
+   "day": 5,
+   "shift": "morning"
+  },
+  {
+   "employee_id": "HS04",
+   "day": 6,
+   "shift": "morning"
+  },
+  {
+   "employee_id": "HS05",
+   "day": 0,
+   "shift": "morning"
+  },
+  {
+   "employee_id": "HS05",
+   "day": 1,
+   "shift": "morning"
+  },
+  {
+   "employee_id": "HS05",
+   "day": 2,
+   "shift": "morning"
+  },
+  {
+   "employee_id": "HS05",
+   "day": 4,
+   "shift": "morning"
+  },
+  {
+   "employee_id": "HS05",
+   "day": 5,
+   "shift": "morning"
+  },
+  {
+   "employee_id": "HS05",
+   "day": 6,
+   "shift": "morning"
+  },
+  {
+   "employee_id": "HS06",
+   "day": 0,
+   "shift": "evening"
+  },
+  {
+   "employee_id": "HS06",
+   "day": 2,
+   "shift": "morning"
+  },
+  {
+   "employee_id": "HS06",
+   "day": 3,
+   "shift": "morning"
+  },
+  {
+   "employee_id": "HS06",
+   "day": 4,
+   "shift": "morning"
+  },
+  {
+   "employee_id": "HS06",
+   "day": 5,
+   "shift": "morning"
+  },
+  {
+   "employee_id": "HS06",
+   "day": 6,
+   "shift": "morning"
+  },
+  {
+   "employee_id": "HS07",
+   "day": 0,
+   "shift": "morning"
+  },
+  {
+   "employee_id": "HS07",
+   "day": 1,
+   "shift": "morning"
+  },
+  {
+   "employee_id": "HS07",
+   "day": 3,
+   "shift": "morning"
+  },
+  {
+   "employee_id": "HS07",
+   "day": 4,
+   "shift": "evening"
+  },
+  {
+   "employee_id": "HS07",
+   "day": 5,
+   "shift": "evening"
+  },
+  {
+   "employee_id": "HS07",
+   "day": 6,
+   "shift": "evening"
+  },
+  {
+   "employee_id": "HS08",
+   "day": 0,
+   "shift": "evening"
+  },
+  {
+   "employee_id": "HS08",
+   "day": 2,
+   "shift": "morning"
+  },
+  {
+   "employee_id": "HS08",
+   "day": 3,
+   "shift": "evening"
+  },
+  {
+   "employee_id": "HS08",
+   "day": 4,
+   "shift": "evening"
+  },
+  {
+   "employee_id": "HS08",
+   "day": 5,
+   "shift": "evening"
+  },
+  {
+   "employee_id": "HS08",
+   "day": 6,
+   "shift": "evening"
+  },
+  {
+   "employee_id": "HS09",
+   "day": 0,
+   "shift": "morning"
+  },
+  {
+   "employee_id": "HS09",
+   "day": 1,
+   "shift": "evening"
+  },
+  {
+   "employee_id": "HS09",
+   "day": 3,
+   "shift": "morning"
+  },
+  {
+   "employee_id": "HS09",
+   "day": 4,
+   "shift": "evening"
+  },
+  {
+   "employee_id": "HS09",
+   "day": 5,
+   "shift": "evening"
+  },
+  {
+   "employee_id": "HS09",
+   "day": 6,
+   "shift": "evening"
+  },
+  {
+   "employee_id": "HS10",
+   "day": 1,
+   "shift": "morning"
+  },
+  {
+   "employee_id": "HS10",
+   "day": 2,
+   "shift": "evening"
+  },
+  {
+   "employee_id": "HS10",
+   "day": 4,
+   "shift": "morning"
+  },
+  {
+   "employee_id": "HS10",
+   "day": 5,
+   "shift": "morning"
+  },
+  {
+   "employee_id": "HS10",
+   "day": 6,
+   "shift": "morning"
+  },
+  {
+   "employee_id": "HS11",
+   "day": 0,
+   "shift": "evening"
+  },
+  {
+   "employee_id": "HS11",
+   "day": 1,
+   "shift": "evening"
+  },
+  {
+   "employee_id": "HS11",
+   "day": 2,
+   "shift": "evening"
+  },
+  {
+   "employee_id": "HS11",
+   "day": 4,
+   "shift": "morning"
+  },
+  {
+   "employee_id": "HS11",
+   "day": 5,
+   "shift": "morning"
+  },
+  {
+   "employee_id": "HS11",
+   "day": 6,
+   "shift": "morning"
+  },
+  {
+   "employee_id": "HS12",
+   "day": 0,
+   "shift": "evening"
+  },
+  {
+   "employee_id": "HS12",
+   "day": 2,
+   "shift": "morning"
+  },
+  {
+   "employee_id": "HS12",
+   "day": 3,
+   "shift": "evening"
+  },
+  {
+   "employee_id": "HS12",
+   "day": 4,
+   "shift": "evening"
+  },
+  {
+   "employee_id": "HS12",
+   "day": 5,
+   "shift": "evening"
+  },
+  {
+   "employee_id": "HS12",
+   "day": 6,
+   "shift": "evening"
+  },
+  {
+   "employee_id": "HS13",
+   "day": 0,
+   "shift": "morning"
+  },
+  {
+   "employee_id": "HS13",
+   "day": 1,
+   "shift": "morning"
+  },
+  {
+   "employee_id": "HS13",
+   "day": 3,
+   "shift": "morning"
+  },
+  {
+   "employee_id": "HS13",
+   "day": 4,
+   "shift": "morning"
+  },
+  {
+   "employee_id": "HS13",
+   "day": 5,
+   "shift": "morning"
+  },
+  {
+   "employee_id": "HS13",
+   "day": 6,
+   "shift": "morning"
+  },
+  {
+   "employee_id": "HS14",
+   "day": 0,
+   "shift": "morning"
+  },
+  {
+   "employee_id": "HS14",
+   "day": 1,
+   "shift": "evening"
+  },
+  {
+   "employee_id": "HS14",
+   "day": 3,
+   "shift": "morning"
+  },
+  {
+   "employee_id": "HS14",
+   "day": 4,
+   "shift": "morning"
+  },
+  {
+   "employee_id": "HS14",
+   "day": 5,
+   "shift": "evening"
+  },
+  {
+   "employee_id": "HS14",
+   "day": 6,
+   "shift": "evening"
+  },
+  {
+   "employee_id": "HS15",
+   "day": 0,
+   "shift": "evening"
+  },
+  {
+   "employee_id": "HS15",
+   "day": 2,
+   "shift": "morning"
+  },
+  {
+   "employee_id": "HS15",
+   "day": 3,
+   "shift": "morning"
+  },
+  {
+   "employee_id": "HS15",
+   "day": 4,
+   "shift": "morning"
+  },
+  {
+   "employee_id": "HS15",
+   "day": 5,
+   "shift": "morning"
+  },
+  {
+   "employee_id": "HS15",
+   "day": 6,
+   "shift": "morning"
+  },
+  {
+   "employee_id": "HS16",
+   "day": 1,
+   "shift": "morning"
+  },
+  {
+   "employee_id": "HS16",
+   "day": 2,
+   "shift": "evening"
+  },
+  {
+   "employee_id": "HS16",
+   "day": 3,
+   "shift": "evening"
+  },
+  {
+   "employee_id": "HS16",
+   "day": 4,
+   "shift": "evening"
+  },
+  {
+   "employee_id": "HS16",
+   "day": 5,
+   "shift": "evening"
+  },
+  {
+   "employee_id": "HS17",
+   "day": 0,
+   "shift": "evening"
+  },
+  {
+   "employee_id": "HS17",
+   "day": 2,
+   "shift": "morning"
+  },
+  {
+   "employee_id": "HS17",
+   "day": 3,
+   "shift": "evening"
+  },
+  {
+   "employee_id": "HS17",
+   "day": 4,
+   "shift": "evening"
+  },
+  {
+   "employee_id": "HS17",
+   "day": 5,
+   "shift": "evening"
+  },
+  {
+   "employee_id": "HS17",
+   "day": 6,
+   "shift": "evening"
+  },
+  {
+   "employee_id": "HS18",
+   "day": 0,
+   "shift": "morning"
+  },
+  {
+   "employee_id": "HS18",
+   "day": 1,
+   "shift": "morning"
+  },
+  {
+   "employee_id": "HS18",
+   "day": 3,
+   "shift": "morning"
+  },
+  {
+   "employee_id": "HS18",
+   "day": 4,
+   "shift": "morning"
+  },
+  {
+   "employee_id": "HS18",
+   "day": 5,
+   "shift": "morning"
+  },
+  {
+   "employee_id": "HS18",
+   "day": 6,
+   "shift": "morning"
+  },
+  {
+   "employee_id": "HS19",
+   "day": 0,
+   "shift": "night"
+  },
+  {
+   "employee_id": "HS19",
+   "day": 1,
+   "shift": "night"
+  },
+  {
+   "employee_id": "HS19",
+   "day": 3,
+   "shift": "night"
+  },
+  {
+   "employee_id": "HS19",
+   "day": 4,
+   "shift": "night"
+  },
+  {
+   "employee_id": "HS19",
+   "day": 5,
+   "shift": "night"
+  },
+  {
+   "employee_id": "HS19",
+   "day": 6,
+   "shift": "night"
+  },
+  {
+   "employee_id": "HS20",
+   "day": 0,
+   "shift": "night"
+  },
+  {
+   "employee_id": "HS20",
+   "day": 1,
+   "shift": "night"
+  },
+  {
+   "employee_id": "HS20",
+   "day": 2,
+   "shift": "night"
+  },
+  {
+   "employee_id": "HS20",
+   "day": 3,
+   "shift": "night"
+  },
+  {
+   "employee_id": "HS20",
+   "day": 4,
+   "shift": "night"
+  }
+ ]
+}

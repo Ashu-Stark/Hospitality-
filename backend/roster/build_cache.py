@@ -11,20 +11,20 @@ from backend.config import default_settings
 from backend.db import ensure_seeded
 from backend.mongo import get_database
 from backend.roster.service import make_problem
-from backend.roster.solver import CACHE_DIR, save_cache, solve_cp_sat
+from backend.roster.solver import cache_dir, save_cache, solve_cp_sat
 from backend.services import ModelService
 
 
 def main() -> int:
     settings = default_settings()
-    service = ModelService()
+    service = ModelService(settings.hotel)
     week = service.latest_week()
     flagged = [s.employee_id for s in service.score(week, None)
                if s.band == "high" and s.segment == "resignation"]
-    for old in CACHE_DIR.glob(f"roster_{week}*.json"):
+    for old in cache_dir(settings.hotel).glob(f"roster_{week}*.json"):
         old.unlink()
     db = get_database(settings)
-    ensure_seeded(db, settings.config.data_source)
+    ensure_seeded(db, settings.config.data_source, settings.hotel)
     for name, protected in (("baseline", []), ("protected", flagged)):
         problem = make_problem(db, service, settings.config.roster, None, protected)
         outcome = solve_cp_sat(problem, deterministic=True)

@@ -71,8 +71,12 @@ def _predict_horizon(info: dict, row: pd.DataFrame) -> tuple[np.ndarray, ...]:
 
 
 def predict(start_date: date | str, end_date: date | str, as_of: date | str | None = None,
-            artifact_dir: Path = ARTIFACT_DIR, data_dir: Path = DATA_DIR) -> ForecastResult:
-    """Daily occupancy mean, 80% band and alert flags for start_date..end_date (inclusive)."""
+            artifact_dir: Path = ARTIFACT_DIR, data_dir: Path = DATA_DIR,
+            rooms: int | None = None) -> ForecastResult:
+    """Daily occupancy mean, 80% band and alert flags for start_date..end_date (inclusive).
+
+    rooms: the property's room count (booking pace is divided by it); default config.yaml's. A hotel
+    variant (ml/generator/hotel_variant.py) passes its own data_dir and rooms."""
     cfg = load_config()
     start, end = pd.Timestamp(start_date), pd.Timestamp(end_date)
     origin = pd.Timestamp(as_of) if as_of is not None else start - timedelta(days=1)
@@ -82,7 +86,7 @@ def predict(start_date: date | str, end_date: date | str, as_of: date | str | No
     if start <= daily.index.min() or end > daily.index.max():
         raise ValueError(f"dates must lie inside the SYNTHETIC data "
                          f"({daily.index.min().date()}..{daily.index.max().date()})")
-    rooms = cfg.property.rooms
+    rooms = rooms if rooms is not None else cfg.property.rooms
     days, frames = [], {}
     for d in pd.date_range(start, end, freq="D"):
         h = _horizon_for((d - origin).days, list(bundle))

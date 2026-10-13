@@ -16,6 +16,7 @@ from pymongo.database import Database
 
 from backend.config import RosterConfig
 from backend.db import EMPLOYEES, NO_ID, ROSTERS, audit, insert, json_safe
+from backend.roster import dbcache
 from backend.roster.problem import DAYS, Problem, build_problem
 from backend.roster.solver import Outcome, solve
 from backend.services import Service
@@ -24,7 +25,7 @@ from backend.services import Service
 class RosterRequest(BaseModel):
     week_start: date | None = None  # default: the snapshot week
     protected_ids: list[str] = Field(default_factory=list)  # protected-off bonus applies
-    use_cache: bool = False  # return the cached demo-week roster when its inputs match
+    use_cache: bool = True  # MongoDB roster cache, then the file cache, when the inputs match
     deterministic: bool = False  # reproducible solve (demo week); slower than the default
 
 
@@ -113,11 +114,51 @@ def load(db: Database, roster_id: int) -> RosterResult:
                                    shift=r["shift"], hours=int(r["hours"])) for r in rows])
 
 
+def snapshot_week(db: Database) -> date:
+    row = db[EMPLOYEES].find_one({}, {"_id": 0, "week_start": 1})
+    if row is None:
+        raise ValueError("no employee snapshot: POST /demo/reset first")
+    return date.fromisoformat(row["week_start"])
+
+
+def store_cached(db: Database, hit: dict, source: str) -> RosterResult:
+    """A roster from the MongoDB cache, saved as a roster document (method cached_db)."""
+    r = hit["result"]
+    summary = {"coverage": r["coverage"], "cost": r["cost"], "people": r["people"],
+               "violated_soft_goals": r["violated_soft_goals"], "solve_seconds": 0.0,
+               "objective": r.get("objective"), "hard_violations": [], "causes": [],
+               "protected_ids": hit["protected_ids"],
+               "cache": {"solved_at": str(hit.get("solved_at")), "solved_on": hit.get("solved_on"),
+                         "original_method": r.get("method"), "original_status": r.get("status"),
+                         "original_solve_seconds": r.get("solve_seconds"),
+                         "occupancy_source": hit.get("occupancy_source")}}
+    assignments = [{"employee_id": a["employee_id"], "day": str(a["date"]), "shift": a["shift"],
+                    "hours": float(a["hours"])} for a in r["assignments"]]
+    roster = insert(db, ROSTERS, {"week_start": hit["week_start"], "method": "cached_db",
+                                  "status": r["status"], "summary": json_safe(summary),
+                                  "assignments": assignments}, source)
+    audit(db, "roster.generate", {"roster_id": roster["id"], "method": "cached_db",
+                                  "status": r["status"], "hard_violations": 0,
+                                  "protected_ids": hit["protected_ids"]}, source)
+    return load(db, roster["id"])
+
+
 def generate(db: Database, service: Service, cfg: RosterConfig, body: RosterRequest,
              source: str) -> RosterResult:
+    """MongoDB roster cache first (any week stored there), then solve the snapshot week as before;
+    a solved roster with zero hard violations is stored in the cache (put keeps the best)."""
+    week = body.week_start or snapshot_week(db)
+    if body.use_cache:
+        hit = dbcache.get(db, cfg, week, body.protected_ids)
+        if hit is not None:
+            return store_cached(db, hit, source)
     problem = make_problem(db, service, cfg, body.week_start, body.protected_ids)
     outcome = solve(problem, use_cache=body.use_cache, deterministic=body.deterministic)
-    return store(db, problem, outcome, source)
+    result = store(db, problem, outcome, source)
+    if not result.hard_violations:
+        dbcache.put(db, cfg, problem.week_start, body.protected_ids, result.model_dump(mode="json"),
+                    body.deterministic)
+    return result
 
 
 def router(get_db, get_service, source_of) -> APIRouter:  # noqa: ANN001

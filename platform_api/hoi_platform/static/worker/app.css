@@ -15,7 +15,12 @@
   background:var(--ink);color:#fff;border-radius:0 0 24px 24px}
 .top .muted{color:#b5b4ae}
 .who{display:flex;gap:12px;align-items:center}
-.avatar{width:42px;height:42px;border-radius:999px;background:linear-gradient(135deg,#e0631f,#b03f14);display:grid;place-items:center;font-weight:700}
+.avatar{width:42px;height:42px;border-radius:999px;flex:none;display:block}
+.topr{display:flex;align-items:center;gap:10px;flex:none}
+.brandmark{width:34px;height:34px;border-radius:9px;display:block;flex:none}
+.jmeta{display:flex;align-items:center;gap:8px;margin-top:2px}
+.javatar{width:28px;height:28px;border-radius:999px;flex:none;display:block}
+.medept{display:inline-flex;align-items:center;gap:8px}
 .top .chip.gray{background:#1f1f1e;color:#fff;border-color:#3a3a38}
 
 .todayhero{border-radius:26px;padding:24px 22px;color:#fff;background:radial-gradient(120% 140% at 85% 0%,#7fb2ff 0%,#2a6fe0 45%,#123a8a 100%)}

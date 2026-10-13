@@ -26,7 +26,8 @@ HALF = 0.5
 
 @lru_cache(maxsize=1)
 def _sources() -> dict[str, BaseModel]:
-    return {"ml": load_ml_config(), "backend": load_backend_config()}
+    # generic work standards: always the original config, whichever hotel the backend serves
+    return {"ml": load_ml_config(), "backend": load_backend_config(hotel="original")}
 
 
 def resolve(ref: str) -> Any:

@@ -12,7 +12,7 @@ from datetime import date
 from pathlib import Path
 from typing import Protocol
 
-from backend.config import ML_ARTIFACTS, MOCKS_DIR
+from backend.config import ML_ARTIFACTS, MOCKS_DIR, HotelData, hotel_data
 from backend.schemas import (
     AttritionScore,
     ForecastResult,
@@ -53,21 +53,29 @@ def model_versions(artifacts: Path = ML_ARTIFACTS) -> list[ModelVersion]:
 
 
 class ModelService:
+    """The trained artifacts applied to one hotel's SYNTHETIC data (HOI_HOTEL_DATA; models are
+    never retrained per hotel: the feature columns are identical)."""
+
+    def __init__(self, hotel: str | None = None) -> None:
+        self.hotel: HotelData = hotel_data(hotel)
+
     def forecast(self, start: date, end: date, as_of: date | None) -> ForecastResult:
         from ml import forecast
 
-        return forecast.predict(start, end, as_of)
+        return forecast.predict(start, end, as_of, data_dir=self.hotel.data_dir,
+                                rooms=self.hotel.rooms)
 
     def latest_week(self) -> date:
         from ml import attrition
 
-        return attrition.api.latest_week()
+        return attrition.api.latest_week(data_dir=self.hotel.data_dir)
 
     def score(self, week_start: date | None, employee_ids: list[str] | None
               ) -> list[AttritionScore]:
         from ml import attrition
 
-        return attrition.score(week_start or self.latest_week(), employee_ids)
+        return attrition.score(week_start or self.latest_week(), employee_ids,
+                               data_dir=self.hotel.data_dir)
 
     def rescore(self, employee_id: str, overrides: dict, week_start: date | None,
                 protected_weekends_off: int | None) -> RescoreResult:
@@ -76,13 +84,14 @@ class ModelService:
         merged = dict(overrides)
         if protected_weekends_off:
             merged = {**attrition.protected_weekends_off(employee_id, protected_weekends_off,
-                                                         week_start), **merged}
-        return attrition.rescore(employee_id, merged, week_start)
+                                                         week_start,
+                                                         data_dir=self.hotel.data_dir), **merged}
+        return attrition.rescore(employee_id, merged, week_start, data_dir=self.hotel.data_dir)
 
     def heroes(self) -> list[HeroInfo]:
         from ml import attrition
 
-        return attrition.heroes()
+        return attrition.heroes(data_dir=self.hotel.data_dir)
 
     def voice(self, audio_path: Path) -> VoiceResult:
         from ml import voice

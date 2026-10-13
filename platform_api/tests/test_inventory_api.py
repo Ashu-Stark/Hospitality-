@@ -14,7 +14,7 @@ def test_full_flow_keeps_ledger_consistent(client, store, worker):
         "/inventory/requests", json={"department": "housekeeping", "lines": {items["AMN-SH"]: 20, items["AMN-SP"]: 10}}, headers=worker
     ).json()["id"]
     mine = client.get("/inventory/requests", headers=worker).json()
-    assert any(r["id"] == rid for r in mine) and all(r["requested_by"] == "E134" for r in mine)
+    assert any(r["id"] == rid for r in mine) and all(r["requested_by"] == "HS05" for r in mine)
     assert (
         client.post(
             f"/inventory/requests/{rid}/fulfil", json={"issued": {items["AMN-SH"]: 5}, "from_location": main}, headers=store

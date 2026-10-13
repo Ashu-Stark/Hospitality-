@@ -39,8 +39,8 @@
 <!-- app -->
 <section id="app" class="hidden">
   <header class="top">
-    <div class="who"><span class="avatar" id="avatar">?</span><div><b id="whoName"></b><div class="muted" id="whoDept"></div></div></div>
-    <span id="shiftChip" class="chip gray"></span>
+    <div class="who"><img class="avatar" id="avatar" src="/shared/avatars/generic.svg" alt="" width="42" height="42"><div><b id="whoName"></b><div class="muted" id="whoDept"></div></div></div>
+    <div class="topr"><span id="shiftChip" class="chip gray"></span><img id="brandMark" class="brandmark hidden" alt="" width="34" height="34"></div>
   </header>
 
   <main class="wrap">
@@ -80,7 +80,7 @@
     <div id="tab-me" class="tab stack hidden">
       <div class="card stack">
         <div class="row"><span class="muted" data-i18n="employee_id">Employee ID</span><b id="meId" class="right"></b></div>
-        <div class="row"><span class="muted" data-i18n="department">Department</span><b id="meDept" class="right"></b></div>
+        <div class="row"><span class="muted" data-i18n="department">Department</span><b id="meDept" class="right medept"><img id="meAvatar" class="javatar" src="/shared/avatars/generic.svg" alt="" width="28" height="28"><span id="meDeptTxt"></span></b></div>
         <div class="row"><span class="muted" data-i18n="hotel">Hotel</span><b id="meHotel" class="right"></b></div>
       </div>
       <div class="card stack">
@@ -138,6 +138,7 @@
   </nav>
 </section>
 <script src="/shared/voice.js"></script>
+<script src="/shared/roles.js"></script>
 <script src="i18n.js"></script>
 <script src="app.js"></script>
 </body>

@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" width="96" height="96" role="img" aria-labelledby="t">
+  <title id="t">Himsagar Ridge Resort mark (fictional demo hotel)</title>
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2e8073"/><stop offset="1" stop-color="#164a42"/></linearGradient>
+    <clipPath id="c"><rect width="96" height="96" rx="22"/></clipPath>
+  </defs>
+  <g clip-path="url(#c)">
+    <rect width="96" height="96" fill="url(#sky)"/>
+    <circle cx="68" cy="27" r="8" fill="#f2c46d"/>
+    <path d="M0 66 L20 44 L31 53 L48 30 L63 49 L74 41 L96 62 V96 H0Z" fill="#eef5f2"/>
+    <path d="M48 30 L55 39.5 L50 37 L46 41 L42 37.5Z M20 44 L25 49.5 L21 48 L17 51Z" fill="#c7ddd6"/>
+    <path d="M0 78 L28 62 L50 73 L73 59 L96 71 V96 H0Z" fill="#2a6f63"/>
+    <g fill="#0e352f">
+      <path d="M24 50 L32 62 H28 L35 72 H30 L37 82 H11 L18 72 H13 L20 62 H16Z"/>
+      <rect x="22.5" y="82" width="3" height="6"/>
+      <path d="M77 60 L83 69 H80 L85 77 H69 L74 69 H71Z"/>
+      <rect x="75.8" y="77" width="2.4" height="5"/>
+    </g>
+  </g>
+</svg>

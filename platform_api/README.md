@@ -14,7 +14,7 @@ hoi_platform/
   services/      business logic, no HTTP: tenants, users, sessions, dispatch, rooms, photos, inventory, errors
   routers/       HTTP layer: auth, platform, workspace, dispatch, rooms, public (guest), me, inventory
   ratelimit.py   per-IP / per-user sliding-window limiter for auth and guest endpoints
-  seed.py        platform admin from HOI_ADMIN_PASSWORD; demo workspace (45 rooms, inventory history) when HOI_SEED_DEMO
+  seed.py        platform admin from HOI_ADMIN_PASSWORD; demo workspace (fictional Himsagar Ridge Resort: 24 rooms, 20 staff, inventory history) when HOI_SEED_DEMO
   static/worker  staff app (PWA): shifts, live job pings, live-camera before/after photos, supplies, Hindi/English
   static/guest   guest concierge per room (QR): chat + voice, hotel info, requests, checkout, feedback; no personal data
 tests/           pytest (TestClient), offline on mongomock with a fresh database per run
@@ -217,3 +217,14 @@ Startup fails with a list of problems otherwise. See `.env.example` at the repo 
 - Without transactions, a crash between the stock update and the ledger insert of one move could leave them apart;
   `GET /inventory/analytics` reports any drift in `ledger_errors`.
 - The demo seed creates accounts with random passwords (one-click demo only).
+
+## Demo hotel (SYNTHETIC, FICTIONAL)
+
+The demo tenant `org_demo` is "Himsagar Ridge Resort, Mussoorie (fictional)": 24 rooms (101-108, 201-208, 301-308; 18
+occupied), 20 staff HS01-HS20 imported with `role_title` and `avatar` (role slug) only, a full hotel profile with
+`logo_url: /shared/brand/himsagar-logo.svg`, inventory scaled to 24 rooms. Demo accounts: demo.owner (HS01), demo.hr,
+demo.housekeeping (HS02), demo.frontoffice (HS08), demo.store, workers HS05, HS09, HS12, HS18. A demo tenant seeded by an
+older version (the former "Riverside Retreat") is rebuilt at startup (`demo_version`); only that tenant is touched.
+`python -m hoi_platform.seed --reset-demo` rebuilds it; `scripts/reseed_atlas.py --yes --platform` does it on the real
+cluster. The tenant object (login, `/auth/me`) carries `logo_url` (same-origin paths only); guest requests carry
+`department` (for the department avatar; never staff ids).

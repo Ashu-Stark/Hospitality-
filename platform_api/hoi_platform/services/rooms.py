@@ -247,6 +247,7 @@ def stay_requests(r: dict) -> list[dict]:
             "title": q["title"].split(" · ")[0],
             "status": FRIENDLY.get(q["status"], q["status"]),
             "stage": STAGE.get(q["status"], "open"),
+            "department": q.get("department"),  # for the department avatar; never a staff id
             "at": mongo.iso(q["created_at"]),
         }
         for q in raw

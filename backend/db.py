@@ -28,7 +28,7 @@ import pandas as pd
 from pymongo import ASCENDING, DESCENDING, ReturnDocument
 from pymongo.database import Database
 
-from backend.config import ML_DATA
+from backend.config import hotel_data
 
 EMPLOYEES, ROSTERS, TASKS, EVENTS = "employee_snapshot", "roster", "task", "task_event"
 INTERVENTIONS, AUDIT, COUNTERS = "intervention", "audit_log", "counters"
@@ -97,6 +97,10 @@ def ensure_indexes(db: Database) -> None:
     db[PROPERTIES].create_index("property_id", unique=True)            # idempotent confirm
     db[PROPERTIES].create_index("onboarding_session_id", unique=True)
     db[PROPERTY_SETTINGS].create_index("property_id", unique=True)
+    # roster_cache survives drop_all / demo reset (precomputed, per hotel)
+    from backend.roster import dbcache
+
+    dbcache.ensure_index(db)
 
 
 def drop_all(db: Database) -> None:
@@ -116,12 +120,15 @@ def pay_in_force(employees: pd.DataFrame, pay_changes: pd.DataFrame, week: str) 
     return pay
 
 
-def snapshot_frame(data_dir: Path = ML_DATA) -> pd.DataFrame:
-    """Active employees (staff + demo heroes) in the latest week, with skills and leave."""
+def snapshot_frame(data_dir: Path | None = None) -> pd.DataFrame:
+    """Active employees (staff + demo heroes) in the latest week, with skills and leave.
+    data_dir: default the served hotel's data (HOI_HOTEL_DATA, backend/config.py)."""
+    data_dir = data_dir if data_dir is not None else hotel_data().data_dir
     behaviour = pd.concat([pd.read_csv(data_dir / "weekly_behaviour.csv"),
                            pd.read_csv(data_dir / "demo" / "hero_weekly.csv")])
     week = behaviour["week_start"].max()
-    active = behaviour[(behaviour["week_start"] == week) & behaviour["is_active"].astype(bool)]
+    active = behaviour[(behaviour["week_start"] == week)
+                       & (behaviour["is_active"].astype(str).str.lower() == "true")]
     emp = pd.concat([pd.read_csv(data_dir / "employee_v2.csv", keep_default_na=False),
                      pd.read_csv(data_dir / "demo" / "hero_employees.csv", keep_default_na=False)])
     heroes = set(pd.read_csv(data_dir / "demo" / "hero_employees.csv")["employee_id"])
@@ -139,8 +146,10 @@ def snapshot_frame(data_dir: Path = ML_DATA) -> pd.DataFrame:
     return df.sort_values("employee_id").reset_index(drop=True)
 
 
-def seed(db: Database, source: str, data_dir: Path = ML_DATA) -> int:
-    """(Re)load the employee snapshot from the ml data; returns documents written."""
+def seed(db: Database, source: str, data_dir: Path | None = None, hotel: str | None = None) -> int:
+    """(Re)load the employee snapshot from the ml data; returns documents written.
+    hotel: which hotel dataset (default HOI_HOTEL_DATA); data_dir overrides it."""
+    data_dir = data_dir if data_dir is not None else hotel_data(hotel).data_dir
     db[EMPLOYEES].delete_many({})
     df = snapshot_frame(data_dir)
     now = utcnow()
@@ -158,7 +167,7 @@ def seed(db: Database, source: str, data_dir: Path = ML_DATA) -> int:
     return len(df)
 
 
-def ensure_seeded(db: Database, source: str) -> None:
+def ensure_seeded(db: Database, source: str, hotel: str | None = None) -> None:
     ensure_indexes(db)
     if db[EMPLOYEES].find_one({}, {"_id": 1}) is None:
-        seed(db, source)
+        seed(db, source, hotel=hotel)

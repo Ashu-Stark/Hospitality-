@@ -296,6 +296,7 @@ class Faq(_Strict):
 
 class HotelProfileIn(_Strict):
     display_name: Short = Field(min_length=1)
+    logo_url: str | None = Field(default=None, max_length=200, pattern=r"^(/|https://)[A-Za-z0-9._~/-]+$")
     welcome: Long = ""
     checkin_time: str = Field(default="12:00", pattern=HHMM)
     checkout_time: str = Field(default="11:00", pattern=HHMM)

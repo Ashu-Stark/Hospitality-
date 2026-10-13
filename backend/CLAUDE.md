@@ -142,3 +142,31 @@ Honest notes:
 - Wage cost FALLS only because understaffing is not priced in money: the protected roster trades
   coverage (47 vs 42 understaffed shifts) for protection. A real coverage / cost tradeoff, not a
   free improvement.
+
+## Served hotel: HOI_HOTEL_DATA (default himsagar, the FICTIONAL Himsagar Ridge Resort)
+
+`HOI_HOTEL_DATA` = `himsagar` (default; ml/data/hotels/himsagar) or `original` (aliases default, ml/data: the first
+dataset with demo heroes). backend/config.py `hotel_data()` gives the data folder and the hotel's generator config
+(rooms, workload, weekly hours); ModelService passes data_dir and rooms to the ml entry points; seed, carry-in and the
+loop history read the same folder. `backend/hotels/<key>.yaml` overrides config.yaml (ASSUMED, documented in the file):
+security night-only (2 guards), front office morning + evening (3 staff, all hold fo_system), maintenance evening on call
+(`roster.min_headcount_by_shift: {maintenance: {evening: 0}}`), department owners by role title. Roster additions (all
+inert for the original hotel, whose fingerprints and cached rosters are unchanged): per department-shift minimums (a
+minimum-0 shift still needs a required-skill holder when staffed); `Staff.last_shift` so the rest rule holds across the
+week boundary in rolling rosters (it did not before: 8-10 Sunday-evening -> Monday-morning violations in 4 rolling
+weeks); SOFT `weights.next_monday_rested` (himsagar 60) that keeps enough staff free and rested for next Monday.
+Cached rosters: roster/cache/himsagar/. backend tests pin `original` in conftest; tests/test_hotel_himsagar.py tests the
+hotel. Operational scenarios (stress, rolling weeks, a simulated day through the platform dispatch engine):
+`python scripts/scenario_report.py` at the repo root.
+
+## MongoDB roster cache (roster_cache)
+
+`backend/roster/dbcache.py`: solved rosters stored in hoi_ops `roster_cache`, key (hotel data id, week, sorted
+protected ids, rules hash without solver-effort settings). `POST /roster/generate` (use_cache now defaults to true)
+answers from it first (`method: "cached_db"`, any week stored there, < 1 s), else solves the snapshot week as before
+and stores the result when it has 0 hard violations (a stored roster is only replaced by one at least as good).
+The closed loop reads its baseline + protected rosters through the same path. `/demo/reset` keeps the collection.
+`python run.py roster-precompute [--weeks N] [--time-limit S]` (fast PC, MONGODB_URI from env / root .env, never
+printed) solves the demo week + N following weeks, baseline and protected variants, deterministic, re-checked, and
+upserts them. Following weeks use ASSUMED inputs: occupancy of the same weekdays 52 weeks earlier, no leave, carry-in
+and last shift chained from the previous week. Why: Render's free tier (~0.1 CPU) hits the 10 s limit with a poor roster.

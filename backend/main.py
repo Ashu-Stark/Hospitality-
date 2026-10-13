@@ -73,7 +73,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     @asynccontextmanager
     async def lifespan(app: FastAPI):  # noqa: ANN202
-        ensure_seeded(app.state.db, settings.config.data_source)  # indexes + seed if empty
+        ensure_seeded(app.state.db, settings.config.data_source,  # indexes + seed if empty
+                      settings.hotel)
         ensure_demo_properties(app.state.db, app.state.onboarding_cfg)  # 3 SYNTHETIC hotels
         scheduler = task_api.start_scheduler(app)
         yield
@@ -89,7 +90,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                        allow_headers=["*"], allow_credentials=False)
     app.state.settings = settings
     app.state.db = get_database(settings)  # pymongo connects lazily, on first use
-    app.state.service = MockService() if settings.mock else ModelService()
+    app.state.service = MockService() if settings.mock else ModelService(settings.hotel)
     app.state.clock = VirtualClock()
     # hotel onboarding by voice (backend/onboarding); tests replace the adapters with fakes
     app.state.onboarding_cfg = load_onboarding_config()

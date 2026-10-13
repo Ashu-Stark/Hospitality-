@@ -156,6 +156,10 @@ def cmd_mocks() -> int:
     return _run(["ml.eval.demo", "mocks"])
 
 
+def cmd_generate_hotel(*args: str) -> int:
+    return _run(["ml.generator.hotel_variant", *args[:1]])
+
+
 def cmd_check_artifacts() -> int:
     return _run(["ml.eval.check_artifacts"])
 
@@ -164,6 +168,7 @@ COMMANDS = {
     "test": cmd_test,
     "lint": cmd_lint,
     "generate": cmd_generate,
+    "generate-hotel": cmd_generate_hotel,
     "validate": cmd_validate,
     "validate-seeds": cmd_validate_seeds,
     "train": cmd_train,
@@ -178,7 +183,7 @@ COMMANDS = {
 }
 
 
-TAKES_ARGS = {"test", "validate-seeds"}
+TAKES_ARGS = {"test", "validate-seeds", "generate-hotel"}
 
 
 def main(argv: list[str]) -> int:

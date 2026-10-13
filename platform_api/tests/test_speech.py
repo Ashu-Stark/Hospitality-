@@ -182,7 +182,7 @@ def test_local_stt_with_fake_model_deletes_temp_file(monkeypatch):
 
 
 def test_worker_auth_helper_still_works(client):
-    assert auth(client, "E134")
+    assert auth(client, "HS05")
 
 
 def test_local_stt_cuda_runtime_failure_falls_back_to_cpu(monkeypatch):

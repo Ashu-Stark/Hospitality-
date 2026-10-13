@@ -32,6 +32,9 @@ attrition.score, attrition.rescore, voice.extract) loaded from ml/artifacts.
 | `dashboard/` | Streamlit manager dashboard | none (talks to the APIs) |
 | `website/` | Static marketing site | none |
 
+- Demo hotel: the FICTIONAL "Himsagar Ridge Resort, Mussoorie" (24 rooms, staff HS01-HS20, ids only), data in
+  `ml/data/hotels/himsagar` (backend `HOI_HOTEL_DATA`, default) and the platform demo seed. Scenario tests:
+  `python scripts/scenario_report.py [--live]`, `python -m pytest -q scripts/tests`.
 - `MONGODB_URI` is a secret: root `.env` (gitignored) locally, the host's secret store in deployment. Never commit or print it.
   Storage conventions: [docs/MONGODB.md](docs/MONGODB.md). Tests run offline on mongomock.
 - One venv for everything at the repo root: `py -3.12 -m venv .venv`, then install each folder's requirements.

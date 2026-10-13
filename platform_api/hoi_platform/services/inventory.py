@@ -594,9 +594,13 @@ SEED_ITEMS = [
 ]
 
 
-def seed_demo(tid: str, rooms: int = 45) -> None:
+SEED_ROOMS = 45  # SEED_ITEMS par / reorder levels are sized for this many rooms and scaled to the hotel
+
+
+def seed_demo(tid: str, rooms: int = 24) -> None:
     """Four weeks of synthetic history. Built in memory and written with a few bulk inserts (fast against a remote cluster).
-    Items are written last: they are the "already seeded" marker, so an interrupted seed is cleaned up and redone."""
+    Items are written last: they are the "already seeded" marker, so an interrupted seed is cleaned up and redone.
+    Par and reorder levels scale with the room count (ASSUMED linear)."""
     d = mongo.db()
     if d.inv_items.count_documents({"tenant_id": tid}, limit=1):
         return
@@ -624,7 +628,7 @@ def seed_demo(tid: str, rooms: int = 45) -> None:
         {"id": mongo.new_id("loc"), "tenant_id": tid, "name": name, "kind": kind}
         for name, kind in (
             ("Main store", "store"),
-            ("Housekeeping pantry (floor 2)", "pantry"),
+            ("Housekeeping pantry (floor 2)", "pantry"),  # one pantry serves floors 1-3 (ASSUMED)
             ("Kitchen store", "store"),
             ("Maintenance store", "store"),
         )
@@ -657,7 +661,9 @@ def seed_demo(tid: str, rooms: int = 45) -> None:
             }
         )
 
-    for sku, name, cat, unit, cost, par, rop, sup, lead, poc, dept in SEED_ITEMS:
+    scale = rooms / SEED_ROOMS
+    for sku, name, cat, unit, cost, par0, rop0, sup, lead, poc, dept in SEED_ITEMS:
+        par, rop = max(2, round(par0 * scale)), max(1, round(rop0 * scale))
         iid = mongo.new_id("itm")
         hsn, rate = DEMO_GST.get(sku) or DEMO_GST.get(sku.split("-")[0], ("", 0))
         item_docs.append(_item_doc(iid, tid, sku, name, cat, unit, cost, par, rop, sup_ids[sup], lead, poc, dept, hsn or None, rate))
@@ -689,7 +695,7 @@ def seed_demo(tid: str, rooms: int = 45) -> None:
     ids = {r["sku"]: r["id"] for r in item_docs}
     request(
         tid,
-        "E134",
+        "HS05",
         "housekeeping",
         {ids["AMN-SH"]: 40, ids["AMN-SP"]: 40, ids["AMN-TP"]: 24},
         locs["Housekeeping pantry (floor 2)"],
@@ -697,7 +703,7 @@ def seed_demo(tid: str, rooms: int = 45) -> None:
         note="Floor 2 pantry top-up",
     )
     request(tid, "demo.housekeeping", "maintenance", {ids["MNT-BL"]: 6, ids["MNT-AF"]: 2}, None, room="204", note="Room 204 AC service")
-    po = create_po(tid, sup_ids[0], {ids["LIN-BT"]: 60, ids["LIN-BS"]: 40}, "demo.store", "Peak-season linen top-up")
+    po = create_po(tid, sup_ids[0], {ids["LIN-BT"]: 30, ids["LIN-BS"]: 20}, "demo.store", "Winter-peak linen top-up")
     set_po_status(tid, po, "approved", "demo.owner")
     set_po_status(tid, po, "sent", "demo.store")
 

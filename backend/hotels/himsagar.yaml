@@ -1,0 +1,47 @@
+# Backend overrides for the FICTIONAL "Himsagar Ridge Resort, Mussoorie" (HOI_HOTEL_DATA=himsagar, the default).
+# Merged over backend/config.yaml (department_shifts, demand_share, min_headcount_by_shift and required_skill are
+# replaced as a whole). All data is SYNTHETIC; every value below is ASSUMED, to be confirmed by the HM student.
+#
+# Why (24 rooms, 19 rostered staff: front office 3, housekeeping 6, F&B 3, kitchen 3, maintenance 2, security 2):
+# with one shift a day, a weekly off and max 6 consecutive days, one person covers at most 6 shifts a week.
+#   - security (2 staff): 3 shifts x 7 days = 21 shifts > 12 possible -> ASSUMED night-only (22:00-07:00, one guard
+#     a night; 7 of 12 possible). Daytime gate / parking is watched by front office (ASSUMED).
+#   - front office (3 staff): 3 shifts x 7 = 21 > 18 -> ASSUMED morning + evening only (06:00-23:00); the night
+#     desk is the night guard plus the on-call hotel manager (HS01). fo_system stays required on every front-office
+#     shift: all 3 front-office staff hold it.
+#   - maintenance (2 staff): 2 shifts x 7 = 14 > 12 -> ASSUMED evening on call (minimum 0 in the evening; the
+#     solver still staffs evenings when it can, as the evening demand is a soft goal).
+roster:
+  department_shifts:
+    housekeeping: [morning, evening]
+    fnb_service: [morning, evening]
+    kitchen: [morning, evening]
+    front_office: [morning, evening]
+    maintenance: [morning, evening]
+    security: [night]
+  demand_share:
+    housekeeping: {morning: 0.65, evening: 0.35}
+    fnb_service: {morning: 0.5, evening: 0.5}
+    kitchen: {morning: 0.5, evening: 0.5}
+    front_office: {morning: 0.5, evening: 0.5}
+    maintenance: {morning: 0.6, evening: 0.4}
+    security: {night: 1.0}
+  min_headcount_by_shift:
+    maintenance: {evening: 0}
+  required_skill:
+    front_office: fo_system
+  weights:
+    # ASSUMED: rolling 4-week tests found weeks made infeasible by the previous Sunday (both F&B staff
+    # on the Sunday evening, so nobody may legally open Monday morning). Soft penalty, see config.py.
+    next_monday_rested: 60
+
+voice:
+  clips_dir: ml/voice/clips
+  urgency_due_minutes: {high: 30, normal: 240, low: 1440}
+  department_owner:                     # role titles of the fictional hotel (ids only, no names)
+    housekeeping: housekeeping supervisor (HS03)
+    maintenance: maintenance supervisor (HS17)
+    front_office: front office manager (HS08)
+    fnb_service: F&B supervisor (HS11)
+    kitchen: head chef (HS14)
+    security: security supervisor (HS19)

@@ -53,7 +53,7 @@ def platform(client):
 
 @pytest.fixture
 def worker(client):
-    return auth(client, "E134")
+    return auth(client, "HS05")
 
 
 @pytest.fixture

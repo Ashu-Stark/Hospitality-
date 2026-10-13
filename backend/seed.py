@@ -19,7 +19,7 @@ def main() -> int:
     db = get_database(settings)
     drop_all(db)
     ensure_indexes(db)
-    n = seed(db, settings.config.data_source)
+    n = seed(db, settings.config.data_source, hotel=settings.hotel)
     properties = seed_demo_properties(db, load_onboarding_config())
     print(f"seeded demo properties (SYNTHETIC): {', '.join(properties)}")
     print(

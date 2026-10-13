@@ -82,13 +82,13 @@ def test_unassigned_and_manual_offer(client, owner):
 
 def test_worker_sees_only_own_jobs_without_bands(client, owner, worker):
     client.put(
-        "/dispatch/context", json={"working": {"E134": "housekeeping", "H9": "housekeeping"}, "bands": {"H9": "high"}}, headers=owner
+        "/dispatch/context", json={"working": {"HS05": "housekeeping", "H9": "housekeeping"}, "bands": {"H9": "high"}}, headers=owner
     )
     client.post("/dispatch/jobs", json={"title": "Extra towels", "room": "305"}, headers=owner)
     ctx = client.get("/dispatch/context", headers=worker).json()
     assert ctx["bands"] == {}
     mine = client.get("/dispatch/jobs", headers=worker).json()
-    assert all(j.get("assigned_to") == "E134" or j.get("offer_to") == "E134" for j in mine)
+    assert all(j.get("assigned_to") == "HS05" or j.get("offer_to") == "HS05" for j in mine)
     assert all(j["ranking"] == [] for j in mine)
     other = client.post("/dispatch/jobs/does-not-matter/accept", json={"employee_id": "H9"}, headers=worker)
     assert other.status_code == 403
