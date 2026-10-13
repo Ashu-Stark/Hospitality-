@@ -71,6 +71,7 @@ def write_day(b: dict, day: date, avail: int, occ: int, source: str) -> str:
             d.occupancy.update_one(key, {"$set": {f"avail.{i}": old_a, f"occ.{i}": old_o, f"src.{i}": old_src}})
             raise
         crowd.invalidate()
+        _changed()
     if old_a is None:
         return "created"
     return "replaced" if (da or do or old_src != source) else "unchanged"
@@ -198,3 +199,9 @@ def monthly_history(business_id: str, months: int = 12) -> list[dict]:
             }
         )
     return out
+
+
+def _changed() -> None:
+    from . import destinations
+
+    destinations.invalidate_list()

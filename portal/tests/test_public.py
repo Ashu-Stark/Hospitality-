@@ -153,3 +153,27 @@ def test_public_advisories_are_active_and_labelled(client):
     assert all(x["sample"] and x["title"].startswith("SAMPLE") for x in a["items"])
     rud = client.get("/api/v1/advisories", params={"district": "rudraprayag"}).json()
     assert all(x["district"] == "rudraprayag" for x in rud["items"])
+
+
+def test_destination_list_is_cached_and_dropped_on_changes(client, officer, monkeypatch):
+    from hoi_portal.services import destinations
+
+    calls = {"n": 0}
+    real = destinations._list
+
+    def counting(*a, **k):
+        calls["n"] += 1
+        return real(*a, **k)
+
+    monkeypatch.setattr(destinations, "_list", counting)
+    first = client.get("/api/v1/destinations").json()
+    second = client.get("/api/v1/destinations").json()
+    assert calls["n"] == 1 and first == second
+    client.get("/api/v1/destinations", params={"district": "rudraprayag"})  # filtered lists are never cached
+    assert calls["n"] == 2
+    r = client.post(
+        "/api/v1/officer/advisories", json={"title": "Cache test", "status": "caution", "destination_id": "kedarnath"}, headers=officer
+    )
+    assert r.status_code in (200, 201), r.text
+    client.get("/api/v1/destinations")
+    assert calls["n"] == 3  # a new road alert drops the cached list

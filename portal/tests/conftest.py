@@ -32,7 +32,7 @@ from hoi_portal import config, mongo, ratelimit  # noqa: E402
 
 config.reload()
 from hoi_portal.main import create_app  # noqa: E402
-from hoi_portal.services import besttime, crowd, locationiq, traffic, traffic_live, weather  # noqa: E402
+from hoi_portal.services import besttime, crowd, destinations, locationiq, traffic, traffic_live, weather  # noqa: E402
 
 CALLS = {"n": 0}
 
@@ -64,7 +64,9 @@ def _offline(monkeypatch):
     monkeypatch.setattr("httpx.get", _no_network)
     monkeypatch.setattr("httpx.post", _no_network)
     weather.set_fetcher(fake_forecast)
+    destinations.invalidate_list()  # the unfiltered list is cached in-process for 120 s; tests must not share it
     yield
+    destinations.invalidate_list()
     weather.set_fetcher(fake_forecast)
     besttime.set_fetcher(None, None)
     locationiq.set_http(None)
@@ -77,6 +79,7 @@ def client():
     mongo.reset()
     ratelimit.reset()
     crowd.invalidate()
+    destinations.invalidate_list()
     weather.set_fetcher(fake_forecast)
     with TestClient(create_app()) as c:
         yield c

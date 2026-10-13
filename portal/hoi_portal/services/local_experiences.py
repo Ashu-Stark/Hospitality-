@@ -295,6 +295,7 @@ def create(user_id: str, actor: str, data: dict) -> dict:
         doc["title"], catalog.LOCAL_EXPERIENCE_TYPES[doc["type"]], dest["name"], DISTRICTS[doc["district"]]["name"], b["name"]
     )
     d.local_experiences.insert_one(doc)
+    _changed()
     mongo.audit(actor, "experience.listed", doc["id"], b["id"], b["district"])
     return _owner_view(mongo.clean(doc))
 
@@ -315,6 +316,7 @@ def update(user_id: str, exp_id: str, actor: str, data: dict) -> dict:
         upd["status"] = status
     upd["updated_at"] = mongo.now()
     mongo.db().local_experiences.update_one({"id": exp_id}, {"$set": upd})
+    _changed()
     mongo.audit(actor, "experience.updated", exp_id, status or "", b["district"])
     return _owner_view(_own(user_id, exp_id))
 
@@ -324,6 +326,7 @@ def delete(user_id: str, exp_id: str, actor: str) -> dict:
     e = _own(user_id, exp_id)
     d = mongo.db()
     d.local_experiences.update_one({"id": exp_id}, {"$set": {"status": "archived", "updated_at": mongo.now()}})
+    _changed()
     n = d.experience_requests.update_many(
         {"experience_id": exp_id, "status": "pending"},
         {"$set": {"status": "declined", "decided_at": mongo.now(), "reason": "Experience withdrawn"}},
@@ -417,3 +420,9 @@ def decide(user_id: str, req_id: str, action: str, actor: str) -> dict:
     r = mongo.clean(d.experience_requests.find_one({"id": req_id}))
     exps = {e["id"]: e for e in d.local_experiences.find({"id": r["experience_id"]}, {"id": 1, "title": 1})}
     return _req_host_view(r, exps)
+
+
+def _changed() -> None:
+    from . import destinations
+
+    destinations.invalidate_list()

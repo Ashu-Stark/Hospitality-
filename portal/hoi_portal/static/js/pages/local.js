@@ -5,7 +5,7 @@ import { html, mount, href, load, $, $$, raw, empty, announce, crumbs, field, sh
   fmtDate, fmtDateTime, num, monthName, MONTH_NAMES, icon, mediaCard, statTile, takeaway, details, lastUpdated, collapseFilters, statusPill } from '../ui.js';
 import { api, meta, jobsMeta } from '../api.js';
 import { setQuery } from '../router.js';
-import { localCard, stayCard, bizCard, rupees, offerCard } from '../cards.js';
+import { localCards, stayCard, bizCard, rupees, offerCard } from '../cards.js';
 import { cover, photo, credit, thumbsNote } from '../photos.js';
 import { roleSubnav } from './common.js';
 import { serverPager } from './jobs.js';
@@ -43,7 +43,7 @@ export async function list(ctx) {
     setQuery({ ...f, page: f.page > 1 ? f.page : '' });
     const r = await api('/local-experiences', { query: { type: f.type || undefined, destination: f.destination || undefined, month: f.month || undefined, q: f.q || undefined, page: f.page } });
     $('#lcount', el).textContent = `${r.total} local experience${r.total === 1 ? '' : 's'}${f.month ? ' in ' + monthName(Number(f.month)) : ''}`;
-    mount(box, r.items.length ? html`<div class="mcgrid g4c">${r.items.map(localCard)}</div>` : empty('Nothing matches', 'Try another month or clear a filter.'));
+    mount(box, r.items.length ? html`<div class="mcgrid g4c">${r.items.map(localCards())}</div>` : empty('Nothing matches', 'Try another month or clear a filter.'));
     serverPager(box, r, (pg) => { f.page = pg; draw().then(() => $('#lcount', el).scrollIntoView({ block: 'start' })); });
     announce($('#lcount', el).textContent);
   }, { skel: 'cards', n: 8 });

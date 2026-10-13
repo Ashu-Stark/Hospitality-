@@ -7,7 +7,8 @@ import { lineChart, barChart, hbarChart, heatmap, PALETTE, BAND_FILL, bandOf, ba
 import { roleSubnav } from './common.js';
 
 const TABS = [['overview', 'Overview'], ['rush', 'How busy'], ['occupancy', 'How full'], ['market', 'Visitors'], ['grievances', 'Complaints'], ['workforce', 'Hotel staff'], ['jobs', 'Jobs and workers']];
-const synBanner = (note) => html`<div class="synbanner" role="note"><b>Demo numbers</b><span>Not official figures.</span></div>`;
+// Demo-data label: one small chip beside the page title (demoChip), not a banner on every tab.
+const synBanner = () => '';
 const shortDate = (v) => { const d = new Date(v + 'T00:00'); return `${d.getDate()} ${monthName(d.getMonth() + 1, true)}`; };
 
 export async function analytics(ctx) {
@@ -16,8 +17,8 @@ export async function analytics(ctx) {
   const f = { tab: TABS.some((t) => t[0] === ctx.query.tab) ? ctx.query.tab : 'overview', district: isAdmin ? ctx.query.district || '' : '' };
   const m = await meta();
   mount(el, html`${roleSubnav('/officer')}
-    <div class="pagehead"><div><p class="eyebrow">Officials · analytics</p><h1>Analytics dashboard</h1>
-      <p>${isAdmin ? 'State view. Choose a district to focus.' : html`Scope: <strong>${user()?.district_name}</strong> district only.`} All numbers here are demo numbers.</p></div>
+    <div class="pagehead"><div><p class="eyebrow">Officials · analytics</p><div class="titlerow"><h1>Analytics dashboard</h1><span class="demochip" title="Made-up numbers for this demo, not official figures">Demo numbers</span></div>
+      <p>${isAdmin ? 'State view. Choose a district to focus.' : html`Scope: <strong>${user()?.district_name}</strong> district only.`}</p></div>
       ${isAdmin ? html`<form class="fld" id="scope"><label class="lbl" for="sc-d">District</label><select class="field" id="sc-d" name="district"><option value="">All districts (state)</option>${m.districts.map((d) => html`<option value="${d.id}" ${f.district === d.id ? raw('selected') : ''}>${d.name}</option>`)}</select></form>` : ''}</div>
     <div class="tabs"><div class="pillnav" role="tablist" aria-label="Analytics sections">${TABS.map(([k, l]) => html`<button type="button" role="tab" id="t-${k}" aria-controls="tabpanel" data-tab="${k}">${l}</button>`)}</div></div>
     <div id="tabpanel" role="tabpanel" tabindex="-1"></div>`);

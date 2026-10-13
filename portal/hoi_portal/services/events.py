@@ -156,6 +156,7 @@ def create(body: dict, district: str, actor: str) -> dict:
     }
     doc["search_text"] = search_text(doc)
     mongo.db().events.insert_one(doc)
+    _changed()
     mongo.audit(actor, "event.created", doc["id"], doc["name"], district)
     return public(doc)
 
@@ -176,6 +177,7 @@ def update(event_id: str, body: dict, district: str | None, actor: str) -> dict:
     doc = _validate(merged, e["districts"][0]) | {"updated_at": mongo.now()}
     doc["search_text"] = search_text({**e, **doc})
     mongo.db().events.update_one({"id": event_id}, {"$set": doc})
+    _changed()
     mongo.audit(actor, "event.updated", event_id, doc["name"], e["districts"][0])
     return public(mongo.db().events.find_one({"id": event_id}))
 
@@ -183,6 +185,7 @@ def update(event_id: str, body: dict, district: str | None, actor: str) -> dict:
 def delete(event_id: str, district: str | None, actor: str) -> None:
     e = get_scoped(event_id, district)
     mongo.db().events.delete_one({"id": event_id})
+    _changed()
     mongo.audit(actor, "event.deleted", event_id, e["name"], e["districts"][0])
 
 
@@ -192,3 +195,9 @@ def list_scoped(district: str | None) -> dict:
         f["districts"] = district
     items = [public(e) for e in mongo.db().events.find(f).sort("start_date", -1)]
     return {"items": items, "total": len(items)}
+
+
+def _changed() -> None:
+    from . import destinations
+
+    destinations.invalidate_list()

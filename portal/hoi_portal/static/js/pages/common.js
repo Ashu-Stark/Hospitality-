@@ -2,7 +2,7 @@
 import { html, href, statusPill, verifiedPill, roadPill, fmtDateTime, fmtDate, relTime, samplePill, num, titleCase } from '../ui.js';
 import { t } from '../i18n.js';
 import { role, user } from '../api.js';
-import { BUSINESS_NAV, OFFICER_NAV, ADMIN_NAV, SEEKER_NAV } from '../nav.js';
+import { SEEKER_NAV } from '../nav.js';
 
 export const ICONS = {
   plan: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 20l6-14 4 8 3-4 5 10z"/></svg>',
@@ -66,7 +66,9 @@ export function advisoryRow(a, { manage = false } = {}) {
 /** Sub-navigation for signed-in areas. */
 export function roleSubnav(current) {
   const r = role();
-  const items = r === 'business' ? BUSINESS_NAV : r === 'job_seeker' ? SEEKER_NAV : r === 'state_admin' ? [...OFFICER_NAV, ...ADMIN_NAV] : OFFICER_NAV;
+  // Officials and businesses: the shell draws their sections as a left sidebar (phones: a "Section" drawer).
+  if (r === 'business' || r === 'state_admin' || r === 'district_officer') return '';
+  const items = SEEKER_NAV;
   const u = user();
   return html`<div class="whoami"><span class="pill info noicon">${u?.role_label || r}</span>${u?.district_name ? html`<span class="pill neutral noicon">District: ${u.district_name}</span>` : ''}<span>Signed in as <strong>${u?.username}</strong></span></div>
   <nav class="subnav section" aria-label="${r === 'business' ? 'Business' : r === 'job_seeker' ? 'Job seeker' : 'Officials'} sections"><div class="pillnav">${items.map(([k, p]) => html`<a href="#${p}" ${p === current ? html`aria-current="page"` : ''}>${t(k)}</a>`)}</div></nav>`;

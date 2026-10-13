@@ -1,7 +1,7 @@
 // One card builder per content type, all on the shared image-led mediaCard (ui.js). Photos come from the Wikimedia
 // Commons manifest (photos.js) with a fallback chain, e.g. a festival without its own photo uses its destination's.
 import { html, href, mediaCard, bandPill, impactPill, monthChips, monthName, num, fmtDate, icon, verifiedPill } from './ui.js';
-import { cover } from './photos.js';
+import { cover, photo } from './photos.js';
 
 const stripSample = (t) => String(t || '').replace(/^SAMPLE:\s*/i, '');
 const rating = (r) => (r != null ? html`<span class="rating">${icon('star')}${r}</span>` : '');
@@ -55,16 +55,52 @@ export function bizCard(b) {
 }
 
 /** Community-hosted local experience. */
-export function localCard(e) {
+// Each experience type has one photo of its own; a small set of fitting alternates per type keeps several cards of the
+// same type (e.g. two home meals at one place) from showing the same picture. The pick is deterministic (grid order +
+// a hash of the experience id), and a shared `used` set lets a grid skip photos it already shows.
+const LX_PHOTOS = {
+  home_meal: ['lx-home_meal', 'lx-farm_stay', 'exp-culture', 'fest-harela'],
+  farm_stay: ['lx-farm_stay', 'fest-harela', 'exp-culture'],
+  village_walk: ['lx-village_walk', 'exp-culture', 'lx-farm_stay'],
+  nature_walk: ['lx-nature_walk', 'dhanaulti', 'chopta'],
+  birding: ['lx-birding', 'chopta', 'lx-nature_walk'],
+  folk_music: ['lx-folk_music', 'fest-nanda-devi-fair', 'fest-uttarayani-fair'],
+  heritage_walk: ['lx-heritage_walk', 'fest-uttarayani-fair', 'bageshwar'],
+  artisan_workshop: ['lx-artisan_workshop', 'exp-culture'],
+};
+const LX_SHORT = { home_meal: 'Home meal', nature_walk: 'Nature walk', heritage_walk: 'Heritage walk', farm_stay: 'Farm day', folk_music: 'Folk music', artisan_workshop: 'Craft workshop' };
+const hashStr = (s) => [...String(s)].reduce((h, c) => (h * 31 + c.charCodeAt(0)) >>> 0, 7);
+function lxPhotoIds(e, used) {
+  const set = (LX_PHOTOS[e.type] || ['lx-' + e.type]).filter((id) => photo(id));
+  if (!set.length) return [e.destination_id];
+  // The type's own photo first; when a grid already shows it, an alternate chosen by the experience id.
+  const rest = set.slice(1);
+  const start = rest.length ? hashStr(e.id) % rest.length : 0;
+  const order = [set[0], ...rest.slice(start), ...rest.slice(0, start)];
+  const pick = order.find((id) => !used?.has(id)) || order[0];
+  used?.add(pick);
+  return [pick, e.destination_id];
+}
+const hostName = (e) => (e.host?.name || '').replace(/,\s*[^,]*$/, (m) => (e.destination_name && m.includes(e.destination_name) ? '' : m));
+/** localCard(e) or items.map(localCards()) to vary photos across one grid. */
+export function localCard(e, _i, _a, used = null) {
+  const host = hostName(e);
   return mediaCard({
     href: href('/experiences/local/' + e.id),
-    media: cover(['lx-' + e.type, e.destination_id], { seed: e.id }),
-    kicker: e.title.startsWith(e.type_label) ? (e.destination_name === e.district_name ? e.destination_name : `${e.destination_name}, ${e.district_name}`) : `${e.type_label} · ${e.destination_name}`,
-    kickerIcon: e.type,
+    media: cover(lxPhotoIds(e, used), { seed: e.id }),
+    badge: html`<span class="pill noicon typechip">${icon(e.type)}<span>${LX_SHORT[e.type] || e.type_label}</span></span>`,
+    kicker: e.destination_name === e.district_name ? e.destination_name : `${e.destination_name}, ${e.district_name}`,
+    kickerIcon: 'pin',
     title: e.title,
+    line: host ? html`Hosted by <strong>${host}</strong>` : '',
     facts: [['clock', hours(e.duration_hours)], ['people', `${e.group_min}-${e.group_max} people`], ['rupee', rupees(e.price_min, e.price_max, ' per person')]],
     foot: html`<span>Local ${e.host?.type_label?.toLowerCase() || 'host'}</span>${e.host?.verified ? html`<span class="pill info">Verified host</span>` : ''}`,
   });
+}
+/** Mapper for one grid: items.map(localCards()) never repeats a photo while the type sets allow it. */
+export function localCards() {
+  const used = new Set();
+  return (e) => localCard(e, 0, null, used);
 }
 
 /** Festival or event: photo, month window, crowd impact. */

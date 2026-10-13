@@ -2,9 +2,12 @@
 
 from __future__ import annotations
 
+import copy
+import threading
+import time
 from datetime import date
 
-from .. import mongo
+from .. import config, mongo
 from ..errors import Invalid, NotFound
 from ..seed.districts import BY_ID as DISTRICTS
 from . import advisories, crowd, events, registry, search, traffic, traffic_live, weather
@@ -28,6 +31,21 @@ FIELDS = (
 )
 
 
+# Short in-process cache for the unfiltered list (the home page and the list page call it on every visit). Keyed on the
+# database generation (tests reset it), the database name and today's date (crowd_today changes daily); dropped by
+# invalidate_list() when road alerts, events, local experiences or occupancy change. Weather in the list is cache-only
+# anyway, so a 2-minute delay there is acceptable.
+LIST_TTL_S = 120
+_LIST_LOCK = threading.Lock()
+_LIST_CACHE: dict = {"key": None, "at": 0.0, "data": None}
+
+
+def invalidate_list() -> None:
+    with _LIST_LOCK:
+        _LIST_CACHE["key"] = None
+        _LIST_CACHE["data"] = None
+
+
 def summary(d: dict, ctx: crowd.Context | None = None) -> dict:
     out = {k: d.get(k) for k in FIELDS}
     out["district_name"] = DISTRICTS[d["district"]]["name"]
@@ -38,6 +56,19 @@ def summary(d: dict, ctx: crowd.Context | None = None) -> dict:
 
 
 def list_destinations(district: str | None = None, tag: str | None = None, q: str | None = None, with_crowd: bool = True) -> dict:
+    if district or tag or q or not with_crowd:
+        return _list(district, tag, q, with_crowd)
+    key = (mongo.generation, config.settings.db_name, date.today().isoformat())
+    with _LIST_LOCK:
+        if _LIST_CACHE["key"] == key and time.monotonic() - _LIST_CACHE["at"] < LIST_TTL_S:
+            return copy.deepcopy(_LIST_CACHE["data"])
+    data = _list(None, None, None, True)
+    with _LIST_LOCK:
+        _LIST_CACHE.update(key=key, at=time.monotonic(), data=copy.deepcopy(data))
+    return data
+
+
+def _list(district: str | None, tag: str | None, q: str | None, with_crowd: bool) -> dict:
     f: dict = {}
     if district:
         if district not in DISTRICTS:

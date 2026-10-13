@@ -119,6 +119,7 @@ def create(body: dict, district: str, actor: str, role: str, sample: bool = Fals
     }
     doc["search_text"] = search_text(doc)
     mongo.db().advisories.insert_one(doc)
+    _changed()
     mongo.audit(actor, "advisory.created", doc["id"], doc["title"], district)
     return public(doc)
 
@@ -139,6 +140,7 @@ def update(adv_id: str, body: dict, district: str | None, actor: str) -> dict:
     doc = _validate(merged, a["district"])
     doc["search_text"] = search_text({**a, **doc})
     mongo.db().advisories.update_one({"id": adv_id}, {"$set": doc})
+    _changed()
     mongo.audit(actor, "advisory.updated", adv_id, doc["title"], a["district"])
     return public(mongo.db().advisories.find_one({"id": adv_id}))
 
@@ -147,6 +149,7 @@ def expire(adv_id: str, district: str | None, actor: str) -> dict:
     """Withdraw an advisory now (kept for the record)."""
     a = _get_scoped(adv_id, district)
     mongo.db().advisories.update_one({"id": adv_id}, {"$set": {"expires_at": mongo.now()}})
+    _changed()
     mongo.audit(actor, "advisory.withdrawn", adv_id, a["title"], a["district"])
     return public(mongo.db().advisories.find_one({"id": adv_id}))
 
@@ -157,3 +160,9 @@ def list_scoped(district: str | None, include_expired: bool = True) -> dict:
         f["district"] = district
     items = [public(a) for a in mongo.db().advisories.find(f).sort("posted_at", -1).limit(200)]
     return {"items": items, "total": len(items)}
+
+
+def _changed() -> None:
+    from . import destinations
+
+    destinations.invalidate_list()

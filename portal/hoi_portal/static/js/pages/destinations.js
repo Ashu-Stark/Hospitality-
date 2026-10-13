@@ -8,7 +8,7 @@ import { barChart, BAND_FILL, bandOf, miniBars, PALETTE } from '../charts.js';
 import { bizRow, advisoryRow, kv } from './common.js';
 import { nearbyPanel } from './plan.js';
 import { photoHead, thumbsNote } from '../photos.js';
-import { destCard, localCard } from '../cards.js';
+import { destCard, localCards } from '../cards.js';
 
 const EXP_NAMES = { spiritual: 'Spiritual & Char Dham', adventure: 'Adventure & Treks', wildlife: 'Wildlife & Nature', wellness: 'Yoga & Wellness', leisure: 'Hill towns & Leisure', culture: 'Culture & Fairs' };
 
@@ -93,8 +93,7 @@ export async function detail(ctx) {
     const base = '/destinations/' + x.id;
     mount(el, html`${crumbs([['Home', '#/'], ['Destinations', '#/destinations'], [x.name]])}
       ${photoHead(x.id)}
-      <div class="pagehead tightb"><div><p class="eyebrow">${x.district_name} · ${x.division}</p><h1>${x.name}</h1></div>
-        <div class="chips">${x.tags.map((tg) => html`<span class="tag">${tg}</span>`)}</div></div>
+      <div class="pagehead tightb"><div><p class="eyebrow">${x.district_name} · ${x.division}</p><h1>${x.name}</h1></div></div>
       <section aria-label="At a glance" class="glance">
         <a class="gl ${wWarn ? 'r' : ''}" href="#${base}/weather"><span class="k">Weather now</span>
           ${w?.available ? html`<span class="v">${Math.round(w.current?.temperature_c)}°C <small>${w.current?.summary || ''}</small></span><span class="s">${wWarn ? html`<strong>⚠ ${wWarn.kind === 'snow' ? 'Snow' : 'Heavy rain'} ${short(wWarn.date)}</strong>` : 'No rain or snow warnings, 7 days'}</span>`
@@ -113,7 +112,8 @@ export async function detail(ctx) {
       </section>
       <nav class="dtabs" aria-label="${x.name} sections"><div class="pillnav">${TABS.map(([k, l]) => html`<a href="#${base}/${k}" ${k === tab ? html`aria-current="page"` : ''} id="dt-${k}">${l}</a>`)}</div></nav>
       <div class="dlayout"><section class="card panel" id="panel" aria-labelledby="ph" tabindex="-1"></section>
-        <aside class="card tight sos" aria-label="Emergency numbers"><h2 class="h3">Emergency numbers</h2>${sos(hl)}<a class="small" href="#${base}/help">All helplines</a></aside></div>
+        <aside class="dside">${planCard(x, w, cr, goodNow, nowM, base)}
+          <section class="card tight sos" aria-labelledby="sos-h"><h2 class="h3" id="sos-h">Emergency numbers</h2>${sos(hl)}<a class="small" href="#${base}/help">All helplines</a></section></aside></div>
       ${lastUpdated(d.last_updated)}`);
     const panel = $('#panel', el);
     PANELS[tab](panel, d, hl, x);
@@ -141,16 +141,38 @@ function sos(hl) {
   if (!items.length) return html`<p><strong>112</strong> all emergencies</p>`;
   return html`<ul class="plain sosl">${items.map((h) => html`<li><a class="mono" href="tel:${h.number.split(' ')[0]}">${h.number.split(' / ')[0]}</a><span>${h.name}</span></li>`)}</ul>`;
 }
+/** Right-column card: best months, how to reach, today's weather and crowd, and the next step. */
+function planCard(x, w, cr, goodNow, nowM, base) {
+  const reach = (x.route_facts || [])[0];
+  return html`<section class="card tight plancard" aria-labelledby="pv-h"><h2 class="h3" id="pv-h">Plan your visit</h2>
+    <dl class="pv">
+      <div><dt>Best months</dt><dd><strong>${x.best_months?.length ? monthRanges(x.best_months) : 'Any time'}</strong>${x.best_months?.length ? html`<span class="small muted">${goodNow ? `${monthName(nowM)} is a good time` : `${monthName(nowM)} is outside the usual season`}</span>` : ''}</dd></div>
+      ${reach ? html`<div><dt>How to reach</dt><dd><span>${reach}</span><a class="small" href="#${base}/roads">Route and road alerts</a></dd></div>` : ''}
+      <div><dt>Today</dt><dd class="pv-today">${w?.available ? html`<span>${Math.round(w.current?.temperature_c)}°C ${w.current?.summary || ''}</span>` : html`<span class="muted">Weather not known</span>`}
+        ${cr?.today ? bandPill(cr.today.band, null, '') : ''}</dd></div>
+    </dl>
+    <a class="btn primary block" href="${href('/plan', { theme: x.themes?.[0] || '' })}">Make a trip plan</a></section>`;
+}
+const BUSY_WORD = { low: 'Quiet', moderate: 'Normal', high: 'Busy', very_high: 'Busy' };
+const BUSY_CLS = { low: 'q', moderate: 'n', high: 'b', very_high: 'b' };
+/** 12-month strip: colour plus a word in every cell (never colour alone). */
+function busyStrip(um) {
+  if (!um?.length) return '';
+  const nowM = new Date().getMonth() + 1;
+  return html`<ol class="busystrip" aria-label="How busy each month usually is">${um.map((m) => html`<li class="${BUSY_CLS[m.band] || 'n'} ${m.month === nowM ? 'now' : ''}"><b>${monthName(m.month, true)}</b><span>${BUSY_WORD[m.band] || 'Normal'}</span></li>`)}</ol>`;
+}
 const ph = (title, extra = '') => html`<h2 id="ph">${title}${extra}</h2>`;
 
 const PANELS = {
   overview(p, d, hl, x) {
+    const busy = (d.events || []).filter((e) => !e.sample && e.crowd_impact !== 'low').slice(0, 4);
     mount(p, html`${ph('Overview')}
       ${x.themes?.length ? html`<div class="chips">${x.themes.map((th) => html`<a class="chipbtn" href="${href('/experiences/' + th)}">${EXP_NAMES[th] || th}</a>`)}</div>` : ''}
       ${x.why_go ? html`<p class="takeaway section">${x.why_go}</p>` : ''}
       <h3 class="section">Good to know</h3>
-      <ul class="bullets section">${[...(x.season_notes || []), ...((d.events || []).filter((e) => !e.sample).slice(0, 3).map((e) => `Usually busy during ${e.name.replace(/^SAMPLE:\s*/, '')} (${e.window}).`)), ...((x.route_facts || []).slice(0, 2))].map((s) => html`<li>${s}</li>`)}</ul>
-      ${d.local_experiences?.total ? html`<div class="sechead section"><h3>Things to do with local hosts</h3><a href="${href('/experiences', { destination: x.id })}">All ${d.local_experiences.total}</a></div><div class="mcgrid g3c">${d.local_experiences.items.slice(0, 3).map(localCard)}</div>` : ''}
+      <ul class="bullets section">${[...(x.season_notes || []), ...((x.route_facts || []).slice(1, 2))].map((s) => html`<li>${s}</li>`)}</ul>
+      ${busy.length || d.crowd?.usual_by_month?.length ? html`<div class="busyline section"><p><strong>Busy seasons:</strong> ${busy.length ? busy.map((e) => `${e.name.replace(/^SAMPLE:\s*/, '')} (${e.window})`).join(', ') : 'none listed'}.</p>${busyStrip(d.crowd?.usual_by_month)}</div>` : ''}
+      ${d.local_experiences?.total ? html`<div class="sechead section"><h3>Things to do with local hosts</h3><a href="${href('/experiences', { destination: x.id })}">All ${d.local_experiences.total}</a></div><div class="mcgrid g3c">${d.local_experiences.items.slice(0, 3).map(localCards())}</div>` : ''}
       ${details('Facts and best months', html`${kv([['District', x.district_name], ['Division', x.division], ['Altitude', x.altitude_m ? num(x.altitude_m) + ' m (approx.)' : 'Not in the reference set yet'], ['Coordinates', `${x.lat}, ${x.lon} (approx.)`]])}
       ${x.best_months?.length ? html`<div class="monthwin" role="list" aria-label="Best months">${MONTH_NAMES.map((n, i) => html`<span role="listitem" class="${x.best_months.includes(i + 1) ? 'on' : ''}" aria-label="${n}: ${x.best_months.includes(i + 1) ? 'good time to visit' : 'not usually recommended'}">${n.slice(0, 3)}</span>`)}</div>` : html`<p class="muted">No specific best months in the curated set.</p>`}`)}`);
   },

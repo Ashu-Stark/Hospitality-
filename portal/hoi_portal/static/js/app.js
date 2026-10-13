@@ -113,6 +113,32 @@ function roleNav() {
   return [];
 }
 const cur = (on) => (on ? html`aria-current="page"` : '');
+// Signed-in work areas (officials, businesses) get their own left sidebar; the public menu shrinks to the logo plus
+// "View public site". Job seekers keep the small pill menu (their area has three pages, one of them public).
+function staffArea(u, path) {
+  if (!u) return null;
+  if (OFF.includes(u.role) && path.startsWith('/officer')) return { items: roleNav(), label: lbl('officials_area') };
+  if (u.role === 'business' && path.startsWith('/business')) return { items: BUSINESS_NAV, label: lbl('business_area') };
+  return null;
+}
+// Detail pages carry a breadcrumb, so they do not also show their section's sub-menu.
+const DETAIL = [/^\/destinations\/[^/]+/, /^\/experiences\/local\/[^/]+/, /^\/experiences\/(?!local$|themes$)[^/]+$/, /^\/plan\/itineraries\/[^/]+/,
+  /^\/directory\/[^/]+/, /^\/jobs\/(?!hire$|about$|agencies$)[^/]+$/, /^\/dictionary\/[^/]+/, /^\/rules\/[^/]+/];
+const isDetail = (path) => DETAIL.some((re) => re.test(path));
+function drawSide(u, area) {
+  const side = $('#sidenav');
+  document.documentElement.classList.toggle('staffmode', !!area);
+  if (!area) { side.hidden = true; side.replaceChildren(); return; }
+  const best = area.items.map(([, p]) => p).filter((p) => currentPath === p || currentPath.startsWith(p + '/')).sort((a, b) => b.length - a.length)[0];
+  const curName = lbl(area.items.find(([, p]) => p === best)?.[0] || area.items[0][0]);
+  const links = () => html`${area.items.map(([k, p]) => html`<a href="#${p}" ${cur(p === best)}>${lbl(k)}</a>`)}`;
+  side.hidden = false;
+  mount(side, html`<div class="side-who"><span class="pill info noicon">${u.role_label || u.role}</span>${u.district_name ? html`<span class="pill neutral noicon">${u.district_name}</span>` : ''}
+      <span class="small">Signed in as <strong>${u.username}</strong></span></div>
+    <nav class="side-links" aria-label="${area.label}">${links()}</nav>
+    <details class="side-drawer" id="sidedrawer"><summary><span class="muted">${lbl('section')}:</span> <strong>${curName}</strong></summary>
+      <nav aria-label="${area.label}">${links()}</nav></details>`);
+}
 function closeSignMenu(focus) {
   const menu = $('#signmenu');
   const sb = $('#signbtn');
@@ -128,13 +154,21 @@ function drawShell() {
   const sec = sectionOf(currentPath);
   mount($('#mainnav'), html`<div class="pillnav">${MAIN.map((k) => html`<a href="#${SECTIONS[k].home}" ${cur(sec === k)}>${lbl(SECTIONS[k].key)}</a>`)}</div>`);
   const dash = u ? homeOf(u.role) : null;
+  const area = staffArea(u, currentPath);
+  drawSide(u, area);
+  if (area) {
+    // Work area: logo + "View public site" + sign out; no public menu and no section tabs.
+    mount($('#mainnav'), html`<span class="areaname">${area.label}</span>`);
+    mount($('#topactions'), html`<a class="btn sm ghost" href="#/">${lbl('view_public')}</a><button type="button" class="btn sm ghost" id="signout">${lbl('signout')}</button>`);
+    $('#signout').addEventListener('click', doSignOut);
+  }
   const listBtn = !u || u.role !== 'business' ? html`<a class="btn sm ghost hide-sm listprop" href="#/host" ${cur(currentPath.startsWith('/host'))}>${lbl('list_property')}</a>` : '';
-  mount($('#topactions'), u
+  if (!area) mount($('#topactions'), u
     ? html`${listBtn}<a class="btn sm ${currentPath.startsWith(dash) ? 'dark' : 'ghost'}" href="#${dash}" title="${u.label || u.username}">${lbl('dashboard')}</a>
            <button type="button" class="btn sm ghost hide-sm" id="signout">${lbl('signout')}</button>`
     : html`${listBtn}<div class="menuwrap"><button type="button" class="btn sm primary" id="signbtn" aria-expanded="false" aria-controls="signmenu">${lbl('signin')} <span aria-hidden="true">▾</span></button>
         <div class="popmenu" id="signmenu" hidden><a href="#/signin?need=business">${lbl('business_signin')}</a><a href="#/signin?need=seeker">${lbl('seeker_signin')}</a><a href="#/signin?need=official">${lbl('officials_signin')}</a><a href="#/register">${lbl('create_account')}</a></div></div>`);
-  $('#signout')?.addEventListener('click', doSignOut);
+  if (!area) $('#signout')?.addEventListener('click', doSignOut);
   const sb = $('#signbtn');
   if (sb) {
     const menu = $('#signmenu');
@@ -150,7 +184,7 @@ function drawShell() {
   }
   // Section tabs (public sections only).
   const sn = $('#secnav');
-  if (sec && SECTIONS[sec].items.length > 1) {
+  if (!area && sec && SECTIONS[sec].items.length > 1 && !isDetail(currentPath)) {
     sn.hidden = false;
     sn.setAttribute('aria-label', lbl(SECTIONS[sec].key) + ' pages');
     const items = SECTIONS[sec].items;
@@ -166,6 +200,9 @@ function drawShell() {
   const rn = roleNav();
   mount($('#moresheet'), html`<div class="sheet-in" role="region" aria-label="${lbl('more')}">
     <div class="sheet-h"><strong>${lbl('more')}</strong><button type="button" class="btn sm ghost" id="sheetclose">${lbl('close')}</button></div>
+    <div class="sheet-util"><div class="textsize" role="group" aria-label="${lbl('textsize')}"><span class="util-l">${lbl('textsize')}</span>
+      <button type="button" data-fs="-1" aria-label="Smaller text">A-</button><button type="button" data-fs="0" aria-label="Default text size">A</button><button type="button" data-fs="1" aria-label="Larger text">A+</button></div>
+      <button type="button" class="langbtn" data-langtoggle lang="${getLang() === 'hi' ? 'en' : 'hi'}">${getLang() === 'hi' ? 'English' : 'हिन्दी'}</button></div>
     <a href="#/plan">${lbl('trips')}</a><a href="#/jobs">${lbl('jobs')}</a><a href="#/host">${lbl('list_property')}</a><a href="#/festivals">${lbl('festivals')}</a><a href="#/verify">${lbl('verify_biz')}</a>
     <div class="mn-h">${lbl('help')}</div><a href="#/helplines">${lbl('helplines')}</a><a href="#/grievance">${lbl('file')}</a><a href="#/grievance/track">${lbl('track')}</a>
     <a href="#/dictionary">${lbl('dictionary')}</a><a href="#/rules">${lbl('rules')}</a><a href="#/search">${lbl('search')}</a>
@@ -176,6 +213,7 @@ function drawShell() {
   $('#sheetclose').addEventListener('click', () => { toggleSheet(false); $('#morebtn').focus(); });
   $('#signout2')?.addEventListener('click', doSignOut);
   mount($('#footlinks'), html`<a href="#/host">${lbl('list_property')}</a><a href="#/helplines">${lbl('help_short')}</a><a href="#/about">${lbl('about')}</a><a href="#/accessibility">${lbl('accessibility')}</a><a href="#/sitemap">${lbl('sitemap')}</a><a href="#/credits">${lbl('credits')}</a><a href="#/grievance">${lbl('file')}</a><a href="#/signin?need=official">${lbl('officials_signin')}</a>`);
+  syncSize();
   document.documentElement.classList.add('booted');
   $('#skip-link').textContent = lbl('skip');
   $('#ts-label').textContent = lbl('textsize');
@@ -202,26 +240,35 @@ $('#moresheet').addEventListener('click', (e) => { if (e.target.closest('a') || 
 
 // Text size A- A A+ (remembered).
 const SIZES = { '-1': 'fs-s', '0': '', '1': 'fs-l', '2': 'fs-xl' };
+function syncSize() {
+  const v = store('uthp.fs') || '0';
+  $$('.textsize button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.fs === v || (v === '2' && b.dataset.fs === '1'))));
+}
 function applySize(v) {
   const root = document.documentElement;
   Object.values(SIZES).forEach((c) => c && root.classList.remove(c));
   if (SIZES[v]) root.classList.add(SIZES[v]);
-  $$('.textsize button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.fs === v || (v === '2' && b.dataset.fs === '1'))));
   store('uthp.fs', v);
+  syncSize();
 }
-$$('.textsize button').forEach((b) => b.addEventListener('click', () => {
-  const cur = store('uthp.fs') || '0';
+// Text size buttons sit in the utility bar (desktop) and in the More sheet (phones): one delegated handler.
+document.addEventListener('click', (e) => {
+  const b = e.target.closest('.textsize button');
+  if (!b) return;
+  const now = store('uthp.fs') || '0';
   let v = b.dataset.fs;
-  if (v === '1' && (cur === '1' || cur === '2')) v = cur === '1' ? '2' : '1';
+  if (v === '1' && (now === '1' || now === '2')) v = now === '1' ? '2' : '1';
   applySize(v);
-}));
+});
 applySize(store('uthp.fs') || '0');
 
-$('#lang-toggle').addEventListener('click', () => {
+function toggleLang() {
   setLang(getLang() === 'hi' ? 'en' : 'hi');
   drawShell();
   render();
-});
+}
+$('#lang-toggle').addEventListener('click', toggleLang);
+document.addEventListener('click', (e) => { if (e.target.closest('[data-langtoggle]')) { toggleSheet(false); toggleLang(); } });
 
 onNavigate((path) => { currentPath = path; toggleSheet(false); drawShell(); });
 window.addEventListener('session', () => drawShell());
@@ -233,6 +280,7 @@ window.addEventListener('auth-expired', () => {
 export { isOfficial };
 drawShell();
 // The photo manifest is tiny; load it before the first render so cards and headers can use it synchronously.
+if (parseHash().path === '/') home.prefetchHome(); // start the slowest home request before the photo manifest
 loadPhotos().then(start);
 
 // The skip link must not change the hash (the router owns it): move focus instead.

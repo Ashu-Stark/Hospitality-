@@ -5,9 +5,44 @@ import { t } from '../i18n.js';
 import { setQuery, go } from '../router.js';
 import { resultLink, resultTitle, resultSub, TYPE_LABEL, advisoryLine } from './common.js';
 import { photo, credit, thumbsNote } from '../photos.js';
-import { destCard, localCard, festCard } from '../cards.js';
+import { destCard, localCards, festCard } from '../cards.js';
 
 const ORDER = ['destinations', 'businesses', 'events', 'dictionary', 'rules', 'advisories'];
+
+// "Good to go now": the first 4 cards render at once from the last answer kept in sessionStorage (same session), then
+// refresh from the API. The list request starts as soon as the app loads on the home page (prefetchHome in app.js).
+const DST_KEY = 'uthp.home.dst';
+let dstP = null;
+export function prefetchHome() {
+  if (!dstP) dstP = api('/destinations').catch(() => null);
+}
+function readDst() {
+  try { const v = JSON.parse(sessionStorage.getItem(DST_KEY) || 'null'); return Array.isArray(v) && v.length ? v : null; } catch { return null; }
+}
+function saveDst(items) {
+  try { sessionStorage.setItem(DST_KEY, JSON.stringify(items)); } catch { /* storage blocked or full: no cache */ }
+}
+const drawDst = (box, items) => mount(box, html`<div class="mcgrid g4c">${items.map((x, i) => destCard(x, { eager: i < 2 }))}</div>`);
+async function goodToGo(box, m) {
+  const kept = readDst();
+  const fetchPick = async () => {
+    const pending = dstP;
+    dstP = null;
+    const d = (await pending) || (await api('/destinations'));
+    const inSeason = d.items.filter((x) => x.crowd_today && (!x.best_months?.length || x.best_months.includes(m)));
+    return (inSeason.length >= 4 ? inSeason : d.items).slice().sort((a, b) => (a.crowd_today?.index ?? 99) - (b.crowd_today?.index ?? 99)).slice(0, 4);
+  };
+  if (!kept) {
+    await load(box, async () => { const pick = await fetchPick(); saveDst(pick); drawDst(box, pick); }, { skel: 'cards', n: 4 });
+    return;
+  }
+  drawDst(box, kept);
+  try {
+    const pick = await fetchPick();
+    saveDst(pick);
+    if (box.isConnected && JSON.stringify(pick) !== JSON.stringify(kept)) drawDst(box, pick);
+  } catch { /* keep the cards we have */ }
+}
 
 export async function home(ctx) {
   const el = ctx.el;
@@ -57,18 +92,13 @@ export async function home(ctx) {
   wireTypeahead($('#hform', el), $('#hq', el), $('#ta', el));
   const m = new Date().getMonth() + 1;
   await Promise.all([
-    load($('#dst', el), async () => {
-      const d = await api('/destinations');
-      const inSeason = d.items.filter((x) => x.crowd_today && (!x.best_months?.length || x.best_months.includes(m)));
-      const pick = (inSeason.length >= 4 ? inSeason : d.items).slice().sort((a, b) => (a.crowd_today?.index ?? 99) - (b.crowd_today?.index ?? 99)).slice(0, 4);
-      mount($('#dst', el), html`<div class="mcgrid g4c">${pick.map((x, i) => destCard(x, { eager: i < 2 }))}</div>`);
-    }, { skel: 'cards', n: 4 }),
+    goodToGo($('#dst', el), m),
     load($('#lx', el), async () => {
       const r = await api('/local-experiences', { query: { month: m, page_size: 40 } });
       const seenT = new Set();
       const seenD = new Set();
       const pick = r.items.filter((e) => !seenT.has(e.type) && !seenD.has(e.destination_id) && seenT.add(e.type) && seenD.add(e.destination_id)).slice(0, 4);
-      mount($('#lx', el), pick.length ? html`<div class="mcgrid g4c">${pick.map(localCard)}</div>` : empty('No local experiences this month'));
+      mount($('#lx', el), pick.length ? html`<div class="mcgrid g4c">${pick.map(localCards())}</div>` : empty('No local experiences this month'));
     }, { skel: 'cards', n: 4 }),
     load($('#adv', el), async () => {
       const a = await api('/advisories');
