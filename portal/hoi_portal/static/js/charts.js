@@ -10,7 +10,7 @@ export const BAND_FILL = { low: '#2e8540', moderate: '#c98a00', high: '#e0631f',
 export const BAND_TINT = {
   low: ['#cfeccd', '#0a4d10'], moderate: ['#ffe39a', '#4d3200'], high: ['#f8b48a', '#5c1f06'], very_high: ['#c62f22', '#ffffff'],
 };
-export const BAND_LABEL = { low: 'Low (0-39)', moderate: 'Moderate (40-64)', high: 'High (65-84)', very_high: 'Very high (85+)' };
+export const BAND_LABEL = { low: 'Quiet', moderate: 'Normal', high: 'Busy', very_high: 'Very busy' };
 export const bandOf = (v) => (v == null ? null : v < 40 ? 'low' : v < 65 ? 'moderate' : v < 85 ? 'high' : 'very_high');
 
 let uid = 0;
@@ -210,6 +210,7 @@ export function lineChart(o) {
   const xFmt = o.xFmt || ((v) => v);
   const unit = o.unit || '';
   const f = frame({ title: o.title, sub: o.sub, legend: legendHtml(series, 'line'), tableHtml: seriesTable(o.x.map((v, i) => xFmt(v, i, true)), series, unit, o.title), note: o.note });
+  f.plot.style.minHeight = (o.height || 220) + 'px'; // reserve space before the first paint (no layout shift)
   colorLegend(f.fig);
   const all = series.flatMap((s) => s.values).filter((v) => v != null);
   const { lo, hi, ticks } = niceTicks(o.yMin ?? Math.min(0, ...all), o.yMax ?? Math.max(...all, 1));
@@ -272,6 +273,7 @@ export function barChart(o) {
   const unit = o.unit || '';
   const legend = o.legendItems ? html`${o.legendItems.map((l) => html`<span><i data-c="${l.color}"></i>${l.label}</span>`)}` : legendHtml(series);
   const f = frame({ title: o.title, sub: o.sub, legend, tableHtml: o.tableHtml || seriesTable(o.x.map((v, i) => xFmt(v, i, true)), series, unit, o.title), note: o.note, compactMode: o.compact });
+  f.plot.style.minHeight = (o.height || 220) + 'px';
   colorLegend(f.fig);
   const n = o.x.length;
   let maxV = 0, minV = 0;
@@ -356,6 +358,7 @@ export function hbarChart(o) {
   const tbl = table([{ key: 'label', label: o.labelHead || 'Item' }, { key: 'v', label: o.valueHead || 'Value', num: true }, ...(items.some((i) => i.extra) ? [{ key: 'extra', label: 'Note' }] : [])],
     items.map((i) => ({ label: i.label, v: i.value == null ? 'no data' : vf(i.value), extra: i.extra || '' })), o.title);
   const f = frame({ title: o.title, sub: o.sub, legend: o.legendItems ? html`${o.legendItems.map((l) => html`<span><i data-c="${l.color}"></i>${l.label}</span>`)}` : '', tableHtml: tbl, note: o.note });
+  f.plot.style.minHeight = (items.length * 30 + 8) + 'px';
   colorLegend(f.fig);
   const max = o.max ?? Math.max(...items.map((i) => i.value || 0), 1);
   const draw = (W) => {
@@ -478,4 +481,4 @@ export function miniBars(values, hl = new Set(), color = PALETTE[0], hlColor = '
 
 export const bandLegend = () => Object.keys(BAND_FILL).map((k) => ({ label: BAND_LABEL[k], color: BAND_FILL[k] }));
 export const bandTintLegend = () => Object.keys(BAND_TINT).map((k) => ({ label: BAND_LABEL[k], color: BAND_TINT[k][0] }));
-export const bandCell = (v) => { const b = bandOf(v); return { fill: BAND_TINT[b][0], text: BAND_TINT[b][1], label: BAND_LABEL[b].split(' (')[0] }; };
+export const bandCell = (v) => { const b = bandOf(v); return { fill: BAND_TINT[b][0], text: BAND_TINT[b][1], label: BAND_LABEL[b] }; };

@@ -96,7 +96,8 @@ Every response has an `X-Request-ID` header (send your own `X-Request-ID` to cor
 | `POST /grievances/track` | 20/min per IP |
 | `GET /registry/verify` | 60/min per IP |
 | `GET /search` | 60/min per IP |
-| `POST /ingest/occupancy` | 120/min per IP |
+| `POST /ingest/occupancy`, `POST /ingest/staffing-request` | 120/min per IP (shared) |
+| `POST /local-experiences/{id}/join` | 20/hour per IP |
 | `POST /me/seeker/profile` (create) | 5/hour per user, 20/hour per IP |
 | `POST /jobs/threads/{id}` (message) | 30/hour per user |
 | `POST /jobs/{id}/apply` | 20/day per user |
@@ -143,6 +144,19 @@ the same origin. Google Fonts (Inter Tight) is allowed. Also: `X-Frame-Options: 
   business, in `contact` after the candidate accepted that business's interest request; never in `/jobs` or
   `/candidates` search. `match.why` items are `{ok, partial?, text}`; show them as chips (not colour only).
   Workforce-market rows with `suppressed: true` have `candidates: null` and `gap: null`.
+- **Local experiences** (community-hosted, SAMPLE data): hosts are businesses of type guide, homestay or
+  adventure_operator with an ACTIVE registration; each experience links 1-3 registered homestays (`stays_nearby`).
+  "Request to join" takes no payment; the visitor's `contact` is returned only to the host business owner.
+- **Staffing agencies**: business type `staffing_agency` (code `STF`, registered like any business). Agencies publish
+  block offers (counts per skill and window, never individual workers) and answer HOI staffing requests.
+- **HOI staffing requests** (for the HOI platform): when a roster week is short of staff, call
+  `POST /api/v1/ingest/staffing-request` with the hotel's business API key (`X-API-Key`, the same key used for
+  occupancy ingest) and either `{external_id, department, skill, date_from, date_to, openings, note}` (the platform
+  client's shape) or `{skill, district, from, to, openings, shift_note, source: "hoi_roster_shortage", source_id}`.
+  201 `{job_id, status, result: "created", ...}` on create; 200 with the same `job_id` on a repeat.
+  Use a stable `external_id` / `source_id` per roster week and role (e.g. `<hotel>-<ISO week>-<role>`): repeating the call is
+  idempotent (same `job_id`; `result` created | updated | unchanged) and never re-notifies agencies. The job post
+  appears on the public board with `via_hoi: true` and the label "Staffing request via HOI".
 - **Rules/helplines**: `number: null` means "to be filled by the department"; never fill in a number.
 
 ## 8. Environment (server)

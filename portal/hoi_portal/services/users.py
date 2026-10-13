@@ -22,16 +22,17 @@ PUBLIC_FIELDS = ("id", "username", "role", "district", "label", "active", "creat
 
 DEMO_ACCOUNTS = [
     # username, role, district, label, description
-    ("demo.admin", "state_admin", None, "State admin (demo)", "All districts: officers, analytics, approvals"),
+    ("demo.admin", "state_admin", None, "State admin (demo)", "All districts: officers, numbers, approvals"),
     (
         "demo.officer.rudraprayag",
         "district_officer",
         "rudraprayag",
         "District tourism officer, Rudraprayag (demo)",
-        "Applications, grievances, advisories and analytics for Rudraprayag only",
+        "Applications, complaints, road alerts and numbers for Rudraprayag only",
     ),
-    ("demo.business", "business", None, "Business owner (demo)", "Registered homestay and hotel, renewals, occupancy, API key, hiring"),
-    ("demo.seeker", "job_seeker", None, "Job seeker (demo)", "Hiring board: own profile, job search, applications, interest requests"),
+    ("demo.business", "business", None, "Business owner (demo)", "A homestay and a hotel: renewals, local experiences, hiring"),
+    ("demo.seeker", "job_seeker", None, "Job seeker (demo)", "Job search: profile, applications, messages from employers"),
+    ("demo.agency", "business", None, "Staffing agency (demo)", "Offer workers to hotels and answer hotels that need staff"),
 ]
 ADMIN_USERNAME = "admin"
 

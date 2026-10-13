@@ -53,7 +53,7 @@ export async function render() {
   prevPath = path;
   if (!r) {
     mount(page, html`<h1>Page not found</h1><div class="section">${errorBox({ status: 404, message: 'There is no page at this address. Try the sitemap or search.' }, { retry: false })}</div>`);
-    document.title = 'Not found · UTHP (concept)';
+    document.title = 'Not found · Uttarakhand Travel Guide';
     return;
   }
   try {
@@ -67,7 +67,7 @@ export async function render() {
   if (id !== renderId) return;
   const h1 = page.querySelector('h1');
   const title = (h1?.textContent || 'Portal').trim();
-  document.title = title + ' · UTHP (concept)';
+  document.title = title + ' · Uttarakhand Travel Guide';
   const wasFirst = first;
   first = false;
   if (!ctx.keepFocus && !wasFirst) {

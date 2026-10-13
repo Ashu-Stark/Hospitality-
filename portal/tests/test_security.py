@@ -63,7 +63,7 @@ def test_create_app_refuses_to_start_unsafe(monkeypatch):
 
 
 def test_demo_login_can_be_disabled(client, monkeypatch):
-    assert len(client.get("/api/v1/auth/demo-accounts").json()) == 4  # admin, officer, business, job seeker
+    assert len(client.get("/api/v1/auth/demo-accounts").json()) == 5  # admin, officer, business, job seeker, staffing agency
     monkeypatch.setattr(config, "settings", dataclasses.replace(config.settings, demo_login=False))
     assert client.get("/api/v1/auth/demo-accounts").json() == []
     assert client.post("/api/v1/auth/demo/demo.admin").status_code == 404

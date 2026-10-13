@@ -2,12 +2,12 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, Header, Request
+from fastapi import APIRouter, Depends, Header, Request, Response
 
 from .. import config, ratelimit
 from ..deps import Principal, business_only
-from ..schemas import ApiKeyIn, ApplicationIn, ApplicationUpdateIn, IngestIn, MonthlyOccupancyIn
-from ..services import applications, businesses, ingest
+from ..schemas import ApiKeyIn, ApplicationIn, ApplicationUpdateIn, IngestIn, MonthlyOccupancyIn, StaffingRequestIn
+from ..services import applications, businesses, ingest, staffing
 
 router = APIRouter(prefix="/api/v1/business", tags=["business"])
 ingest_router = APIRouter(prefix="/api/v1/ingest", tags=["ingest"])
@@ -86,3 +86,19 @@ def ingest_occupancy(body: IngestIn, request: Request, x_api_key: str | None = H
     """HOI-run hotels report daily occupancy. Idempotent per (business, date): repeating a date replaces it."""
     ratelimit.hit(f"ingest:{ratelimit.client_ip(request)}", config.settings.ingest_rate_per_minute)
     return ingest.ingest(x_api_key, body.model_dump())
+
+
+@ingest_router.post("/staffing-request", status_code=201)
+def ingest_staffing_request(
+    body: StaffingRequestIn, request: Request, response: Response, x_api_key: str | None = Header(default=None)
+) -> dict:
+    """HOI roster shortage -> job post marked "Staffing request via HOI" + in-portal notification to matching staffing
+    agencies. Business API key (X-API-Key). Idempotent per (business, external_id / source_id): 201 when the job is
+    created; 200 with the same `job_id` on a repeat (`result` "unchanged", or "updated" when openings, dates or the
+    note changed). Agencies are never notified twice."""
+    ratelimit.hit(f"ingest:{ratelimit.client_ip(request)}", config.settings.ingest_rate_per_minute)
+    b, k = ingest.business_for_key(x_api_key)
+    out = staffing.ingest_request(b, k["prefix"], body.normalized())
+    if out["result"] != "created":
+        response.status_code = 200
+    return out

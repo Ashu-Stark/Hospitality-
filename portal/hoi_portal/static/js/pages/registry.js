@@ -4,6 +4,7 @@ import { api, meta } from '../api.js';
 import { setQuery } from '../router.js';
 import { t } from '../i18n.js';
 import { bizRow, kv } from './common.js';
+import { bizCard } from '../cards.js';
 
 const LETTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
 
@@ -11,7 +12,7 @@ export async function directory(ctx) {
   const el = ctx.el;
   const f = { q: '', type: '', district: '', destination: '', status: '', verified: '', letter: '', page: '1', ...ctx.query };
   mount(el, html`<div class="pagehead"><div><h1>Business directory A-Z</h1>
-      <p>Registered stays, guides, agents, transport and adventure operators. ${synPill('Synthetic names')}</p></div></div>
+      <p>Stays, guides, travel agents, taxis and adventure companies.</p></div></div>
     <form class="card tight filters" id="rf" aria-label="Filter businesses"><div class="sk line"></div></form>
     <nav class="letters" id="letters" aria-label="Filter by first letter"></nav>
     <p class="small muted" id="rcount" aria-live="polite"></p>
@@ -47,7 +48,7 @@ export async function directory(ctx) {
       drawLetters(avail);
       const pages = Math.max(1, Math.ceil(r.total / r.page_size));
       $('#rcount', el).textContent = `${num(r.total)} businesses${f.letter ? ' starting with ' + f.letter : ''} · page ${r.page} of ${pages}`;
-      mount(listEl, r.items.length ? html`<div class="list">${r.items.map(bizRow)}</div>
+      mount(listEl, r.items.length ? html`<div class="mcgrid g4c">${r.items.map(bizCard)}</div>
         <nav class="pager" aria-label="Pages"><button type="button" class="btn ghost sm" data-pg="${r.page - 1}" ${r.page <= 1 ? raw('disabled') : ''}>Previous</button>
         <span class="small">Page ${r.page} of ${pages}</span><button type="button" class="btn ghost sm" data-pg="${r.page + 1}" ${r.page >= pages ? raw('disabled') : ''}>Next</button></nav>`
         : empty('No businesses match these filters', 'Clear a filter or try another letter. Unregistered operators can be reported through a grievance.', html`<a class="btn ghost" href="#/grievance">Report an unregistered business</a>`));
@@ -75,17 +76,17 @@ export async function business(ctx) {
     const b = await api('/registry/' + encodeURIComponent(ctx.params.id));
     mount(el, html`${crumbs([['Home', '#/'], ['Directory', '#/directory'], [b.name]])}
       <div class="pagehead"><div><p class="eyebrow">${b.type_label} · ${b.district_name}</p><h1>${b.name}</h1>
-        <div class="chips section">${statusPill(b.status)}${verifiedPill(b.verified)}${b.synthetic ? synPill('Synthetic record') : ''}${b.hoi_connected ? html`<span class="pill neutral noicon">Reports via HOI</span>` : ''}</div></div>
+        <div class="chips section">${statusPill(b.status)}${verifiedPill(b.verified)}${b.hoi_connected ? html`<span class="pill neutral noicon">Reports via HOI</span>` : ''}</div></div>
         <div class="btnrow"><a class="btn ghost" href="${href('/verify', { reg: b.reg_no })}">Check registration</a><a class="btn ghost" href="${href('/grievance', { reg: b.reg_no, district: b.district })}">Report a problem</a></div></div>
       <div class="split"><section class="card" aria-labelledby="reg-h"><h2 id="reg-h">Registration</h2>
         ${kv([['Registration no.', html`<span class="mono">${b.reg_no}</span>`], ['Status', statusPill(b.status)], ['Registered on', fmtDate(b.registered_on)], ['Valid until', fmtDate(b.valid_until)],
           ['Type', b.type_label], ['Capacity', b.capacity != null ? `${num(b.capacity)} ${b.capacity_unit}` : '—'], ...(b.beds != null ? [['Beds', num(b.beds)]] : []),
-          ['Rating', b.rating != null ? `★ ${b.rating} / 5 (sample)` : '—'], ['Languages', (b.languages || []).join(', ') || '—']])}
+          ['Rating', b.rating != null ? `★ ${b.rating} / 5` : '—'], ['Languages', (b.languages || []).join(', ') || '—']])}
         ${b.status !== 'active' ? html`<p class="flag red section"><strong>This registration is ${b.status}.</strong> Ask the operator for a current registration before paying.</p>` : ''}</section>
         <section class="card" aria-labelledby="loc-h"><h2 id="loc-h">Location & contact</h2>
           ${kv([['District', b.district_name], ['Destination', b.destination_id ? html`<a href="${href('/destinations/' + b.destination_id)}">${b.destination_name}</a>` : '—']])}
           <p class="flag blue section">${b.contact}</p></section></div>
-      ${lastUpdated(null, 'Registry data is synthetic sample data for the prototype')}`);
+      ${lastUpdated(null)}`);
   });
 }
 
@@ -117,7 +118,6 @@ export async function verify(ctx) {
       else if (r.found) { cls = b?.status === 'pending' ? 'warn' : 'bad'; ico = '!'; head = `Found, but ${b?.status === 'expired' ? 'expired' : b?.status === 'suspended' ? 'suspended' : b?.status === 'pending' ? 'renewal pending' : 'not valid'}`; }
       mount(out, html`<div class="vres ${cls}" role="status"><div class="ico" aria-hidden="true">${ico}</div><div class="stack"><h2>${head}</h2><p>${r.message}</p>
         ${b ? html`${kv([['Business', html`<a href="${href('/directory/' + b.id)}">${b.name}</a>`], ['Registration no.', html`<span class="mono">${b.reg_no}</span>`], ['Type', b.type_label], ['District', b.district_name], ['Status', statusPill(b.status)], ['Valid until', fmtDate(b.valid_until)]])}` : ''}
-        ${r.note ? html`<p class="small muted">${r.note}</p>` : ''}
         ${!r.found ? html`<p>If someone is operating without registration, you can <a href="${href('/grievance', { category: 'unregistered', reg: v })}">report an unregistered business</a>.</p>` : ''}</div></div>`);
       announce(head);
     } catch (e) {

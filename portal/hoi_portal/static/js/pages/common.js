@@ -41,7 +41,7 @@ export function resultSub(type, it) {
   }
 }
 export const TYPE_LABEL = {
-  destinations: 'Destinations', businesses: 'Businesses', events: 'Festivals & events', dictionary: 'Dictionary', rules: 'Rules & licences', advisories: 'Advisories',
+  destinations: 'Destinations', businesses: 'Businesses', events: 'Festivals & events', dictionary: 'Travel words', rules: 'Rules & licences', advisories: 'Road alerts',
 };
 
 export function bizRow(b) {

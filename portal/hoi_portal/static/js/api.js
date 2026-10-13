@@ -3,7 +3,7 @@ import { qs } from './ui.js';
 
 const BASE = '/api/v1';
 const KEY = 'uthp.session';
-const PRIVATE = /^\/(business|officer|analytics|admin|auth\/me|me\/|candidates|jobs\/(mine|threads|applications)|jobs\/[^/?]+\/(applications|apply))/;
+const PRIVATE = /^\/(business|staffing\/(mine|agencies|offers\/|requests)|officer|analytics|admin|auth\/me|me\/|candidates|jobs\/(mine|threads|applications)|jobs\/[^/?]+\/(applications|apply))/;
 
 export class ApiError extends Error {
   constructor(status, message, data = null, retryAfter = null) {

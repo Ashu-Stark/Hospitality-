@@ -70,6 +70,35 @@ RAILHEADS = {
     "Kumaon": "Major railheads in Kumaon: Kathgodam, Ramnagar, Tanakpur.",
 }
 
+# One-line "why go", in our own words, built only from the curated facts above and in section 5 (tags, festivals,
+# route facts, seasonality hints). No superlatives, distances, altitudes or other new facts.
+WHY_GO: dict[str, str] = {
+    "kedarnath": "One of the four Char Dham shrines, reached by road to Gaurikund and then a trek.",
+    "badrinath": "Char Dham shrine on the Rishikesh-Badrinath corridor (NH-7).",
+    "gangotri": "Char Dham shrine on the Rishikesh-Gangotri route (NH-34).",
+    "yamunotri": "Char Dham shrine reached by road to Janki Chatti, then a short trek.",
+    "rishikesh": "River town known for yoga; the International Yoga Festival is held here in March.",
+    "haridwar": "River town for pilgrimage; Ganga Dussehra and the Kanwar Yatra bring big crowds.",
+    "mussoorie": "Hill town above Dehradun; busy over the Christmas-New Year holidays.",
+    "dehradun": "Gateway city for Garhwal, with Jolly Grant airport and a major railhead.",
+    "nainital": "Lake town in Kumaon; the Nanda Devi fair and year-end holidays bring crowds.",
+    "jim-corbett-ramnagar": "National park on the foothills; core zones close in the monsoon (verify zone dates).",
+    "auli": "Snow destination with a winter snow season, usually December-February.",
+    "valley-of-flowers": "Flower meadows, usually open roughly June-October; trek via Govindghat and Ghangaria.",
+    "chopta": "Base for treks, with snow in winter.",
+    "almora": "Hill town in Kumaon where the Nanda Devi fair is held.",
+    "kausani": "Hill town on the Kumaon hills circuit.",
+    "munsiyari": "Kumaon hill town in Pithoragarh district, with snow in winter.",
+    "lansdowne": "Small hill town in Pauri Garhwal on the Garhwal hill stations circuit.",
+    "dhanaulti": "Hill town in Tehri Garhwal, on the same circuit as Mussoorie.",
+    "new-tehri-tehri-lake": "Lake town in Tehri Garhwal on the Garhwal hill stations circuit.",
+    "lohaghat": "Hill town in Champawat district on the Kumaon hills circuit.",
+    "bageshwar": "Temple town where the Uttarayani fair is held around Makar Sankranti.",
+    "pithoragarh": "Town in Pithoragarh district on the Kumaon hills circuit.",
+    "kashipur": "Foothill town in Udham Singh Nagar, on the Corbett & foothills circuit.",
+    "pauri": "Hill town in Pauri Garhwal on the Garhwal hill stations circuit.",
+}
+WHY_GO_NOTE = "Our short wording from the curated reference facts; verify before travel."
 
 # destination id -> theme ids. Every curated destination is listed (an empty list means no curated theme fits).
 THEMES: dict[str, list[str]] = {
@@ -123,6 +152,7 @@ def build() -> list[dict]:
                 "season_notes": notes,
                 "route_facts": routes,
                 "facts_note": APPROX,
+                "why_go": WHY_GO[did],
                 "profile": profile,
                 "seed_weight": weight,
             }

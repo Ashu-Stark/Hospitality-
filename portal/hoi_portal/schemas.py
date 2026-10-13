@@ -266,3 +266,136 @@ class InterestDecisionIn(In):
 
 class MessageIn(In):
     text: str = Field(min_length=1, max_length=1000)
+
+
+# ------------------------------------------------------------------ local (community) experiences
+class LocalExperienceIn(In):
+    business_id: str = Field(max_length=40, description="Your guide, homestay or adventure-operator business (ACTIVE registration).")
+    title: str = Field(min_length=5, max_length=90)
+    type: str = Field(max_length=30, description="One of meta.local_experience_types")
+    destination_id: str | None = Field(
+        default=None, max_length=60, description="Default: the business's destination; must be in its district."
+    )
+    description: str = Field(min_length=20, max_length=1200)
+    duration_hours: float = Field(ge=0.5, le=12)
+    group_min: int = Field(default=1, ge=1, le=50)
+    group_max: int = Field(ge=1, le=50)
+    price_min: int | None = Field(default=None, ge=0, le=50000, description="Per person, INR, indicative")
+    price_max: int | None = Field(default=None, ge=0, le=50000)
+    languages: list[str] = Field(default_factory=list, max_length=6)
+    months: list[int] = Field(min_length=1, max_length=12)
+    stay_business_ids: list[str] = Field(default_factory=list, max_length=3, description="1-3 registered homestays nearby (same district)")
+    community_share: str | None = Field(default=None, max_length=200, description="How the fee is shared locally")
+    what_to_bring: list[str] = Field(default_factory=list, max_length=6)
+
+
+class LocalExperienceUpdateIn(In):
+    title: str | None = Field(default=None, min_length=5, max_length=90)
+    type: str | None = Field(default=None, max_length=30)
+    destination_id: str | None = Field(default=None, max_length=60)
+    description: str | None = Field(default=None, min_length=20, max_length=1200)
+    duration_hours: float | None = Field(default=None, ge=0.5, le=12)
+    group_min: int | None = Field(default=None, ge=1, le=50)
+    group_max: int | None = Field(default=None, ge=1, le=50)
+    price_min: int | None = Field(default=None, ge=0, le=50000)
+    price_max: int | None = Field(default=None, ge=0, le=50000)
+    languages: list[str] | None = Field(default=None, max_length=6)
+    months: list[int] | None = Field(default=None, min_length=1, max_length=12)
+    stay_business_ids: list[str] | None = Field(default=None, max_length=3)
+    community_share: str | None = Field(default=None, max_length=200)
+    what_to_bring: list[str] | None = Field(default=None, max_length=6)
+    status: str | None = Field(default=None, pattern=r"^(listed|paused)$")
+
+
+class JoinRequestIn(In):
+    name: str = Field(min_length=2, max_length=60, description="First name is enough")
+    group_size: int = Field(ge=1, le=50)
+    date: str = Field(pattern=DATE)
+    contact: str = Field(min_length=5, max_length=120, description="Phone or email; shared with this host only")
+    note: str | None = Field(default=None, max_length=500)
+
+
+class JoinDecisionIn(In):
+    action: str = Field(pattern=r"^(accept|decline)$")
+
+
+# ------------------------------------------------------------------ staffing agencies + HOI staffing requests
+class StaffingRequestIn(In):
+    """Two accepted shapes (unknown fields are still rejected):
+
+    * HOI platform client: `{external_id, department, skill, date_from, date_to, openings, note}`;
+    * long form: `{skill, district, from, to, openings, shift_note, source, source_id}`.
+    `external_id` / `source_id` is the idempotency key; `source` defaults to `hoi_roster_shortage`."""
+
+    skill: str | None = Field(
+        default=None, max_length=40, description="Skill key from GET /api/v1/jobs/meta (HOI role names like food_beverage are mapped)"
+    )
+    department: str | None = Field(
+        default=None, max_length=40, description="HOI department; used as the skill when `skill` is not a known key"
+    )
+    district: str | None = Field(default=None, max_length=40, description="District id or name; must be the hotel's own district (default)")
+    date_from: str | None = Field(default=None, pattern=DATE)
+    date_to: str | None = Field(default=None, pattern=DATE)
+    from_: str | None = Field(default=None, alias="from", pattern=DATE)
+    to: str | None = Field(default=None, pattern=DATE)
+    openings: int = Field(ge=1, le=50)
+    note: str | None = Field(default=None, max_length=300, description="Shift note (alias of shift_note)")
+    shift_note: str | None = Field(default=None, max_length=300)
+    source: str = Field(default="hoi_roster_shortage", pattern=r"^hoi_roster_shortage$")
+    external_id: str | None = Field(default=None, max_length=80, description="Idempotency key from the HOI platform")
+    source_id: str | None = Field(
+        default=None, max_length=80, description="Idempotency key (alias of external_id). Default: skill:district:from:to"
+    )
+
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True, populate_by_name=True)
+
+    @model_validator(mode="after")
+    def _shape(self):
+        if not (self.skill or self.department):
+            raise ValueError("skill or department is required")
+        if not (self.date_from or self.from_) or not (self.date_to or self.to):
+            raise ValueError("date_from and date_to (or from and to) are required")
+        return self
+
+    def normalized(self) -> dict:
+        return {
+            "skill": self.skill or self.department,
+            "department": self.department,
+            "district": self.district,
+            "from": self.date_from or self.from_,
+            "to": self.date_to or self.to,
+            "openings": self.openings,
+            "shift_note": self.shift_note or self.note,
+            "source": self.source,
+            "source_id": self.external_id or self.source_id,
+        }
+
+
+class AgencyProfileIn(In):
+    agency_skills: list[str] | None = Field(default=None, max_length=15)
+    districts_served: list[str] | None = Field(default=None, max_length=13)
+
+
+class StaffingOfferIn(In):
+    business_id: str = Field(max_length=40, description="Your staffing agency (ACTIVE registration)")
+    skill: str = Field(max_length=40)
+    district: str | None = Field(default=None, max_length=40, description="Default: the agency's district")
+    destination_id: str | None = Field(default=None, max_length=60)
+    workers: int = Field(ge=1, le=200)
+    available_from: str = Field(pattern=DATE)
+    available_to: str = Field(pattern=DATE)
+    note: str | None = Field(default=None, max_length=300)
+
+
+class StaffingOfferUpdateIn(In):
+    workers: int | None = Field(default=None, ge=1, le=200)
+    available_from: str | None = Field(default=None, pattern=DATE)
+    available_to: str | None = Field(default=None, pattern=DATE)
+    note: str | None = Field(default=None, max_length=300)
+    status: str | None = Field(default=None, pattern=r"^(open|withdrawn)$")
+
+
+class AgencyResponseIn(In):
+    business_id: str = Field(max_length=40, description="Your staffing agency")
+    workers: int = Field(ge=1, le=200, description="How many pooled workers you can supply")
+    note: str | None = Field(default=None, max_length=300)

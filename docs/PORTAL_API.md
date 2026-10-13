@@ -96,7 +96,8 @@ Every response has an `X-Request-ID` header (send your own `X-Request-ID` to cor
 | `POST /grievances/track` | 20/min per IP |
 | `GET /registry/verify` | 60/min per IP |
 | `GET /search` | 60/min per IP |
-| `POST /ingest/occupancy` | 120/min per IP |
+| `POST /ingest/occupancy`, `POST /ingest/staffing-request` | 120/min per IP (shared) |
+| `POST /local-experiences/{id}/join` | 20/hour per IP |
 | `POST /me/seeker/profile` (create) | 5/hour per user, 20/hour per IP |
 | `POST /jobs/threads/{id}` (message) | 30/hour per user |
 | `POST /jobs/{id}/apply` | 20/day per user |
@@ -143,6 +144,19 @@ the same origin. Google Fonts (Inter Tight) is allowed. Also: `X-Frame-Options: 
   business, in `contact` after the candidate accepted that business's interest request; never in `/jobs` or
   `/candidates` search. `match.why` items are `{ok, partial?, text}`; show them as chips (not colour only).
   Workforce-market rows with `suppressed: true` have `candidates: null` and `gap: null`.
+- **Local experiences** (community-hosted, SAMPLE data): hosts are businesses of type guide, homestay or
+  adventure_operator with an ACTIVE registration; each experience links 1-3 registered homestays (`stays_nearby`).
+  "Request to join" takes no payment; the visitor's `contact` is returned only to the host business owner.
+- **Staffing agencies**: business type `staffing_agency` (code `STF`, registered like any business). Agencies publish
+  block offers (counts per skill and window, never individual workers) and answer HOI staffing requests.
+- **HOI staffing requests** (for the HOI platform): when a roster week is short of staff, call
+  `POST /api/v1/ingest/staffing-request` with the hotel's business API key (`X-API-Key`, the same key used for
+  occupancy ingest) and either `{external_id, department, skill, date_from, date_to, openings, note}` (the platform
+  client's shape) or `{skill, district, from, to, openings, shift_note, source: "hoi_roster_shortage", source_id}`.
+  201 `{job_id, status, result: "created", ...}` on create; 200 with the same `job_id` on a repeat.
+  Use a stable `external_id` / `source_id` per roster week and role (e.g. `<hotel>-<ISO week>-<role>`): repeating the call is
+  idempotent (same `job_id`; `result` created | updated | unchanged) and never re-notifies agencies. The job post
+  appears on the public board with `via_hoi: true` and the label "Staffing request via HOI".
 - **Rules/helplines**: `number: null` means "to be filled by the department"; never fill in a number.
 
 ## 8. Environment (server)
@@ -240,7 +254,7 @@ Response (abbreviated):
    "code": "HMS",
    "capacity_unit": "rooms"
   },
-  "... 6 more"
+  "... 7 more"
  ],
  "business_statuses": [
   "active",
@@ -304,6 +318,11 @@ Response (abbreviated):
    "property_papers",
    "trade_licence",
    "fssai"
+  ],
+  "staffing_agency": [
+   "identity_proof",
+   "address_proof",
+   "trade_licence"
   ]
  },
  "grievance_categories": [
@@ -386,6 +405,22 @@ Response (abbreviated):
   },
   "... 4 more"
  ],
+ "local_experience_types": [
+  {
+   "key": "village_walk",
+   "label": "Village walk"
+  },
+  {
+   "key": "home_meal",
+   "label": "Home-cooked Garhwali / Kumaoni meal"
+  },
+  "... 6 more"
+ ],
+ "local_experience_host_types": [
+  "guide",
+  "homestay",
+  "adventure_operator"
+ ],
  "official_services": {
   "items": [
    {
@@ -445,7 +480,7 @@ Example -> 200
 Response (abbreviated):
 ```json
 {
- "businesses_listed": 304,
+ "businesses_listed": 312,
  "destinations": 24,
  "dictionary_terms": 108,
  "active_advisories": 8,
@@ -511,6 +546,7 @@ Response (abbreviated):
      "Major railheads in Garhwal: Dehradun, Haridwar, Rishikesh (Yog Nagari Rishikesh)."
     ],
     "facts_note": "Approximate, verify with official sources before travel.",
+    "why_go": "One of the four Char Dham shrines, reached by road to Gaurikund and then a trek.",
     "district_name": "Rudraprayag"
    }
   ],
@@ -620,8 +656,8 @@ Response (abbreviated):
     "segment": "Gaurikund approach",
     "title": "SAMPLE: slow traffic near Gaurikund",
     "reason": "Illustrative sample advisory for the prototype; not real road status.",
-    "posted_at": "2026-10-12T12:53:25.870000Z",
-    "expires_at": "2026-10-19T13:53:25.870000Z",
+    "posted_at": "2026-10-12T18:19:21.215000Z",
+    "expires_at": "2026-10-19T19:19:21.215000Z",
     "active": true,
     "sample": true,
     "posted_by_role": "district_officer"
@@ -690,7 +726,7 @@ Response (abbreviated):
     "Garhwali"
    ],
    "registered_on": "2024-06-07",
-   "valid_until": "2027-05-01",
+   "valid_until": "2027-05-02",
    "hoi_connected": true,
    "type_label": "Homestay",
    "capacity_unit": "rooms",
@@ -837,12 +873,15 @@ Response (abbreviated):
     "Major railheads in Garhwal: Dehradun, Haridwar, Rishikesh (Yog Nagari Rishikesh)."
    ],
    "facts_note": "Approximate, verify with official sources before travel.",
+   "why_go": "Base for treks, with snow in winter.",
    "district_name": "Rudraprayag",
    "crowd_today": {
-    "index": 68,
+    "index": 66,
     "band": "high",
     "label": "estimate"
-   }
+   },
+   "weather_now": null,
+   "local_experiences": 3
   },
   {
    "id": "kedarnath",
@@ -879,12 +918,15 @@ Response (abbreviated):
     "Major railheads in Garhwal: Dehradun, Haridwar, Rishikesh (Yog Nagari Rishikesh)."
    ],
    "facts_note": "Approximate, verify with official sources before travel.",
+   "why_go": "One of the four Char Dham shrines, reached by road to Gaurikund and then a trek.",
    "district_name": "Rudraprayag",
    "crowd_today": {
     "index": 84,
     "band": "high",
     "label": "estimate"
-   }
+   },
+   "weather_now": null,
+   "local_experiences": 3
   }
  ],
  "total": 2,
@@ -941,6 +983,7 @@ Response (abbreviated):
    "Major railheads in Garhwal: Dehradun, Haridwar, Rishikesh (Yog Nagari Rishikesh)."
   ],
   "facts_note": "Approximate, verify with official sources before travel.",
+  "why_go": "One of the four Char Dham shrines, reached by road to Gaurikund and then a trek.",
   "district_name": "Rudraprayag"
  },
  "weather": {
@@ -950,11 +993,11 @@ Response (abbreviated):
    "weather_code": 3,
    "summary": "Overcast",
    "wind_kmh": 9.4,
-   "time": "2026-10-13T10:00"
+   "time": "2026-10-14T10:00"
   },
   "daily": [
    {
-    "date": "2026-10-13",
+    "date": "2026-10-14",
     "max_c": 9.5,
     "min_c": -1.2,
     "precip_probability": 15,
@@ -967,9 +1010,9 @@ Response (abbreviated):
   ],
   "warnings": [
    {
-    "date": "2026-10-14",
+    "date": "2026-10-15",
     "kind": "heavy_rain",
-    "message": "Heavy rain is forecast on 2026-10-14 (55.2 mm). Hill roads can be blocked by landslides; check road advisories before setting out."
+    "message": "Heavy rain is forecast on 2026-10-15 (55.2 mm). Hill roads can be blocked by landslides; check road advisories before setting out."
    },
    "... 1 more"
   ],
@@ -979,7 +1022,7 @@ Response (abbreviated):
    "snow_cm": 5.0,
    "note": "ASSUMED thresholds, not official warning criteria."
   },
-  "fetched_at": "2026-10-13T13:53:26.093918Z",
+  "fetched_at": "2026-10-13T19:19:21.435202Z",
   "cached": false,
   "stale": false,
   "source": "Open-Meteo (open-meteo.com), forecast model data",
@@ -998,10 +1041,10 @@ Response (abbreviated):
    "... 3 more"
   ],
   "today": {
-   "date": "2026-10-13",
+   "date": "2026-10-14",
    "index": 84,
    "band": "high",
-   "occupancy_pct": 84.4,
+   "occupancy_pct": 83.7,
    "basis": "estimate",
    "events": [
     "Char Dham closing"
@@ -1010,10 +1053,10 @@ Response (abbreviated):
   },
   "outlook": [
    {
-    "date": "2026-10-13",
+    "date": "2026-10-14",
     "index": 84,
     "band": "high",
-    "occupancy_pct": 84.4,
+    "occupancy_pct": 83.7,
     "basis": "estimate",
     "events": [
      "Char Dham closing"
@@ -1026,7 +1069,7 @@ Response (abbreviated):
    "date": "2026-10-17",
    "index": 90,
    "band": "very_high",
-   "occupancy_pct": 85.0,
+   "occupancy_pct": 84.8,
    "basis": "estimate",
    "events": [
     "Char Dham closing"
@@ -1065,8 +1108,8 @@ Response (abbreviated):
     "segment": "Gaurikund approach",
     "title": "SAMPLE: slow traffic near Gaurikund",
     "reason": "Illustrative sample advisory for the prototype; not real road status.",
-    "posted_at": "2026-10-12T12:53:25.870000Z",
-    "expires_at": "2026-10-19T13:53:25.870000Z",
+    "posted_at": "2026-10-12T18:19:21.215000Z",
+    "expires_at": "2026-10-19T19:19:21.215000Z",
     "active": true,
     "sample": true,
     "posted_by_role": "district_officer"
@@ -1079,16 +1122,16 @@ Response (abbreviated):
     "label": "Pilgrim roads in the high hills"
    },
    "now": {
-    "index": 33,
+    "index": 21,
     "band": "free",
     "band_label": "Free-flowing",
     "delay": "No unusual delay expected"
    },
    "hours": [
     {
-     "time": "2026-10-13T19:00:00+05:30",
-     "hour": 19,
-     "index": 33,
+     "time": "2026-10-14T00:00:00+05:30",
+     "hour": 0,
+     "index": 21,
      "band": "free",
      "nowcast": false
     },
@@ -1096,8 +1139,8 @@ Response (abbreviated):
    ],
    "best_time": {
     "start": "2026-10-14T16:00:00+05:30",
-    "label": "4–7 pm tomorrow",
-    "day": "tomorrow",
+    "label": "4–7 pm",
+    "day": "today",
     "index": 52,
     "band": "moderate"
    },
@@ -1129,8 +1172,8 @@ Response (abbreviated):
    "segment": "Gaurikund approach",
    "title": "SAMPLE: slow traffic near Gaurikund",
    "reason": "Illustrative sample advisory for the prototype; not real road status.",
-   "posted_at": "2026-10-12T12:53:25.870000Z",
-   "expires_at": "2026-10-19T13:53:25.870000Z",
+   "posted_at": "2026-10-12T18:19:21.215000Z",
+   "expires_at": "2026-10-19T19:19:21.215000Z",
    "active": true,
    "sample": true,
    "posted_by_role": "district_officer"
@@ -1157,7 +1200,7 @@ Response (abbreviated):
       "Garhwali"
      ],
      "registered_on": "2022-10-13",
-     "valid_until": "2026-10-13",
+     "valid_until": "2027-10-13",
      "hoi_connected": false,
      "type_label": "Hotel",
      "capacity_unit": "rooms",
@@ -1315,7 +1358,73 @@ Response (abbreviated):
   },
   "... 5 more"
  ],
- "last_updated": "2026-10-13T13:53:26.100324Z"
+ "local_experiences": {
+  "items": [
+   {
+    "id": "LX-0006",
+    "title": "Home-cooked Garhwali / Kumaoni meal, Kedarnath",
+    "type": "home_meal",
+    "type_label": "Home-cooked Garhwali / Kumaoni meal",
+    "destination_id": "kedarnath",
+    "destination_name": "Kedarnath",
+    "district": "rudraprayag",
+    "district_name": "Rudraprayag",
+    "description": "SAMPLE (synthetic): A home-cooked Garhwali or Kumaoni meal with a host family, made from seasonal local produce. Tell the host about food...",
+    "duration_hours": 2.0,
+    "group_min": 2,
+    "group_max": 6,
+    "price_min": 700,
+    "price_max": 800,
+    "price_note": "Per person, indicative (sample)",
+    "languages": [
+     "English",
+     "Garhwali",
+     "Hindi"
+    ],
+    "months": [
+     1,
+     2,
+     3,
+     4,
+     5,
+     6,
+     "... 6 more"
+    ],
+    "community_share": "Sample: about 70% of the fee goes to the host family, 10% to a village fund.",
+    "what_to_bring": [
+     "Cash for small purchases",
+     "Comfortable walking shoes",
+     "Water bottle"
+    ],
+    "host_business_id": "biz_0010",
+    "stay_business_ids": [
+     "biz_0209"
+    ],
+    "status": "listed",
+    "synthetic": true,
+    "host": {
+     "id": "biz_0010",
+     "name": "Lotus Sample Homestay 010, Kedarnath",
+     "type": "homestay",
+     "type_label": "Homestay",
+     "reg_no": "UK-HMS-RUD-00001",
+     "status": "active",
+     "verified": true,
+     "rating": 4.2,
+     "district_name": "Rudraprayag",
+     "destination_name": "Kedarnath",
+     "languages": [
+      "Hindi",
+      "English",
+      "Garhwali"
+     ]
+    }
+   },
+   "... 2 more"
+  ],
+  "total": 3
+ },
+ "last_updated": "2026-10-13T19:19:21.438665Z"
 }
 ```
 
@@ -1334,11 +1443,11 @@ Response (abbreviated):
   "weather_code": 3,
   "summary": "Overcast",
   "wind_kmh": 9.4,
-  "time": "2026-10-13T10:00"
+  "time": "2026-10-14T10:00"
  },
  "daily": [
   {
-   "date": "2026-10-13",
+   "date": "2026-10-14",
    "max_c": 9.5,
    "min_c": -1.2,
    "precip_probability": 15,
@@ -1348,7 +1457,7 @@ Response (abbreviated):
    "summary": "Overcast"
   },
   {
-   "date": "2026-10-14",
+   "date": "2026-10-15",
    "max_c": 8.0,
    "min_c": -2.0,
    "precip_probability": 85,
@@ -1361,14 +1470,14 @@ Response (abbreviated):
  ],
  "warnings": [
   {
-   "date": "2026-10-14",
+   "date": "2026-10-15",
    "kind": "heavy_rain",
-   "message": "Heavy rain is forecast on 2026-10-14 (55.2 mm). Hill roads can be blocked by landslides; check road advisories before setting out."
+   "message": "Heavy rain is forecast on 2026-10-15 (55.2 mm). Hill roads can be blocked by landslides; check road advisories before setting out."
   },
   {
-   "date": "2026-10-15",
+   "date": "2026-10-16",
    "kind": "snow",
-   "message": "Snowfall is forecast on 2026-10-15 (6.3 cm). Roads to higher places may close; carry warm layers and check advisories."
+   "message": "Snowfall is forecast on 2026-10-16 (6.3 cm). Roads to higher places may close; carry warm layers and check advisories."
   }
  ],
  "thresholds": {
@@ -1377,7 +1486,7 @@ Response (abbreviated):
   "snow_cm": 5.0,
   "note": "ASSUMED thresholds, not official warning criteria."
  },
- "fetched_at": "2026-10-13T13:53:26.093000Z",
+ "fetched_at": "2026-10-13T19:19:21.435000Z",
  "cached": true,
  "stale": false,
  "source": "Open-Meteo (open-meteo.com), forecast model data",
@@ -1406,10 +1515,10 @@ Response (abbreviated):
   "... 3 more"
  ],
  "today": {
-  "date": "2026-10-13",
+  "date": "2026-10-14",
   "index": 84,
   "band": "high",
-  "occupancy_pct": 84.4,
+  "occupancy_pct": 83.7,
   "basis": "estimate",
   "events": [
    "Char Dham closing"
@@ -1418,10 +1527,10 @@ Response (abbreviated):
  },
  "outlook": [
   {
-   "date": "2026-10-13",
+   "date": "2026-10-14",
    "index": 84,
    "band": "high",
-   "occupancy_pct": 84.4,
+   "occupancy_pct": 83.7,
    "basis": "estimate",
    "events": [
     "Char Dham closing"
@@ -1434,7 +1543,7 @@ Response (abbreviated):
   "date": "2026-10-17",
   "index": 90,
   "band": "very_high",
-  "occupancy_pct": 85.0,
+  "occupancy_pct": 84.8,
   "basis": "estimate",
   "events": [
    "Char Dham closing"
@@ -1485,7 +1594,7 @@ Response (abbreviated):
    ],
    "best_months": null,
    "crowd_today": {
-    "index": 68,
+    "index": 66,
     "band": "high",
     "label": "estimate"
    },
@@ -1674,11 +1783,11 @@ Response (abbreviated):
     "temperature_c": 6.1,
     "summary": "Overcast",
     "warning": {
-     "date": "2026-10-14",
+     "date": "2026-10-15",
      "kind": "heavy_rain",
-     "message": "Heavy rain is forecast on 2026-10-14 (55.2 mm). Hill roads can be blocked by landslides; check road advisories before setting out."
+     "message": "Heavy rain is forecast on 2026-10-15 (55.2 mm). Hill roads can be blocked by landslides; check road advisories before setting out."
     },
-    "fetched_at": "2026-10-13T13:53:26.093000Z",
+    "fetched_at": "2026-10-13T19:19:21.435000Z",
     "stale": false
    }
   },
@@ -1890,7 +1999,7 @@ Response (abbreviated):
     "Major railheads in Garhwal: Dehradun, Haridwar, Rishikesh (Yog Nagari Rishikesh)."
    ],
    "crowd_today": {
-    "index": 67,
+    "index": 68,
     "band": "high",
     "label": "estimate"
    },
@@ -1899,14 +2008,14 @@ Response (abbreviated):
     "temperature_c": 6.1,
     "summary": "Overcast",
     "warning": {
-     "date": "2026-10-14",
+     "date": "2026-10-15",
      "kind": "heavy_rain",
-     "message": "Heavy rain is forecast on 2026-10-14 (55.2 mm). Hill roads can be blocked by landslides; check road advisories before setting out."
+     "message": "Heavy rain is forecast on 2026-10-15 (55.2 mm). Hill roads can be blocked by landslides; check road advisories before setting out."
     }
    },
    "road": null,
    "traffic": {
-    "date": "2026-10-26",
+    "date": "2026-10-27",
     "index": 55,
     "band": "moderate",
     "band_label": "Moderate",
@@ -1941,9 +2050,9 @@ Response (abbreviated):
     "temperature_c": 6.1,
     "summary": "Overcast",
     "warning": {
-     "date": "2026-10-14",
+     "date": "2026-10-15",
      "kind": "heavy_rain",
-     "message": "Heavy rain is forecast on 2026-10-14 (55.2 mm). Hill roads can be blocked by landslides; check road advisories before setting out."
+     "message": "Heavy rain is forecast on 2026-10-15 (55.2 mm). Hill roads can be blocked by landslides; check road advisories before setting out."
     }
    },
    "road": {
@@ -1954,8 +2063,8 @@ Response (abbreviated):
     "sample": true
    },
    "traffic": {
-    "date": "2026-10-27",
-    "index": 48,
+    "date": "2026-10-28",
+    "index": 47,
     "band": "moderate",
     "band_label": "Moderate",
     "label": "Predicted, not measured; for planning"
@@ -1967,11 +2076,11 @@ Response (abbreviated):
  "sample": true,
  "note": "Sample plan for orientation. Suggested days are a planning suggestion, not a schedule. Verify routes, road status, shrine and park dates,...",
  "best_start": {
-  "date": "2026-10-26",
+  "date": "2026-10-27",
   "offset_days": 13,
-  "avg_index": 74,
+  "avg_index": 70,
   "band": "high",
-  "peak_index": 83,
+  "peak_index": 76,
   "if_start_today": {
    "avg_index": 84,
    "band": "high"
@@ -1980,7 +2089,7 @@ Response (abbreviated):
   "label": "estimate",
   "method": "Lowest average crowd estimate over all trip days, for start dates in the next 14 days, following the suggested days per stop."
  },
- "generated_at": "2026-10-13T13:53:26.132849Z"
+ "generated_at": "2026-10-13T19:19:21.470393Z"
 }
 ```
 
@@ -2027,11 +2136,11 @@ Response (abbreviated):
     "temperature_c": 6.1,
     "summary": "Overcast",
     "warning": {
-     "date": "2026-10-14",
+     "date": "2026-10-15",
      "kind": "heavy_rain",
-     "message": "Heavy rain is forecast on 2026-10-14 (55.2 mm). Hill roads can be blocked by landslides; check road advisories before setting out."
+     "message": "Heavy rain is forecast on 2026-10-15 (55.2 mm). Hill roads can be blocked by landslides; check road advisories before setting out."
     },
-    "fetched_at": "2026-10-13T13:53:26.093000Z",
+    "fetched_at": "2026-10-13T19:19:21.435000Z",
     "stale": false
    },
    "circuits": [
@@ -2548,8 +2657,8 @@ Response (abbreviated):
    "segment": "Gaurikund approach",
    "title": "SAMPLE: slow traffic near Gaurikund",
    "reason": "Illustrative sample advisory for the prototype; not real road status.",
-   "posted_at": "2026-10-12T12:53:25.870000Z",
-   "expires_at": "2026-10-19T13:53:25.870000Z",
+   "posted_at": "2026-10-12T18:19:21.215000Z",
+   "expires_at": "2026-10-19T19:19:21.215000Z",
    "active": true,
    "sample": true,
    "posted_by_role": "district_officer"
@@ -2594,21 +2703,21 @@ Response (abbreviated):
  "district_name": "Rudraprayag",
  "business_reg_no": null,
  "status": "received",
- "created_at": "2026-10-13T13:53:25.981099Z",
- "updated_at": "2026-10-13T13:53:25.981099Z",
- "sla_due_at": "2026-10-20T13:53:25.981099Z",
+ "created_at": "2026-10-13T19:19:21.334933Z",
+ "updated_at": "2026-10-13T19:19:21.334933Z",
+ "sla_due_at": "2026-10-20T19:19:21.334933Z",
  "sla_days": 7,
  "overdue": false,
  "resolved_at": null,
  "timeline": [
   {
    "status": "received",
-   "at": "2026-10-13T13:53:25.981099Z",
+   "at": "2026-10-13T19:19:21.334933Z",
    "note": "Grievance received."
   }
  ],
  "synthetic": false,
- "tracking_code": "548411",
+ "tracking_code": "740816",
  "message": "Keep the ticket id and tracking code. You need both to check the status. The code is shown only once."
 }
 ```
@@ -2623,7 +2732,7 @@ Request body:
 ```json
 {
  "ticket_id": "UTHP-G-000041",
- "tracking_code": "548411"
+ "tracking_code": "740816"
 }
 ```
 
@@ -2637,16 +2746,16 @@ Response (abbreviated):
  "district_name": "Rudraprayag",
  "business_reg_no": null,
  "status": "received",
- "created_at": "2026-10-13T13:53:25.981000Z",
- "updated_at": "2026-10-13T13:53:25.981000Z",
- "sla_due_at": "2026-10-20T13:53:25.981000Z",
+ "created_at": "2026-10-13T19:19:21.334000Z",
+ "updated_at": "2026-10-13T19:19:21.334000Z",
+ "sla_due_at": "2026-10-20T19:19:21.334000Z",
  "sla_days": 7,
  "overdue": false,
  "resolved_at": null,
  "timeline": [
   {
    "status": "received",
-   "at": "2026-10-13T13:53:25.981000Z",
+   "at": "2026-10-13T19:19:21.334000Z",
    "note": "Grievance received."
   }
  ],
@@ -2670,23 +2779,23 @@ Response (abbreviated):
   "role": "state_admin",
   "district": null,
   "label": "State admin (demo)",
-  "description": "All districts: officers, analytics, approvals"
+  "description": "All districts: officers, numbers, approvals"
  },
  {
   "username": "demo.officer.rudraprayag",
   "role": "district_officer",
   "district": "rudraprayag",
   "label": "District tourism officer, Rudraprayag (demo)",
-  "description": "Applications, grievances, advisories and analytics for Rudraprayag only"
+  "description": "Applications, complaints, road alerts and numbers for Rudraprayag only"
  },
  {
   "username": "demo.business",
   "role": "business",
   "district": null,
   "label": "Business owner (demo)",
-  "description": "Registered homestay and hotel, renewals, occupancy, API key, hiring"
+  "description": "A homestay and a hotel: renewals, local experiences, hiring"
  },
- "... 1 more"
+ "... 2 more"
 ]
 ```
 
@@ -2699,18 +2808,18 @@ Example: `POST /api/v1/auth/demo/demo.officer.rudraprayag` -> 200
 Response (abbreviated):
 ```json
 {
- "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c3JfNmEyMGQ5N2Q4NWE3IiwidXNyIjoiZGVtby5vZmZpY2VyLnJ1ZHJhcHJheWFnIiwicm9sZSI6ImRpc3RyaWN0...",
+ "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c3JfZjAxNmEzMjgxNzU3IiwidXNyIjoiZGVtby5vZmZpY2VyLnJ1ZHJhcHJheWFnIiwicm9sZSI6ImRpc3RyaWN0...",
  "token_type": "bearer",
  "expires_in": 1800,
- "refresh_token": "5NcsDn-X_0hLG116WkFNJMN4TKZRo_6pqhTjplYsGTr5EBRyECLE63xkrAlF78oE",
+ "refresh_token": "DBvdCxtMHAdR63MS8V-9pTEqkZ6bM8YQh5eyPXJJfyrIyYOu0-tKB1qgQ4SEzbrf",
  "user": {
-  "id": "usr_6a20d97d85a7",
+  "id": "usr_f016a3281757",
   "username": "demo.officer.rudraprayag",
   "role": "district_officer",
   "district": "rudraprayag",
   "label": "District tourism officer, Rudraprayag (demo)",
   "active": true,
-  "created_at": "2026-10-13T13:53:24.217000Z",
+  "created_at": "2026-10-13T19:19:19.516000Z",
   "last_login": null,
   "role_label": "District tourism officer",
   "district_name": "Rudraprayag"
@@ -2735,18 +2844,18 @@ Request body:
 Response (abbreviated):
 ```json
 {
- "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c3JfYzIzYjMxODZiNTBiIiwidXNyIjoibXkuaG9tZXN0YXkiLCJyb2xlIjoiYnVzaW5lc3MiLCJkc3QiOm51bGws...",
+ "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c3JfMzNhODhmNzQ2NGU4IiwidXNyIjoibXkuaG9tZXN0YXkiLCJyb2xlIjoiYnVzaW5lc3MiLCJkc3QiOm51bGws...",
  "token_type": "bearer",
  "expires_in": 1800,
- "refresh_token": "nSreMeU1uFjWoZX5Ozy-4mppt2lFTxxv11wlW4iyvxAYRti6sjkhmK6GNyXO8GEZ",
+ "refresh_token": "_oKBB1V3_sv6UVptMCdkgeZrEXjSMuWCJV7i24ONgBvNZdQG5B7AnmC0fuSbLFKM",
  "user": {
-  "id": "usr_c23b3186b50b",
+  "id": "usr_33a88f7464e8",
   "username": "my.homestay",
   "role": "business",
   "district": null,
   "label": null,
   "active": true,
-  "created_at": "2026-10-13T13:53:26.264052Z",
+  "created_at": "2026-10-13T19:19:21.601046Z",
   "last_login": null,
   "role_label": "Business",
   "district_name": null
@@ -2771,19 +2880,19 @@ Request body:
 Response (abbreviated):
 ```json
 {
- "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c3JfYzIzYjMxODZiNTBiIiwidXNyIjoibXkuaG9tZXN0YXkiLCJyb2xlIjoiYnVzaW5lc3MiLCJkc3QiOm51bGws...",
+ "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c3JfMzNhODhmNzQ2NGU4IiwidXNyIjoibXkuaG9tZXN0YXkiLCJyb2xlIjoiYnVzaW5lc3MiLCJkc3QiOm51bGws...",
  "token_type": "bearer",
  "expires_in": 1800,
- "refresh_token": "0lL4Lr8lPyT3Attp0WUjQ4yXFzjxhpZp5gZ_J7QUR84mzM9ltGlKiiwkGHLRNDPT",
+ "refresh_token": "yieYg6HdGtbbu0cbe_23S_BwX2tUtHd26wjwviclLH5l1ShRil3dY0WSwW_IjRhD",
  "user": {
-  "id": "usr_c23b3186b50b",
+  "id": "usr_33a88f7464e8",
   "username": "my.homestay",
   "role": "business",
   "district": null,
   "label": null,
   "active": true,
-  "created_at": "2026-10-13T13:53:26.264000Z",
-  "last_login": "2026-10-13T13:53:26.356000Z",
+  "created_at": "2026-10-13T19:19:21.601000Z",
+  "last_login": "2026-10-13T19:19:21.693000Z",
   "role_label": "Business",
   "district_name": null
  }
@@ -2799,26 +2908,26 @@ Example -> 200
 Request body:
 ```json
 {
- "refresh_token": "toSSt-28XRbPxbeGkhKYe33FCWCT0FPI2M1OjrmXCoKEVvgwYFdgiYFi_N863qla"
+ "refresh_token": "nMh58kIob4TxG50gbox2AtA2Y54pQYhkv8Ii1hJwx0BTxPLOI7SJ3x20NJZlsHag"
 }
 ```
 
 Response (abbreviated):
 ```json
 {
- "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c3JfYzIzYjMxODZiNTBiIiwidXNyIjoibXkuaG9tZXN0YXkiLCJyb2xlIjoiYnVzaW5lc3MiLCJkc3QiOm51bGws...",
+ "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c3JfMzNhODhmNzQ2NGU4IiwidXNyIjoibXkuaG9tZXN0YXkiLCJyb2xlIjoiYnVzaW5lc3MiLCJkc3QiOm51bGws...",
  "token_type": "bearer",
  "expires_in": 1800,
- "refresh_token": "R2rA_125Vh1CR2gEDWcc1vlKbERohvD6XUgztZWyu10tMPv7yhEzHH0XTNqX69v8",
+ "refresh_token": "16WZBQLfe_d8vSCIijXW8xiCYANI9pgpTF_DBJrd99LnoX4l4zabZldXFTMv_lk3",
  "user": {
-  "id": "usr_c23b3186b50b",
+  "id": "usr_33a88f7464e8",
   "username": "my.homestay",
   "role": "business",
   "district": null,
   "label": null,
   "active": true,
-  "created_at": "2026-10-13T13:53:26.264000Z",
-  "last_login": "2026-10-13T13:53:26.444000Z",
+  "created_at": "2026-10-13T19:19:21.601000Z",
+  "last_login": "2026-10-13T19:19:21.788000Z",
   "role_label": "Business",
   "district_name": null
  }
@@ -2835,13 +2944,13 @@ Response (abbreviated):
 ```json
 {
  "user": {
-  "id": "usr_6a20d97d85a7",
+  "id": "usr_f016a3281757",
   "username": "demo.officer.rudraprayag",
   "role": "district_officer",
   "district": "rudraprayag",
   "label": "District tourism officer, Rudraprayag (demo)",
   "active": true,
-  "created_at": "2026-10-13T13:53:24.217000Z",
+  "created_at": "2026-10-13T19:19:19.516000Z",
   "last_login": null,
   "role_label": "District tourism officer",
   "district_name": "Rudraprayag"
@@ -2858,7 +2967,7 @@ Example -> 204
 Request body:
 ```json
 {
- "refresh_token": "u1_mxp3jgtiQJM9nyUjVkJ86noPhzwX4EgF3AtHIBrL1ZxSgQ7cQCAaO2EGu2oG6"
+ "refresh_token": "dTO8olIIURFjY-M91SzdqZFVHW9ZL5dMQdNXaboInwJwMbiyGLQr-xQ3aF6CvyCh"
 }
 ```
 
@@ -2892,7 +3001,7 @@ Response (abbreviated):
     "Garhwali"
    ],
    "registered_on": "2024-06-07",
-   "valid_until": "2027-05-01",
+   "valid_until": "2027-05-02",
    "hoi_connected": true,
    "type_label": "Homestay",
    "capacity_unit": "rooms",
@@ -2950,12 +3059,12 @@ Response (abbreviated):
    "notes": null,
    "reason": "Please tick and keep ready the missing document.",
    "reg_no": null,
-   "submitted_at": "2026-10-04T13:53:24.879000Z",
-   "updated_at": "2026-10-05T13:53:24.879000Z",
-   "decided_at": "2026-10-05T13:53:24.879000Z",
+   "submitted_at": "2026-10-04T19:19:20.257000Z",
+   "updated_at": "2026-10-05T19:19:20.257000Z",
+   "decided_at": "2026-10-05T19:19:20.257000Z",
    "history": [
     {
-     "at": "2026-10-04T13:53:24.879000Z",
+     "at": "2026-10-04T19:19:20.257000Z",
      "action": "submitted",
      "reason": null
     },
@@ -3003,7 +3112,7 @@ Response (abbreviated):
     "Garhwali"
    ],
    "registered_on": "2024-06-07",
-   "valid_until": "2027-05-01",
+   "valid_until": "2027-05-02",
    "hoi_connected": true,
    "type_label": "Homestay",
    "capacity_unit": "rooms",
@@ -3050,7 +3159,7 @@ Response (abbreviated):
   "Garhwali"
  ],
  "registered_on": "2024-06-07",
- "valid_until": "2027-05-01",
+ "valid_until": "2027-05-02",
  "hoi_connected": true,
  "type_label": "Homestay",
  "capacity_unit": "rooms",
@@ -3067,20 +3176,20 @@ Response (abbreviated):
  "occupancy_months": [
   {
    "month": "2026-10",
-   "days_reported": 12,
-   "rooms_available_nights": 72,
-   "occupied_room_nights": 70,
-   "occupancy_pct": 97.2,
+   "days_reported": 13,
+   "rooms_available_nights": 78,
+   "occupied_room_nights": 75,
+   "occupancy_pct": 96.2,
    "sources": {
-    "s": 12
+    "s": 13
    }
   },
   {
    "month": "2026-09",
    "days_reported": 30,
    "rooms_available_nights": 180,
-   "occupied_room_nights": 141,
-   "occupancy_pct": 78.3,
+   "occupied_room_nights": 140,
+   "occupancy_pct": 77.8,
    "sources": {
     "s": 30
    }
@@ -3132,12 +3241,12 @@ Response (abbreviated):
  "months": [
   {
    "month": "2026-10",
-   "days_reported": 12,
-   "rooms_available_nights": 72,
-   "occupied_room_nights": 70,
-   "occupancy_pct": 97.2,
+   "days_reported": 13,
+   "rooms_available_nights": 78,
+   "occupied_room_nights": 75,
+   "occupancy_pct": 96.2,
    "sources": {
-    "s": 12
+    "s": 13
    }
   },
   {
@@ -3171,14 +3280,14 @@ Request body:
 Response (abbreviated):
 ```json
 {
- "id": "key_de2e1c08cfb2",
+ "id": "key_612954403594",
  "business_id": "biz_0010",
  "label": "HOI ingest",
- "prefix": "uthp_dL0AK",
- "created_at": "2026-10-13T13:53:25.998881Z",
+ "prefix": "uthp_isfFf",
+ "created_at": "2026-10-13T19:19:21.342942Z",
  "last_used_at": null,
  "revoked": false,
- "api_key": "uthp_dL0AK2nD9Zf01HBzNgJeFqFp6fuUP81hUFS2ABE7Juc",
+ "api_key": "uthp_isfFfrBmyvk4iycVl5AAfk3hSHG7I0PF6Q6NKZxohhY",
  "warning": "Copy this key now. It is shown only once and stored only as a hash."
 }
 ```
@@ -3194,11 +3303,11 @@ Response (abbreviated):
 {
  "items": [
   {
-   "id": "key_de2e1c08cfb2",
+   "id": "key_612954403594",
    "business_id": "biz_0010",
    "label": "HOI ingest",
-   "prefix": "uthp_dL0AK",
-   "created_at": "2026-10-13T13:53:25.998000Z",
+   "prefix": "uthp_isfFf",
+   "created_at": "2026-10-13T19:19:21.342000Z",
    "last_used_at": null,
    "revoked": false
   }
@@ -3257,12 +3366,12 @@ Response (abbreviated):
  "notes": null,
  "reason": null,
  "reg_no": "UK-HTL-RUD-00001",
- "submitted_at": "2026-10-13T13:53:27.121125Z",
- "updated_at": "2026-10-13T13:53:27.121125Z",
+ "submitted_at": "2026-10-13T19:19:22.415436Z",
+ "updated_at": "2026-10-13T19:19:22.415436Z",
  "decided_at": null,
  "history": [
   {
-   "at": "2026-10-13T13:53:27.121125Z",
+   "at": "2026-10-13T19:19:22.415436Z",
    "action": "submitted",
    "reason": null
   }
@@ -3344,12 +3453,12 @@ Response (abbreviated):
  "notes": "Two family rooms",
  "reason": null,
  "reg_no": null,
- "submitted_at": "2026-10-13T13:53:27.121125Z",
- "updated_at": "2026-10-13T13:53:27.121125Z",
+ "submitted_at": "2026-10-13T19:19:22.422714Z",
+ "updated_at": "2026-10-13T19:19:22.422714Z",
  "decided_at": null,
  "history": [
   {
-   "at": "2026-10-13T13:53:27.121125Z",
+   "at": "2026-10-13T19:19:22.422714Z",
    "action": "submitted",
    "reason": null
   }
@@ -3369,20 +3478,20 @@ Response (abbreviated):
 {
  "items": [
   {
-   "id": "APP-000021",
-   "kind": "renewal",
+   "id": "APP-000022",
+   "kind": "new",
    "status": "submitted",
-   "business_id": "biz_0001",
-   "business_name": "Valley Sample Hotel 001, Kedarnath",
-   "type": "hotel",
-   "type_label": "Hotel",
+   "business_id": null,
+   "business_name": "My Sample Homestay, Chopta",
+   "type": "homestay",
+   "type_label": "Homestay",
    "district": "rudraprayag",
    "district_name": "Rudraprayag",
-   "destination_id": "kedarnath",
-   "destination_name": "Kedarnath",
-   "capacity": 58,
+   "destination_id": "chopta",
+   "destination_name": "Chopta",
+   "capacity": 4,
    "capacity_unit": "rooms",
-   "beds": 116,
+   "beds": 8,
    "languages": [
     "Hindi",
     "English",
@@ -3391,9 +3500,9 @@ Response (abbreviated):
    "documents": {
     "identity_proof": true,
     "address_proof": true,
-    "property_papers": true,
-    "trade_licence": true,
-    "fssai": true,
+    "property_papers": false,
+    "trade_licence": false,
+    "fssai": false,
     "fire_noc": false,
     "guide_training": false,
     "adventure_permit": false,
@@ -3402,20 +3511,20 @@ Response (abbreviated):
    "required_documents": [
     "identity_proof",
     "address_proof",
-    "property_papers",
-    "trade_licence",
-    "fssai"
+    "property_papers"
    ],
-   "missing_documents": [],
-   "notes": null,
+   "missing_documents": [
+    "property_papers"
+   ],
+   "notes": "Two family rooms",
    "reason": null,
-   "reg_no": "UK-HTL-RUD-00001",
-   "submitted_at": "2026-10-13T13:53:27.121000Z",
-   "updated_at": "2026-10-13T13:53:27.121000Z",
+   "reg_no": null,
+   "submitted_at": "2026-10-13T19:19:22.422000Z",
+   "updated_at": "2026-10-13T19:19:22.422000Z",
    "decided_at": null,
    "history": [
     {
-     "at": "2026-10-13T13:53:27.121000Z",
+     "at": "2026-10-13T19:19:22.422000Z",
      "action": "submitted",
      "reason": null
     }
@@ -3476,17 +3585,17 @@ Response (abbreviated):
  "notes": null,
  "reason": "Please tick and keep ready the missing document.",
  "reg_no": null,
- "submitted_at": "2026-10-04T13:53:24.879000Z",
- "updated_at": "2026-10-05T13:53:24.879000Z",
- "decided_at": "2026-10-05T13:53:24.879000Z",
+ "submitted_at": "2026-10-04T19:19:20.257000Z",
+ "updated_at": "2026-10-05T19:19:20.257000Z",
+ "decided_at": "2026-10-05T19:19:20.257000Z",
  "history": [
   {
-   "at": "2026-10-04T13:53:24.879000Z",
+   "at": "2026-10-04T19:19:20.257000Z",
    "action": "submitted",
    "reason": null
   },
   {
-   "at": "2026-10-05T13:53:24.879000Z",
+   "at": "2026-10-05T19:19:20.257000Z",
    "action": "changes_requested",
    "reason": "Please tick and keep ready the missing document."
   }
@@ -3551,17 +3660,17 @@ Response (abbreviated):
  "notes": null,
  "reason": null,
  "reg_no": null,
- "submitted_at": "2026-10-04T13:53:24.879000Z",
- "updated_at": "2026-10-13T13:53:27.121000Z",
- "decided_at": "2026-10-05T13:53:24.879000Z",
+ "submitted_at": "2026-10-04T19:19:20.257000Z",
+ "updated_at": "2026-10-13T19:19:22.422000Z",
+ "decided_at": "2026-10-05T19:19:20.257000Z",
  "history": [
   {
-   "at": "2026-10-04T13:53:24.879000Z",
+   "at": "2026-10-04T19:19:20.257000Z",
    "action": "submitted",
    "reason": null
   },
   {
-   "at": "2026-10-05T13:53:24.879000Z",
+   "at": "2026-10-05T19:19:20.257000Z",
    "action": "changes_requested",
    "reason": "Please tick and keep ready the missing document."
   },
@@ -3575,16 +3684,16 @@ Response (abbreviated):
 
 Auth: business (owner). Revoke a key (kept, `revoked: true`).
 
-Example: `DELETE /api/v1/business/businesses/biz_0010/api-keys/key_de2e1c08cfb2` -> 200
+Example: `DELETE /api/v1/business/businesses/biz_0010/api-keys/key_612954403594` -> 200
 
 Response (abbreviated):
 ```json
 {
- "id": "key_de2e1c08cfb2",
+ "id": "key_612954403594",
  "business_id": "biz_0010",
  "label": "HOI ingest",
- "prefix": "uthp_dL0AK",
- "created_at": "2026-10-13T13:53:25.998000Z",
+ "prefix": "uthp_isfFf",
+ "created_at": "2026-10-13T19:19:21.342000Z",
  "last_used_at": null,
  "revoked": true
 }
@@ -3601,7 +3710,7 @@ Example -> 200
 Request body:
 ```json
 {
- "date": "2026-10-12",
+ "date": "2026-10-13",
  "rooms_available": 4,
  "rooms_occupied": 3,
  "staff_count": 7,
@@ -3614,9 +3723,112 @@ Response (abbreviated):
 {
  "business_id": "biz_0010",
  "reg_no": "UK-HMS-RUD-00001",
- "date": "2026-10-12",
+ "date": "2026-10-13",
  "result": "replaced",
  "occupancy_pct": 75.0
+}
+```
+
+#### `POST /api/v1/ingest/staffing-request`
+
+Auth: `X-API-Key: uthp_...` (business key; same limit as occupancy ingest). HOI roster shortage -> one job post marked "Staffing request via HOI" (`via_hoi: true`) + in-portal notifications to every ACTIVE staffing agency whose `agency_skills` include the skill and whose `districts_served` include the district. Body: `skill` (key from `GET /api/v1/jobs/meta`; HOI role names `food_beverage`, `security`, `kitchen` are mapped), `district` (id or name; must be the business's own district; default), `from`/`to` (YYYY-MM-DD, window <= 366 days, must not have ended, start <= 180 days ahead), `openings` 1-50, `shift_note` (optional, <= 300 chars), `source` = `hoi_roster_shortage`, `source_id` (optional idempotency key, <= 80 chars; default `skill:district:from:to`). Idempotent per (business, source_id): the first call returns 201 and `result: created`; repeating it returns 200 with the same `job_id` and `unchanged`, or `updated` when openings, dates or the shift note changed; agencies are never notified twice. 401 missing/wrong/revoked key; 403 registration not active; 409 more than 30 open HOI requests; 422 invalid.
+
+Example -> 201
+
+Request body:
+```json
+{
+ "skill": "housekeeping",
+ "district": "rudraprayag",
+ "from": "2026-10-21",
+ "to": "2026-11-03",
+ "openings": 3,
+ "shift_note": "Morning shifts 07:00-15:00",
+ "source": "hoi_roster_shortage",
+ "source_id": "HS-2026-W45-housekeeping"
+}
+```
+
+Response (abbreviated):
+```json
+{
+ "result": "created",
+ "job_id": "JOB-000046",
+ "business_id": "biz_0010",
+ "source_id": "HS-2026-W45-housekeeping",
+ "status": "open",
+ "openings": 3,
+ "agencies_notified": 1,
+ "agencies_matching": 1,
+ "label": "Staffing request via HOI"
+}
+```
+
+#### `POST /api/v1/ingest/staffing-request`
+
+Auth: `X-API-Key`. HOI platform client body (also accepted): `external_id` = idempotency key, `department` (used as the skill when `skill` is not a known key), `date_from`/`date_to`, `openings`, `note`; the portal sets `source` = `hoi_roster_shortage`. 201 on create.
+
+Example -> 201
+
+Request body:
+```json
+{
+ "external_id": "himsagar-2026-W46-housekeeping",
+ "department": "housekeeping",
+ "skill": "housekeeping",
+ "date_from": "2026-10-22",
+ "date_to": "2026-10-28",
+ "openings": 2,
+ "note": "Roster week short by 2 housekeeping shifts"
+}
+```
+
+Response (abbreviated):
+```json
+{
+ "result": "created",
+ "job_id": "JOB-000047",
+ "business_id": "biz_0010",
+ "source_id": "himsagar-2026-W46-housekeeping",
+ "status": "open",
+ "openings": 2,
+ "agencies_notified": 1,
+ "agencies_matching": 1,
+ "label": "Staffing request via HOI"
+}
+```
+
+#### `POST /api/v1/ingest/staffing-request`
+
+Auth: `X-API-Key`. Same call again (idempotent): 200, same `job_id`, `result: unchanged`, `agencies_notified: 0`.
+
+Example -> 200
+
+Request body:
+```json
+{
+ "external_id": "himsagar-2026-W46-housekeeping",
+ "department": "housekeeping",
+ "skill": "housekeeping",
+ "date_from": "2026-10-22",
+ "date_to": "2026-10-28",
+ "openings": 2,
+ "note": "Roster week short by 2 housekeeping shifts"
+}
+```
+
+Response (abbreviated):
+```json
+{
+ "result": "unchanged",
+ "job_id": "JOB-000047",
+ "business_id": "biz_0010",
+ "source_id": "himsagar-2026-W46-housekeeping",
+ "status": "open",
+ "openings": 2,
+ "agencies_notified": 0,
+ "agencies_matching": 1,
+ "label": "Staffing request via HOI"
 }
 ```
 
@@ -3673,19 +3885,19 @@ Response (abbreviated):
    "notes": null,
    "reason": null,
    "reg_no": null,
-   "submitted_at": "2026-09-17T13:53:24.879000Z",
-   "updated_at": "2026-09-17T13:53:24.879000Z",
+   "submitted_at": "2026-09-17T19:19:20.257000Z",
+   "updated_at": "2026-09-17T19:19:20.257000Z",
    "decided_at": null,
    "history": [
     {
-     "at": "2026-09-17T13:53:24.879000Z",
+     "at": "2026-09-17T19:19:20.257000Z",
      "action": "submitted",
      "reason": null,
-     "by": "usr_a0b68cf92be0"
+     "by": "usr_47199fc5fbbf"
     }
    ],
    "synthetic": true,
-   "owner_user_id": "usr_a0b68cf92be0"
+   "owner_user_id": "usr_47199fc5fbbf"
   },
   "... 5 more"
  ],
@@ -3748,19 +3960,19 @@ Response (abbreviated):
  "notes": null,
  "reason": null,
  "reg_no": null,
- "submitted_at": "2026-09-17T13:53:24.879000Z",
- "updated_at": "2026-09-17T13:53:24.879000Z",
+ "submitted_at": "2026-09-17T19:19:20.257000Z",
+ "updated_at": "2026-09-17T19:19:20.257000Z",
  "decided_at": null,
  "history": [
   {
-   "at": "2026-09-17T13:53:24.879000Z",
+   "at": "2026-09-17T19:19:20.257000Z",
    "action": "submitted",
    "reason": null,
-   "by": "usr_a0b68cf92be0"
+   "by": "usr_47199fc5fbbf"
   }
  ],
  "synthetic": true,
- "owner_user_id": "usr_a0b68cf92be0"
+ "owner_user_id": "usr_47199fc5fbbf"
 }
 ```
 
@@ -3819,25 +4031,25 @@ Response (abbreviated):
  "notes": null,
  "reason": null,
  "reg_no": "UK-HMS-RUD-00004",
- "submitted_at": "2026-09-17T13:53:24.879000Z",
- "updated_at": "2026-10-13T13:53:27.199000Z",
- "decided_at": "2026-10-13T13:53:27.199000Z",
+ "submitted_at": "2026-09-17T19:19:20.257000Z",
+ "updated_at": "2026-10-13T19:19:22.507000Z",
+ "decided_at": "2026-10-13T19:19:22.507000Z",
  "history": [
   {
-   "at": "2026-09-17T13:53:24.879000Z",
+   "at": "2026-09-17T19:19:20.257000Z",
    "action": "submitted",
    "reason": null,
-   "by": "usr_a0b68cf92be0"
+   "by": "usr_47199fc5fbbf"
   },
   {
-   "at": "2026-10-13T13:53:27.199000Z",
+   "at": "2026-10-13T19:19:22.507000Z",
    "action": "approved",
    "reason": null,
    "by": "demo.officer.rudraprayag"
   }
  ],
  "synthetic": true,
- "owner_user_id": "usr_a0b68cf92be0"
+ "owner_user_id": "usr_47199fc5fbbf"
 }
 ```
 
@@ -3863,16 +4075,16 @@ Response (abbreviated):
    "district_name": "Rudraprayag",
    "business_reg_no": null,
    "status": "received",
-   "created_at": "2026-10-13T13:53:25.981000Z",
-   "updated_at": "2026-10-13T13:53:25.981000Z",
-   "sla_due_at": "2026-10-20T13:53:25.981000Z",
+   "created_at": "2026-10-13T19:19:21.334000Z",
+   "updated_at": "2026-10-13T19:19:21.334000Z",
+   "sla_due_at": "2026-10-20T19:19:21.334000Z",
    "sla_days": 7,
    "overdue": false,
    "resolved_at": null,
    "timeline": [
     {
      "status": "received",
-     "at": "2026-10-13T13:53:25.981000Z",
+     "at": "2026-10-13T19:19:21.334000Z",
      "note": "Grievance received.",
      "by": "system",
      "public": true
@@ -3884,12 +4096,12 @@ Response (abbreviated):
    "assigned_to": null,
    "business_id": null
   },
-  "... 3 more"
+  "... 2 more"
  ],
- "total": 4,
+ "total": 3,
  "page": 1,
  "page_size": 50,
- "open": 4,
+ "open": 3,
  "overdue": 2
 }
 ```
@@ -3898,28 +4110,28 @@ Response (abbreviated):
 
 Auth: official. One grievance incl. description and contact.
 
-Example: `GET /api/v1/officer/grievances/UTHP-G-000023` -> 200
+Example: `GET /api/v1/officer/grievances/UTHP-G-000008` -> 200
 
 Response (abbreviated):
 ```json
 {
- "ticket_id": "UTHP-G-000023",
+ "ticket_id": "UTHP-G-000008",
  "category": "safety",
  "category_label": "Safety concern",
  "district": "rudraprayag",
  "district_name": "Rudraprayag",
- "business_reg_no": null,
+ "business_reg_no": "UK-HTL-RUD-00004",
  "status": "received",
- "created_at": "2026-09-19T04:53:25.567000Z",
- "updated_at": "2026-09-19T04:53:25.567000Z",
- "sla_due_at": "2026-09-26T04:53:25.567000Z",
+ "created_at": "2026-10-04T23:19:20.911000Z",
+ "updated_at": "2026-10-04T23:19:20.911000Z",
+ "sla_due_at": "2026-10-11T23:19:20.911000Z",
  "sla_days": 7,
  "overdue": true,
  "resolved_at": null,
  "timeline": [
   {
    "status": "received",
-   "at": "2026-09-19T04:53:25.567000Z",
+   "at": "2026-10-04T23:19:20.911000Z",
    "note": "Grievance received.",
    "by": "system",
    "public": true
@@ -3929,7 +4141,7 @@ Response (abbreviated):
  "description": "Sample grievance about safety concern (synthetic text for the prototype).",
  "contact": null,
  "assigned_to": null,
- "business_id": null
+ "business_id": "biz_0005"
 }
 ```
 
@@ -3958,23 +4170,23 @@ Response (abbreviated):
  "district_name": "Rudraprayag",
  "business_reg_no": null,
  "status": "in_progress",
- "created_at": "2026-10-13T13:53:25.981000Z",
- "updated_at": "2026-10-13T13:53:27.208000Z",
- "sla_due_at": "2026-10-20T13:53:25.981000Z",
+ "created_at": "2026-10-13T19:19:21.334000Z",
+ "updated_at": "2026-10-13T19:19:22.516000Z",
+ "sla_due_at": "2026-10-20T19:19:21.334000Z",
  "sla_days": 7,
  "overdue": false,
  "resolved_at": null,
  "timeline": [
   {
    "status": "received",
-   "at": "2026-10-13T13:53:25.981000Z",
+   "at": "2026-10-13T19:19:21.334000Z",
    "note": "Grievance received.",
    "by": "system",
    "public": true
   },
   {
    "status": "in_progress",
-   "at": "2026-10-13T13:53:27.208000Z",
+   "at": "2026-10-13T19:19:22.516000Z",
    "note": "Contacted the operator.",
    "by": "demo.officer.rudraprayag",
    "public": true
@@ -4011,8 +4223,8 @@ Response (abbreviated):
    "segment": "Gaurikund approach",
    "title": "SAMPLE: slow traffic near Gaurikund",
    "reason": "Illustrative sample advisory for the prototype; not real road status.",
-   "posted_at": "2026-10-12T12:53:25.870000Z",
-   "expires_at": "2026-10-19T13:53:25.870000Z",
+   "posted_at": "2026-10-12T18:19:21.215000Z",
+   "expires_at": "2026-10-19T19:19:21.215000Z",
    "active": true,
    "sample": true,
    "posted_by_role": "district_officer"
@@ -4038,14 +4250,14 @@ Request body:
  "segment": "Gaurikund approach",
  "reason": "Slow traffic",
  "destination_id": "kedarnath",
- "expires_at": "2026-10-15T13:53:27.208651Z"
+ "expires_at": "2026-10-15T19:19:22.516750Z"
 }
 ```
 
 Response (abbreviated):
 ```json
 {
- "id": "adv_a9e7a8d26e",
+ "id": "adv_1da6583efc",
  "kind": "road",
  "status": "caution",
  "district": "rudraprayag",
@@ -4055,8 +4267,8 @@ Response (abbreviated):
  "segment": "Gaurikund approach",
  "title": "Caution near Gaurikund",
  "reason": "Slow traffic",
- "posted_at": "2026-10-13T13:53:27.208651Z",
- "expires_at": "2026-10-15T13:53:27.208651Z",
+ "posted_at": "2026-10-13T19:19:22.532871Z",
+ "expires_at": "2026-10-15T19:19:22.516750Z",
  "active": true,
  "sample": false,
  "posted_by_role": "district_officer"
@@ -4067,7 +4279,7 @@ Response (abbreviated):
 
 Auth: official. Update fields.
 
-Example: `PATCH /api/v1/officer/advisories/adv_a9e7a8d26e` -> 200
+Example: `PATCH /api/v1/officer/advisories/adv_1da6583efc` -> 200
 
 Request body:
 ```json
@@ -4080,7 +4292,7 @@ Request body:
 Response (abbreviated):
 ```json
 {
- "id": "adv_a9e7a8d26e",
+ "id": "adv_1da6583efc",
  "kind": "road",
  "status": "closed",
  "district": "rudraprayag",
@@ -4090,8 +4302,8 @@ Response (abbreviated):
  "segment": "Gaurikund approach",
  "title": "Caution near Gaurikund",
  "reason": "Road closed for clearance",
- "posted_at": "2026-10-13T13:53:27.208000Z",
- "expires_at": "2026-10-15T13:53:27.208000Z",
+ "posted_at": "2026-10-13T19:19:22.532000Z",
+ "expires_at": "2026-10-15T19:19:22.516000Z",
  "active": true,
  "sample": false,
  "posted_by_role": "district_officer"
@@ -4102,12 +4314,12 @@ Response (abbreviated):
 
 Auth: official. Withdraw now (sets `expires_at` to now; record kept).
 
-Example: `DELETE /api/v1/officer/advisories/adv_a9e7a8d26e` -> 200
+Example: `DELETE /api/v1/officer/advisories/adv_1da6583efc` -> 200
 
 Response (abbreviated):
 ```json
 {
- "id": "adv_a9e7a8d26e",
+ "id": "adv_1da6583efc",
  "kind": "road",
  "status": "closed",
  "district": "rudraprayag",
@@ -4117,8 +4329,8 @@ Response (abbreviated):
  "segment": "Gaurikund approach",
  "title": "Caution near Gaurikund",
  "reason": "Road closed for clearance",
- "posted_at": "2026-10-13T13:53:27.208000Z",
- "expires_at": "2026-10-13T13:53:27.208000Z",
+ "posted_at": "2026-10-13T19:19:22.532000Z",
+ "expires_at": "2026-10-13T19:19:22.543000Z",
  "active": false,
  "sample": false,
  "posted_by_role": "district_officer"
@@ -4136,8 +4348,8 @@ Request body:
 {
  "name": "Trail clean-up drive",
  "description": "Volunteers welcome.",
- "start_date": "2026-11-02",
- "end_date": "2026-11-03",
+ "start_date": "2026-11-03",
+ "end_date": "2026-11-04",
  "destination_ids": [
   "chopta"
  ],
@@ -4148,13 +4360,13 @@ Request body:
 Response (abbreviated):
 ```json
 {
- "id": "evt_97f6eb4328",
+ "id": "evt_fc1287e3cc",
  "name": "Trail clean-up drive",
  "kind": "event",
  "months": [
   11
  ],
- "window": "2026-11-02 to 2026-11-03",
+ "window": "2026-11-03 to 2026-11-04",
  "districts": [
   "rudraprayag"
  ],
@@ -4164,8 +4376,8 @@ Response (abbreviated):
  "crowd_impact": "low",
  "description": "Volunteers welcome.",
  "date_note": "Posted by the district tourism office.",
- "start_date": "2026-11-02",
- "end_date": "2026-11-03",
+ "start_date": "2026-11-03",
+ "end_date": "2026-11-04",
  "curated": false,
  "sample": false,
  "district_names": [
@@ -4175,7 +4387,7 @@ Response (abbreviated):
   "Chopta"
  ],
  "statewide": false,
- "updated_at": "2026-10-13T13:53:27.226410Z"
+ "updated_at": "2026-10-13T19:19:22.546945Z"
 }
 ```
 
@@ -4190,13 +4402,13 @@ Response (abbreviated):
 {
  "items": [
   {
-   "id": "evt_97f6eb4328",
+   "id": "evt_fc1287e3cc",
    "name": "Trail clean-up drive",
    "kind": "event",
    "months": [
     11
    ],
-   "window": "2026-11-02 to 2026-11-03",
+   "window": "2026-11-03 to 2026-11-04",
    "districts": [
     "rudraprayag"
    ],
@@ -4206,8 +4418,8 @@ Response (abbreviated):
    "crowd_impact": "low",
    "description": "Volunteers welcome.",
    "date_note": "Posted by the district tourism office.",
-   "start_date": "2026-11-02",
-   "end_date": "2026-11-03",
+   "start_date": "2026-11-03",
+   "end_date": "2026-11-04",
    "curated": false,
    "sample": false,
    "district_names": [
@@ -4217,7 +4429,7 @@ Response (abbreviated):
     "Chopta"
    ],
    "statewide": false,
-   "updated_at": "2026-10-13T13:53:27.226000Z"
+   "updated_at": "2026-10-13T19:19:22.546000Z"
   },
   "... 1 more"
  ],
@@ -4229,7 +4441,7 @@ Response (abbreviated):
 
 Auth: official. Update fields.
 
-Example: `PATCH /api/v1/officer/events/evt_97f6eb4328` -> 200
+Example: `PATCH /api/v1/officer/events/evt_fc1287e3cc` -> 200
 
 Request body:
 ```json
@@ -4241,13 +4453,13 @@ Request body:
 Response (abbreviated):
 ```json
 {
- "id": "evt_97f6eb4328",
+ "id": "evt_fc1287e3cc",
  "name": "Trail clean-up drive",
  "kind": "event",
  "months": [
   11
  ],
- "window": "2026-11-02 to 2026-11-03",
+ "window": "2026-11-03 to 2026-11-04",
  "districts": [
   "rudraprayag"
  ],
@@ -4257,8 +4469,8 @@ Response (abbreviated):
  "crowd_impact": "medium",
  "description": "Volunteers welcome.",
  "date_note": "Posted by the district tourism office.",
- "start_date": "2026-11-02",
- "end_date": "2026-11-03",
+ "start_date": "2026-11-03",
+ "end_date": "2026-11-04",
  "curated": false,
  "sample": false,
  "district_names": [
@@ -4268,7 +4480,7 @@ Response (abbreviated):
   "Chopta"
  ],
  "statewide": false,
- "updated_at": "2026-10-13T13:53:27.226000Z"
+ "updated_at": "2026-10-13T19:19:22.549000Z"
 }
 ```
 
@@ -4276,7 +4488,7 @@ Response (abbreviated):
 
 Auth: official. Delete. 204.
 
-Example: `DELETE /api/v1/officer/events/evt_97f6eb4328` -> 204
+Example: `DELETE /api/v1/officer/events/evt_fc1287e3cc` -> 204
 
 ### Officials: businesses
 
@@ -4366,12 +4578,12 @@ Response (abbreviated):
   "district": null,
   "district_name": "All districts (state)"
  },
- "generated_at": "2026-10-13T13:53:27.356380Z",
+ "generated_at": "2026-10-13T19:19:22.688130Z",
  "kpis": [
   {
    "key": "registered_businesses",
    "label": "Registered businesses (active)",
-   "value": 264
+   "value": 272
   },
   {
    "key": "active_rooms",
@@ -4391,17 +4603,17 @@ Response (abbreviated):
   {
    "key": "grievances_open",
    "label": "Grievances open",
-   "value": 19
+   "value": 13
   },
   {
    "key": "grievances_overdue",
    "label": "Grievances past 7-day SLA",
-   "value": 14
+   "value": 12
   },
   {
    "key": "avg_occupancy_30d",
    "label": "Average occupancy, last 30 days",
-   "value": 65.2,
+   "value": 64.7,
    "unit": "%"
   },
   {
@@ -4411,7 +4623,7 @@ Response (abbreviated):
   }
  ],
  "businesses_by_status": {
-  "active": 264,
+  "active": 272,
   "expired": 26,
   "suspended": 12,
   "pending": 3
@@ -4420,20 +4632,20 @@ Response (abbreviated):
   {
    "destination_id": "yamunotri",
    "name": "Yamunotri",
-   "peak_index": 96,
-   "peak_date": "2026-10-17"
-  },
-  {
-   "destination_id": "badrinath",
-   "name": "Badrinath",
-   "peak_index": 94,
-   "peak_date": "2026-10-17"
+   "peak_index": 99,
+   "peak_date": "2026-10-24"
   },
   {
    "destination_id": "gangotri",
    "name": "Gangotri",
    "peak_index": 93,
-   "peak_date": "2026-10-24"
+   "peak_date": "2026-10-18"
+  },
+  {
+   "destination_id": "badrinath",
+   "name": "Badrinath",
+   "peak_index": 92,
+   "peak_date": "2026-10-17"
   },
   {
    "destination_id": "kedarnath",
@@ -4462,7 +4674,7 @@ Response (abbreviated):
   "district": null,
   "district_name": "All districts (state)"
  },
- "generated_at": "2026-10-13T13:53:27.413771Z",
+ "generated_at": "2026-10-13T19:19:22.729171Z",
  "label": "estimate",
  "bands": [
   {
@@ -4496,11 +4708,11 @@ Response (abbreviated):
     "name": "Kedarnath",
     "district": "rudraprayag",
     "values": [
-     37,
-     37,
+     36,
+     36,
      52,
-     56,
-     56,
+     55,
+     55,
      56,
      "... 10 more"
     ]
@@ -4510,9 +4722,9 @@ Response (abbreviated):
     "name": "Badrinath",
     "district": "chamoli",
     "values": [
-     40,
-     40,
-     55,
+     41,
+     38,
+     54,
      59,
      59,
      59,
@@ -4526,17 +4738,17 @@ Response (abbreviated):
   {
    "destination_id": "yamunotri",
    "name": "Yamunotri",
-   "avg_index_14d": 92,
+   "avg_index_14d": 95,
    "band": "very_high",
-   "peak_index": 96,
-   "peak_date": "2026-10-17"
+   "peak_index": 99,
+   "peak_date": "2026-10-24"
   },
   {
    "destination_id": "badrinath",
    "name": "Badrinath",
-   "avg_index_14d": 90,
+   "avg_index_14d": 89,
    "band": "very_high",
-   "peak_index": 94,
+   "peak_index": 92,
    "peak_date": "2026-10-17"
   },
   "... 8 more"
@@ -4545,8 +4757,8 @@ Response (abbreviated):
   {
    "destination_id": "yamunotri",
    "name": "Yamunotri",
-   "date": "2026-10-13",
-   "index": 91,
+   "date": "2026-10-14",
+   "index": 93,
    "events": [
     "Char Dham closing"
    ]
@@ -4554,13 +4766,13 @@ Response (abbreviated):
   {
    "destination_id": "badrinath",
    "name": "Badrinath",
-   "date": "2026-10-13",
-   "index": 89,
+   "date": "2026-10-14",
+   "index": 88,
    "events": [
     "Char Dham closing"
    ]
   },
-  "... 52 more"
+  "... 46 more"
  ],
  "alert_threshold": 85
 }
@@ -4583,12 +4795,12 @@ Response (abbreviated):
   "district": null,
   "district_name": "All districts (state)"
  },
- "generated_at": "2026-10-13T13:53:27.417431Z",
+ "generated_at": "2026-10-13T19:19:22.741211Z",
  "unit": "%",
  "granularity": "monthly",
  "type": null,
  "dates": [
-  "2025-10-13",
+  "2025-10-14",
   "2025-11-01",
   "... 11 more"
  ],
@@ -4596,12 +4808,12 @@ Response (abbreviated):
   "key": "state",
   "label": "State",
   "values": [
-   72.8,
-   61.5,
-   64.6,
-   53.6,
-   49.3,
-   54.6,
+   72.3,
+   60.9,
+   63.8,
+   52.7,
+   48.8,
+   54.1,
    "... 7 more"
   ]
  },
@@ -4610,12 +4822,12 @@ Response (abbreviated):
    "key": "almora",
    "label": "Almora",
    "values": [
-    64.8,
-    61.4,
-    58.0,
-    53.1,
-    53.1,
-    57.5,
+    62.2,
+    58.1,
+    53.7,
+    49.2,
+    49.0,
+    54.2,
     "... 7 more"
    ]
   },
@@ -4623,12 +4835,12 @@ Response (abbreviated):
    "key": "bageshwar",
    "label": "Bageshwar",
    "values": [
-    65.1,
-    59.7,
-    66.3,
-    54.9,
-    46.0,
-    50.6,
+    65.2,
+    60.2,
+    64.7,
+    56.2,
+    49.5,
+    54.7,
     "... 7 more"
    ]
   },
@@ -4639,12 +4851,12 @@ Response (abbreviated):
    "key": "hotel",
    "label": "Hotel",
    "values": [
-    72.8,
-    61.5,
-    64.2,
-    53.4,
-    49.0,
-    54.4,
+    72.2,
+    60.8,
+    63.4,
+    52.4,
+    48.4,
+    53.8,
     "... 7 more"
    ]
   },
@@ -4652,11 +4864,11 @@ Response (abbreviated):
    "key": "homestay",
    "label": "Homestay",
    "values": [
-    72.6,
-    61.5,
+    72.7,
+    61.8,
     68.1,
-    56.4,
-    53.0,
+    56.3,
+    53.1,
     57.0,
     "... 7 more"
    ]
@@ -4680,7 +4892,7 @@ Response (abbreviated):
   "district": null,
   "district_name": "All districts (state)"
  },
- "generated_at": "2026-10-13T13:53:27.429295Z",
+ "generated_at": "2026-10-13T19:19:22.747258Z",
  "label": "SYNTHETIC",
  "years": [
   2019,
@@ -4695,8 +4907,8 @@ Response (abbreviated):
   {
    "year": 2019,
    "domestic": 14600000,
-   "foreign": 287713,
-   "total": 14887713,
+   "foreign": 245281,
+   "total": 14845281,
    "yoy_pct": null,
    "partial_year": false,
    "registrations": 21,
@@ -4704,10 +4916,10 @@ Response (abbreviated):
   },
   {
    "year": 2020,
-   "domestic": 15784895,
-   "foreign": 265873,
-   "total": 16050768,
-   "yoy_pct": 7.8,
+   "domestic": 15871844,
+   "foreign": 181956,
+   "total": 16053800,
+   "yoy_pct": 8.1,
    "partial_year": false,
    "registrations": 23,
    "registrations_yoy_pct": 9.5
@@ -4719,12 +4931,12 @@ Response (abbreviated):
    "key": "almora",
    "label": "Almora",
    "arrivals": [
-    606021,
-    659200,
-    717816,
-    752678,
-    773363,
-    803783,
+    614353,
+    674482,
+    749749,
+    805235,
+    830811,
+    859837,
     "... 2 more"
    ],
    "registrations": [
@@ -4736,18 +4948,18 @@ Response (abbreviated):
     2,
     "... 2 more"
    ],
-   "latest_full_year_yoy_pct": 7.2
+   "latest_full_year_yoy_pct": 13.7
   },
   {
    "key": "bageshwar",
    "label": "Bageshwar",
    "arrivals": [
-    304247,
-    315494,
-    340201,
-    354470,
-    366499,
-    411767,
+    303613,
+    331124,
+    345962,
+    387326,
+    404900,
+    416162,
     "... 2 more"
    ],
    "registrations": [
@@ -4759,7 +4971,7 @@ Response (abbreviated):
     3,
     "... 2 more"
    ],
-   "latest_full_year_yoy_pct": 6.3
+   "latest_full_year_yoy_pct": 9.4
   },
   "... 11 more"
  ],
@@ -4784,7 +4996,7 @@ Response (abbreviated):
   "district": null,
   "district_name": "All districts (state)"
  },
- "generated_at": "2026-10-13T13:53:27.433617Z",
+ "generated_at": "2026-10-13T19:19:22.750330Z",
  "months": [
   "2025-11",
   "2025-12",
@@ -4798,8 +5010,8 @@ Response (abbreviated):
     3,
     1,
     5,
-    3,
     4,
+    5,
     4,
     "... 6 more"
    ]
@@ -4836,18 +5048,18 @@ Response (abbreviated):
   "district": null,
   "district_name": "All districts (state)"
  },
- "generated_at": "2026-10-13T13:53:27.433617Z",
+ "generated_at": "2026-10-13T19:19:22.759805Z",
  "total": 41,
  "by_category": [
   {
    "key": "overcharging",
    "label": "Overcharging / price not as displayed",
-   "count": 9
+   "count": 5
   },
   {
    "key": "cleanliness",
    "label": "Cleanliness / hygiene",
-   "count": 3
+   "count": 4
   },
   {
    "key": "safety",
@@ -4860,7 +5072,7 @@ Response (abbreviated):
   {
    "key": "almora",
    "label": "Almora",
-   "count": 0
+   "count": 1
   },
   {
    "key": "bageshwar",
@@ -4870,30 +5082,30 @@ Response (abbreviated):
   {
    "key": "chamoli",
    "label": "Chamoli",
-   "count": 3
+   "count": 6
   },
   "... 10 more"
  ],
  "by_status": [
   {
    "key": "received",
-   "count": 7
+   "count": 1
   },
   {
    "key": "assigned",
-   "count": 0
+   "count": 4
   },
   {
    "key": "in_progress",
-   "count": 12
+   "count": 8
   },
   "... 2 more"
  ],
  "sla_days": 7,
- "sla_breach_rate_pct": 65.9,
- "sla_breached": 27,
- "median_resolution_days": 7.5,
- "resolved_count": 22
+ "sla_breach_rate_pct": 75.6,
+ "sla_breached": 31,
+ "median_resolution_days": 8.0,
+ "resolved_count": 28
 }
 ```
 
@@ -4914,7 +5126,7 @@ Response (abbreviated):
   "district": null,
   "district_name": "All districts (state)"
  },
- "generated_at": "2026-10-13T13:53:27.465443Z",
+ "generated_at": "2026-10-13T19:19:22.796438Z",
  "k_min": 5,
  "group_by": "district",
  "month": "2026-09",
@@ -4923,16 +5135,16 @@ Response (abbreviated):
  "overall": {
   "suppressed": false,
   "businesses": 92,
-  "staff_total": 1320,
+  "staff_total": 1347,
   "roles": {
-   "housekeeping": 420,
-   "front_office": 156,
-   "food_beverage": 292,
-   "maintenance": 100,
-   "other": 352
+   "housekeeping": 425,
+   "front_office": 154,
+   "food_beverage": 304,
+   "maintenance": 98,
+   "other": 366
   },
-  "flagged_share_pct": 7.6,
-  "turnover_pct_12m": 35.2
+  "flagged_share_pct": 8.5,
+  "turnover_pct_12m": 35.6
  },
  "groups": [
   {
@@ -4940,16 +5152,16 @@ Response (abbreviated):
    "label": "Almora",
    "suppressed": false,
    "businesses": 5,
-   "staff_total": 48,
+   "staff_total": 55,
    "roles": {
-    "housekeeping": 14,
+    "housekeeping": 17,
     "front_office": 5,
-    "food_beverage": 10,
+    "food_beverage": 12,
     "maintenance": 3,
-    "other": 16
+    "other": 18
    },
-   "flagged_share_pct": 12.5,
-   "turnover_pct_12m": 43.2
+   "flagged_share_pct": 12.7,
+   "turnover_pct_12m": 35.2
   },
   {
    "key": "bageshwar",
@@ -4962,16 +5174,16 @@ Response (abbreviated):
    "label": "Chamoli",
    "suppressed": false,
    "businesses": 6,
-   "staff_total": 41,
+   "staff_total": 47,
    "roles": {
-    "housekeeping": 11,
+    "housekeeping": 14,
     "front_office": 4,
-    "food_beverage": 7,
+    "food_beverage": 10,
     "maintenance": 2,
     "other": 17
    },
-   "flagged_share_pct": 9.8,
-   "turnover_pct_12m": 26.2
+   "flagged_share_pct": 2.1,
+   "turnover_pct_12m": 29.6
   },
   {
    "key": "champawat",
@@ -4984,48 +5196,48 @@ Response (abbreviated):
    "label": "Dehradun",
    "suppressed": false,
    "businesses": 22,
-   "staff_total": 308,
+   "staff_total": 328,
    "roles": {
-    "housekeeping": 97,
-    "front_office": 34,
-    "food_beverage": 68,
-    "maintenance": 22,
-    "other": 87
+    "housekeeping": 106,
+    "front_office": 37,
+    "food_beverage": 75,
+    "maintenance": 25,
+    "other": 85
    },
-   "flagged_share_pct": 8.1,
-   "turnover_pct_12m": 31.2
+   "flagged_share_pct": 10.7,
+   "turnover_pct_12m": 31.0
   },
   {
    "key": "haridwar",
    "label": "Haridwar",
    "suppressed": false,
    "businesses": 10,
-   "staff_total": 182,
+   "staff_total": 185,
    "roles": {
-    "housekeeping": 60,
+    "housekeeping": 59,
     "front_office": 23,
-    "food_beverage": 40,
+    "food_beverage": 42,
     "maintenance": 15,
-    "other": 44
+    "other": 46
    },
-   "flagged_share_pct": 6.6,
-   "turnover_pct_12m": 31.4
+   "flagged_share_pct": 7.0,
+   "turnover_pct_12m": 35.3
   },
   {
    "key": "nainital",
    "label": "Nainital",
    "suppressed": false,
    "businesses": 16,
-   "staff_total": 264,
+   "staff_total": 259,
    "roles": {
-    "housekeeping": 86,
+    "housekeeping": 82,
     "front_office": 31,
     "food_beverage": 60,
-    "maintenance": 21,
-    "other": 66
+    "maintenance": 18,
+    "other": 68
    },
-   "flagged_share_pct": 7.6,
-   "turnover_pct_12m": 35.6
+   "flagged_share_pct": 8.1,
+   "turnover_pct_12m": 36.6
   },
   {
    "key": "pauri-garhwal",
@@ -5044,32 +5256,32 @@ Response (abbreviated):
    "label": "Rudraprayag",
    "suppressed": false,
    "businesses": 6,
-   "staff_total": 116,
+   "staff_total": 120,
    "roles": {
-    "housekeeping": 38,
+    "housekeeping": 39,
     "front_office": 15,
-    "food_beverage": 27,
+    "food_beverage": 28,
     "maintenance": 10,
-    "other": 26
+    "other": 28
    },
-   "flagged_share_pct": 6.0,
-   "turnover_pct_12m": 38.7
+   "flagged_share_pct": 10.0,
+   "turnover_pct_12m": 37.5
   },
   {
    "key": "tehri-garhwal",
    "label": "Tehri Garhwal",
    "suppressed": false,
    "businesses": 5,
-   "staff_total": 93,
+   "staff_total": 90,
    "roles": {
-    "housekeeping": 32,
-    "front_office": 12,
-    "food_beverage": 21,
-    "maintenance": 7,
-    "other": 21
+    "housekeeping": 29,
+    "front_office": 10,
+    "food_beverage": 20,
+    "maintenance": 6,
+    "other": 25
    },
-   "flagged_share_pct": 7.5,
-   "turnover_pct_12m": 28.1
+   "flagged_share_pct": 7.8,
+   "turnover_pct_12m": 38.7
   },
   {
    "key": "udham-singh-nagar",
@@ -5082,16 +5294,16 @@ Response (abbreviated):
    "label": "Uttarkashi",
    "suppressed": false,
    "businesses": 7,
-   "staff_total": 72,
+   "staff_total": 77,
    "roles": {
-    "housekeeping": 21,
+    "housekeeping": 23,
     "front_office": 9,
-    "food_beverage": 15,
-    "maintenance": 6,
-    "other": 21
+    "food_beverage": 17,
+    "maintenance": 5,
+    "other": 23
    },
-   "flagged_share_pct": 9.7,
-   "turnover_pct_12m": 45.4
+   "flagged_share_pct": 10.4,
+   "turnover_pct_12m": 32.3
   }
  ]
 }
@@ -5219,50 +5431,54 @@ Response (abbreviated):
 {
  "items": [
   {
-   "id": "JOB-000003",
-   "title": "Front office associate",
-   "business_id": "biz_0001",
-   "business_name": "Valley Sample Hotel 001, Kedarnath",
-   "business_type": "hotel",
-   "business_type_label": "Hotel",
-   "business_reg_no": "UK-HTL-RUD-00001",
+   "id": "JOB-000046",
+   "title": "Housekeeping: 3 needed (21 Oct-03 Nov)",
+   "business_id": "biz_0010",
+   "business_name": "Lotus Sample Homestay 010, Kedarnath",
+   "business_type": "homestay",
+   "business_type_label": "Homestay",
+   "business_reg_no": "UK-HMS-RUD-00001",
    "district": "rudraprayag",
    "district_name": "Rudraprayag",
    "destination_id": "kedarnath",
    "destination_name": "Kedarnath",
    "skills": [
     {
-     "key": "front_office",
-     "label": "Front office / reception",
-     "category": "front_office"
-    },
-    "... 1 more"
+     "key": "housekeeping",
+     "label": "Housekeeping",
+     "category": "housekeeping"
+    }
    ],
-   "job_type": "permanent",
-   "job_type_label": "Permanent",
-   "season_from": null,
-   "season_to": null,
-   "pay_min": 16500,
-   "pay_max": 22500,
-   "accommodation": true,
+   "job_type": "seasonal",
+   "job_type_label": "Seasonal",
+   "season_from": "2026-10-21",
+   "season_to": "2026-11-03",
+   "pay_min": null,
+   "pay_max": null,
+   "accommodation": false,
    "food": false,
-   "openings": 2,
-   "languages": [
-    "Hindi"
-   ],
-   "description": "Synthetic sample job post for the demo. Front office associate needed at Valley Sample Hotel 001, Kedarnath (Kedarnath). Duties, timings ...",
-   "closes_on": "2026-11-08",
-   "posted_at": "2026-10-03T12:00:00Z",
+   "openings": 3,
+   "languages": [],
+   "description": "Staffing request via HOI: Lotus Sample Homestay 010, Kedarnath is short of housekeeping staff for its roster. Shifts: Morning shifts 07:0...",
+   "closes_on": "2026-10-21",
+   "posted_at": "2026-10-13T19:19:22.469000Z",
    "status": "open",
    "closed_reason": null,
-   "synthetic": true
+   "via_hoi": true,
+   "staffing_request": {
+    "label": "Staffing request via HOI",
+    "source": "hoi_roster_shortage",
+    "shift_note": "Morning shifts 07:00-15:00"
+   },
+   "synthetic": false
   },
   "... 1 more"
  ],
- "total": 8,
+ "total": 11,
  "page": 1,
  "page_size": 2,
- "openings": 16,
+ "openings": 25,
+ "hoi_requests": 3,
  "matched_to_profile": false
 }
 ```
@@ -5310,10 +5526,12 @@ Response (abbreviated):
     "Garhwali"
    ],
    "description": "Synthetic sample job post for the demo. Cook (pahadi cuisine) needed at Lotus Sample Homestay 010, Kedarnath (Kedarnath). Duties, timings...",
-   "closes_on": "2026-10-31",
-   "posted_at": "2026-09-20T10:00:00Z",
+   "closes_on": "2026-11-01",
+   "posted_at": "2026-09-21T10:00:00Z",
    "status": "open",
    "closed_reason": null,
+   "via_hoi": false,
+   "staffing_request": null,
    "synthetic": true,
    "match": {
     "score": 95,
@@ -5338,10 +5556,11 @@ Response (abbreviated):
    "applied": false
   }
  ],
- "total": 30,
+ "total": 33,
  "page": 1,
  "page_size": 1,
- "openings": 62,
+ "openings": 71,
+ "hoi_requests": 3,
  "matched_to_profile": true
 }
 ```
@@ -5350,48 +5569,51 @@ Response (abbreviated):
 
 Auth: none (optional bearer). One job. Seekers also get `has_profile`, `match`, `my_application`; the owning business gets application counts.
 
-Example: `GET /api/v1/jobs/JOB-000006` -> 200
+Example: `GET /api/v1/jobs/JOB-000046` -> 200
 
 Response (abbreviated):
 ```json
 {
- "id": "JOB-000006",
- "title": "Front office associate",
- "business_id": "biz_0187",
- "business_name": "Willow Sample Hotel 187, Jim Corbett / Ramnagar",
- "business_type": "hotel",
- "business_type_label": "Hotel",
- "business_reg_no": "UK-HTL-NTL-00015",
- "district": "nainital",
- "district_name": "Nainital",
- "destination_id": "jim-corbett-ramnagar",
- "destination_name": "Jim Corbett / Ramnagar",
+ "id": "JOB-000046",
+ "title": "Housekeeping: 3 needed (21 Oct-03 Nov)",
+ "business_id": "biz_0010",
+ "business_name": "Lotus Sample Homestay 010, Kedarnath",
+ "business_type": "homestay",
+ "business_type_label": "Homestay",
+ "business_reg_no": "UK-HMS-RUD-00001",
+ "district": "rudraprayag",
+ "district_name": "Rudraprayag",
+ "destination_id": "kedarnath",
+ "destination_name": "Kedarnath",
  "skills": [
   {
-   "key": "front_office",
-   "label": "Front office / reception",
-   "category": "front_office"
+   "key": "housekeeping",
+   "label": "Housekeeping",
+   "category": "housekeeping"
   }
  ],
- "job_type": "permanent",
- "job_type_label": "Permanent",
- "season_from": null,
- "season_to": null,
- "pay_min": 20000,
- "pay_max": 22000,
+ "job_type": "seasonal",
+ "job_type_label": "Seasonal",
+ "season_from": "2026-10-21",
+ "season_to": "2026-11-03",
+ "pay_min": null,
+ "pay_max": null,
  "accommodation": false,
- "food": true,
- "openings": 2,
- "languages": [
-  "Hindi",
-  "Kumaoni"
- ],
- "description": "Synthetic sample job post for the demo. Front office associate needed at Willow Sample Hotel 187, Jim Corbett / Ramnagar (Jim Corbett / R...",
- "closes_on": "2026-11-22",
- "posted_at": "2026-10-12T15:00:00Z",
+ "food": false,
+ "openings": 3,
+ "languages": [],
+ "description": "Staffing request via HOI: Lotus Sample Homestay 010, Kedarnath is short of housekeeping staff for its roster. Shifts: Morning shifts 07:0...",
+ "closes_on": "2026-10-21",
+ "posted_at": "2026-10-13T19:19:22.469000Z",
  "status": "open",
  "closed_reason": null,
- "synthetic": true
+ "via_hoi": true,
+ "staffing_request": {
+  "label": "Staffing request via HOI",
+  "source": "hoi_roster_shortage",
+  "shift_note": "Morning shifts 07:00-15:00"
+ },
+ "synthetic": false
 }
 ```
 
@@ -5415,18 +5637,18 @@ Request body:
 Response (abbreviated):
 ```json
 {
- "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c3JfN2EzY2QzNTc2M2E4IiwidXNyIjoibXkubmFtZSIsInJvbGUiOiJqb2Jfc2Vla2VyIiwiZHN0IjpudWxsLCJp...",
+ "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c3JfZTgxYzhiYjRiNWFjIiwidXNyIjoibXkubmFtZSIsInJvbGUiOiJqb2Jfc2Vla2VyIiwiZHN0IjpudWxsLCJp...",
  "token_type": "bearer",
  "expires_in": 1800,
- "refresh_token": "4q5ZX0Re_hAqlpAhNJ2dVfJ5SVk6AyGdDnGHIy3J70GQruvpV3WLSnFmr8oT_YuS",
+ "refresh_token": "zxu42cXmIwp6mJxX1Z4eSQQfUBrGBxDZsq9oyU3C7DaGA4aIwDruhEUbxbgDM1aH",
  "user": {
-  "id": "usr_7a3cd35763a8",
+  "id": "usr_e81c8bb4b5ac",
   "username": "my.name",
   "role": "job_seeker",
   "district": null,
   "label": null,
   "active": true,
-  "created_at": "2026-10-13T13:53:27.707886Z",
+  "created_at": "2026-10-13T19:19:23.028809Z",
   "last_login": null,
   "role_label": "Job seeker",
   "district_name": null
@@ -5491,8 +5713,8 @@ Request body:
   "chamoli"
  ],
  "availability": "seasonal",
- "available_from": "2026-11-22",
- "available_to": "2027-03-12",
+ "available_from": "2026-11-23",
+ "available_to": "2027-03-13",
  "pay_min": 14000,
  "pay_max": 18000,
  "bio": "Cooked for pilgrim groups.",
@@ -5542,21 +5764,21 @@ Response (abbreviated):
  "any_district": false,
  "availability": "seasonal",
  "availability_label": "Seasonal",
- "available_from": "2026-11-22",
- "available_to": "2027-03-12",
+ "available_from": "2026-11-23",
+ "available_to": "2027-03-13",
  "pay_min": 14000,
  "pay_max": 18000,
  "bio": "Cooked for pilgrim groups.",
- "updated_at": "2026-10-13T13:53:27.732215Z",
+ "updated_at": "2026-10-13T19:19:23.052693Z",
  "synthetic": false,
  "visibility": "public",
  "phone": "+91 90000 00000",
  "email": null,
  "consent": {
   "version": "2026-10-v1",
-  "at": "2026-10-13T13:53:27.732215Z"
+  "at": "2026-10-13T19:19:23.052693Z"
  },
- "created_at": "2026-10-13T13:53:27.732215Z"
+ "created_at": "2026-10-13T19:19:23.052693Z"
 }
 ```
 
@@ -5613,21 +5835,21 @@ Response (abbreviated):
  "any_district": false,
  "availability": "seasonal",
  "availability_label": "Seasonal",
- "available_from": "2026-11-22",
- "available_to": "2027-03-12",
+ "available_from": "2026-11-23",
+ "available_to": "2027-03-13",
  "pay_min": 14000,
  "pay_max": 18000,
  "bio": "Cooked for pilgrim groups.",
- "updated_at": "2026-10-13T13:53:27.736000Z",
+ "updated_at": "2026-10-13T19:19:23.054000Z",
  "synthetic": false,
  "visibility": "public",
  "phone": "+91 90000 00000",
  "email": null,
  "consent": {
   "version": "2026-10-v1",
-  "at": "2026-10-13T13:53:27.732000Z"
+  "at": "2026-10-13T19:19:23.052000Z"
  },
- "created_at": "2026-10-13T13:53:27.732000Z"
+ "created_at": "2026-10-13T19:19:23.052000Z"
 }
 ```
 
@@ -5684,16 +5906,16 @@ Response (abbreviated):
   "pay_min": 15000,
   "pay_max": 20000,
   "bio": "Demo account profile (synthetic). Cooked mandua roti, jhangora kheer and dal for pilgrim groups.",
-  "updated_at": "2026-10-11T13:53:25.886000Z",
+  "updated_at": "2026-10-11T19:19:21.231000Z",
   "synthetic": true,
   "visibility": "public",
   "phone": "+91-90000-09121",
   "email": "demo.seeker@example.invalid",
   "consent": {
    "version": "2026-10-v1",
-   "at": "2026-10-13T13:53:25.886000Z"
+   "at": "2026-10-13T19:19:21.231000Z"
   },
-  "created_at": "2026-10-01T13:53:25.886000Z"
+  "created_at": "2026-10-01T19:19:21.231000Z"
  },
  "consent_notice": {
   "version": "2026-10-v1",
@@ -5728,7 +5950,7 @@ Response (abbreviated):
 
 Auth: job_seeker (20/day). Apply with an optional note (<= 500). 409 without a profile, for a closed job or a second application.
 
-Example: `POST /api/v1/jobs/JOB-000006/apply` -> 201
+Example: `POST /api/v1/jobs/JOB-000046/apply` -> 201
 
 Request body:
 ```json
@@ -5742,52 +5964,55 @@ Response (abbreviated):
 {
  "id": "JA-000077",
  "job": {
-  "id": "JOB-000006",
-  "title": "Front office associate",
-  "business_id": "biz_0187",
-  "business_name": "Willow Sample Hotel 187, Jim Corbett / Ramnagar",
-  "business_type": "hotel",
-  "business_type_label": "Hotel",
-  "business_reg_no": "UK-HTL-NTL-00015",
-  "district": "nainital",
-  "district_name": "Nainital",
-  "destination_id": "jim-corbett-ramnagar",
-  "destination_name": "Jim Corbett / Ramnagar",
+  "id": "JOB-000046",
+  "title": "Housekeeping: 3 needed (21 Oct-03 Nov)",
+  "business_id": "biz_0010",
+  "business_name": "Lotus Sample Homestay 010, Kedarnath",
+  "business_type": "homestay",
+  "business_type_label": "Homestay",
+  "business_reg_no": "UK-HMS-RUD-00001",
+  "district": "rudraprayag",
+  "district_name": "Rudraprayag",
+  "destination_id": "kedarnath",
+  "destination_name": "Kedarnath",
   "skills": [
    {
-    "key": "front_office",
-    "label": "Front office / reception",
-    "category": "front_office"
+    "key": "housekeeping",
+    "label": "Housekeeping",
+    "category": "housekeeping"
    }
   ],
-  "job_type": "permanent",
-  "job_type_label": "Permanent",
-  "season_from": null,
-  "season_to": null,
-  "pay_min": 20000,
-  "pay_max": 22000,
+  "job_type": "seasonal",
+  "job_type_label": "Seasonal",
+  "season_from": "2026-10-21",
+  "season_to": "2026-11-03",
+  "pay_min": null,
+  "pay_max": null,
   "accommodation": false,
-  "food": true,
-  "openings": 2,
-  "languages": [
-   "Hindi",
-   "Kumaoni"
-  ],
-  "description": "Synthetic sample job post for the demo. Front office associate needed at Willow Sample Hotel 187, Jim Corbett / Ramnagar (Jim Corbett / R...",
-  "closes_on": "2026-11-22",
-  "posted_at": "2026-10-12T15:00:00Z",
+  "food": false,
+  "openings": 3,
+  "languages": [],
+  "description": "Staffing request via HOI: Lotus Sample Homestay 010, Kedarnath is short of housekeeping staff for its roster. Shifts: Morning shifts 07:0...",
+  "closes_on": "2026-10-21",
+  "posted_at": "2026-10-13T19:19:22.469000Z",
   "status": "open",
   "closed_reason": null,
-  "synthetic": true
+  "via_hoi": true,
+  "staffing_request": {
+   "label": "Staffing request via HOI",
+   "source": "hoi_roster_shortage",
+   "shift_note": "Morning shifts 07:00-15:00"
+  },
+  "synthetic": false
  },
  "status": "applied",
  "note": "Available from next week.",
- "applied_at": "2026-10-13T13:53:27.743408Z",
- "updated_at": "2026-10-13T13:53:27.743408Z",
+ "applied_at": "2026-10-13T19:19:23.057813Z",
+ "updated_at": "2026-10-13T19:19:23.057813Z",
  "history": [
   {
    "status": "applied",
-   "at": "2026-10-13T13:53:27.744488Z"
+   "at": "2026-10-13T19:19:23.057813Z"
   }
  ],
  "can_message": true,
@@ -5841,20 +6066,22 @@ Response (abbreviated):
      "Kumaoni"
     ],
     "description": "Synthetic sample job post for the demo. Cook (pahadi cuisine) needed at Glacier Sample Homestay 242, Munsiyari (Munsiyari). Duties, timin...",
-    "closes_on": "2026-10-28",
-    "posted_at": "2026-10-11T12:00:00Z",
+    "closes_on": "2026-10-29",
+    "posted_at": "2026-10-12T12:00:00Z",
     "status": "open",
     "closed_reason": null,
+    "via_hoi": false,
+    "staffing_request": null,
     "synthetic": true
    },
    "status": "shortlisted",
    "note": "Available for the full season.",
-   "applied_at": "2026-10-12T19:53:25.902000Z",
-   "updated_at": "2026-10-13T07:53:25.902000Z",
+   "applied_at": "2026-10-13T01:19:21.231000Z",
+   "updated_at": "2026-10-13T13:19:21.231000Z",
    "history": [
     {
      "status": "applied",
-     "at": "2026-10-12T19:53:25.902000Z"
+     "at": "2026-10-13T01:19:21.231000Z"
     },
     "... 2 more"
    ],
@@ -5918,13 +6145,15 @@ Response (abbreviated):
      "Garhwali"
     ],
     "description": "Synthetic sample job post for the demo. Cook (pahadi cuisine) needed at Lotus Sample Homestay 010, Kedarnath (Kedarnath). Duties, timings...",
-    "closes_on": "2026-10-31",
-    "posted_at": "2026-09-20T10:00:00Z",
+    "closes_on": "2026-11-01",
+    "posted_at": "2026-09-21T10:00:00Z",
     "status": "open",
     "closed_reason": null,
+    "via_hoi": false,
+    "staffing_request": null,
     "synthetic": true
    },
-   "created_at": "2026-10-09T18:53:25.902000Z",
+   "created_at": "2026-10-10T00:19:21.231000Z",
    "responded_at": null,
    "can_message": false,
    "messages": 0,
@@ -5992,14 +6221,16 @@ Response (abbreviated):
    "Garhwali"
   ],
   "description": "Synthetic sample job post for the demo. Cook (pahadi cuisine) needed at Lotus Sample Homestay 010, Kedarnath (Kedarnath). Duties, timings...",
-  "closes_on": "2026-10-31",
-  "posted_at": "2026-09-20T10:00:00Z",
+  "closes_on": "2026-11-01",
+  "posted_at": "2026-09-21T10:00:00Z",
   "status": "open",
   "closed_reason": null,
+  "via_hoi": false,
+  "staffing_request": null,
   "synthetic": true
  },
- "created_at": "2026-10-09T18:53:25.902000Z",
- "responded_at": "2026-10-13T13:53:27.759000Z",
+ "created_at": "2026-10-10T00:19:21.231000Z",
+ "responded_at": "2026-10-13T19:19:23.074000Z",
  "can_message": true,
  "messages": 0,
  "accept_note": "Accepting shares your phone and email with this business only."
@@ -6017,56 +6248,59 @@ Response (abbreviated):
 {
  "id": "JA-000077",
  "job": {
-  "id": "JOB-000006",
-  "title": "Front office associate",
-  "business_id": "biz_0187",
-  "business_name": "Willow Sample Hotel 187, Jim Corbett / Ramnagar",
-  "business_type": "hotel",
-  "business_type_label": "Hotel",
-  "business_reg_no": "UK-HTL-NTL-00015",
-  "district": "nainital",
-  "district_name": "Nainital",
-  "destination_id": "jim-corbett-ramnagar",
-  "destination_name": "Jim Corbett / Ramnagar",
+  "id": "JOB-000046",
+  "title": "Housekeeping: 3 needed (21 Oct-03 Nov)",
+  "business_id": "biz_0010",
+  "business_name": "Lotus Sample Homestay 010, Kedarnath",
+  "business_type": "homestay",
+  "business_type_label": "Homestay",
+  "business_reg_no": "UK-HMS-RUD-00001",
+  "district": "rudraprayag",
+  "district_name": "Rudraprayag",
+  "destination_id": "kedarnath",
+  "destination_name": "Kedarnath",
   "skills": [
    {
-    "key": "front_office",
-    "label": "Front office / reception",
-    "category": "front_office"
+    "key": "housekeeping",
+    "label": "Housekeeping",
+    "category": "housekeeping"
    }
   ],
-  "job_type": "permanent",
-  "job_type_label": "Permanent",
-  "season_from": null,
-  "season_to": null,
-  "pay_min": 20000,
-  "pay_max": 22000,
+  "job_type": "seasonal",
+  "job_type_label": "Seasonal",
+  "season_from": "2026-10-21",
+  "season_to": "2026-11-03",
+  "pay_min": null,
+  "pay_max": null,
   "accommodation": false,
-  "food": true,
-  "openings": 2,
-  "languages": [
-   "Hindi",
-   "Kumaoni"
-  ],
-  "description": "Synthetic sample job post for the demo. Front office associate needed at Willow Sample Hotel 187, Jim Corbett / Ramnagar (Jim Corbett / R...",
-  "closes_on": "2026-11-22",
-  "posted_at": "2026-10-12T15:00:00Z",
+  "food": false,
+  "openings": 3,
+  "languages": [],
+  "description": "Staffing request via HOI: Lotus Sample Homestay 010, Kedarnath is short of housekeeping staff for its roster. Shifts: Morning shifts 07:0...",
+  "closes_on": "2026-10-21",
+  "posted_at": "2026-10-13T19:19:22.469000Z",
   "status": "open",
   "closed_reason": null,
-  "synthetic": true
+  "via_hoi": true,
+  "staffing_request": {
+   "label": "Staffing request via HOI",
+   "source": "hoi_roster_shortage",
+   "shift_note": "Morning shifts 07:00-15:00"
+  },
+  "synthetic": false
  },
  "status": "withdrawn",
  "note": "Available from next week.",
- "applied_at": "2026-10-13T13:53:27.743000Z",
- "updated_at": "2026-10-13T13:53:27.762000Z",
+ "applied_at": "2026-10-13T19:19:23.057000Z",
+ "updated_at": "2026-10-13T19:19:23.074000Z",
  "history": [
   {
    "status": "applied",
-   "at": "2026-10-13T13:53:27.744000Z"
+   "at": "2026-10-13T19:19:23.057000Z"
   },
   {
    "status": "withdrawn",
-   "at": "2026-10-13T13:53:27.762000Z"
+   "at": "2026-10-13T19:19:23.074000Z"
   }
  ],
  "can_message": false,
@@ -6087,58 +6321,62 @@ Response (abbreviated):
 {
  "items": [
   {
-   "id": "JOB-000003",
-   "title": "Front office associate",
-   "business_id": "biz_0001",
-   "business_name": "Valley Sample Hotel 001, Kedarnath",
-   "business_type": "hotel",
-   "business_type_label": "Hotel",
-   "business_reg_no": "UK-HTL-RUD-00001",
+   "id": "JOB-000046",
+   "title": "Housekeeping: 3 needed (21 Oct-03 Nov)",
+   "business_id": "biz_0010",
+   "business_name": "Lotus Sample Homestay 010, Kedarnath",
+   "business_type": "homestay",
+   "business_type_label": "Homestay",
+   "business_reg_no": "UK-HMS-RUD-00001",
    "district": "rudraprayag",
    "district_name": "Rudraprayag",
    "destination_id": "kedarnath",
    "destination_name": "Kedarnath",
    "skills": [
     {
-     "key": "front_office",
-     "label": "Front office / reception",
-     "category": "front_office"
-    },
-    "... 1 more"
+     "key": "housekeeping",
+     "label": "Housekeeping",
+     "category": "housekeeping"
+    }
    ],
-   "job_type": "permanent",
-   "job_type_label": "Permanent",
-   "season_from": null,
-   "season_to": null,
-   "pay_min": 16500,
-   "pay_max": 22500,
-   "accommodation": true,
+   "job_type": "seasonal",
+   "job_type_label": "Seasonal",
+   "season_from": "2026-10-21",
+   "season_to": "2026-11-03",
+   "pay_min": null,
+   "pay_max": null,
+   "accommodation": false,
    "food": false,
-   "openings": 2,
-   "languages": [
-    "Hindi"
-   ],
-   "description": "Synthetic sample job post for the demo. Front office associate needed at Valley Sample Hotel 001, Kedarnath (Kedarnath). Duties, timings ...",
-   "closes_on": "2026-11-08",
-   "posted_at": "2026-10-03T12:00:00Z",
+   "openings": 3,
+   "languages": [],
+   "description": "Staffing request via HOI: Lotus Sample Homestay 010, Kedarnath is short of housekeeping staff for its roster. Shifts: Morning shifts 07:0...",
+   "closes_on": "2026-10-21",
+   "posted_at": "2026-10-13T19:19:22.469000Z",
    "status": "open",
    "closed_reason": null,
-   "synthetic": true,
+   "via_hoi": true,
+   "staffing_request": {
+    "label": "Staffing request via HOI",
+    "source": "hoi_roster_shortage",
+    "shift_note": "Morning shifts 07:00-15:00"
+   },
+   "synthetic": false,
+   "agency_responses": [],
    "applications": {
     "applied": 0,
-    "viewed": 1,
-    "shortlisted": 2,
+    "viewed": 0,
+    "shortlisted": 0,
     "contacted": 0,
     "not_selected": 0,
-    "withdrawn": 0
+    "withdrawn": 1
    },
-   "applications_total": 3,
+   "applications_total": 0,
    "applications_new": 0,
    "closed_at": null
   },
-  "... 3 more"
+  "... 6 more"
  ],
- "total": 4,
+ "total": 7,
  "can_hire": true,
  "active_businesses": [
   {
@@ -6150,7 +6388,7 @@ Response (abbreviated):
   "... 2 more"
  ],
  "summary": {
-  "open_posts": 4,
+  "open_posts": 7,
   "new_applications": 2,
   "applications": 16,
   "interests_pending": 1,
@@ -6178,8 +6416,8 @@ Request body:
  "district": null,
  "destination_id": null,
  "job_type": "seasonal",
- "season_from": "2026-11-22",
- "season_to": "2027-03-12",
+ "season_from": "2026-11-23",
+ "season_to": "2027-03-13",
  "pay_min": 15000,
  "pay_max": 19000,
  "accommodation": true,
@@ -6190,14 +6428,14 @@ Request body:
   "Garhwali"
  ],
  "description": "Cook pahadi and simple Indian meals for homestay guests.",
- "closes_on": "2026-11-12"
+ "closes_on": "2026-11-13"
 }
 ```
 
 Response (abbreviated):
 ```json
 {
- "id": "JOB-000045",
+ "id": "JOB-000048",
  "title": "Cook for the winter season",
  "business_id": "biz_00004_000001",
  "business_name": "Cedar Sample Homestay A01, Kedarnath",
@@ -6222,8 +6460,8 @@ Response (abbreviated):
  ],
  "job_type": "seasonal",
  "job_type_label": "Seasonal",
- "season_from": "2026-11-22",
- "season_to": "2027-03-12",
+ "season_from": "2026-11-23",
+ "season_to": "2027-03-13",
  "pay_min": 15000,
  "pay_max": 19000,
  "accommodation": true,
@@ -6234,10 +6472,12 @@ Response (abbreviated):
   "Garhwali"
  ],
  "description": "Cook pahadi and simple Indian meals for homestay guests.",
- "closes_on": "2026-11-12",
- "posted_at": "2026-10-13T13:53:27.772466Z",
+ "closes_on": "2026-11-13",
+ "posted_at": "2026-10-13T19:19:23.091776Z",
  "status": "open",
  "closed_reason": null,
+ "via_hoi": false,
+ "staffing_request": null,
  "synthetic": false,
  "applications": {
   "applied": 0,
@@ -6257,13 +6497,13 @@ Response (abbreviated):
 
 Auth: business (owner). Applicants, best match first, with public candidate fields, `match`, `next_statuses`. Listing marks `applied` as `viewed`. `contact` only for candidates who accepted this business's request.
 
-Example: `GET /api/v1/jobs/JOB-000045/applications` -> 200
+Example: `GET /api/v1/jobs/JOB-000048/applications` -> 200
 
 Response (abbreviated):
 ```json
 {
  "job": {
-  "id": "JOB-000045",
+  "id": "JOB-000048",
   "title": "Cook for the winter season",
   "business_id": "biz_00004_000001",
   "business_name": "Cedar Sample Homestay A01, Kedarnath",
@@ -6284,8 +6524,8 @@ Response (abbreviated):
   ],
   "job_type": "seasonal",
   "job_type_label": "Seasonal",
-  "season_from": "2026-11-22",
-  "season_to": "2027-03-12",
+  "season_from": "2026-11-23",
+  "season_to": "2027-03-13",
   "pay_min": 15000,
   "pay_max": 19000,
   "accommodation": true,
@@ -6296,10 +6536,12 @@ Response (abbreviated):
    "Garhwali"
   ],
   "description": "Cook pahadi and simple Indian meals for homestay guests.",
-  "closes_on": "2026-11-12",
-  "posted_at": "2026-10-13T13:53:27.772000Z",
+  "closes_on": "2026-11-13",
+  "posted_at": "2026-10-13T19:19:23.091000Z",
   "status": "open",
   "closed_reason": null,
+  "via_hoi": false,
+  "staffing_request": null,
   "synthetic": false,
   "applications": {
    "applied": 0,
@@ -6318,11 +6560,11 @@ Response (abbreviated):
    "id": "JA-000078",
    "status": "viewed",
    "note": null,
-   "applied_at": "2026-10-13T13:53:27.780000Z",
+   "applied_at": "2026-10-13T19:19:23.106000Z",
    "history": [
     {
      "status": "applied",
-     "at": "2026-10-13T13:53:27.780000Z"
+     "at": "2026-10-13T19:19:23.106000Z"
     },
     "... 1 more"
    ],
@@ -6358,12 +6600,12 @@ Response (abbreviated):
     "any_district": false,
     "availability": "seasonal",
     "availability_label": "Seasonal",
-    "available_from": "2026-11-22",
-    "available_to": "2027-03-12",
+    "available_from": "2026-11-23",
+    "available_to": "2027-03-13",
     "pay_min": 14000,
     "pay_max": 18000,
     "bio": "Cooked for pilgrim groups.",
-    "updated_at": "2026-10-13T13:53:27.736000Z",
+    "updated_at": "2026-10-13T19:19:23.054000Z",
     "synthetic": false,
     "contact": null,
     "contact_visible": false,
@@ -6431,7 +6673,7 @@ Response (abbreviated):
 
 Auth: business (owner). Close (`status: closed`, `closed_reason` filled|withdrawn), reopen, or change `closes_on`, `openings`, `description`.
 
-Example: `PATCH /api/v1/jobs/JOB-000045` -> 200
+Example: `PATCH /api/v1/jobs/JOB-000048` -> 200
 
 Request body:
 ```json
@@ -6443,7 +6685,7 @@ Request body:
 Response (abbreviated):
 ```json
 {
- "id": "JOB-000045",
+ "id": "JOB-000048",
  "title": "Cook for the winter season",
  "business_id": "biz_00004_000001",
  "business_name": "Cedar Sample Homestay A01, Kedarnath",
@@ -6468,8 +6710,8 @@ Response (abbreviated):
  ],
  "job_type": "seasonal",
  "job_type_label": "Seasonal",
- "season_from": "2026-11-22",
- "season_to": "2027-03-12",
+ "season_from": "2026-11-23",
+ "season_to": "2027-03-13",
  "pay_min": 15000,
  "pay_max": 19000,
  "accommodation": true,
@@ -6480,10 +6722,12 @@ Response (abbreviated):
   "Garhwali"
  ],
  "description": "Cook pahadi and simple Indian meals for homestay guests.",
- "closes_on": "2026-11-12",
- "posted_at": "2026-10-13T13:53:27.772000Z",
+ "closes_on": "2026-11-13",
+ "posted_at": "2026-10-13T19:19:23.091000Z",
  "status": "open",
  "closed_reason": null,
+ "via_hoi": false,
+ "staffing_request": null,
  "synthetic": false,
  "applications": {
   "applied": 0,
@@ -6543,12 +6787,12 @@ Response (abbreviated):
    "any_district": false,
    "availability": "seasonal",
    "availability_label": "Seasonal",
-   "available_from": "2026-11-22",
-   "available_to": "2027-03-12",
+   "available_from": "2026-11-23",
+   "available_to": "2027-03-13",
    "pay_min": 14000,
    "pay_max": 18000,
    "bio": "Cooked for pilgrim groups.",
-   "updated_at": "2026-10-13T13:53:27.736000Z",
+   "updated_at": "2026-10-13T19:19:23.054000Z",
    "synthetic": false,
    "interest": null,
    "shortlisted": false,
@@ -6627,12 +6871,12 @@ Response (abbreviated):
  "any_district": false,
  "availability": "seasonal",
  "availability_label": "Seasonal",
- "available_from": "2026-11-22",
- "available_to": "2027-03-12",
+ "available_from": "2026-11-23",
+ "available_to": "2027-03-13",
  "pay_min": 14000,
  "pay_max": 18000,
  "bio": "Cooked for pilgrim groups.",
- "updated_at": "2026-10-13T13:53:27.736000Z",
+ "updated_at": "2026-10-13T19:19:23.054000Z",
  "synthetic": false,
  "contact": null,
  "contact_visible": false,
@@ -6641,7 +6885,7 @@ Response (abbreviated):
  "applications": [
   {
    "id": "JA-000078",
-   "job_id": "JOB-000045",
+   "job_id": "JOB-000048",
    "status": "shortlisted"
   }
  ]
@@ -6657,7 +6901,7 @@ Example: `POST /api/v1/candidates/C-0122/interest` -> 201
 Request body:
 ```json
 {
- "job_id": "JOB-000045",
+ "job_id": "JOB-000048",
  "message": "We liked your profile. Would you like to talk?"
 }
 ```
@@ -6671,10 +6915,10 @@ Response (abbreviated):
  "business_id": "biz_00004_000001",
  "business_name": "Cedar Sample Homestay A01, Kedarnath",
  "job": {
-  "id": "JOB-000045",
+  "id": "JOB-000048",
   "title": "Cook for the winter season"
  },
- "created_at": "2026-10-13T13:53:27.814053Z",
+ "created_at": "2026-10-13T19:19:23.137205Z",
  "responded_at": null,
  "candidate": {
   "code": "C-0122",
@@ -6713,12 +6957,12 @@ Response (abbreviated):
   "any_district": false,
   "availability": "seasonal",
   "availability_label": "Seasonal",
-  "available_from": "2026-11-22",
-  "available_to": "2027-03-12",
+  "available_from": "2026-11-23",
+  "available_to": "2027-03-13",
   "pay_min": 14000,
   "pay_max": 18000,
   "bio": "Cooked for pilgrim groups.",
-  "updated_at": "2026-10-13T13:53:27.736000Z",
+  "updated_at": "2026-10-13T19:19:23.054000Z",
   "synthetic": false,
   "contact": null,
   "contact_visible": false
@@ -6745,10 +6989,10 @@ Response (abbreviated):
    "business_id": "biz_00004_000001",
    "business_name": "Cedar Sample Homestay A01, Kedarnath",
    "job": {
-    "id": "JOB-000045",
+    "id": "JOB-000048",
     "title": "Cook for the winter season"
    },
-   "created_at": "2026-10-13T13:53:27.814000Z",
+   "created_at": "2026-10-13T19:19:23.137000Z",
    "responded_at": null,
    "candidate": {
     "code": "C-0122",
@@ -6782,12 +7026,12 @@ Response (abbreviated):
     "any_district": false,
     "availability": "seasonal",
     "availability_label": "Seasonal",
-    "available_from": "2026-11-22",
-    "available_to": "2027-03-12",
+    "available_from": "2026-11-23",
+    "available_to": "2027-03-13",
     "pay_min": 14000,
     "pay_max": 18000,
     "bio": "Cooked for pilgrim groups.",
-    "updated_at": "2026-10-13T13:53:27.736000Z",
+    "updated_at": "2026-10-13T19:19:23.054000Z",
     "synthetic": false,
     "contact": null,
     "contact_visible": false
@@ -6863,12 +7107,12 @@ Response (abbreviated):
    "any_district": false,
    "availability": "seasonal",
    "availability_label": "Seasonal",
-   "available_from": "2026-11-22",
-   "available_to": "2027-03-12",
+   "available_from": "2026-11-23",
+   "available_to": "2027-03-13",
    "pay_min": 14000,
    "pay_max": 18000,
    "bio": "Cooked for pilgrim groups.",
-   "updated_at": "2026-10-13T13:53:27.736000Z",
+   "updated_at": "2026-10-13T19:19:23.054000Z",
    "synthetic": false,
    "contact": null,
    "contact_visible": false,
@@ -6877,7 +7121,7 @@ Response (abbreviated):
     "status": "pending"
    },
    "shortlisted": true,
-   "shortlisted_at": "2026-10-13T13:53:27.823000Z"
+   "shortlisted_at": "2026-10-13T19:19:23.139000Z"
   },
   "... 3 more"
  ],
@@ -6903,11 +7147,11 @@ Request body:
 Response (abbreviated):
 ```json
 {
- "id": "msg_f33dbc8caba3",
+ "id": "msg_a50a0af533d8",
  "from": "job_seeker",
  "mine": true,
  "text": "When does the season start?",
- "at": "2026-10-13T13:53:27.831589Z"
+ "at": "2026-10-13T19:19:23.155953Z"
 }
 ```
 
@@ -6925,7 +7169,7 @@ Response (abbreviated):
   "kind": "application",
   "status": "shortlisted",
   "job": {
-   "id": "JOB-000045",
+   "id": "JOB-000048",
    "title": "Cook for the winter season"
   },
   "business_name": "Cedar Sample Homestay A01, Kedarnath",
@@ -6939,11 +7183,11 @@ Response (abbreviated):
  },
  "items": [
   {
-   "id": "msg_f33dbc8caba3",
+   "id": "msg_a50a0af533d8",
    "from": "job_seeker",
    "mine": false,
    "text": "When does the season start?",
-   "at": "2026-10-13T13:53:27.831000Z"
+   "at": "2026-10-13T19:19:23.155000Z"
   }
  ],
  "total": 1
@@ -6966,6 +7210,1099 @@ Response (abbreviated):
 }
 ```
 
+### Community: local experiences (public + host business)
+
+#### `GET /api/v1/local-experiences`
+
+Auth: none. Community-hosted local experiences (SAMPLE data). Only hosts with an active registration are listed. `by_type` counts the whole filtered set.
+
+Query/body fields: `type` (village_walk, home_meal, artisan_workshop, farm_stay, nature_walk, birding, folk_music, heritage_walk), `destination`, `district`, `month` 1-12, `q`, `host` (business id), `page`, `page_size` <= 50
+
+Example: `GET /api/v1/local-experiences?type=village_walk&page_size=2` -> 200
+
+Response (abbreviated):
+```json
+{
+ "items": [
+  {
+   "id": "LX-0003",
+   "title": "Village walk, Chopta",
+   "type": "village_walk",
+   "type_label": "Village walk",
+   "destination_id": "chopta",
+   "destination_name": "Chopta",
+   "district": "rudraprayag",
+   "district_name": "Rudraprayag",
+   "description": "SAMPLE (synthetic): Walk through a hill village with a local host: terraced fields, old stone houses, the village temple and daily life. ...",
+   "duration_hours": 3.0,
+   "group_min": 2,
+   "group_max": 7,
+   "price_min": 800,
+   "price_max": 900,
+   "price_note": "Per person, indicative (sample)",
+   "languages": [
+    "Garhwali",
+    "Hindi"
+   ],
+   "months": [
+    3,
+    4,
+    5,
+    6,
+    9,
+    10,
+    "... 1 more"
+   ],
+   "community_share": "Sample: fee shared between the guide and the host family.",
+   "what_to_bring": [
+    "Cash for small purchases",
+    "Rain jacket in the monsoon",
+    "A warm layer"
+   ],
+   "host_business_id": "biz_0209",
+   "stay_business_ids": [
+    "biz_0214"
+   ],
+   "status": "listed",
+   "synthetic": true,
+   "host": {
+    "id": "biz_0209",
+    "name": "Juniper Sample Homestay 209, Chopta",
+    "type": "homestay",
+    "type_label": "Homestay",
+    "reg_no": "UK-HMS-RUD-00002",
+    "status": "active",
+    "verified": true,
+    "rating": 4.3,
+    "district_name": "Rudraprayag",
+    "destination_name": "Chopta",
+    "languages": [
+     "Hindi",
+     "English"
+    ]
+   }
+  },
+  "... 1 more"
+ ],
+ "total": 6,
+ "page": 1,
+ "page_size": 2,
+ "by_type": {
+  "village_walk": 6
+ },
+ "types": [
+  {
+   "key": "village_walk",
+   "label": "Village walk"
+  },
+  "... 7 more"
+ ],
+ "note": "Sample listings for the concept: hosts, prices, group sizes and community-share notes are synthetic. No payment is taken here."
+}
+```
+
+#### `GET /api/v1/local-experiences/{id}`
+
+Auth: none. Detail with the host (public registry view) and 1-3 registered homestays nearby (`stays_nearby`). 404 when paused/archived or the host is not active.
+
+Example: `GET /api/v1/local-experiences/LX-0007` -> 200
+
+Response (abbreviated):
+```json
+{
+ "id": "LX-0007",
+ "title": "Home-cooked Garhwali / Kumaoni meal, Almora",
+ "type": "home_meal",
+ "type_label": "Home-cooked Garhwali / Kumaoni meal",
+ "destination_id": "almora",
+ "destination_name": "Almora",
+ "district": "almora",
+ "district_name": "Almora",
+ "description": "SAMPLE (synthetic): A home-cooked Garhwali or Kumaoni meal with a host family, made from seasonal local produce. Tell the host about food...",
+ "duration_hours": 2.5,
+ "group_min": 2,
+ "group_max": 8,
+ "price_min": 600,
+ "price_max": 700,
+ "price_note": "Per person, indicative (sample)",
+ "languages": [
+  "Hindi",
+  "Kumaoni"
+ ],
+ "months": [
+  1,
+  2,
+  3,
+  4,
+  5,
+  6,
+  "... 6 more"
+ ],
+ "community_share": "Sample: the host keeps the fee; 5% supports a local school.",
+ "what_to_bring": [
+  "Rain jacket in the monsoon",
+  "A warm layer",
+  "Water bottle"
+ ],
+ "host_business_id": "biz_0218",
+ "stay_business_ids": [
+  "biz_0219"
+ ],
+ "status": "listed",
+ "synthetic": true,
+ "host": {
+  "id": "biz_0218",
+  "name": "Quartz Sample Homestay 218, Almora",
+  "type": "homestay",
+  "type_label": "Homestay",
+  "reg_no": "UK-HMS-ALM-00001",
+  "status": "active",
+  "verified": true,
+  "rating": 3.4,
+  "district_name": "Almora",
+  "destination_name": "Almora",
+  "languages": [
+   "Hindi",
+   "English",
+   "Kumaoni"
+  ]
+ },
+ "stays_nearby": [
+  {
+   "id": "biz_0219",
+   "reg_no": "UK-HMS-ALM-00002",
+   "name": "Cedar Sample Homestay 219, Almora",
+   "type": "homestay",
+   "district": "almora",
+   "destination_id": "almora",
+   "status": "active",
+   "verified": true,
+   "rating": 3.6,
+   "capacity": 5,
+   "beds": 10,
+   "languages": [
+    "Hindi",
+    "English",
+    "Kumaoni",
+    "Bengali"
+   ],
+   "registered_on": "2024-05-27",
+   "valid_until": "2027-05-27",
+   "hoi_connected": true,
+   "type_label": "Homestay",
+   "capacity_unit": "rooms",
+   "district_name": "Almora",
+   "destination_name": "Almora",
+   "letter": "C",
+   "contact": "Contact details are shown to verified visitors in the full product (placeholder in this prototype).",
+   "synthetic": true
+  }
+ ],
+ "more_here": [
+  {
+   "id": "LX-0012",
+   "title": "Artisan workshop, Almora",
+   "type": "artisan_workshop"
+  },
+  "... 2 more"
+ ],
+ "note": "Sample listings for the concept: hosts, prices, group sizes and community-share notes are synthetic. No payment is taken here.",
+ "join_note": "Request to join sends your request to the host only. No payment is taken on this portal; the host replies with availability and how to pa..."
+}
+```
+
+#### `POST /api/v1/local-experiences/{id}/join`
+
+Auth: none (20/hour/IP). Request to join; no payment. Only the host business owner sees the request and `contact`. 422 when the month is not in the season or the group size is outside the range.
+
+Example: `POST /api/v1/local-experiences/LX-0007/join` -> 201
+
+Request body:
+```json
+{
+ "name": "Asha",
+ "group_size": 2,
+ "date": "2026-10-24",
+ "contact": "+91-90000-00000 (example)",
+ "note": "Two adults"
+}
+```
+
+Response (abbreviated):
+```json
+{
+ "request_id": "JR-000005",
+ "status": "pending",
+ "experience_id": "LX-0007",
+ "host_name": "Quartz Sample Homestay 218, Almora",
+ "message": "Request sent to the host. They will contact you to confirm; no payment is taken on this portal."
+}
+```
+
+#### `GET /api/v1/business/experiences`
+
+Auth: business. The caller's hosted experiences with request counts; `can_host` is true when a guide / homestay / adventure-operator registration is active.
+
+Example -> 200
+
+Response (abbreviated):
+```json
+{
+ "items": [
+  {
+   "id": "LX-0006",
+   "title": "Home-cooked Garhwali / Kumaoni meal, Kedarnath",
+   "type": "home_meal",
+   "type_label": "Home-cooked Garhwali / Kumaoni meal",
+   "destination_id": "kedarnath",
+   "destination_name": "Kedarnath",
+   "district": "rudraprayag",
+   "district_name": "Rudraprayag",
+   "description": "SAMPLE (synthetic): A home-cooked Garhwali or Kumaoni meal with a host family, made from seasonal local produce. Tell the host about food...",
+   "duration_hours": 2.0,
+   "group_min": 2,
+   "group_max": 6,
+   "price_min": 700,
+   "price_max": 800,
+   "price_note": "Per person, indicative (sample)",
+   "languages": [
+    "English",
+    "Garhwali",
+    "Hindi"
+   ],
+   "months": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    "... 6 more"
+   ],
+   "community_share": "Sample: about 70% of the fee goes to the host family, 10% to a village fund.",
+   "what_to_bring": [
+    "Cash for small purchases",
+    "Comfortable walking shoes",
+    "Water bottle"
+   ],
+   "host_business_id": "biz_0010",
+   "stay_business_ids": [
+    "biz_0209"
+   ],
+   "status": "listed",
+   "synthetic": true,
+   "requests": {
+    "pending": 2,
+    "total": 2
+   },
+   "created_at": "2026-04-06T19:19:21.247000Z"
+  },
+  "... 2 more"
+ ],
+ "total": 3,
+ "can_host": true,
+ "host_businesses": [
+  {
+   "id": "biz_00004_000001",
+   "name": "Cedar Sample Homestay A01, Kedarnath",
+   "type": "homestay",
+   "district": "rudraprayag",
+   "destination_id": "kedarnath",
+   "status": "active"
+  },
+  "... 1 more"
+ ],
+ "types": [
+  {
+   "key": "village_walk",
+   "label": "Village walk"
+  },
+  "... 7 more"
+ ],
+ "requests_pending": 3
+}
+```
+
+#### `POST /api/v1/business/experiences`
+
+Auth: business (host type, ACTIVE). List an experience. The destination must be in the business's district; stays nearby must be registered homestays in the same district (max 3). 403 for other business types or inactive registrations; 409 above 12 listed per business.
+
+Example -> 201
+
+Request body:
+```json
+{
+ "business_id": "biz_00004_000001",
+ "title": "Evening village walk",
+ "type": "village_walk",
+ "description": "A short walk through the village fields with the host family.",
+ "duration_hours": 2,
+ "group_min": 2,
+ "group_max": 6,
+ "price_min": 300,
+ "price_max": 500,
+ "languages": [
+  "Hindi",
+  "Garhwali"
+ ],
+ "months": [
+  4,
+  5,
+  9,
+  10
+ ],
+ "stay_business_ids": [],
+ "community_share": "Part of the fee goes to the village fund."
+}
+```
+
+Response (abbreviated):
+```json
+{
+ "id": "LX-0043",
+ "title": "Evening village walk",
+ "type": "village_walk",
+ "type_label": "Village walk",
+ "destination_id": "kedarnath",
+ "destination_name": "Kedarnath",
+ "district": "rudraprayag",
+ "district_name": "Rudraprayag",
+ "description": "A short walk through the village fields with the host family.",
+ "duration_hours": 2.0,
+ "group_min": 2,
+ "group_max": 6,
+ "price_min": 300,
+ "price_max": 500,
+ "price_note": "Per person, set by the host",
+ "languages": [
+  "Hindi",
+  "Garhwali"
+ ],
+ "months": [
+  4,
+  5,
+  9,
+  10
+ ],
+ "community_share": "Part of the fee goes to the village fund.",
+ "what_to_bring": [],
+ "host_business_id": "biz_00004_000001",
+ "stay_business_ids": [],
+ "status": "listed",
+ "synthetic": false,
+ "requests": {
+  "pending": 0,
+  "total": 0
+ },
+ "created_at": "2026-10-13T19:19:23.202863Z"
+}
+```
+
+#### `PATCH /api/v1/business/experiences/{id}`
+
+Auth: business (owner). Edit any field; `status`: `listed` | `paused` (paused = not public). 404 for another account's experience.
+
+Example: `PATCH /api/v1/business/experiences/LX-0043` -> 200
+
+Request body:
+```json
+{
+ "group_max": 8,
+ "status": "paused"
+}
+```
+
+Response (abbreviated):
+```json
+{
+ "id": "LX-0043",
+ "title": "Evening village walk",
+ "type": "village_walk",
+ "type_label": "Village walk",
+ "destination_id": "kedarnath",
+ "destination_name": "Kedarnath",
+ "district": "rudraprayag",
+ "district_name": "Rudraprayag",
+ "description": "A short walk through the village fields with the host family.",
+ "duration_hours": 2.0,
+ "group_min": 2,
+ "group_max": 8,
+ "price_min": 300,
+ "price_max": 500,
+ "price_note": "Per person, set by the host",
+ "languages": [
+  "Hindi",
+  "Garhwali"
+ ],
+ "months": [
+  4,
+  5,
+  9,
+  10
+ ],
+ "community_share": "Part of the fee goes to the village fund.",
+ "what_to_bring": [],
+ "host_business_id": "biz_00004_000001",
+ "stay_business_ids": [],
+ "status": "paused",
+ "synthetic": false,
+ "requests": {
+  "pending": 0,
+  "total": 0
+ },
+ "created_at": "2026-10-13T19:19:23.202000Z"
+}
+```
+
+#### `DELETE /api/v1/business/experiences/{id}`
+
+Auth: business (owner). Remove from the portal (archived); pending join requests are declined.
+
+Example: `DELETE /api/v1/business/experiences/LX-0043` -> 200
+
+Response (abbreviated):
+```json
+{
+ "id": "LX-0043",
+ "status": "archived",
+ "requests_declined": 0
+}
+```
+
+#### `GET /api/v1/business/experience-requests`
+
+Auth: business. Join requests for the caller's experiences only (with the visitor's contact).
+
+Query/body fields: `status` (pending|accepted|declined|withdrawn)
+
+Example -> 200
+
+Response (abbreviated):
+```json
+{
+ "items": [
+  {
+   "id": "JR-000004",
+   "experience_id": "LX-0006",
+   "experience_title": "Home-cooked Garhwali / Kumaoni meal, Kedarnath",
+   "host_business_id": "biz_0010",
+   "name": "Visitor V-004 (sample)",
+   "group_size": 4,
+   "date": "2026-10-30",
+   "contact": "+91-90000-10004 (synthetic)",
+   "note": "SAMPLE (synthetic): We are a small family group; one of us is vegetarian.",
+   "status": "pending",
+   "created_at": "2026-10-13T19:19:21.247000Z",
+   "decided_at": null,
+   "synthetic": true
+  },
+  "... 3 more"
+ ],
+ "total": 4,
+ "pending": 3
+}
+```
+
+#### `POST /api/v1/business/experience-requests/{id}`
+
+Auth: business (owner). `action`: accept | decline. 409 when already decided; 404 for another account's request.
+
+Example: `POST /api/v1/business/experience-requests/JR-000004` -> 200
+
+Request body:
+```json
+{
+ "action": "accept"
+}
+```
+
+Response (abbreviated):
+```json
+{
+ "id": "JR-000004",
+ "experience_id": "LX-0006",
+ "experience_title": "Home-cooked Garhwali / Kumaoni meal, Kedarnath",
+ "host_business_id": "biz_0010",
+ "name": "Visitor V-004 (sample)",
+ "group_size": 4,
+ "date": "2026-10-30",
+ "contact": "+91-90000-10004 (synthetic)",
+ "note": "SAMPLE (synthetic): We are a small family group; one of us is vegetarian.",
+ "status": "accepted",
+ "created_at": "2026-10-13T19:19:21.247000Z",
+ "decided_at": "2026-10-13T19:19:23.220000Z",
+ "synthetic": true
+}
+```
+
+### Community: staffing agencies (public offers + agency business) and notifications
+
+#### `GET /api/v1/staffing/offers`
+
+Auth: none. Open block offers of pooled workers from active staffing agencies (counts only, never individual workers).
+
+Query/body fields: `skill`, `district`, `month`
+
+Example: `GET /api/v1/staffing/offers?skill=housekeeping` -> 200
+
+Response (abbreviated):
+```json
+{
+ "items": [
+  {
+   "id": "OFR-00014",
+   "agency": {
+    "id": "biz_s007",
+    "name": "Ringaal Sample Staffing Agency S07, Mussoorie",
+    "reg_no": "UK-STF-DDN-00003",
+    "status": "active",
+    "verified": true,
+    "rating": 4.8,
+    "district": "dehradun",
+    "district_name": "Dehradun",
+    "destination_name": "Mussoorie",
+    "languages": [
+     "Hindi",
+     "English",
+     "Garhwali"
+    ],
+    "synthetic": true,
+    "pool_size": 26,
+    "skills": [
+     {
+      "key": "housekeeping",
+      "label": "Housekeeping"
+     },
+     "... 4 more"
+    ],
+    "districts_served": [
+     {
+      "id": "dehradun",
+      "name": "Dehradun"
+     },
+     "... 1 more"
+    ]
+   },
+   "skill": {
+    "key": "housekeeping",
+    "label": "Housekeeping"
+   },
+   "district": "dehradun",
+   "district_name": "Dehradun",
+   "destination_id": "mussoorie",
+   "destination_name": "Mussoorie",
+   "workers": 4,
+   "available_from": "2026-11-01",
+   "available_to": "2026-12-31",
+   "note": "SAMPLE (synthetic): Pooled local workers, briefed on hygiene and guest safety; uniforms provided by the agency.",
+   "status": "open",
+   "synthetic": true
+  },
+  "... 3 more"
+ ],
+ "total": 4,
+ "workers": 32,
+ "note": "Agencies and offers shown here are synthetic sample data unless marked otherwise."
+}
+```
+
+#### `GET /api/v1/staffing/mine`
+
+Auth: business (staffing agency owner). Agency dashboard: own agencies, offers, notifications, and open HOI staffing requests matching the agency's skills and districts (with `my_response`).
+
+Example -> 200
+
+Response (abbreviated):
+```json
+{
+ "agencies": [
+  {
+   "id": "biz_s001",
+   "name": "Fir Sample Staffing Agency S01, Rishikesh",
+   "reg_no": "UK-STF-DDN-00001",
+   "status": "active",
+   "verified": true,
+   "rating": 3.9,
+   "district": "dehradun",
+   "district_name": "Dehradun",
+   "destination_name": "Rishikesh",
+   "languages": [
+    "Hindi",
+    "English",
+    "Garhwali"
+   ],
+   "synthetic": true,
+   "pool_size": 40,
+   "skills": [
+    {
+     "key": "housekeeping",
+     "label": "Housekeeping"
+    },
+    "... 4 more"
+   ],
+   "districts_served": [
+    {
+     "id": "dehradun",
+     "name": "Dehradun"
+    },
+    "... 3 more"
+   ]
+  }
+ ],
+ "offers": [
+  {
+   "id": "OFR-00001",
+   "agency": {
+    "id": "biz_s001",
+    "name": "Fir Sample Staffing Agency S01, Rishikesh",
+    "reg_no": "UK-STF-DDN-00001",
+    "status": "active",
+    "verified": true,
+    "rating": 3.9,
+    "district": "dehradun",
+    "district_name": "Dehradun",
+    "destination_name": "Rishikesh",
+    "languages": [
+     "Hindi",
+     "English",
+     "Garhwali"
+    ],
+    "synthetic": true,
+    "pool_size": 40,
+    "skills": [
+     {
+      "key": "housekeeping",
+      "label": "Housekeeping"
+     },
+     "... 4 more"
+    ],
+    "districts_served": [
+     {
+      "id": "dehradun",
+      "name": "Dehradun"
+     },
+     "... 3 more"
+    ]
+   },
+   "skill": {
+    "key": "housekeeping",
+    "label": "Housekeeping"
+   },
+   "district": "dehradun",
+   "district_name": "Dehradun",
+   "destination_id": "rishikesh",
+   "destination_name": "Rishikesh",
+   "workers": 12,
+   "available_from": "2026-12-01",
+   "available_to": "2027-02-28",
+   "note": "SAMPLE (synthetic): Pooled local workers, briefed on hygiene and guest safety; uniforms provided by the agency.",
+   "status": "open",
+   "synthetic": true
+  },
+  "... 2 more"
+ ],
+ "open_requests": [
+  {
+   "id": "JOB-000046",
+   "title": "Housekeeping: 3 needed (21 Oct-03 Nov)",
+   "business_id": "biz_0010",
+   "business_name": "Lotus Sample Homestay 010, Kedarnath",
+   "business_type": "homestay",
+   "business_type_label": "Homestay",
+   "business_reg_no": "UK-HMS-RUD-00001",
+   "district": "rudraprayag",
+   "district_name": "Rudraprayag",
+   "destination_id": "kedarnath",
+   "destination_name": "Kedarnath",
+   "skills": [
+    {
+     "key": "housekeeping",
+     "label": "Housekeeping",
+     "category": "housekeeping"
+    }
+   ],
+   "job_type": "seasonal",
+   "job_type_label": "Seasonal",
+   "season_from": "2026-10-21",
+   "season_to": "2026-11-03",
+   "pay_min": null,
+   "pay_max": null,
+   "accommodation": false,
+   "food": false,
+   "openings": 3,
+   "languages": [],
+   "description": "Staffing request via HOI: Lotus Sample Homestay 010, Kedarnath is short of housekeeping staff for its roster. Shifts: Morning shifts 07:0...",
+   "closes_on": "2026-10-21",
+   "posted_at": "2026-10-13T19:19:22.469000Z",
+   "status": "open",
+   "closed_reason": null,
+   "via_hoi": true,
+   "staffing_request": {
+    "label": "Staffing request via HOI",
+    "source": "hoi_roster_shortage",
+    "shift_note": "Morning shifts 07:00-15:00"
+   },
+   "synthetic": false,
+   "my_response": null
+  },
+  "... 2 more"
+ ],
+ "notifications": [
+  {
+   "id": "NTF-000002",
+   "business_id": "biz_s001",
+   "kind": "staffing_request",
+   "job_id": "JOB-000046",
+   "title": "Staffing request via HOI: 3 x Housekeeping, Rudraprayag",
+   "text": "Lotus Sample Homestay 010, Kedarnath needs staff 2026-10-21 to 2026-11-03. Respond from your dashboard.",
+   "read": false,
+   "created_at": "2026-10-13T19:19:22.469000Z"
+  },
+  "... 2 more"
+ ],
+ "unread": 3,
+ "summary": {
+  "agencies": 1,
+  "open_offers": 3,
+  "workers_offered": 22,
+  "open_requests": 3,
+  "responded": 0
+ },
+ "note": "Agencies and offers shown here are synthetic sample data unless marked otherwise."
+}
+```
+
+#### `PATCH /api/v1/staffing/agencies/{business_id}`
+
+Auth: business (agency owner). Set `agency_skills` (skill keys) and `districts_served` (district ids or names); these drive which HOI requests notify the agency.
+
+Example: `PATCH /api/v1/staffing/agencies/biz_s001` -> 200
+
+Request body:
+```json
+{
+ "agency_skills": [
+  "housekeeping",
+  "fb_service",
+  "kitchen_helper",
+  "front_office",
+  "cook_pahadi"
+ ],
+ "districts_served": [
+  "dehradun",
+  "haridwar",
+  "tehri-garhwal",
+  "rudraprayag"
+ ]
+}
+```
+
+Response (abbreviated):
+```json
+{
+ "id": "biz_s001",
+ "name": "Fir Sample Staffing Agency S01, Rishikesh",
+ "reg_no": "UK-STF-DDN-00001",
+ "status": "active",
+ "verified": true,
+ "rating": 3.9,
+ "district": "dehradun",
+ "district_name": "Dehradun",
+ "destination_name": "Rishikesh",
+ "languages": [
+  "Hindi",
+  "English",
+  "Garhwali"
+ ],
+ "synthetic": true,
+ "pool_size": 40,
+ "skills": [
+  {
+   "key": "housekeeping",
+   "label": "Housekeeping"
+  },
+  {
+   "key": "fb_service",
+   "label": "F&B service (steward / waiter)"
+  },
+  "... 3 more"
+ ],
+ "districts_served": [
+  {
+   "id": "dehradun",
+   "name": "Dehradun"
+  },
+  {
+   "id": "haridwar",
+   "name": "Haridwar"
+  },
+  "... 2 more"
+ ]
+}
+```
+
+#### `POST /api/v1/staffing/offers`
+
+Auth: business (agency, ACTIVE). Publish a block offer, e.g. 12 housekeeping staff available for a window. 403 for non-agency businesses; max 20 open offers.
+
+Example -> 201
+
+Request body:
+```json
+{
+ "business_id": "biz_s001",
+ "skill": "housekeeping",
+ "workers": 12,
+ "available_from": "2026-11-13",
+ "available_to": "2027-01-12",
+ "note": "Trained pool"
+}
+```
+
+Response (abbreviated):
+```json
+{
+ "id": "OFR-00018",
+ "agency": {
+  "id": "biz_s001",
+  "name": "Fir Sample Staffing Agency S01, Rishikesh",
+  "reg_no": "UK-STF-DDN-00001",
+  "status": "active",
+  "verified": true,
+  "rating": 3.9,
+  "district": "dehradun",
+  "district_name": "Dehradun",
+  "destination_name": "Rishikesh",
+  "languages": [
+   "Hindi",
+   "English",
+   "Garhwali"
+  ],
+  "synthetic": true,
+  "pool_size": 40,
+  "skills": [
+   {
+    "key": "housekeeping",
+    "label": "Housekeeping"
+   },
+   {
+    "key": "fb_service",
+    "label": "F&B service (steward / waiter)"
+   },
+   "... 3 more"
+  ],
+  "districts_served": [
+   {
+    "id": "dehradun",
+    "name": "Dehradun"
+   },
+   {
+    "id": "haridwar",
+    "name": "Haridwar"
+   },
+   "... 2 more"
+  ]
+ },
+ "skill": {
+  "key": "housekeeping",
+  "label": "Housekeeping"
+ },
+ "district": "dehradun",
+ "district_name": "Dehradun",
+ "destination_id": null,
+ "destination_name": null,
+ "workers": 12,
+ "available_from": "2026-11-13",
+ "available_to": "2027-01-12",
+ "note": "Trained pool",
+ "status": "open",
+ "synthetic": false
+}
+```
+
+#### `PATCH /api/v1/staffing/offers/{id}`
+
+Auth: business (agency owner). Change `workers`, dates, `note`, or `status` (open | withdrawn).
+
+Example: `PATCH /api/v1/staffing/offers/OFR-00018` -> 200
+
+Request body:
+```json
+{
+ "workers": 10
+}
+```
+
+Response (abbreviated):
+```json
+{
+ "id": "OFR-00018",
+ "agency": {
+  "id": "biz_s001",
+  "name": "Fir Sample Staffing Agency S01, Rishikesh",
+  "reg_no": "UK-STF-DDN-00001",
+  "status": "active",
+  "verified": true,
+  "rating": 3.9,
+  "district": "dehradun",
+  "district_name": "Dehradun",
+  "destination_name": "Rishikesh",
+  "languages": [
+   "Hindi",
+   "English",
+   "Garhwali"
+  ],
+  "synthetic": true,
+  "pool_size": 40,
+  "skills": [
+   {
+    "key": "housekeeping",
+    "label": "Housekeeping"
+   },
+   {
+    "key": "fb_service",
+    "label": "F&B service (steward / waiter)"
+   },
+   "... 3 more"
+  ],
+  "districts_served": [
+   {
+    "id": "dehradun",
+    "name": "Dehradun"
+   },
+   {
+    "id": "haridwar",
+    "name": "Haridwar"
+   },
+   "... 2 more"
+  ]
+ },
+ "skill": {
+  "key": "housekeeping",
+  "label": "Housekeeping"
+ },
+ "district": "dehradun",
+ "district_name": "Dehradun",
+ "destination_id": null,
+ "destination_name": null,
+ "workers": 10,
+ "available_from": "2026-11-13",
+ "available_to": "2027-01-12",
+ "note": "Trained pool",
+ "status": "open",
+ "synthetic": false
+}
+```
+
+#### `POST /api/v1/staffing/requests/{job_id}/respond`
+
+Auth: business (agency, ACTIVE, matching skill + district). Say how many pooled workers the agency can supply for an HOI staffing request; repeating updates the same response. The hotel owner sees responses as `agency_responses` on `GET /api/v1/jobs/{id}` and gets a notification.
+
+Example: `POST /api/v1/staffing/requests/JOB-000046/respond` -> 201
+
+Request body:
+```json
+{
+ "business_id": "biz_s001",
+ "workers": 3,
+ "note": "Can start on the first day"
+}
+```
+
+Response (abbreviated):
+```json
+{
+ "id": "SR-000001",
+ "job_id": "JOB-000046",
+ "agency_business_id": "biz_s001",
+ "workers": 3,
+ "note": "Can start on the first day",
+ "created_at": "2026-10-13T19:19:23.260000Z",
+ "updated_at": "2026-10-13T19:19:23.260000Z",
+ "agency": {
+  "id": "biz_s001",
+  "name": "Fir Sample Staffing Agency S01, Rishikesh",
+  "reg_no": "UK-STF-DDN-00001",
+  "status": "active",
+  "verified": true,
+  "rating": 3.9,
+  "district": "dehradun",
+  "district_name": "Dehradun",
+  "destination_name": "Rishikesh",
+  "languages": [
+   "Hindi",
+   "English",
+   "Garhwali"
+  ],
+  "synthetic": true,
+  "pool_size": 40,
+  "skills": [
+   {
+    "key": "housekeeping",
+    "label": "Housekeeping"
+   },
+   {
+    "key": "fb_service",
+    "label": "F&B service (steward / waiter)"
+   },
+   "... 3 more"
+  ],
+  "districts_served": [
+   {
+    "id": "dehradun",
+    "name": "Dehradun"
+   },
+   {
+    "id": "haridwar",
+    "name": "Haridwar"
+   },
+   "... 2 more"
+  ]
+ }
+}
+```
+
+#### `GET /api/v1/business/notifications`
+
+Auth: business. In-portal notifications for the caller (staffing requests for agencies; agency responses for hotel owners). `unread` count included.
+
+Example -> 200
+
+Response (abbreviated):
+```json
+{
+ "items": [
+  {
+   "id": "NTF-000002",
+   "business_id": "biz_s001",
+   "kind": "staffing_request",
+   "job_id": "JOB-000046",
+   "title": "Staffing request via HOI: 3 x Housekeeping, Rudraprayag",
+   "text": "Lotus Sample Homestay 010, Kedarnath needs staff 2026-10-21 to 2026-11-03. Respond from your dashboard.",
+   "read": true,
+   "created_at": "2026-10-13T19:19:22.469000Z"
+  },
+  "... 2 more"
+ ],
+ "total": 3,
+ "unread": 2
+}
+```
+
+#### `POST /api/v1/business/notifications/{id}/read`
+
+Auth: business. Mark one notification read.
+
+Example: `POST /api/v1/business/notifications/NTF-000002/read` -> 200
+
+Response (abbreviated):
+```json
+{
+ "id": "NTF-000002",
+ "read": true
+}
+```
+
 ### Analytics: workforce market (official, aggregates only)
 
 #### `GET /api/v1/analytics/workforce-market`
@@ -6983,22 +8320,32 @@ Response (abbreviated):
   "district": null,
   "district_name": "All districts (state)"
  },
- "generated_at": "2026-10-13T13:53:27.847423Z",
+ "generated_at": "2026-10-13T19:19:23.271602Z",
  "k_min": 5,
  "suppress_reason": "Fewer than 5 candidates in this group, so the number is hidden to protect privacy (k-anonymity).",
  "source": "Hiring board job posts and visible job-seeker profiles, aggregated. Never per person.",
  "totals": {
-  "open_posts": 31,
-  "openings": 65,
+  "open_posts": 34,
+  "openings": 74,
   "candidates": 107,
   "applications_30d": 51,
   "openings_by_type": {
-   "seasonal": 34,
+   "seasonal": 43,
    "permanent": 13,
    "part_time": 18
   }
  },
  "by_skill": [
+  {
+   "key": "housekeeping",
+   "label": "Housekeeping",
+   "category": "housekeeping",
+   "openings": 15,
+   "open_posts": 6,
+   "candidates": 9,
+   "gap": 6,
+   "suppressed": false
+  },
   {
    "key": "cook_pahadi",
    "label": "Cook / chef: Garhwali / Kumaoni cuisine",
@@ -7018,16 +8365,6 @@ Response (abbreviated):
    "candidates": 8,
    "gap": 0,
    "suppressed": false
-  },
-  {
-   "key": "kitchen_helper",
-   "label": "Kitchen helper",
-   "category": "kitchen",
-   "openings": 7,
-   "open_posts": 5,
-   "candidates": null,
-   "gap": null,
-   "suppressed": true
   },
   "... 24 more"
  ],
@@ -7084,9 +8421,9 @@ Response (abbreviated):
    85,
    89,
    92,
-   94,
+   95,
    87,
-   81,
+   82,
    "... 6 more"
   ],
   "note": "Openings from season windows of posts made in the last 12 months (permanent posts count in every month)."
@@ -7115,13 +8452,13 @@ Response (abbreviated):
 {
  "items": [
   {
-   "id": "usr_6a20d97d85a7",
+   "id": "usr_f016a3281757",
    "username": "demo.officer.rudraprayag",
    "role": "district_officer",
    "district": "rudraprayag",
    "label": "District tourism officer, Rudraprayag (demo)",
    "active": true,
-   "created_at": "2026-10-13T13:53:24.217000Z",
+   "created_at": "2026-10-13T19:19:19.516000Z",
    "last_login": null,
    "role_label": "District tourism officer",
    "district_name": "Rudraprayag"
@@ -7150,13 +8487,13 @@ Request body:
 Response (abbreviated):
 ```json
 {
- "id": "usr_b528b66e2375",
+ "id": "usr_cee9e18292e5",
  "username": "officer.chamoli",
  "role": "district_officer",
  "district": "chamoli",
  "label": "District tourism officer, Chamoli",
  "active": true,
- "created_at": "2026-10-13T13:53:27.948669Z",
+ "created_at": "2026-10-13T19:19:23.371744Z",
  "last_login": null,
  "role_label": "District tourism officer",
  "district_name": "Chamoli"
@@ -7167,7 +8504,7 @@ Response (abbreviated):
 
 Auth: state_admin. Enable/disable an account (disabling revokes sessions; tokens stop working at once). 409 for your own account.
 
-Example: `PATCH /api/v1/admin/users/usr_5fcfeb7b8ff8` -> 200
+Example: `PATCH /api/v1/admin/users/usr_0f6cf0124d51` -> 200
 
 Request body:
 ```json
@@ -7179,13 +8516,13 @@ Request body:
 Response (abbreviated):
 ```json
 {
- "id": "usr_5fcfeb7b8ff8",
+ "id": "usr_0f6cf0124d51",
  "username": "sample.applicant.05",
  "role": "business",
  "district": null,
  "label": "Sample applicant 05 (synthetic)",
  "active": false,
- "created_at": "2026-10-13T13:53:24.872000Z",
+ "created_at": "2026-10-13T19:19:20.241000Z",
  "last_login": null,
  "role_label": "Business",
  "district_name": null
@@ -7205,18 +8542,18 @@ Response (abbreviated):
 {
  "items": [
   {
-   "ts": "2026-10-13T13:53:27.953000Z",
+   "ts": "2026-10-13T19:19:23.382000Z",
    "actor": "demo.admin",
    "action": "user.disabled",
-   "target": "usr_5fcfeb7b8ff8",
+   "target": "usr_0f6cf0124d51",
    "detail": "",
    "district": null
   },
   {
-   "ts": "2026-10-13T13:53:27.949000Z",
+   "ts": "2026-10-13T19:19:23.371000Z",
    "actor": "officer.chamoli",
    "action": "user.created",
-   "target": "usr_b528b66e2375",
+   "target": "usr_cee9e18292e5",
    "detail": "role=district_officer",
    "district": "chamoli"
   }
@@ -7225,4 +8562,4 @@ Response (abbreviated):
 }
 ```
 
-_108 endpoints documented. Generated by `portal/scripts/gen_api_doc.py` on 2026-10-13 from the app running on mongomock._
+_128 endpoints documented. Generated by `portal/scripts/gen_api_doc.py` on 2026-10-14 from the app running on mongomock._

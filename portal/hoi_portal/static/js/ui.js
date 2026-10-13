@@ -79,14 +79,14 @@ export const titleCase = (s) => String(s || '').replace(/_/g, ' ').replace(/^\w/
 
 // ------------------------------------------------------------------ pills
 export const BANDS = {
-  low: { label: 'Low', cls: 'ok' },
-  moderate: { label: 'Moderate', cls: 'warn' },
-  high: { label: 'High', cls: 'hot' },
-  very_high: { label: 'Very high', cls: 'bad' },
+  low: { label: 'Quiet', cls: 'ok' },
+  moderate: { label: 'Normal', cls: 'warn' },
+  high: { label: 'Busy', cls: 'hot' },
+  very_high: { label: 'Very busy', cls: 'bad' },
 };
-export function bandPill(band, index, prefix = 'Crowd') {
+export function bandPill(band, index, prefix = '') {
   const b = BANDS[band] || { label: band || 'Unknown', cls: 'neutral' };
-  return html`<span class="pill ${b.cls}" title="Crowd level is an estimate">${prefix ? prefix + ': ' : ''}${b.label}${index != null ? ' · ' + index : ''}</span>`;
+  return html`<span class="pill ${b.cls}">${prefix ? prefix + ': ' : ''}${b.label}</span>`;
 }
 const STATUS = {
   active: ['ok', 'Active'], expired: ['bad', 'Expired'], suspended: ['bad', 'Suspended'], pending: ['warn', 'Pending renewal'],
@@ -99,10 +99,10 @@ export function statusPill(s, label) {
   return html`<span class="pill ${cls}">${label || l}</span>`;
 }
 // Predicted road traffic band (traffic model; never a measurement).
-const TRAFFIC = { free: ['ok', 'Free-flowing'], moderate: ['warn', 'Moderate'], heavy: ['bad', 'Heavy'], severe: ['bad', 'Severe'] };
+const TRAFFIC = { free: ['ok', 'Smooth'], moderate: ['warn', 'Slow'], heavy: ['bad', 'Very slow'], severe: ['bad', 'Very slow'] };
 export function trafficPill(band, prefix = 'Traffic') {
   const [cls, l] = TRAFFIC[band] || ['neutral', band || 'Unknown'];
-  return html`<span class="pill ${cls}" title="Predicted, not measured; for planning">${prefix ? prefix + ': ' : ''}${l}</span>`;
+  return html`<span class="pill ${cls}">${prefix ? prefix + ': ' : ''}${l}</span>`;
 }
 export function roadPill(s) {
   const map = { open: ['ok', 'Open'], caution: ['warn', 'Caution'], closed: ['bad', 'Closed'] };
@@ -110,17 +110,17 @@ export function roadPill(s) {
   return html`<span class="pill ${cls}">${l}</span>`;
 }
 export function impactPill(i) {
-  const map = { low: ['ok', 'Low crowd impact'], medium: ['warn', 'Medium crowd impact'], high: ['bad', 'High crowd impact'] };
-  const [cls, l] = map[i] || ['neutral', 'Crowd impact unknown'];
+  const map = { low: ['ok', 'A little busier'], medium: ['warn', 'Busier'], high: ['bad', 'Very busy'] };
+  const [cls, l] = map[i] || ['neutral', 'Busy level unknown'];
   return html`<span class="pill ${cls}">${l}</span>`;
 }
 export const verifiedPill = (v) => (v ? html`<span class="pill info">Verified</span>` : html`<span class="pill neutral noicon">Not verified</span>`);
-export const synPill = (t = 'Synthetic') => html`<span class="pill syn">${t}</span>`;
-export const samplePill = () => html`<span class="pill syn">Sample</span>`;
+export const synPill = () => '';
+export const samplePill = () => '';
 
 // ------------------------------------------------------------------ states
 export function skeleton(kind = 'page', n = 3) {
-  if (kind === 'cards') return html`<div class="cards" aria-hidden="true">${Array.from({ length: n }, () => html`<div class="sk card"></div>`)}</div>`;
+  if (kind === 'cards') return html`<div class="mcgrid" aria-hidden="true">${Array.from({ length: n }, () => html`<div class="sk card"></div>`)}</div>`;
   if (kind === 'list') return html`<div class="list" aria-hidden="true">${Array.from({ length: n }, () => html`<div class="sk line sk-row"></div>`)}</div>`;
   if (kind === 'block') return html`<div class="sk block" aria-hidden="true"></div>`;
   return html`<div aria-hidden="true"><div class="sk h"></div><div class="sk line"></div><div class="sk line"></div><div class="sk block"></div></div>`;
@@ -385,4 +385,112 @@ export function pager(el, items, renderPage, size = 12, onPage) {
 export function infoNote(text, label = 'About this data') {
   const id = 'inf' + ++moreId;
   return html`<span class="infowrap"><button type="button" class="infobtn" data-more="${id}" aria-expanded="false" aria-controls="${id}" aria-label="${label}">i</button><span class="infotext" id="${id}" hidden>${text}</span></span>`;
+}
+
+// ------------------------------------------------------------------ simple, image-led building blocks
+// Small line icons (24x24, 1.9 px strokes). Decorative: always next to a text label.
+const ic = (body) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">${body}</svg>`;
+export const TYPE_ICON = {
+  hotel: ic('<path d="M4 20V5h10v15M14 9h6v11M7 8h2M7 12h2M7 16h2M17 13h1M17 16h1M2 20h20"/>'),
+  homestay: ic('<path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10M10 20v-5h4v5"/>'),
+  guide: ic('<circle cx="12" cy="5" r="2"/><path d="M10 22l1-7-2-3 2-4h2l2 4M14 22l-1-6M9 12l-3 2M16 9l2 4"/>'),
+  travel_agent: ic('<path d="M3 13l18-7-7 18-3-8z"/>'),
+  tour_operator: ic('<rect x="4" y="4" width="16" height="13" rx="3"/><path d="M4 11h16M7 21v-4M17 21v-4M8 14h.01M16 14h.01"/>'),
+  transport: ic('<path d="M5 16V9l2-4h10l2 4v7"/><path d="M3 16h18v2H3zM7 18v2M17 18v2M5 11h14"/>'),
+  adventure_operator: ic('<path d="M3 20l6-12 4 7 2-3 6 8z"/><path d="M14 6l2-2 2 2"/>'),
+  restaurant: ic('<path d="M7 3v8M5 3v5a2 2 0 004 0V3M7 11v10M17 3c-2 0-3 2-3 5s1 4 3 4v9"/>'),
+  staffing_agency: ic('<circle cx="8" cy="8" r="3"/><circle cx="17" cy="9" r="2.5"/><path d="M2 20c0-3.3 2.7-6 6-6s6 2.7 6 6M14 15c1-.6 2-.9 3-.9 2.8 0 5 2 5 5"/>'),
+  front_office: ic('<path d="M3 20h18M5 20v-7h14v7M9 13V9h6v4M12 9V6"/>'),
+  housekeeping: ic('<path d="M9 3h6l-1 6h-4z"/><path d="M6 21l3-12h6l3 12z"/>'),
+  food_beverage: ic('<path d="M6 3h12l-2 8a4 4 0 01-8 0zM12 15v6M8 21h8"/>'),
+  kitchen: ic('<path d="M6 14a6 6 0 1112 0z"/><path d="M4 14h16v3a3 3 0 01-3 3H7a3 3 0 01-3-3z"/>'),
+  maintenance: ic('<path d="M14 6a4 4 0 00-5 5L3 17l4 4 6-6a4 4 0 005-5l-3 3-3-3z"/>'),
+  wellness: ic('<path d="M12 20c-5-3-8-6-8-10a4 4 0 018-1 4 4 0 018 1c0 4-3 7-8 10z"/>'),
+  operations: ic('<path d="M9 4L3 6v14l6-2 6 2 6-2V4l-6 2z"/><path d="M9 4v14M15 6v14"/>'),
+  admin: ic('<rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 7h6M9 11h6M9 15h3"/>'),
+  security: ic('<path d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6z"/>'),
+  village_walk: ic('<path d="M3 20l5-9 4 6 3-4 6 7z"/><path d="M6 8l2-2 2 2v2H6zM14 6h4v4h-4z"/>'),
+  home_meal: ic('<path d="M3 13h18a9 9 0 01-18 0z"/><path d="M9 4c0 2 2 2 2 4M13 4c0 2 2 2 2 4"/>'),
+  artisan_workshop: ic('<path d="M4 20c3-8 13-8 16 0M8 20c1-4 7-4 8 0"/><path d="M12 3v7M9 6h6"/>'),
+  farm_stay: ic('<path d="M3 20h18M5 20c0-5 3-9 7-9s7 4 7 9"/><path d="M12 11V4M9 7l3-3 3 3"/>'),
+  nature_walk: ic('<path d="M12 21v-6M7 15h10L12 3z"/><path d="M5 21h14"/>'),
+  birding: ic('<path d="M3 12c3 0 5-4 9-4 3 0 5 2 6 4l3 1-3 1c-1 3-4 5-8 5-4 0-6-3-7-7z"/>'),
+  folk_music: ic('<ellipse cx="12" cy="7" rx="7" ry="3"/><path d="M5 7v9c0 1.7 3.1 3 7 3s7-1.3 7-3V7"/>'),
+  heritage_walk: ic('<path d="M12 3l4 5H8z"/><path d="M7 21V10h10v11M4 21h16M10 21v-5h4v5"/>'),
+  clock: ic('<circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/>'),
+  people: ic('<circle cx="9" cy="8" r="3"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6M16 11a3 3 0 100-6M18 20c0-2-.8-3.8-2-5"/>'),
+  rupee: ic('<path d="M7 4h10M7 8h10M7 4c5 0 7 2 7 4s-2 4-7 4l8 8"/>'),
+  calendar: ic('<rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/>'),
+  pin: ic('<path d="M12 21s-7-6.5-7-12a7 7 0 0114 0c0 5.5-7 12-7 12z"/><circle cx="12" cy="9" r="2.5"/>'),
+  star: ic('<path d="M12 3l2.8 5.8 6.2.9-4.5 4.4 1.1 6.2L12 17.3 6.4 20.3l1.1-6.2L3 9.7l6.2-.9z"/>'),
+  temp: ic('<path d="M10 4a2 2 0 014 0v10a4 4 0 11-4 0z"/>'),
+  stay: ic('<path d="M3 18V8M3 14h18v4M21 14v-3a3 3 0 00-3-3h-7v6"/><circle cx="7" cy="11" r="2"/>'),
+  lang: ic('<path d="M4 5h9M8 3v2M6 5c0 4 3 7 6 8M11 5c-1 4-4 7-7 8M13 21l4-9 4 9M14.5 18h5"/>'),
+  route: ic('<circle cx="6" cy="19" r="2"/><circle cx="18" cy="5" r="2"/><path d="M8 19h7a3 3 0 000-6H9a3 3 0 010-6h7"/>'),
+};
+export const icon = (k) => raw(TYPE_ICON[k] || '');
+
+/**
+ * Image-led card used everywhere (destinations, stays, experiences, festivals, trips, jobs, directory).
+ * media: html for the cover (photos.cover()); badge: html overlaid on the photo; kicker: small line above the title
+ * (icon + type); facts: [[iconKey, text]] as an icon row; chips: short tags; foot: html in the footer.
+ * The title link stretches over the whole card, so each card has one clear action.
+ */
+export function mediaCard({ href: url, media = '', badge = '', kicker = '', kickerIcon = '', title, line = '', facts = [], chips = [], foot = '', cls = '', headingLevel = 3 }) {
+  const open = headingLevel === 2 ? raw('<h2 class="mc-title">') : raw('<h3 class="mc-title">');
+  const close = headingLevel === 2 ? raw('</h2>') : raw('</h3>');
+  return html`<article class="mc ${cls} ${media ? '' : 'nomedia'}">
+    ${media ? html`<div class="mc-media">${media}${badge ? html`<span class="mc-badge">${badge}</span>` : ''}</div>` : ''}
+    <div class="mc-body">
+      ${kicker ? html`<p class="mc-kicker">${kickerIcon ? icon(kickerIcon) : ''}<span>${kicker}</span></p>` : ''}
+      ${open}<a href="${url}">${title}</a>${close}
+      ${!media && badge ? html`<div class="mc-badge-inline">${badge}</div>` : ''}
+      ${line ? html`<p class="mc-line">${line}</p>` : ''}
+      ${facts.filter((f) => f && f[1]).length ? html`<ul class="mc-facts">${facts.filter((f) => f && f[1]).map(([k, v]) => html`<li>${icon(k)}<span>${v}</span></li>`)}</ul>` : ''}
+      ${chips.length ? html`<div class="mc-chips">${chips.map((c) => html`<span class="mchip">${c}</span>`)}</div>` : ''}
+      ${foot ? html`<div class="mc-foot">${foot}</div>` : ''}
+    </div></article>`;
+}
+
+/** Month chips (best months / season): consecutive months merge into ranges. */
+export function monthChips(ms, max = 3) {
+  if (!ms?.length) return [];
+  if (ms.length === 12) return ['All year'];
+  const s = [...new Set(ms)].sort((a, b) => a - b);
+  const out = [];
+  let st = s[0], pr = s[0];
+  for (const m of s.slice(1).concat([99])) {
+    if (m === pr + 1) { pr = m; continue; }
+    out.push(st === pr ? monthName(st, true) : `${monthName(st, true)}–${monthName(pr, true)}`);
+    st = pr = m;
+  }
+  return out.slice(0, max);
+}
+
+/** Big number tile: label, value, unit, trend arrow + text, tone ('ok' | 'warn' | 'bad'). */
+export function statTile({ label, value, unit = '', trend = null, note = '', tone = '' }) {
+  const arrow = trend ? { up: '▲', down: '▼', flat: '▶' }[trend.dir] || '' : '';
+  return html`<div class="kpi stat ${tone}"><span class="k">${label}</span><span class="v">${value}${unit ? html`<small>${unit}</small>` : ''}</span>
+    ${trend ? html`<span class="trend ${trend.good === false ? 'neg' : trend.good ? 'pos' : ''}"><span aria-hidden="true">${arrow}</span> ${trend.text}</span>` : ''}
+    ${note ? html`<span class="small muted">${note}</span>` : ''}</div>`;
+}
+
+/** One plain-language sentence that says what a chart or number means. */
+export const takeaway = (text) => html`<p class="takeaway">${text}</p>`;
+
+/** Secondary content behind a "Show details" disclosure (native details element). */
+export function details(summary, body, cls = '') {
+  return html`<details class="more ${cls}"><summary>${summary}</summary><div class="more-b">${body}</div></details>`;
+}
+
+/** Crowd strip: one coloured cell per day with weekday, date and index printed in it (no axes, no legend). */
+export function dayStrip(days) {
+  const B = { low: 'Quiet', moderate: 'Normal', high: 'Busy', very_high: 'Very busy' };
+  const band = (v) => (v < 40 ? 'low' : v < 65 ? 'moderate' : v < 85 ? 'high' : 'very_high');
+  return html`<ol class="daystrip" aria-label="Crowd estimate per day">${days.map((d) => {
+    const dt = new Date(d.date + 'T00:00');
+    const b = d.band || band(d.index);
+    const wd = dt.toLocaleDateString('en-IN', { weekday: 'short' });
+    return html`<li class="ds ${b}"><span class="sr-only">${dt.toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'short' })}: ${B[b]}</span><span class="ds-d" aria-hidden="true">${wd.slice(0, 2)} ${dt.getDate()}</span><b aria-hidden="true">${B[b]}</b></li>`;
+  })}</ol>`;
 }

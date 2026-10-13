@@ -115,6 +115,32 @@ def ensure_hiring(d) -> dict | None:
     return stats
 
 
+def ensure_community(d) -> dict | None:
+    """Seed local experiences, join requests, staffing agencies and their offers once (lock `meta.community_seed`)."""
+    from ..services import users
+
+    if d.local_experiences.estimated_document_count() or d.staffing_offers.estimated_document_count():
+        return None
+    if not d.businesses.estimated_document_count():
+        return None
+    try:
+        d.meta.insert_one({"_id": "community_seed", "state": "running", "started_at": mongo.now()})
+    except DuplicateKeyError:
+        return None
+    from .community import seed_community
+
+    try:
+        owner = users.by_username("demo.business")
+        agency = users.by_username("demo.agency") or users.create("demo.agency", None, "business", label="Staffing agency (demo)")
+        stats = seed_community(d, owner["id"] if owner else None, agency["id"])
+    except Exception:
+        d.meta.delete_one({"_id": "community_seed"})
+        raise
+    d.meta.update_one({"_id": "community_seed"}, {"$set": {"state": "done", "finished_at": mongo.now(), "stats": stats}})
+    log.info("seeded synthetic community data: %s", stats)
+    return stats
+
+
 def ensure() -> None:
     from ..services import users
 
@@ -126,6 +152,7 @@ def ensure() -> None:
     if s.seed_demo:
         ensure_demo(d)
         ensure_hiring(d)
+        ensure_community(d)
     mongo.ensure_indexes(d)
     users.ensure_admin()
     if s.demo_login:

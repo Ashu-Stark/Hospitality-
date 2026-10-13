@@ -10,7 +10,7 @@ import { photos, photosNote, img } from '../photos.js';
 function ruleCard(r, m, full = false) {
   const types = (r.business_types || []).map((k) => m.business_types.find((b) => b.key === k)?.label || k);
   return html`<article class="card rulecard" aria-labelledby="r-${r.id}">
-    <h2 id="r-${r.id}" class="h3">${full ? r.title : html`<a href="${href('/rules/' + r.id)}">${r.title}</a>`} <span class="pill warn">Verify</span></h2>
+    <h2 id="r-${r.id}" class="h3">${full ? r.title : html`<a href="${href('/rules/' + r.id)}">${r.title}</a>`}</h2>
     <p class="small"><strong>Who needs it:</strong> ${r.who_needs_it}</p>
     ${full ? '' : raw('<details class="more"><summary>What it covers, documents, where to apply</summary>')}
     <dl class="ruledl">
@@ -28,7 +28,7 @@ export async function rules(ctx) {
   const f = { business_type: '', q: '', ...ctx.query };
   mount(el, html`<div class="pagehead"><div><h1>Rules, licences & schemes</h1>
       <p>Which registrations and permits a tourism business commonly needs.</p></div></div>
-    <p class="flag amber"><strong>Orientation only, not legal advice.</strong> Verify current requirements, fees and forms with the issuing authority. No section numbers or fees are given on purpose.</p>
+    <p class="flag amber">Short guide only. Ask the office that gives the licence for the exact rules and fees.</p>
     <form class="card tight filters" id="rlf" aria-label="Filter rules"></form>
     <div id="rl" class="section" aria-live="polite"></div>`);
   const m = await meta();
@@ -55,7 +55,7 @@ export async function rule(ctx) {
   await load($('#r1', el), async () => {
     const [r, m] = await Promise.all([api('/rules/' + encodeURIComponent(ctx.params.id)), meta()]);
     mount(el, html`${crumbs([['Home', '#/'], ['Rules, licences & schemes', '#/rules'], [r.title]])}<h1 class="section">${r.title}</h1><div class="section">${ruleCard(r, m, true)}</div>
-      <p class="section"><a href="#/rules">All rules and licences</a></p>${lastUpdated(null, 'Summary for orientation, verify with the issuing authority')}`);
+      <p class="section"><a href="#/rules">All rules and licences</a></p>${lastUpdated(null)}`);
   });
 }
 
@@ -64,7 +64,7 @@ export async function helplines(ctx) {
   const f = { district: '', kind: '', ...ctx.query };
   mount(el, html`<div class="pagehead"><div><h1>Helplines & alerts</h1><p>Emergency numbers, and road and weather alerts posted by district offices.</p></div></div>
     <div class="split"><section class="card" aria-labelledby="adv-h"><h2 id="adv-h">Active alerts</h2>
-        <form class="filters" id="af" aria-label="Filter advisories"></form><div id="al" class="section" aria-live="polite"></div></section>
+        <form class="filters" id="af" aria-label="Filter road alerts"></form><div id="al" class="section" aria-live="polite"></div></section>
       <div class="stack"><section class="card" aria-labelledby="hl-h"><h2 id="hl-h">Helplines</h2><div id="hl"></div></section>
       <section class="card tight" aria-labelledby="do-h"><h2 id="do-h" class="h3">District tourism office</h2><div id="dofc"></div></section></div></div>
     <div id="upd"></div>`);
@@ -94,10 +94,10 @@ export async function helplines(ctx) {
     setQuery(f);
     const a = await api('/advisories', { query: { district: f.district || undefined, kind: f.kind || undefined } });
     const counts = Object.entries(a.by_district || {});
-    mount($('#al', el), html`${a.items.length ? moreList(a.items, (x) => advisoryRow(x), 5) : empty('No active advisories', 'Nothing is posted for this filter. Conditions in the hills change quickly; check locally.')}
+    mount($('#al', el), html`${a.items.length ? moreList(a.items, (x) => advisoryRow(x), 5) : empty('No road alerts', 'Nothing right now. Roads in the hills change fast, so ask locally.')}
       ${counts.length && !f.district ? html`<p class="small muted section">By district: ${counts.map(([k, v]) => `${m.districts.find((d) => d.id === k)?.name || k} ${v}`).join(' · ')}</p>` : ''}
-      ${a.items.some((x) => x.sample) ? html`<p class="hint">Alerts marked Sample are illustrative, not real road status.</p>` : ''}`);
-    mount($('#upd', el), lastUpdated(a.items[0]?.posted_at, 'Advisories marked Sample are illustrative'));
+`);
+    mount($('#upd', el), lastUpdated(a.items[0]?.posted_at));
   }, { skel: 'list', n: 3 });
   form.addEventListener('change', () => { const fd = new FormData(form); f.district = (fd.get('district') || '').toString(); f.kind = (fd.get('kind') || '').toString(); refresh(); });
   await refresh();
@@ -105,29 +105,27 @@ export async function helplines(ctx) {
 
 export function about(ctx) {
   mount(ctx.el, html`${crumbs([['Home', '#/'], ['About']])}
-    <article class="card prose"><p class="eyebrow">About this concept</p><h1>About UTHP (concept)</h1>
-      <p class="flag amber section"><strong>Concept prototype for the AI-Tourism Hackathon 2026, not an official Government of Uttarakhand website.</strong> Data is sample/synthetic unless marked otherwise. No government emblem, seal or logo is used.</p>
-      <h2>What it is</h2>
-      <p>The Uttarakhand Tourism & Hospitality Portal (UTHP) is a concept for one place where visitors, tourism businesses and district officials meet. It is part of the HOI (Hospitality Operations Intelligence) project.</p>
+    <article class="card prose"><p class="eyebrow">About</p><h1>About this site</h1>
+      <p class="flag amber section"><strong>This is a demo, not a government site.</strong> The businesses, reviews, numbers and complaints are made up to show how it works.</p>
+      <h2>What it does</h2>
+      <p>Uttarakhand Travel Guide puts places, stays, things to do, trip plans and jobs in one place. It is part of the HOI project.</p>
       <h2>Who it is for</h2>
-      <ul class="bullets"><li><strong>Visitors</strong>, without signing in: search everything, plan a trip with live weather, road advisories and a crowd estimate, verify a business, file and track a grievance, read the dictionary.</li>
-        <li><strong>Businesses</strong>: apply for and renew registration, see officer remarks, submit monthly occupancy, or connect HOI with an API key so occupancy is reported automatically.</li>
-        <li><strong>District tourism officers</strong>: review applications, handle grievances within the SLA, post advisories and events, and see analytics for their own district only.</li>
-        <li><strong>State admin</strong>: all districts, officer accounts and state analytics.</li></ul>
-      <h2>Where the data comes from</h2>
-      <ul class="bullets"><li><strong>Live weather</strong>: Open-Meteo forecast model data, cached for 30 minutes. Warning thresholds are assumptions, not official criteria.</li>
-        <li><strong>Destinations, routes, seasonality, festivals, helplines, rules</strong>: a small curated reference set; every fact is approximate and marked “verify”.</li>
-        <li><strong>Businesses, occupancy, arrivals, grievances, applications</strong>: <strong>synthetic</strong> data generated for the demo. Names are obviously synthetic (for example “Sample Homestay 014”).</li>
-        <li><strong>Crowd level</strong>: an estimate from occupancy, the festival calendar, weekends and season; never a headcount.</li>
-        <li><strong>Workforce figures</strong>: aggregated from HOI-connected stays and hidden when fewer than 5 businesses contribute (k-anonymity).</li></ul>
-      <h2>Privacy</h2><p>Grievance contact details are visible only to officials. The tracking code is shown once. API keys are stored only as hashes.</p>
+      <ul class="bullets"><li><strong>Visitors</strong>: find places, see the weather, roads and how busy it is, check a business, ask to join a local experience, and make a complaint.</li>
+        <li><strong>Businesses</strong>: register, list things to do, share how full they are, post jobs and offer staff.</li>
+        <li><strong>District offices</strong>: check applications, answer complaints, post road alerts and see the numbers for their district.</li></ul>
+      <h2>Where the information comes from</h2>
+      <ul class="bullets"><li><strong>Weather</strong>: Open-Meteo, updated every 30 minutes.</li>
+        <li><strong>Places, routes, seasons, festivals, helplines, rules</strong>: a short list we wrote. Check details before you travel.</li>
+        <li><strong>How busy a place is</strong>: worked out from how full hotels are, festivals, weekends and the season. It is a guide, not a head count.</li>
+        <li><strong>Photos</strong>: Wikimedia Commons. See <a href="#/credits">Photo credits</a>.</li></ul>
+      <h2>Privacy</h2><p>Your phone or email in a complaint is seen only by the district office. When you ask to join a local experience, only that host sees your contact.</p>
       ${lastUpdated(null)}</article>`);
 }
 
 export function accessibility(ctx) {
   mount(ctx.el, html`${crumbs([['Home', '#/'], ['Accessibility statement']])}
     <article class="card prose"><p class="eyebrow">Statement</p><h1>Accessibility statement</h1>
-      <p>We aim for this concept portal to meet WCAG 2.1 level AA and follow the Guidelines for Indian Government Websites (GIGW) practices, even though it is not a government website.</p>
+      <p>We aim for this site to meet WCAG 2.1 level AA and follow the Guidelines for Indian Government Websites (GIGW) practices, even though it is not a government website.</p>
       <h2>What you can do here</h2>
       <ul class="bullets"><li>Use a <strong>Skip to main content</strong> link as the first item on every page.</li>
         <li>Change the <strong>text size</strong> with A-, A and A+ at the top of every page (your choice is remembered).</li>
@@ -149,12 +147,12 @@ export function sitemap(ctx) {
     ${lastUpdated(null)}`);
 }
 
-const KIND_LABEL = [['hero', 'Home page'], ['destination', 'Destinations'], ['experience', 'Experiences']];
+const KIND_LABEL = [['hero', 'Home page'], ['destination', 'Destinations'], ['experience', 'Experience themes'], ['local_experience', 'Local experiences'], ['festival', 'Festivals & events'], ['itinerary', 'Sample trips'], ['circuit', 'Circuits']];
 export function credits(ctx) {
   const all = photos();
   mount(ctx.el, html`${crumbs([['Home', '#/'], ['Photo credits']])}
     <div class="pagehead"><div><h1>Photo credits</h1><p>Every photo on this portal, with its author and licence.</p></div></div>
-    <p class="flag amber">${photosNote() || 'Illustrative photos from Wikimedia Commons.'} Each photo was resized and compressed; nothing else was changed. Photos licensed CC BY-SA may be reused under the same licence.</p>
+    <p class="flag amber">Photos from Wikimedia Commons, used under their licences. Each photo was resized and compressed; nothing else was changed. Photos licensed CC BY-SA may be reused under the same licence; CC0 and public-domain photos carry no conditions.</p>
     ${all.length ? KIND_LABEL.filter(([k]) => all.some((p) => p.kind === k)).map(([k, label]) => html`<section class="section" aria-labelledby="pc-${k}"><h2 id="pc-${k}">${label}</h2>
       <ul class="plain creditlist">${all.filter((p) => p.kind === k).map((p) => html`<li>${img(p)}<div><strong>${p.alt}</strong>
         <span class="small">Author: ${p.author}</span>

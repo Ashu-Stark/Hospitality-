@@ -5,7 +5,9 @@ import { api, meta } from '../api.js';
 import { setQuery } from '../router.js';
 import { BAND_FILL, bandLegend } from '../charts.js';
 import { EXP_ART, paintTones } from '../art.js';
-import { photo, img, photoHead, thumbsNote } from '../photos.js';
+import { photo, img, photoHead, thumbsNote, cover } from '../photos.js';
+import { destCard, tripCard } from '../cards.js';
+import { mediaCard } from '../ui.js';
 
 const short = (iso) => fmtDate(iso, { weekday: true, noYear: true });
 const ext = (url, label) => html`<a class="btn sm dark" href="${url}" target="_blank" rel="noopener noreferrer">${label} <span aria-hidden="true">↗</span><span class="sr-only"> (official site, opens in a new tab)</span></a>`;
@@ -19,7 +21,7 @@ export function expTile(e, cls = 'exptile') {
 
 export async function experiences(ctx) {
   const el = ctx.el;
-  mount(el, html`<div class="pagehead"><div><h1>Experiences</h1><p>Start from what you want to do; each experience lists places with today's crowd estimate.</p></div></div><div id="ex"></div>`);
+  mount(el, html`<div class="pagehead"><div><h1>Experiences</h1><p>Pick what you like doing. Each theme shows places that suit it.</p></div></div><div id="ex"></div>`);
   await load($('#ex', el), async () => {
     const r = await api('/experiences');
     mount($('#ex', el), html`<div class="expgrid">${r.items.map((e) => html`${expTile(e, 'exptile big')}`)}</div>${thumbsNote()}`);
@@ -37,25 +39,27 @@ export async function experience(ctx) {
       ${photoHead('exp-' + e.id)}
       <section class="exphero" data-tone="${e.id}">${photo('exp-' + e.id) ? '' : html`<span class="art">${raw(EXP_ART[e.icon] || '')}</span>`}<div><h1>${e.name}</h1><p>${e.intro}</p></div></section>
       <section class="section" aria-labelledby="pl-h"><div class="sechead"><h2 id="pl-h">Places <span class="pill syn">crowd: estimate</span>${infoNote(e.crowd_note)}</h2><a href="${href('/plan/map', { theme: e.id })}">See on map</a></div>
-        ${moreList(e.destinations, placeCard, 6, 'cards placecards')}${thumbsNote()}</section>
-      ${e.itineraries.length ? html`<section class="section" aria-labelledby="it-h"><div class="sechead"><h2 id="it-h">Sample trips <span class="pill syn">sample</span></h2></div><div class="cards">${e.itineraries.map(itinCard)}</div></section>` : ''}
+        ${moreList(e.destinations, placeCard, 6, 'mcgrid g3c')}${thumbsNote()}</section>
+      ${e.itineraries.length ? html`<section class="section" aria-labelledby="it-h"><div class="sechead"><h2 id="it-h">Trip plans</h2></div><div class="mcgrid g3c">${e.itineraries.map(itinCard)}</div></section>` : ''}
       <div class="grid g2 section">
         <section class="card tight" aria-labelledby="fe-h"><h2 id="fe-h">Festivals</h2>${e.festivals.length ? html`<ul class="lines">${e.festivals.slice(0, 4).map((f) => html`<li><a href="${href('/festivals', { view: 'list', q: f.name })}">${f.name}</a><span class="muted small">${f.window || ''}</span></li>`)}</ul><p class="hint">Usual timing; lunar dates are announced each year.</p>` : html`<p class="muted">None listed.</p>`}</section>
         <section class="card tight" aria-labelledby="tm-h"><h2 id="tm-h">Words to know</h2><div class="chips">${e.terms.map((t) => html`<a class="chipbtn" href="${href('/dictionary/' + t.id)}" title="${t.definition}">${t.term}${t.hindi ? html` <span lang="hi" class="muted">${t.hindi}</span>` : ''}</a>`)}</div></section>
       </div>
-      ${lastUpdated(null, 'Intro text is a short orientation in our own words; verify details before travel')}`);
+      ${lastUpdated(null)}`);
     paintTones(el);
   });
 }
 
-function placeCard(d) {
+const placeCard = (d) => destCard(d);
+function placeCardOld(d) {
   const w = d.weather_now;
   const p = photo(d.id);
   return html`<a class="card tight placecard" href="${href('/destinations/' + d.id)}">${p ? img(p, { cls: 'pthumb', alt: '' }) : ''}<strong>${d.name}</strong><span class="muted small">${d.district_name} · ${d.division}</span>
     <span class="row">${bandPill(d.crowd_today.band, d.crowd_today.index, 'Crowd')}</span>
     <span class="small">${wxText(w)}${w?.warning ? html` · <strong class="warnx">⚠ ${w.warning.kind === 'snow' ? 'snow' : 'heavy rain'} ${short(w.warning.date)}</strong>` : ''}</span></a>`;
 }
-function itinCard(i) {
+const itinCard = (i) => tripCard(i);
+function itinCardOld(i) {
   return html`<a class="card tight itincard" href="${href('/plan/itineraries/' + i.id)}"><strong>${i.name}</strong>
     <span class="chain">${i.stops.map((s, n) => html`${n ? html`<span aria-hidden="true">→</span>` : ''}<span>${s.name}</span>`)}</span>
     <span class="row"><span class="pill neutral noicon">${i.suggested_days_total} days suggested</span><span class="pill syn">sample</span></span></a>`;
@@ -65,7 +69,7 @@ function itinCard(i) {
 export async function itineraries(ctx) {
   const el = ctx.el;
   const f = { theme: ctx.query.theme || '' };
-  mount(el, html`<div class="pagehead"><div><h1>Sample itineraries</h1><p>Ready-made trips through curated places. Open one to see today's crowd, weather and road status at every stop and the best day to start.</p></div></div>
+  mount(el, html`<div class="pagehead"><div><h1>Trip plans</h1><p>Ready-made routes. Open one to see how busy each stop is, the weather, the roads and the best day to start.</p></div></div>
     <div class="chips" id="tf" role="group" aria-label="Filter by experience"></div><div id="il" class="section"></div>`);
   const m = await meta();
   const exps = m.experiences || [];
@@ -75,38 +79,38 @@ export async function itineraries(ctx) {
     drawF();
     $$('[data-t]', el).forEach((b) => b.addEventListener('click', () => { f.theme = b.dataset.t; refresh(); }));
     const r = await api('/itineraries', { query: { theme: f.theme || undefined } });
-    mount($('#il', el), r.items.length ? html`<div class="cards">${r.items.map(itinCard)}</div><p class="hint section">${r.note}</p>` : empty('No sample trips for this experience yet'));
-    announce(`${r.items.length} itineraries`);
+    mount($('#il', el), r.items.length ? html`<div class="mcgrid g3c">${r.items.map(itinCard)}</div>` : empty('No trip plans for this theme yet'));
+    announce(`${r.items.length} trip plans`);
   }, { skel: 'cards', n: 4 });
   await refresh();
 }
 
 export async function itinerary(ctx) {
   const el = ctx.el;
-  mount(el, html`${crumbs([['Home', '#/'], ['Itineraries', '#/plan'], ['…']])}<h1 class="sr-only">Itinerary</h1><div id="it"></div>`);
+  mount(el, html`${crumbs([['Home', '#/'], ['Trip plans', '#/plan'], ['…']])}<h1 class="sr-only">Trip plan</h1><div id="it"></div>`);
   await load($('#it', el), async () => {
     const i = await api('/itineraries/' + encodeURIComponent(ctx.params.id));
     const b = i.best_start;
     const better = b.offset_days > 0 && b.avg_index < b.if_start_today.avg_index;
-    mount(el, html`${crumbs([['Home', '#/'], ['Itineraries', '#/plan'], [i.name]])}
-      <div class="pagehead tightb"><div><p class="eyebrow">${i.theme_name} · ${i.suggested_days_total} days suggested</p><h1>${i.name}</h1><p>${i.summary}</p></div><span class="pill syn">sample plan</span></div>
+    mount(el, html`${crumbs([['Home', '#/'], ['Trip plans', '#/plan'], [i.name]])}
+      ${photoHead('itin-' + i.id) || photoHead(i.stops[0]?.destination_id)}
+      <div class="pagehead tightb"><div><p class="eyebrow">${i.theme_name} · ${i.suggested_days_total} days</p><h1>${i.name}</h1><p>${i.summary}</p></div></div>
       <section class="beststart ${b.band === 'very_high' ? 'r' : b.band === 'high' ? 'w' : 'g'}" aria-labelledby="bs-h">
-        <div><p class="k" id="bs-h">Best start in the next 14 days <span class="tag">estimate</span>${infoNote(b.method)}</p>
+        <div><p class="k" id="bs-h">Best day to start (next 2 weeks)</p>
         <p class="v">${short(b.date)}${b.offset_days === 0 ? ' (today)' : ''}</p></div>
-        <div class="bsx">${bandPill(b.band, b.avg_index, 'Avg crowd')}<span class="small">${better ? html`vs ${b.if_start_today.avg_index} (${b.if_start_today.band.replace('_', ' ')}) if you start today` : 'Starting today is as good as any day in the next two weeks'}</span></div>
+        <div class="bsx">${bandPill(b.band)}<span class="small">${better ? html`Starting today would be ${b.if_start_today.band.replace('very_high', 'very busy').replace('high', 'busy').replace('moderate', 'normal').replace('low', 'quiet')}` : 'Starting today is just as good'}</span></div>
       </section>
       <h2 class="section">Stop by stop, today</h2>
       <ol class="stops section">${i.stops.map((s) => html`<li><span class="n" aria-hidden="true">${s.order}</span><div class="stopc ${photo(s.destination_id) ? 'hasimg' : ''}">
           ${photo(s.destination_id) ? img(photo(s.destination_id), { cls: 'sthumb', alt: '' }) : ''}<div class="stopb">
           <div class="sh"><a class="t" href="${href('/destinations/' + s.destination_id)}">${s.name}</a><span class="muted small">${s.district_name} · ${s.suggested_days} day${s.suggested_days > 1 ? 's' : ''} suggested</span></div>
-          <div class="st">${bandPill(s.crowd_today.band, s.crowd_today.index, 'Crowd')}
+          <div class="st">${bandPill(s.crowd_today.band)}
             <span class="pill ${s.weather?.warning ? 'bad' : 'neutral'} noicon">${s.weather?.warning ? `⚠ ${s.weather.warning.kind === 'snow' ? 'Snow' : 'Heavy rain'} ${short(s.weather.warning.date)}` : wxText(s.weather)}</span>
             ${s.road ? html`<span class="roadx">Road: ${roadPill(s.road.status)}${s.road.sample ? html`<span class="pill syn">sample</span>` : ''}</span>` : html`<span class="pill neutral noicon">No road alerts</span>`}
-            ${s.traffic ? html`<span class="roadx">Traffic ${short(s.traffic.date)}: ${trafficPill(s.traffic.band, '')}<span class="pill syn">predicted</span></span>` : ''}</div>
+            ${s.traffic ? html`<span class="roadx">Traffic ${short(s.traffic.date)}: ${trafficPill(s.traffic.band, '')}</span>` : ''}</div>
           ${s.best_months?.length ? html`<div class="small muted">Usually best: ${s.best_months.map((m) => monthName(m, true)).join(', ')}</div>` : ''}
         </div></div></li>`)}</ol>
-      <p class="hint">${i.note}</p>${thumbsNote()}
-      ${lastUpdated(i.generated_at, 'Crowd levels are estimates; traffic is predicted for the day you reach each stop if you start on the suggested day; road alerts marked sample are illustrative')}`);
+      ${lastUpdated(i.generated_at)}`);
   });
 }
 
@@ -116,10 +120,16 @@ export async function circuits(ctx) {
   mount(el, html`<div class="pagehead"><div><h1>Circuits</h1><p>Groups of places that are often visited together. The order is a suggestion.</p></div></div><div id="cl"></div>`);
   await load($('#cl', el), async () => {
     const [r, its] = await Promise.all([api('/circuits'), api('/itineraries')]);
-    mount($('#cl', el), html`<div class="grid g2">${r.items.map((c) => html`<section class="card tight circ" aria-labelledby="c-${c.id}"><h2 id="c-${c.id}" class="h3">${c.name}</h2><p class="small muted">${c.description}</p>
-        <ol class="chainlist">${c.destinations.map((d) => html`<li><a href="${href('/destinations/' + d.id)}">${d.name}</a></li>`)}</ol>
-        <div class="btnrow"><a class="btn sm ghost" href="${href('/plan/map', { circuit: c.id })}">On the map</a>${its.items.filter((i) => i.circuit_id === c.id).slice(0, 2).map((i) => html`<a class="btn sm ghost" href="${href('/plan/itineraries/' + i.id)}">${i.name}</a>`)}</div></section>`)}</div>
-      <p class="hint section">${r.note}</p>`);
+    mount($('#cl', el), html`<div class="mcgrid g3c">${r.items.map((c) => {
+      const it = its.items.find((i) => i.circuit_id === c.id);
+      return mediaCard({
+        href: it ? href('/plan/itineraries/' + it.id) : href('/plan/map', { circuit: c.id }), media: cover(['circ-' + c.id, it ? 'itin-' + it.id : '', c.destinations[0]?.id].filter(Boolean), { seed: c.id }),
+        badge: html`<span class="pill neutral noicon">${c.destinations.length} places</span>`, kicker: 'Circuit', kickerIcon: 'route', title: c.name, line: c.description,
+        chips: c.destinations.map((d) => d.name).slice(0, 5),
+        foot: html`<a href="${href('/plan/map', { circuit: c.id })}">On the map</a>${it ? html`<span>Trip plan: ${it.name}</span>` : ''}`,
+      });
+    })}</div>
+      <p class="hint section">${r.note}</p>${thumbsNote()}`);
   }, { skel: 'cards', n: 4 });
 }
 
@@ -127,7 +137,7 @@ export async function circuits(ctx) {
 export async function map(ctx) {
   const el = ctx.el;
   const f = { circuit: ctx.query.circuit || '', district: ctx.query.district || '', theme: ctx.query.theme || '' };
-  mount(el, html`<div class="pagehead"><div><h1>Map view</h1><p>Where the places are. Today's crowd estimate is in the list and on the crowd dot map.</p></div></div>
+  mount(el, html`<div class="pagehead"><div><h1>Map view</h1><p>Where the places are, and how busy they are today.</p></div></div>
     <form class="card tight filters" id="mf" aria-label="Filter the map"></form>
     <div class="maplayout"><figure class="card mapfig"><div class="mapmode" id="mmode" hidden></div><div id="mapbox" class="mapbox"></div>
       <figcaption class="hint" id="mcap">Schematic, not to scale; no boundaries shown. Dots use approximate coordinates. North is up.</figcaption>
@@ -147,7 +157,7 @@ export async function map(ctx) {
     // Street map (LocationIQ / OpenStreetMap image proxied and cached by our server) when available; schematic otherwise.
     let mode = m.static_map?.available ? 'street' : 'dots';
     const modeBox = $('#mmode', el);
-    const CAP_DOTS = "Schematic, not to scale; no boundaries shown. Dots use approximate coordinates and today's crowd estimate. North is up.";
+    const CAP_DOTS = "Simple map, not to scale. Dot colour shows how busy a place is today. North is up.";
     const drawModes = () => {
       if (!m.static_map?.available) { modeBox.hidden = true; return; }
       modeBox.hidden = false;
@@ -239,7 +249,7 @@ function drawMap(m, W, match, circuit) {
     }
   });
   on.forEach((p) => {
-    const lbl = `${p.name}, ${p.district_name}: crowd ${p.crowd_today.band.replace('_', ' ')} (estimate)`;
+    const lbl = `${p.name}, ${p.district_name}: ${({ low: 'quiet', moderate: 'normal', high: 'busy', very_high: 'very busy' })[p.crowd_today.band]} today`;
     s += `<a href="#/destinations/${esc(p.id)}" aria-label="${esc(lbl)}"><title>${esc(lbl)}</title><circle cx="${X(p.lon).toFixed(1)}" cy="${Y(p.lat).toFixed(1)}" r="${r}" fill="${BAND_FILL[p.crowd_today.band]}" stroke="#fff" stroke-width="2"/></a>`;
   });
   s += labels.join('') + '</svg>';
@@ -249,7 +259,7 @@ function drawMap(m, W, match, circuit) {
 // ------------------------------------------------------------------ how to reach + official services
 export async function reach(ctx) {
   const el = ctx.el;
-  mount(el, html`<div class="pagehead"><div><h1>How to reach</h1><p>Airports, railheads and access notes from the curated reference set. <span class="pill warn">Verify</span></p></div></div><div id="rc"></div>`);
+  mount(el, html`<div class="pagehead"><div><h1>How to reach</h1><p>Airports, train stations and how to reach each place.</p></div></div><div id="rc"></div>`);
   await load($('#rc', el), async () => {
     const d = await api('/destinations');
     const general = (div) => [...new Set(d.items.filter((x) => x.division === div).flatMap((x) => x.route_facts).filter((t) => /airport|railhead/i.test(t)))];
@@ -257,13 +267,13 @@ export async function reach(ctx) {
     mount($('#rc', el), html`<div class="grid g2">${['Garhwal', 'Kumaon'].map((div) => html`<section class="card tight"><h2 class="h3">${div} division</h2><ul class="bullets section">${general(div).map((t) => html`<li>${t}</li>`)}</ul></section>`)}</div>
       <section class="card tight section" aria-labelledby="ac-h"><h2 id="ac-h" class="h3">Access notes for specific places</h2>
         <ul class="lines">${specific.map((s) => html`<li><a href="${href('/destinations/' + s.x.id + '/roads')}">${s.x.name}</a><span class="small">${s.facts.join(' ')}</span></li>`)}</ul></section>
-      <p class="hint section">Approximate; verify with official sources before travel. No distances or travel times are given on purpose. Each destination's Getting there tab has live road alerts and a directions link.</p>`);
+      <p class="hint section">Each place's Roads tab has road alerts and a directions link.</p>`);
   });
 }
 
 export async function services(ctx) {
   const el = ctx.el;
-  mount(el, html`<div class="pagehead"><div><h1>Official services</h1><p>Links to official sites for things this concept portal does not do itself.</p></div></div><div id="sv"></div>`);
+  mount(el, html`<div class="pagehead"><div><h1>Official services</h1><p>Official websites for things this site does not do.</p></div></div><div id="sv"></div>`);
   await load($('#sv', el), async () => {
     const [o, m] = await Promise.all([api('/official-services'), meta()]);
     mount($('#sv', el), html`<div class="grid g2">${o.items.map((s) => html`<section class="card tight svc"><h2 class="h3">${s.name}</h2><p class="small">${s.description}</p><p class="mono small muted">${s.url.replace(/^https:\/\//, '').replace(/\/$/, '')}</p>${ext(s.url, 'Open official site')}</section>`)}</div>

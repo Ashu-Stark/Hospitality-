@@ -89,13 +89,16 @@ def list_businesses(
     verified: bool | None = None,
     page: int = 1,
     page_size: int = 24,
+    sort: str = "name",
 ) -> dict:
+    """`type` may be a comma list (e.g. "hotel,homestay"); `sort` is "name" (A-Z) or "rating" (best first)."""
     f: dict = {}
     today = date.today().isoformat()
     if type:
-        if type not in catalog.BUSINESS_TYPES:
+        types = [t for t in type.split(",") if t]
+        if not types or any(t not in catalog.BUSINESS_TYPES for t in types):
             raise Invalid("Unknown business type.")
-        f["type"] = type
+        f["type"] = types[0] if len(types) == 1 else {"$in": types}
     if district:
         if district not in DISTRICTS:
             raise Invalid("Unknown district.")
@@ -122,7 +125,8 @@ def list_businesses(
     page, page_size = max(1, page), min(max(1, page_size), 100)
     col = mongo.db().businesses
     total = col.count_documents(f)
-    docs = col.find(f).sort("name_lc", 1).skip((page - 1) * page_size).limit(page_size)
+    order = [("rating", -1), ("name_lc", 1)] if sort == "rating" else [("name_lc", 1)]
+    docs = col.find(f).sort(order).skip((page - 1) * page_size).limit(page_size)
     items = [public(b) for b in docs]
     return {"items": items, "total": total, "page": page, "page_size": page_size, "letters": letters(), "synthetic": True}
 

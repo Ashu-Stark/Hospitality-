@@ -18,7 +18,7 @@ export async function dashboard(ctx) {
   const el = ctx.el;
   mount(el, html`${head('/business', 'Business dashboard', 'Your registrations, applications and reporting.', html`<a class="btn primary" href="#/business/apply">Apply for a new registration</a>`)}<div id="bd"></div>`);
   await load($('#bd', el), async () => {
-    const d = await api('/business/dashboard');
+    const [d, lx, ag, nt] = await Promise.all([api('/business/dashboard'), api('/business/experiences').catch(() => null), api('/staffing/mine').catch(() => null), api('/business/notifications').catch(() => null)]);
     const s = d.summary || {};
     mount($('#bd', el), html`<div class="kpis">
         <div class="kpi"><span class="k">Registered businesses</span><span class="v">${s.businesses ?? d.businesses.length}</span></div>
@@ -26,6 +26,11 @@ export async function dashboard(ctx) {
         <div class="kpi ${s.renewals_due ? 'warn' : ''}"><span class="k">Renewals due (60-day window)</span><span class="v">${s.renewals_due ?? 0}</span></div>
         <div class="kpi"><span class="k">Applications open</span><span class="v">${s.applications_open ?? 0}</span></div>
         <div class="kpi ${s.changes_requested ? 'warn' : ''}"><span class="k">Changes requested</span><span class="v">${s.changes_requested ?? 0}</span></div></div>
+      ${(lx?.host_businesses?.length || ag?.agencies?.length || nt?.unread) ? html`<section class="section" aria-labelledby="cm-h"><h2 id="cm-h" class="sr-only">Community and staffing</h2><div class="grid g3">
+        ${lx?.host_businesses?.length ? html`<a class="scard ${lx.requests_pending ? 'w' : ''}" href="#/business/experiences"><div class="rowx"><span>Local experiences</span></div><div class="big">${lx.requests_pending} join request${lx.requests_pending === 1 ? '' : 's'} waiting</div><div class="small">${lx.total} experience${lx.total === 1 ? '' : 's'} listed · manage</div></a>` : ''}
+        ${ag?.agencies?.length ? html`<a class="scard ${ag.summary.open_requests > ag.summary.responded ? 'w' : ''}" href="#/business/staffing"><div class="rowx"><span>Staffing agency</span></div><div class="big">${ag.summary.open_requests} HOI staffing request${ag.summary.open_requests === 1 ? '' : 's'}</div><div class="small">${ag.summary.open_offers} block offers · ${ag.summary.workers_offered} workers offered</div></a>` : ''}
+        ${nt?.unread ? html`<div class="scard w"><div class="rowx"><span>Notifications</span></div><div class="big">${nt.unread} new</div><ul class="small plain">${nt.items.filter((n) => !n.read).slice(0, 3).map((n) => html`<li><a href="${href('/jobs/' + n.job_id)}">${n.title}</a></li>`)}</ul></div>` : ''}
+      </div></section>` : ''}
       <section class="section" aria-labelledby="regs-h"><div class="sechead"><h2 id="regs-h">My registrations</h2></div>
         ${d.businesses.length ? html`<div class="grid g2">${d.businesses.map(bizCard)}</div>` : empty('No registrations yet', 'Apply for registration; once an officer approves it, it appears here with its registration number.', html`<a class="btn primary" href="#/business/apply">Apply now</a>`)}</section>
       <section class="section" aria-labelledby="apps-h"><div class="sechead"><h2 id="apps-h">My applications</h2></div>
@@ -71,7 +76,7 @@ export async function apply(ctx) {
     let existing = null;
     if (editId) existing = await api('/business/applications/' + encodeURIComponent(editId));
     const st = {
-      business_name: existing?.business_name || '', type: existing?.type || '', district: existing?.district || '', destination_id: existing?.destination_id || '',
+      business_name: existing?.business_name || '', type: existing?.type || ctx.query.type || '', district: existing?.district || '', destination_id: existing?.destination_id || '',
       capacity: existing?.capacity ?? '', beds: existing?.beds ?? '', languages: existing?.languages || ['Hindi'], documents: { ...(existing?.documents || {}) }, notes: existing?.notes || '',
     };
     let step = 0;
@@ -186,12 +191,12 @@ export async function certificate(ctx) {
     mount(el, html`${roleSubnav('')}${crumbs([['Dashboard', '#/business'], ['Certificate']])}
       <h1 class="sr-only">Registration certificate: ${b.name}</h1>
       <article class="cert" aria-label="Registration certificate">
-        <p class="eyebrow">Tourism trade registration · concept prototype</p>
+        <p class="eyebrow">Tourism business registration · demo</p>
         <h2>${b.name}</h2>
         <p class="regno mono">${b.reg_no}</p>
         <div class="chips">${statusPill(b.status)}${verifiedPill(b.verified)}</div>
         ${kv([['Type', b.type_label], ['District', b.district_name], ['Destination', b.destination_name || '—'], ['Capacity', `${b.capacity} ${b.capacity_unit}`], ['Registered on', fmtDate(b.registered_on)], ['Valid until', fmtDate(b.valid_until)], ['Days left', b.days_to_expiry != null ? String(b.days_to_expiry) : '—']])}
-        <p class="watermark">SAMPLE · not an official certificate</p>
+        <p class="watermark">DEMO · not a real certificate</p>
       </article>
       <div class="btnrow section">${b.open_renewal_id ? html`<a class="btn ghost" href="${href('/business/applications/' + b.open_renewal_id)}">Renewal under review</a>` : html`<button type="button" class="btn primary" id="renew" ${b.renewal_due || b.status === 'expired' ? '' : raw('aria-describedby="rn-hint"')}>Renew registration</button>`}
         <button type="button" class="btn ghost" id="print">Print</button><a class="btn ghost" href="${href('/verify', { reg: b.reg_no })}">Public verification page</a></div>
@@ -291,7 +296,7 @@ export async function occupancy(ctx) {
   });
 }
 function srcLabel(s) {
-  const L = { i: 'HOI (automatic)', m: 'monthly form', s: 'synthetic seed' };
+  const L = { i: 'HOI (automatic)', m: 'monthly form', s: 'demo data' };
   return Object.entries(s || {}).map(([k, v]) => `${L[k] || k}: ${v} d`).join(', ') || '—';
 }
 
@@ -322,7 +327,7 @@ X-API-Key: uthp_…
  "rooms_occupied": 19,
  "staff_count": 14,
  "staff_flagged": 1}</pre>
-          <p class="hint">Staff figures feed only aggregated, k-anonymous workforce statistics (never per business).</p></aside></div>`);
+          <p class="hint">Staff numbers are only shown added up across many businesses, never for one business.</p></aside></div>`);
       $('#bsel', box)?.addEventListener('change', (e) => { cur = e.target.value; draw(); });
       const form = $('#kf', box);
       form.addEventListener('submit', async (e) => {

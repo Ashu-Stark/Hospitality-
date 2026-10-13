@@ -1,12 +1,11 @@
-// Home (hero + unified search typeahead + quick tiles + crowd strip + advisories + festivals + role entries) and Search results.
-import { html, mount, raw, href, load, num, debounce, $, $$, announce, empty, errorBox, loading, monthName, impactPill, lastUpdated, infoNote, fmtDate } from '../ui.js';
+// Home (photo hero + search, five pillars, in-season destinations, local experiences, coming up + alerts) and Search results.
+import { html, mount, raw, href, load, debounce, $, $$, announce, empty, icon } from '../ui.js';
 import { api } from '../api.js';
 import { t } from '../i18n.js';
 import { setQuery, go } from '../router.js';
-import { ICONS, resultLink, resultTitle, resultSub, TYPE_LABEL, advisoryLine } from './common.js';
-import { expTile } from './plan.js';
-import { paintTones } from '../art.js';
-import { photo, credit, coverCard } from '../photos.js';
+import { resultLink, resultTitle, resultSub, TYPE_LABEL, advisoryLine } from './common.js';
+import { photo, credit, thumbsNote } from '../photos.js';
+import { destCard, localCard, festCard } from '../cards.js';
 
 const ORDER = ['destinations', 'businesses', 'events', 'dictionary', 'rules', 'advisories'];
 
@@ -15,12 +14,13 @@ export async function home(ctx) {
   el.classList.remove('page');
   el.classList.add('homepage');
   const hp = photo('hero');
+  const pill = (to, ic, title, sub, cls = '') => html`<a class="pillar ${cls}" href="${to}"><span class="ic">${icon(ic)}</span><span class="pt"><b>${title}</b><span class="s">${sub}</span></span></a>`;
   mount(el, html`
   <section class="hero ${hp ? 'photo' : ''}" aria-labelledby="hero-h">
     <div class="hero-in">
       <p class="eyebrow">Uttarakhand travel &amp; hospitality</p>
       <h1 id="hero-h">${t('hero_title')}</h1>
-      <p class="lead">Live weather, road traffic, crowd levels and verified stays, in one place.</p>
+      <p class="lead">Where to go, where to stay, and what to do. Plus today's weather, roads and how busy it is.</p>
       <div class="hsearch" id="hsearch">
         <form class="panel" role="search" id="hform" aria-label="Search the portal">
           <label for="hq" class="sr-only">${t('search')}</label>
@@ -32,60 +32,57 @@ export async function home(ctx) {
     </div>
     ${hp ? credit(hp, 'pcredit herocredit') : ''}
   </section>
-  <section class="tasks" aria-label="What do you want to do?">
-    <div class="task"><span class="ic">${raw(ICONS.plan)}</span><h2>${t('task_plan')}</h2><p>Weather, roads and how crowded it will be.</p>
-      <div class="btnrow"><a class="btn dark sm" href="#/destinations">Destinations</a><a class="btn ghost sm" href="#/festivals">Festivals</a></div></div>
-    <div class="task"><span class="ic">${raw(ICONS.verify)}</span><h2>${t('task_check')}</h2><p>Is this stay, guide or taxi registered?</p>
-      <form class="minisearch" id="vform" novalidate><label for="vreg" class="sr-only">Registration number</label><input class="field mono" id="vreg" name="reg" placeholder="UK-HMS-RUD-00001" autocapitalize="characters" spellcheck="false" maxlength="40"><button class="btn dark sm" type="submit">Verify</button></form></div>
-    <div class="task"><span class="ic">${raw(ICONS.complaint)}</span><h2>${t('task_help')}</h2><p>Emergency <strong>112</strong> · helplines · complaints.</p>
-      <div class="btnrow"><a class="btn dark sm" href="#/grievance">${t('file')}</a><a class="btn ghost sm" href="#/helplines">Helplines</a></div></div>
-    <div class="task"><span class="ic">${raw(ICONS.jobs)}</span><h2>${t('task_jobs')}</h2><p>Seasonal and year-round work in stays, treks and transport.</p>
-      <div class="btnrow"><a class="btn dark sm" href="#/jobs">Find jobs</a><a class="btn ghost sm" href="#/jobs/hire">Hire staff</a></div></div>
+  <nav class="pillars" aria-label="Start here">
+    ${pill('#/stays', 'homestay', 'Stays', 'Homestays and hotels')}
+    ${pill('#/experiences', 'village_walk', 'Things to do', 'With local families and guides')}
+    ${pill('#/plan', 'route', 'Trip plans', 'Ready-made routes')}
+    ${pill('#/jobs', 'people', 'Jobs', 'Work in hotels and travel')}
+    ${pill('#/host', 'staffing_agency', 'List your property', 'Join for free', 'cta')}
+  </nav>
+  <div id="adv" class="alertline" aria-live="polite"></div>
+  <section class="sec2" aria-labelledby="dst-h">
+    <div class="sechead"><h2 id="dst-h">Good to go now <span class="pill neutral noicon">quiet places first</span></h2><a href="#/destinations">All 24 places</a></div>
+    <div id="dst"></div>
   </section>
-  <section class="section" aria-labelledby="exp-h">
-    <div class="sechead"><h2 id="exp-h">Explore by experience</h2><a href="#/experiences">${t('see_all')}</a></div>
-    <div id="exps"></div>
+  <section class="sec2" aria-labelledby="lx-h">
+    <div class="sechead"><h2 id="lx-h">Things to do <span class="pill neutral noicon">with local hosts</span></h2><a href="#/experiences">See all</a></div>
+    <div id="lx"></div>
   </section>
-  <section class="section" aria-labelledby="crowd-h">
-    <div class="sechead"><h2 id="crowd-h">${t('crowd_now')} <span class="pill syn">estimate</span>${infoNote('Crowd index 0-100 from reported and synthetic occupancy, festivals, weekends and season. Not a headcount.')}</h2>
-      <a href="#/destinations">${t('see_all')}</a></div>
-    <div id="crowd"></div>
+  <section class="sec2" aria-labelledby="fest-h">
+    <div class="sechead"><h2 id="fest-h">${t('coming_up')} <span class="pill neutral noicon">festivals</span></h2><a href="#/festivals">Calendar</a></div>
+    <div id="fest" class="fest2"></div>
   </section>
-  <div class="grid g2 section">
-    <section class="card tight" aria-labelledby="adv-h"><div class="sechead"><h2 id="adv-h">${t('alerts')}</h2><a href="#/helplines">${t('see_all')}</a></div><div id="adv"></div></section>
-    <section class="card tight" aria-labelledby="fest-h"><div class="sechead"><h2 id="fest-h">${t('coming_up')}</h2><a href="#/festivals">Calendar</a></div><div id="fest"></div></section>
-  </div>
-  <p class="partner section"><span>Run a tourism business? <a href="#/signin?need=business">Register or renew</a></span><span>District or state official? <a href="#/signin?need=official">Officials sign in</a></span></p>`);
+  ${thumbsNote()}`);
 
   wireTypeahead($('#hform', el), $('#hq', el), $('#ta', el));
-  $('#vform', el).addEventListener('submit', (e) => { e.preventDefault(); const v = $('#vreg', el).value.trim(); go('/verify', v ? { reg: v.toUpperCase() } : {}); });
-
+  const m = new Date().getMonth() + 1;
   await Promise.all([
-    load($('#exps', el), async () => {
-      const r = await api('/experiences');
-      mount($('#exps', el), html`<div class="exprow">${r.items.map((e) => expTile(e))}</div>`);
-      paintTones($('#exps', el));
-    }, { skel: 'block' }),
-    load($('#crowd', el), async () => {
+    load($('#dst', el), async () => {
       const d = await api('/destinations');
-      const top = d.items.filter((x) => x.crowd_today).sort((a, b) => b.crowd_today.index - a.crowd_today.index).slice(0, 6);
-      mount($('#crowd', el), top.length ? html`<div class="crowdstrip" role="list">${top.map((x) => html`<div role="listitem">${coverCard({ id: x.id, url: href('/destinations/' + x.id), name: x.name, sub: x.district_name, crowd: x.crowd_today, cls: 'crowdcard' })}</div>`)}</div><p class="hint photonote">Photos: Wikimedia Commons contributors, illustrative only. <a href="#/credits">Photo credits</a></p>` : empty('No crowd estimates yet'));
-    }, { skel: 'block' }),
+      const inSeason = d.items.filter((x) => x.crowd_today && (!x.best_months?.length || x.best_months.includes(m)));
+      const pick = (inSeason.length >= 4 ? inSeason : d.items).slice().sort((a, b) => (a.crowd_today?.index ?? 99) - (b.crowd_today?.index ?? 99)).slice(0, 4);
+      mount($('#dst', el), html`<div class="mcgrid g4c">${pick.map((x, i) => destCard(x, { eager: i < 2 }))}</div>`);
+    }, { skel: 'cards', n: 4 }),
+    load($('#lx', el), async () => {
+      const r = await api('/local-experiences', { query: { month: m, page_size: 40 } });
+      const seenT = new Set();
+      const seenD = new Set();
+      const pick = r.items.filter((e) => !seenT.has(e.type) && !seenD.has(e.destination_id) && seenT.add(e.type) && seenD.add(e.destination_id)).slice(0, 4);
+      mount($('#lx', el), pick.length ? html`<div class="mcgrid g4c">${pick.map(localCard)}</div>` : empty('No local experiences this month'));
+    }, { skel: 'cards', n: 4 }),
     load($('#adv', el), async () => {
       const a = await api('/advisories');
       const order = { closed: 0, caution: 1, open: 2 };
-      const items = a.items.slice().sort((x, y) => (order[x.status] ?? 3) - (order[y.status] ?? 3)).slice(0, 3);
-      mount($('#adv', el), items.length ? html`<ul class="lines">${items.map(advisoryLine)}</ul>${a.items.some((x) => x.sample) ? html`<p class="hint">Items marked Sample are illustrative, not real road status.</p>` : ''}` : html`<p class="muted">No active alerts. Always check locally before travel.</p>`);
+      const items = a.items.slice().sort((x, y) => (order[x.status] ?? 3) - (order[y.status] ?? 3));
+      mount($('#adv', el), items.length ? html`<ul class="lines">${advisoryLine(items[0])}</ul><a href="#/helplines">${items.length} road alert${items.length > 1 ? 's' : ''} · help</a>` : html`<span class="muted">No road alerts right now.</span><a href="#/helplines">Help</a>`);
     }, { skel: 'list', n: 3 }),
     load($('#fest', el), async () => {
-      const m = new Date().getMonth() + 1;
       const next = (m % 12) + 1;
       const [a, b] = await Promise.all([api('/events', { query: { month: m } }), api('/events', { query: { month: next } })]);
       const seen = new Set();
-      const items = [...a.items, ...b.items].filter((e) => !seen.has(e.id) && seen.add(e.id)).slice(0, 3);
-      mount($('#fest', el), items.length ? html`<ul class="lines">${items.map((e) => html`<li>${impactPill(e.crowd_impact)}<a href="${href('/festivals', { view: 'list', q: e.name })}">${e.name.replace(/^SAMPLE:\s*/, '').replace(/^./, (c) => c.toUpperCase())}</a><span class="muted small">${e.start_date ? fmtDate(e.start_date, { noYear: true }) : e.window}</span>${e.sample ? html`<span class="pill syn">Sample</span>` : ''}</li>`)}</ul>
-        <p class="hint">Usual timing; lunar dates are announced annually.</p>` : html`<p class="muted">Nothing listed for the next two months.</p>`);
-    }, { skel: 'list', n: 3 }),
+      const items = [...a.items, ...b.items].filter((e) => !e.sample && !seen.has(e.id) && seen.add(e.id)).slice(0, 3);
+      mount($('#fest', el), items.length ? html`<div class="mcgrid">${items.map((e) => festCard(e, { hz: true }))}</div>` : html`<p class="muted">Nothing listed for the next two months.</p>`);
+    }, { skel: 'block' }),
   ]);
 }
 
@@ -150,7 +147,7 @@ export async function search(ctx) {
   const q = (ctx.query.q || '').trim();
   let type = ctx.query.type || '';
   mount(el, html`<div class="pagehead"><div><p class="eyebrow">Unified search</p><h1>${q ? html`Results for “${q}”` : 'Search the portal'}</h1>
-    <p>Destinations, businesses, festivals, dictionary terms, rules and advisories in one place.</p></div></div>
+    <p>Places, businesses, festivals, words, rules and road alerts.</p></div></div>
     <form class="card tight searchbox" role="search" id="sform"><label for="sq" class="sr-only">Search</label>
       <input class="field" id="sq" name="q" type="search" value="${q}" placeholder="${t('search_ph')}" minlength="2" maxlength="200" required>
       <button class="btn primary" type="submit">${t('search')}</button></form>

@@ -14,14 +14,14 @@ export async function file(ctx) {
   mount(el, html`<div class="pagehead"><div><h1>${t('file')}</h1>
       <p>Tell the district tourism office what went wrong. You get a ticket id and a 6-digit tracking code.</p></div></div>
     <div class="split"><form class="card form" id="gf" novalidate aria-describedby="g-intro">
-      <p id="g-intro" class="small muted">Fields marked optional can be left blank. Service level: the office aims to respond within ${m.grievance_sla_days} days (assumed for this prototype).</p>
+      <p id="g-intro" class="small muted">Fields marked optional can be left blank. The office tries to reply within ${m.grievance_sla_days} days.</p>
       ${field({ id: 'category', label: 'What is it about?', type: 'select', required: true, value: q.category || '', options: [{ value: '', label: 'Choose a category' }, ...m.grievance_categories.map((c) => ({ value: c.key, label: c.label }))] })}
       ${field({ id: 'district', label: 'District where it happened', type: 'select', required: true, value: q.district || '', options: [{ value: '', label: 'Choose a district' }, ...m.districts.map((d) => ({ value: d.id, label: d.name }))] })}
       ${field({ id: 'business_reg_no', label: 'Business registration number', opt: true, value: q.reg || '', placeholder: 'UK-HMS-RUD-00001', hint: 'If you know it. You can find it on the certificate, bill or in the directory.', attrs: 'autocapitalize="characters" spellcheck="false" maxlength="30"' })}
       ${field({ id: 'description', label: 'What happened?', type: 'textarea', required: true, hint: 'At least 10 characters. Include date, place and what you expect. Do not include passwords or card numbers.', attrs: 'maxlength="2000"' })}
       <p class="hint" id="desc-count" aria-live="polite">0 / 2000</p>
       ${field({ id: 'contact', label: 'Phone or email for follow-up', opt: true, hint: 'Visible to officials only, never shown publicly.', attrs: 'maxlength="120" autocomplete="email"' })}
-      <button class="btn primary" type="submit">Submit grievance</button>
+      <button class="btn primary" type="submit">Send complaint</button>
     </form>
     <aside class="card" aria-labelledby="g-how"><h2 id="g-how">What happens next</h2>
       <ol class="timeline section">${CHAIN.map((s) => html`<li class="todo"><strong>${LABEL[s]}</strong></li>`)}</ol>
@@ -49,17 +49,17 @@ export async function file(ctx) {
       const r = await api('/grievances', { method: 'POST', body });
       lastFiled = { ticket_id: r.ticket_id, tracking_code: r.tracking_code };
       mount(el, html`${crumbs([['Home', '#/'], ['File a grievance', '#/grievance'], ['Submitted']])}
-        <section class="ticket anim" aria-labelledby="ok-h"><p class="pill ok">Submitted</p><h1 id="ok-h" class="section">Your grievance is registered</h1>
+        <section class="ticket anim" aria-labelledby="ok-h"><p class="pill ok">Submitted</p><h1 id="ok-h" class="section">We got your complaint</h1>
           <p class="lead section">Save both numbers now. ${r.message}</p>
           <div class="codes"><div class="code"><div><div class="l">Ticket id</div><div class="v">${r.ticket_id}</div></div>${copyBtn(r.ticket_id, 'Copy ticket id')}</div>
             <div class="code"><div><div class="l">Tracking code (shown once)</div><div class="v">${r.tracking_code}</div></div>${copyBtn(r.tracking_code, 'Copy tracking code')}</div></div>
-          ${field2([['Category', r.category_label], ['District', r.district_name], ['Respond by (SLA, assumed)', fmtDate(r.sla_due_at)], ['Status', statusPill(r.status)]])}
+          ${field2([['Category', r.category_label], ['District', r.district_name], ['Reply by', fmtDate(r.sla_due_at)], ['Status', statusPill(r.status)]])}
           <div class="btnrow section"><a class="btn primary" href="${href('/grievance/track', { ticket: r.ticket_id })}">Track this grievance</a><button type="button" class="btn ghost" id="printbtn">Print</button><a class="btn ghost" href="#/">Back to home</a></div>
         </section>`);
       $('#printbtn', el).addEventListener('click', () => window.print());
       $('#ok-h', el).setAttribute('tabindex', '-1');
       $('#ok-h', el).focus();
-      announce(`Grievance registered. Ticket ${r.ticket_id}, tracking code ${r.tracking_code.split('').join(' ')}.`);
+      announce(`Complaint sent. Ticket ${r.ticket_id}, tracking code ${r.tracking_code.split('').join(' ')}.`);
     } catch (err) {
       busy(btn, false);
       if (err.status === 422) showErrors(form, apiFieldErrors(err), err.message);
@@ -117,6 +117,5 @@ export function timelineCard(g, { officer = false } = {}) {
     <h3 class="section">Updates</h3>
     <ol class="timeline section">${(g.timeline || []).slice().reverse().map((x) => html`<li class="done"><strong>${LABEL[x.status] || x.status}</strong>${x.public === false ? html` <span class="pill neutral noicon">Internal note</span>` : ''}
       <div class="when">${fmtDateTime(x.at)}${officer && x.by ? ' · ' + x.by : ''}</div>${x.note ? html`<div>${x.note}</div>` : ''}</li>`)}</ol>
-    ${g.synthetic ? html`<p class="hint">This is a synthetic sample grievance.</p>` : ''}
   </section>`;
 }

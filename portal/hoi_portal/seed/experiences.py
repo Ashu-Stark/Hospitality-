@@ -21,7 +21,7 @@ EXPERIENCES: list[dict] = [
             "Uttarakhand is one of India's best-known pilgrimage regions. The four Char Dham shrines open for a season each "
             "year and close for winter, and the river towns of Haridwar and Rishikesh draw visitors all year for prayer and the "
             "evening aarti. Plan around the yatra calendar: opening and closing dates are announced each year, and the crowd "
-            "estimate below shows how busy each place is likely to be."
+            "busy level below shows how busy each place is likely to be."
         ),
         "icon": "temple",
         "festival_ids": ["char-dham-opening", "char-dham-closing", "ganga-dussehra", "kanwar-yatra"],
@@ -70,7 +70,7 @@ EXPERIENCES: list[dict] = [
         "short": "Yoga, the river and slow days.",
         "intro": (
             "Rishikesh is widely known for yoga, and the riverside towns of Rishikesh and Haridwar suit slow, restful stays. "
-            "Choose a registered stay, check the crowd estimate before festival weeks, and see the yoga festival in the calendar."
+            "Choose a registered stay, check how busy it will be before festival weeks, and see the yoga festival in the calendar."
         ),
         "icon": "lotus",
         "festival_ids": ["international-yoga-festival", "ganga-dussehra"],

@@ -333,12 +333,26 @@ def job_public(j: dict) -> dict:
         "posted_at": mongo.iso(j["created_at"]),
         "status": "open" if open_now else "closed",
         "closed_reason": j.get("closed_reason") if not open_now else None,
+        "via_hoi": bool(j.get("via_hoi")),
+        "staffing_request": (
+            {
+                "label": "Staffing request via HOI",
+                "source": j["staffing_request"]["source"],
+                "shift_note": j["staffing_request"].get("shift_note"),
+            }
+            if j.get("via_hoi")
+            else None
+        ),
         "synthetic": bool(j.get("synthetic")),
     }
 
 
 def _job_owner_view(j: dict) -> dict:
     out = job_public(j)
+    if j.get("via_hoi"):
+        from . import staffing
+
+        out["agency_responses"] = staffing.responses_for_job(j["id"])
     apps = list(mongo.db().job_applications.find({"job_id": j["id"]}, {"status": 1}))
     out["applications"] = {s: sum(1 for a in apps if a["status"] == s) for s in catalog.JOB_APPLICATION_STATUSES}
     out["applications_total"] = sum(1 for a in apps if a["status"] != "withdrawn")
@@ -468,12 +482,16 @@ def list_jobs(
     job_type: str | None = None,
     month: int | None = None,
     q: str | None = None,
+    source: str | None = None,
     page: int = 1,
     page_size: int = PAGE_SIZE,
     seeker_user_id: str | None = None,
 ) -> dict:
-    """Open jobs (public). A signed-in job seeker with a profile gets a match score per job, sorted by it."""
+    """Open jobs (public). A signed-in job seeker with a profile gets a match score per job, sorted by it.
+    `source="hoi"` keeps only staffing requests sent by HOI rosters."""
     f: dict = {"status": "open", "closes_on": {"$gte": _today()}}
+    if source == "hoi":
+        f["via_hoi"] = True
     if skill:
         f["skills"] = skill
     if district:
@@ -512,6 +530,7 @@ def list_jobs(
         "page": page,
         "page_size": page_size,
         "openings": sum(r["openings"] for r in rows),
+        "hoi_requests": sum(1 for r in rows if r["via_hoi"]),
         "matched_to_profile": bool(prof),
     }
 

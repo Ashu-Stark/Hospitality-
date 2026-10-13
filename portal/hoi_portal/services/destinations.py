@@ -24,6 +24,7 @@ FIELDS = (
     "season_notes",
     "route_facts",
     "facts_note",
+    "why_go",
 )
 
 
@@ -45,8 +46,16 @@ def list_destinations(district: str | None = None, tag: str | None = None, q: st
     if tag:
         f["tags"] = tag
     f.update(search.regex_filter(q))
+    from . import local_experiences
+
     ctx = crowd.Context() if with_crowd else None
-    items = [summary(d, ctx) for d in mongo.db().destinations.find(f).sort("name", 1)]
+    lx = local_experiences.counts_by_destination()
+    items = []
+    for d in mongo.db().destinations.find(f).sort("name", 1):
+        s = summary(d, ctx)
+        s["weather_now"] = weather.cached_summary(d["id"])  # cache only, never calls the forecast service
+        s["local_experiences"] = lx.get(d["id"], 0)
+        items.append(s)
     tags = sorted({t for d in mongo.db().destinations.find({}, {"tags": 1}) for t in d.get("tags", [])})
     return {"items": items, "total": len(items), "tags": tags, "note": "Coordinates and facts are approximate; verify before travel."}
 
@@ -83,6 +92,7 @@ def detail(dest_id: str) -> dict:
         "advisories": road_adv["items"],
         "nearby": registry.nearby(dest_id),
         "events": events.for_destination(dest_id),
+        "local_experiences": _local(dest_id),
         "last_updated": mongo.iso(mongo.now()),
     }
 
@@ -97,3 +107,9 @@ def worst_road(road_advisories: list[dict], live: dict | None) -> dict | None:
         return None
     _, source, status = min(cands, key=lambda c: (c[0], c[1] != "advisory"))
     return {"status": status, "source": source}
+
+
+def _local(dest_id: str) -> dict:
+    from . import local_experiences
+
+    return local_experiences.for_destination(dest_id)

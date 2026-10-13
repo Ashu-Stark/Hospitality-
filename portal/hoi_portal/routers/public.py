@@ -55,6 +55,8 @@ def meta() -> dict:
         "reg_no_format": "UK-<TYPE CODE>-<DISTRICT CODE>-<NNNNN> (prototype codes, not official)",
         "demo_login": config.settings.demo_login,
         "experiences": [{"id": e["id"], "name": e["name"]} for e in plan.EXPERIENCES],
+        "local_experience_types": [{"key": k, "label": v} for k, v in catalog.LOCAL_EXPERIENCE_TYPES.items()],
+        "local_experience_host_types": list(catalog.LOCAL_EXPERIENCE_HOST_TYPES),
         "official_services": plan.official_services(),
     }
 
@@ -82,8 +84,11 @@ def registry_list(
     verified: bool | None = None,
     page: int = Query(1, ge=1, le=1000),
     page_size: int = Query(24, ge=1, le=100),
+    sort: str = Query("name", pattern="^(name|rating)$"),
 ) -> dict:
+    """`type` accepts a comma list (stays = "hotel,homestay"); `sort=rating` lists the best rated first."""
     return registry.list_businesses(
+        sort=sort,
         type=type,
         district=district,
         destination=destination,

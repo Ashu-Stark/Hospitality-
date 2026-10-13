@@ -88,7 +88,8 @@ tests/           pytest, offline
   `businesses`, `applications`, `grievances`, `advisories`, `api_keys`, `occupancy`, `occupancy_agg`, `workforce`,
   `arrivals`, `weather_cache`, `crowd_forecasts`, `map_tiles`, `places_cache`, `traffic_cache`, `traffic_observations`,
   `traffic_calibration`, `counters`, `meta`, `audit_log`; hiring board: `seeker_profiles`, `job_posts`, `job_applications`,
-  `interest_requests`, `job_shortlist`, `job_messages`. Indexes are created at startup.
+  `interest_requests`, `job_shortlist`, `job_messages`; community: `local_experiences`, `experience_requests`,
+  `staffing_offers`, `staffing_responses`, `notifications`. Indexes are created at startup.
 - **Occupancy** is stored compactly: `occupancy` holds one document per (business, month) with day-indexed arrays
   `avail[]`, `occ[]`, `src[]` (`s` seed, `m` monthly form, `i` HOI ingest; null = no report). `occupancy_agg` holds
   one document per (destination, stay type, month) with day-indexed sums; the crowd index and occupancy analytics
@@ -108,7 +109,7 @@ tests/           pytest, offline
 daily occupancy for the 730 days before the seed date for every hotel/homestay; HOI workforce aggregates (12 months)
 for about 40 % of stays; arrivals by district 2019-2026 (current year partial); 40 grievances; 20 applications
 (submitted, changes requested, approved, rejected, renewals); 9 sample advisories (one expired); 2 sample events;
-demo accounts `demo.admin`, `demo.officer.rudraprayag`, `demo.business` and five synthetic applicants. Occupancy
+demo accounts `demo.admin`, `demo.officer.rudraprayag`, `demo.business`, `demo.agency` and five synthetic applicants. Occupancy
 curves are ASSUMED shapes that follow the curated seasonality hints; they are not data.
 
 ## Hiring board (jobs)
@@ -123,6 +124,29 @@ aggregates (`/analytics/workforce-market`, candidate counts < 5 suppressed). Del
 applications, requests, messages). Seed (`seed/hiring.py`, once, when the hiring collections are empty, lock
 `meta.hiring_seed`): 120 synthetic candidates "Candidate C-0001..", placeholder phones `+91-90000-0NNNN`, 44 job posts
 from synthetic businesses, applications, requests, demo account `demo.seeker`.
+
+## Community: local experiences and staffing agencies
+
+- **Local experiences** (`services/local_experiences.py`): village walks, home-cooked meals, artisan workshops, farm
+  days, nature and birding walks, folk music evenings and temple-town heritage walks, hosted by registered guides,
+  homestays and adventure operators (ACTIVE registration). Each links a destination and 1-3 registered homestays
+  nearby. Public list/detail; "Request to join" takes no payment and only the host owner sees the request and contact.
+  Hosts manage experiences and requests at `#/business/experiences`.
+- **Staffing agencies** (`services/staffing.py`): business type `staffing_agency` (code `STF`). Agencies publish block
+  offers of pooled workers (counts only) and respond to **HOI staffing requests**: `POST /api/v1/ingest/staffing-request`
+  (business API key) creates one job post marked "Staffing request via HOI", idempotent per (business, `source_id`),
+  and notifies matching agencies in the portal. Agency dashboard: `#/business/staffing`.
+- Seed (`seed/community.py`, once, lock `meta.community_seed`): 42 SAMPLE experiences, 4 join requests for the demo
+  homestay, 8 synthetic agencies (`biz_s001..`) with 17 offers, one sample HOI staffing request from the demo hotel;
+  demo account `demo.agency` owns agency S01 (Rishikesh; serves Dehradun, Haridwar, Tehri Garhwal, Rudraprayag).
+
+## Web app information architecture
+
+Visible name: **Uttarakhand Travel Guide** (HOI mark). Plain words throughout ("How busy": Quiet / Normal / Busy / Very busy; traffic: Smooth / Slow / Very slow); no notice pills or per-photo captions; the footer keeps only a "Photo credits" link (full attribution list at `#/credits`) and "Demo · not a government site." Officials' pages keep a small "Demo numbers" banner. Top navigation: **Destinations · Stays · Experiences · Trips · Jobs**, plus a **List your property** button (partner
+onboarding at `#/host`). Help (helplines, complaints, dictionary, rules) is in the utility bar and footer; verifying a
+business sits under Stays. Cards share one image-led component (`ui.js mediaCard`, builders in `js/cards.js`);
+charts lead with a plain-language takeaway and secondary charts sit behind "Show details". See
+`docs/ZOSTEL_IA_NOTES.md` for the reference-pattern comparison.
 
 ## Crowd index (estimate)
 

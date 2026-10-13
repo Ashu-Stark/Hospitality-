@@ -22,7 +22,7 @@ from fastapi.staticfiles import StaticFiles
 
 from . import __version__, config, mongo, seed
 from .errors import DomainError
-from .routers import admin, auth, business, hiring, officer, public
+from .routers import admin, auth, business, community, hiring, officer, public
 
 STATIC = Path(__file__).resolve().parent / "static"
 log = logging.getLogger("hoi.portal")
@@ -113,6 +113,7 @@ def create_app() -> FastAPI:
 
     routers = (public.router, auth.router, business.router, business.ingest_router, officer.router, officer.analytics_router, admin.router)
     routers += (hiring.jobs_router, hiring.candidates_router, hiring.seeker_router, hiring.market_router)
+    routers += (community.public_router, community.host_router, community.staffing_router)
     for r in routers:
         app.include_router(r)
 

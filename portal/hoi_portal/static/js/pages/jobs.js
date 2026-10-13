@@ -5,6 +5,8 @@ import { html, mount, href, load, $, $$, raw, field, showErrors, clearErrors, ap
 import { api, meta, jobsMeta, role, user } from '../api.js';
 import { go, setQuery } from '../router.js';
 import { roleSubnav } from './common.js';
+import { jobCard as jobMediaCard, offerCard } from '../cards.js';
+import { statTile, takeaway } from '../ui.js';
 
 // ------------------------------------------------------------------ shared bits (also used by hiring.js)
 const APP_STATUS = { applied: ['info', 'Applied'], viewed: ['violet', 'Viewed'], shortlisted: ['ok', 'Shortlisted'], contacted: ['ok', 'Contacted'], not_selected: ['neutral', 'Not selected'], withdrawn: ['neutral', 'Withdrawn'] };
@@ -82,22 +84,12 @@ export function openThread(id, title = 'Messages', onClose) {
 }
 
 // ------------------------------------------------------------------ public job board
-export function jobCard(j) {
-  const perks = [j.accommodation && 'stay', j.food && 'meals'].filter(Boolean);
-  return html`<article class="jobcard">
-    <div class="jc-top"><h2 class="h3"><a href="${href('/jobs/' + j.id)}">${j.title}</a></h2>${matchBadge(j.match)}</div>
-    <p class="sub">${j.business_name}<br>${j.destination_name ? j.destination_name + ', ' : ''}${j.district_name}</p>
-    <div class="chips">${skillTags(j.skills)}</div>
-    <p class="jfacts">${typeText(j)}<br>${payText(j.pay_min, j.pay_max)}${perks.length ? ` · ${perks.join(' + ')} provided` : ''} · ${j.openings} opening${j.openings > 1 ? 's' : ''}</p>
-    ${j.match ? whyChips(j.match, 2) : ''}
-    <div class="jc-foot"><span class="small muted">Closes ${fmtDate(j.closes_on, { noYear: true })}</span>${j.applied ? html`<span class="pill ok">Applied</span>` : ''}${j.synthetic ? html`<span class="pill syn">Sample</span>` : ''}</div>
-  </article>`;
-}
+export const jobCard = (j) => jobMediaCard(j, { matchBadge: matchBadge(j.match) });
 
 export async function board(ctx) {
   const el = ctx.el;
   const r = role();
-  const f = { skill: ctx.query.skill || '', district: ctx.query.district || '', type: ctx.query.type || '', month: ctx.query.month || '', q: ctx.query.q || '', page: Number(ctx.query.page) || 1 };
+  const f = { skill: ctx.query.skill || '', district: ctx.query.district || '', type: ctx.query.type || '', month: ctx.query.month || '', q: ctx.query.q || '', source: ctx.query.source || '', page: Number(ctx.query.page) || 1 };
   const [m, jm] = await Promise.all([meta(), jobsMeta()]);
   const actions = r === 'job_seeker' ? html`<a class="btn ghost" href="#/seeker">My job search</a>`
     : r === 'business' ? html`<a class="btn primary" href="#/business/hiring/new">Post a job</a>`
@@ -110,6 +102,7 @@ export async function board(ctx) {
       <div class="fld"><label class="lbl" for="jf-t">Job type</label><select class="field" id="jf-t" name="type"><option value="">Any type</option>${jm.job_types.map((x) => html`<option value="${x.key}" ${f.type === x.key ? raw('selected') : ''}>${x.label}</option>`)}</select></div>
       <div class="fld"><label class="lbl" for="jf-m">Work in month</label><select class="field" id="jf-m" name="month"><option value="">Any month</option>${MONTH_NAMES.map((n, i) => html`<option value="${i + 1}" ${String(i + 1) === f.month ? raw('selected') : ''}>${n}</option>`)}</select></div>
       <div class="fld"><label class="lbl" for="jf-q">Search</label><input class="field" id="jf-q" name="q" type="search" value="${f.q}" maxlength="80" placeholder="e.g. cook, Auli"></div>
+      <div class="fld"><label class="check"><input type="checkbox" name="source" value="hoi" ${f.source ? raw('checked') : ''}> Urgent: hotels short of staff</label></div>
     </form>
     <div id="jl" class="section" aria-live="polite"></div>`);
   const form = $('#jf', el);
@@ -117,16 +110,16 @@ export async function board(ctx) {
   const list = $('#jl', el);
   const draw = () => load(list, async () => {
     setQuery({ ...f, page: f.page > 1 ? f.page : '' });
-    const res = await api('/jobs', { query: { skill: f.skill || undefined, district: f.district || undefined, type: f.type || undefined, month: f.month || undefined, q: f.q || undefined, page: f.page }, auth: r === 'job_seeker' });
+    const res = await api('/jobs', { query: { skill: f.skill || undefined, district: f.district || undefined, type: f.type || undefined, month: f.month || undefined, q: f.q || undefined, source: f.source || undefined, page: f.page }, auth: r === 'job_seeker' });
     const from = (res.page - 1) * res.page_size + 1;
-    mount(list, res.items.length ? html`<p class="small muted resline"><strong>${res.total} open job${res.total === 1 ? '' : 's'}</strong>, ${num(res.openings)} openings · showing ${from}–${from + res.items.length - 1}${res.matched_to_profile ? ' · ranked by match to your profile' : ''}</p>
-        <div class="jobgrid">${res.items.map(jobCard)}</div>`
+    mount(list, res.items.length ? html`<p class="small muted resline"><strong>${res.total} open job${res.total === 1 ? '' : 's'}</strong>, ${num(res.openings)} openings${res.hoi_requests ? ` · ${res.hoi_requests} urgent` : ''} · showing ${from}–${from + res.items.length - 1}${res.matched_to_profile ? ' · ranked by match to your profile' : ''}</p>
+        <div class="mcgrid g3c">${res.items.map(jobCard)}</div>`
       : empty('No open jobs match', 'Clear a filter or try another district or month.'));
     serverPager(list, res, (p) => { f.page = p; draw().then(() => list.scrollIntoView({ block: 'start' })); });
     announce(`${res.total} jobs`);
   }, { skel: 'cards', n: 6, label: 'Loading jobs…' });
   let tmr;
-  const read = () => { const fd = new FormData(form); ['skill', 'district', 'type', 'month', 'q'].forEach((k) => { f[k] = (fd.get(k) || '').toString().trim(); }); f.page = 1; draw(); };
+  const read = () => { const fd = new FormData(form); ['skill', 'district', 'type', 'month', 'q', 'source'].forEach((k) => { f[k] = (fd.get(k) || '').toString().trim(); }); f.page = 1; draw(); };
   form.addEventListener('change', (e) => { if (e.target.name !== 'q') read(); });
   form.addEventListener('input', (e) => { if (e.target.name === 'q') { clearTimeout(tmr); tmr = setTimeout(read, 350); } });
   form.addEventListener('submit', (e) => { e.preventDefault(); read(); });
@@ -143,7 +136,7 @@ export async function detail(ctx) {
     mount(el, html`${crumbs([['Jobs', '#/jobs'], [j.title]])}
       <div class="pagehead"><div><p class="eyebrow">${j.job_type_label} job · ${j.district_name}</p><h1>${j.title}</h1>
         <p><a href="${href('/directory/' + j.business_id)}">${j.business_name}</a>${j.business_type_label ? ` · ${j.business_type_label}` : ''} · <span class="mono">${j.business_reg_no || ''}</span></p></div>
-        <div class="btnrow">${statusPill(j.status === 'open' ? 'open' : 'closed', j.status === 'open' ? 'Open' : 'Closed')}${j.synthetic ? html`<span class="pill syn">Sample</span>` : ''}</div></div>
+        <div class="btnrow">${statusPill(j.status === 'open' ? 'open' : 'closed', j.status === 'open' ? 'Open' : 'Closed')}</div></div>
       <div class="split">
         <section class="card" aria-labelledby="jd-h"><h2 id="jd-h">About the job</h2>
           <dl class="facts">
@@ -155,6 +148,8 @@ export async function detail(ctx) {
             ${j.languages.length ? html`<dt>Languages</dt><dd>${j.languages.join(', ')}</dd>` : ''}
             <dt>Closes</dt><dd>${fmtDate(j.closes_on)} · posted ${fmtDate(j.posted_at)}</dd>
           </dl>
+          ${j.via_hoi ? html`<p class="notice section"><strong>Urgent:</strong> this hotel is short of staff for these dates. Agencies can reply from their page, and you can apply yourself.</p>` : ''}
+          ${j.agency_responses?.length ? html`<h3 class="section">Agency responses</h3><ul class="lines">${j.agency_responses.map((x) => html`<li><span class="pill ok">${x.workers} workers</span><a href="${href('/directory/' + x.agency_business_id)}">${x.agency?.name || x.agency_business_id}</a><span class="muted small">${x.note || ''}</span></li>`)}</ul>` : ''}
           <h3 class="section">Skills needed</h3><div class="chips">${skillTags(j.skills)}</div>
           <h3 class="section">Description</h3><p class="prewrap">${j.description}</p>
           <p class="hint section">Pay and terms are stated by the employer. Never pay a fee to get a job; report it via <a href="#/grievance">File a complaint</a>.</p>
@@ -225,7 +220,37 @@ export async function hire(ctx) {
       <li class="card tight"><strong>2. Find candidates</strong><p class="small">Filter by skill, district, availability, experience and language. A transparent match score explains every ranking.</p></li>
       <li class="card tight"><strong>3. Ask, then talk</strong><p class="small">Send an interest request. You see the phone and email only after the candidate accepts; until then, use portal messages.</p></li>
     </ol>
+    <section class="sec2" aria-labelledby="ag-h"><div class="sechead"><div><h2 id="ag-h">Need several people at once?</h2><p class="sub">Registered staffing agencies offer pooled local workers for the season.</p></div><a href="#/jobs/agencies">All agency offers</a></div><div id="ofr"></div></section>
     <p class="flag blue section">Fair hiring: profiles have no gender, age, religion, caste, family details, photo or address, and the match score never uses them. <a href="#/jobs/about">How it works &amp; privacy</a></p>`);
+  await load($('#ofr', el), async () => {
+    const o = await api('/staffing/offers');
+    mount($('#ofr', el), o.items.length ? html`<div class="mcgrid g3c">${o.items.slice(0, 3).map(offerCard)}</div>` : html`<p class="muted">No agency offers right now.</p>`);
+  }, { skel: 'cards', n: 3 });
+}
+
+// Staffing agencies: block offers of pooled workers + how HOI staffing requests reach agencies.
+export async function agencies(ctx) {
+  const el = ctx.el;
+  const [m, jm] = await Promise.all([meta(), jobsMeta()]);
+  const f = { skill: ctx.query.skill || '', district: ctx.query.district || '' };
+  mount(el, html`<div class="pagehead"><div><p class="eyebrow">Jobs · staffing agencies</p><h1>Staffing agencies</h1>
+      <p class="lead2">Agencies keep a team of local workers ready for the busy season. When a hotel is short of staff, the agencies that can help get a message.</p></div>
+      <a class="btn primary" href="${href('/host')}">Register an agency</a></div>
+    <div id="akp"></div>
+    <form class="card tight filters" id="af" aria-label="Filter offers">
+      <div class="fld"><label class="lbl" for="af-s">Skill</label><select class="field" id="af-s" name="skill">${skillOptions(jm, f.skill)}</select></div>
+      <div class="fld"><label class="lbl" for="af-d">District</label><select class="field" id="af-d" name="district">${districtOptions(m, f.district)}</select></div></form>
+    <div id="al" class="section"></div>`);
+  const form = $('#af', el);
+  const draw = () => load($('#al', el), async () => {
+    setQuery(f);
+    const [o, hoi] = await Promise.all([api('/staffing/offers', { query: { skill: f.skill || undefined, district: f.district || undefined } }), api('/jobs', { query: { source: 'hoi', page_size: 1 } })]);
+    mount($('#akp', el), html`<div class="kpis k4">${statTile({ label: 'Workers on offer', value: num(o.workers) })}${statTile({ label: 'Block offers', value: o.total })}
+      ${statTile({ label: 'Hotels needing staff now', value: hoi.total, tone: hoi.total ? 'warn' : '', note: html`<a href="${href('/jobs', { source: 'hoi' })}">See requests</a>` })}</div>`);
+    mount($('#al', el), o.items.length ? html`<div class="mcgrid g3c">${o.items.map(offerCard)}</div>` : empty('No offers match', 'Try another skill or district.'));
+  }, { skel: 'cards', n: 6 });
+  form.addEventListener('change', () => { const fd = new FormData(form); f.skill = fd.get('skill') || ''; f.district = fd.get('district') || ''; draw(); });
+  await draw();
 }
 
 export async function about(ctx) {
@@ -246,7 +271,7 @@ export async function about(ctx) {
     <section class="card section" aria-labelledby="ab-m"><h2 id="ab-m">The match score</h2>
       <p>A rule of thumb from four things only: <strong>skills and years</strong> (${w.skills} points), <strong>district</strong> (${w.district}), <strong>availability</strong> (${w.availability}) and <strong>language</strong> (${w.language}). If a job does not set one of them, the others are rescaled to 100. The weights are assumptions for this prototype, not a validated model; treat the score as a sorting aid, not a judgement.</p>
       <p class="small muted">No protected attribute exists in a profile, so none can influence the score.</p></section>
-    <p class="hint section">Concept prototype: job posts and candidates marked Sample are synthetic.</p>`);
+`);
   });
 }
 

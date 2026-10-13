@@ -12,6 +12,8 @@ BUSINESS_TYPES: dict[str, tuple[str, str, str]] = {
     "transport": ("Taxi / transport", "TRN", "vehicles"),
     "adventure_operator": ("Adventure operator", "ADV", "guests per day"),
     "restaurant": ("Restaurant", "RST", "seats"),
+    # Staffing agencies pool local workers and supply them to stays in peak weeks (concept; "STF" is a prototype code).
+    "staffing_agency": ("Staffing agency", "STF", "workers in pool"),
 }
 STAY_TYPES = ("hotel", "homestay")
 BUSINESS_STATUSES = ("active", "expired", "suspended", "pending")
@@ -41,6 +43,7 @@ REQUIRED_DOCS: dict[str, list[str]] = {
     "transport": ["identity_proof", "vehicle_papers"],
     "adventure_operator": _COMMON + ["adventure_permit"],
     "restaurant": _COMMON + ["trade_licence", "fssai"],
+    "staffing_agency": ["identity_proof", "address_proof", "trade_licence"],
 }
 
 GRIEVANCE_CATEGORIES: dict[str, str] = {
@@ -88,3 +91,18 @@ JOB_STATUSES = ("open", "closed")
 JOB_CLOSE_REASONS = ("filled", "withdrawn", "expired")
 
 SYNTHETIC_NOTE = "SYNTHETIC data generated for a hackathon concept prototype. Not official statistics."
+
+# Local (community) experiences hosted by registered guides, homestays and adventure operators.
+LOCAL_EXPERIENCE_TYPES: dict[str, str] = {
+    "village_walk": "Village walk",
+    "home_meal": "Home-cooked Garhwali / Kumaoni meal",
+    "artisan_workshop": "Artisan workshop",
+    "farm_stay": "Farm stay day",
+    "nature_walk": "Local-guide nature walk",
+    "birding": "Birding walk",
+    "folk_music": "Folk music evening",
+    "heritage_walk": "Temple-town heritage walk",
+}
+LOCAL_EXPERIENCE_HOST_TYPES = ("guide", "homestay", "adventure_operator")
+JOIN_REQUEST_STATUSES = ("pending", "accepted", "declined", "withdrawn")
+STAFFING_SOURCES = ("hoi_roster_shortage",)

@@ -47,12 +47,21 @@ def list_jobs(
     type: str | None = Query(None, pattern="^(seasonal|permanent|part_time)$"),
     month: int | None = Query(None, ge=1, le=12),
     q: str | None = Query(None, max_length=80),
+    source: str | None = Query(None, pattern="^hoi$", description="hoi = only staffing requests sent by HOI rosters"),
     page: int = Query(1, ge=1),
     page_size: int = Query(hiring.PAGE_SIZE, ge=1, le=50),
     p: Principal | None = Depends(optional_principal),
 ) -> dict:
     return hiring.list_jobs(
-        skill=skill, district=district, job_type=type, month=month, q=q, page=page, page_size=page_size, seeker_user_id=_seeker_id(p)
+        skill=skill,
+        district=district,
+        job_type=type,
+        month=month,
+        q=q,
+        source=source,
+        page=page,
+        page_size=page_size,
+        seeker_user_id=_seeker_id(p),
     )
 
 

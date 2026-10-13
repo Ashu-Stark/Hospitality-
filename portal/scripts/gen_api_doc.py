@@ -499,6 +499,60 @@ def run():
             headers={"X-API-Key": key2["api_key"]},
         )
 
+        hoi_req = {
+            "skill": "housekeeping",
+            "district": stay["district"],
+            "from": (date.today() + timedelta(days=7)).isoformat(),
+            "to": (date.today() + timedelta(days=20)).isoformat(),
+            "openings": 3,
+            "shift_note": "Morning shifts 07:00-15:00",
+            "source": "hoi_roster_shortage",
+            "source_id": "HS-2026-W45-housekeeping",
+        }
+        ep(
+            "POST",
+            "/api/v1/ingest/staffing-request",
+            "`X-API-Key: uthp_...` (business key; same limit as occupancy ingest)",
+            'HOI roster shortage -> one job post marked "Staffing request via HOI" (`via_hoi: true`) + in-portal notifications to every ACTIVE '
+            "staffing agency whose `agency_skills` include the skill and whose `districts_served` include the district. Body: `skill` (key from "
+            "`GET /api/v1/jobs/meta`; HOI role names `food_beverage`, `security`, `kitchen` are mapped), `district` (id or name; must be the "
+            "business's own district; default), `from`/`to` (YYYY-MM-DD, window <= 366 days, must not have ended, start <= 180 days ahead), "
+            "`openings` 1-50, `shift_note` (optional, <= 300 chars), `source` = `hoi_roster_shortage`, `source_id` (optional idempotency key, "
+            "<= 80 chars; default `skill:district:from:to`). Idempotent per (business, source_id): the first call returns 201 and `result: created`; "
+            "repeating it returns 200 with the same `job_id` and `unchanged`, or `updated` when openings, dates or the shift note changed; agencies are "
+            "never notified twice. 401 missing/wrong/revoked key; 403 registration not active; 409 more than 30 open HOI requests; 422 invalid.",
+            body=hoi_req,
+            headers={"X-API-Key": key2["api_key"]},
+            status=201,
+        )
+        plat = {
+            "external_id": "himsagar-2026-W46-housekeeping",
+            "department": "housekeeping",
+            "skill": "housekeeping",
+            "date_from": (date.today() + timedelta(days=8)).isoformat(),
+            "date_to": (date.today() + timedelta(days=14)).isoformat(),
+            "openings": 2,
+            "note": "Roster week short by 2 housekeeping shifts",
+        }
+        ep(
+            "POST",
+            "/api/v1/ingest/staffing-request",
+            "`X-API-Key`",
+            "HOI platform client body (also accepted): `external_id` = idempotency key, `department` (used as the skill when `skill` "
+            "is not a known key), `date_from`/`date_to`, `openings`, `note`; the portal sets `source` = `hoi_roster_shortage`. 201 on create.",
+            body=plat,
+            headers={"X-API-Key": key2["api_key"]},
+            status=201,
+        )
+        ep(
+            "POST",
+            "/api/v1/ingest/staffing-request",
+            "`X-API-Key`",
+            "Same call again (idempotent): 200, same `job_id`, `result: unchanged`, `agencies_notified: 0`.",
+            body=plat,
+            headers={"X-API-Key": key2["api_key"]},
+        )
+
         section("Officials: applications (district_officer scoped, state_admin all)")
         ep(
             "GET",
@@ -1005,6 +1059,205 @@ def run():
             "job_seeker",
             "Hard delete: profile, applications, interest requests, shortlist entries and messages. Audit entry keeps only the pseudonymous user id and code.",
             headers=sk,
+        )
+
+        section("Community: local experiences (public + host business)")
+        lx = c.get("/api/v1/local-experiences", params={"page_size": 1}).json()["items"][0]
+        ep(
+            "GET",
+            "/api/v1/local-experiences",
+            "none",
+            "Community-hosted local experiences (SAMPLE data). Only hosts with an active registration are listed. `by_type` counts the whole filtered set.",
+            call="/api/v1/local-experiences?type=village_walk&page_size=2",
+            params="`type` (village_walk, home_meal, artisan_workshop, farm_stay, nature_walk, birding, folk_music, heritage_walk), `destination`, `district`, `month` 1-12, `q`, `host` (business id), `page`, `page_size` <= 50",
+            keep=1,
+        )
+        ep(
+            "GET",
+            "/api/v1/local-experiences/{id}",
+            "none",
+            "Detail with the host (public registry view) and 1-3 registered homestays nearby (`stays_nearby`). 404 when paused/archived or the host is not active.",
+            call=f"/api/v1/local-experiences/{lx['id']}",
+            keep=1,
+        )
+        join_day = date.today() + timedelta(days=10)
+        while join_day.month not in lx["months"]:
+            join_day += timedelta(days=1)
+        ep(
+            "POST",
+            "/api/v1/local-experiences/{id}/join",
+            "none (20/hour/IP)",
+            "Request to join; no payment. Only the host business owner sees the request and `contact`. 422 when the month is not in the season or the group size is outside the range.",
+            call=f"/api/v1/local-experiences/{lx['id']}/join",
+            body={
+                "name": "Asha",
+                "group_size": lx["group_min"],
+                "date": join_day.isoformat(),
+                "contact": "+91-90000-00000 (example)",
+                "note": "Two adults",
+            },
+            status=201,
+        )
+        mine_lx = c.get("/api/v1/business/experiences", headers=owner).json()
+        ep(
+            "GET",
+            "/api/v1/business/experiences",
+            "business",
+            "The caller's hosted experiences with request counts; `can_host` is true when a guide / homestay / adventure-operator registration is active.",
+            headers=owner,
+            keep=1,
+        )
+        host_biz = next(b for b in mine_lx["host_businesses"] if b["status"] == "active")
+        new_lx = {
+            "business_id": host_biz["id"],
+            "title": "Evening village walk",
+            "type": "village_walk",
+            "description": "A short walk through the village fields with the host family.",
+            "duration_hours": 2,
+            "group_min": 2,
+            "group_max": 6,
+            "price_min": 300,
+            "price_max": 500,
+            "languages": ["Hindi", "Garhwali"],
+            "months": [4, 5, 9, 10],
+            "stay_business_ids": [],
+            "community_share": "Part of the fee goes to the village fund.",
+        }
+        created_lx = c.post("/api/v1/business/experiences", json=new_lx, headers=owner).json()
+        SECTIONS[-1][1].append(
+            dict(
+                method="POST",
+                path="/api/v1/business/experiences",
+                auth="business (host type, ACTIVE)",
+                desc="List an experience. The destination must be in the business's district; stays nearby must be registered homestays in the same district (max 3). 403 for other business types or inactive registrations; 409 above 12 listed per business.",
+                call="/api/v1/business/experiences",
+                params=None,
+                body=new_lx,
+                keep=1,
+                code=201,
+                resp=created_lx,
+            )
+        )
+        ep(
+            "PATCH",
+            "/api/v1/business/experiences/{id}",
+            "business (owner)",
+            "Edit any field; `status`: `listed` | `paused` (paused = not public). 404 for another account's experience.",
+            call=f"/api/v1/business/experiences/{created_lx['id']}",
+            body={"group_max": 8, "status": "paused"},
+            headers=owner,
+        )
+        ep(
+            "DELETE",
+            "/api/v1/business/experiences/{id}",
+            "business (owner)",
+            "Remove from the portal (archived); pending join requests are declined.",
+            call=f"/api/v1/business/experiences/{created_lx['id']}",
+            headers=owner,
+        )
+        reqs = c.get("/api/v1/business/experience-requests", headers=owner).json()
+        ep(
+            "GET",
+            "/api/v1/business/experience-requests",
+            "business",
+            "Join requests for the caller's experiences only (with the visitor's contact).",
+            params="`status` (pending|accepted|declined|withdrawn)",
+            headers=owner,
+            keep=1,
+        )
+        pend = next(r for r in reqs["items"] if r["status"] == "pending")
+        ep(
+            "POST",
+            "/api/v1/business/experience-requests/{id}",
+            "business (owner)",
+            "`action`: accept | decline. 409 when already decided; 404 for another account's request.",
+            call=f"/api/v1/business/experience-requests/{pend['id']}",
+            body={"action": "accept"},
+            headers=owner,
+        )
+
+        section("Community: staffing agencies (public offers + agency business) and notifications")
+        agency = tok("demo.agency")
+        ep(
+            "GET",
+            "/api/v1/staffing/offers",
+            "none",
+            "Open block offers of pooled workers from active staffing agencies (counts only, never individual workers).",
+            call="/api/v1/staffing/offers?skill=housekeeping",
+            params="`skill`, `district`, `month`",
+            keep=1,
+        )
+        ag_dash = c.get("/api/v1/staffing/mine", headers=agency).json()
+        ep(
+            "GET",
+            "/api/v1/staffing/mine",
+            "business (staffing agency owner)",
+            "Agency dashboard: own agencies, offers, notifications, and open HOI staffing requests matching the agency's skills and districts (with `my_response`).",
+            headers=agency,
+            keep=1,
+        )
+        ag = ag_dash["agencies"][0]
+        ep(
+            "PATCH",
+            "/api/v1/staffing/agencies/{business_id}",
+            "business (agency owner)",
+            "Set `agency_skills` (skill keys) and `districts_served` (district ids or names); these drive which HOI requests notify the agency.",
+            call=f"/api/v1/staffing/agencies/{ag['id']}",
+            body={"agency_skills": [s["key"] for s in ag["skills"]], "districts_served": [x["id"] for x in ag["districts_served"]]},
+            headers=agency,
+        )
+        ep(
+            "POST",
+            "/api/v1/staffing/offers",
+            "business (agency, ACTIVE)",
+            "Publish a block offer, e.g. 12 housekeeping staff available for a window. 403 for non-agency businesses; max 20 open offers.",
+            body={
+                "business_id": ag["id"],
+                "skill": "housekeeping",
+                "workers": 12,
+                "available_from": (date.today() + timedelta(days=30)).isoformat(),
+                "available_to": (date.today() + timedelta(days=90)).isoformat(),
+                "note": "Trained pool",
+            },
+            headers=agency,
+            status=201,
+        )
+        hoi_job = next(j for j in c.get("/api/v1/jobs", params={"source": "hoi"}).json()["items"])
+        ep(
+            "PATCH",
+            "/api/v1/staffing/offers/{id}",
+            "business (agency owner)",
+            "Change `workers`, dates, `note`, or `status` (open | withdrawn).",
+            call=f"/api/v1/staffing/offers/{SECTIONS[-1][1][-1]['resp']['id']}",
+            body={"workers": 10},
+            headers=agency,
+        )
+        ep(
+            "POST",
+            "/api/v1/staffing/requests/{job_id}/respond",
+            "business (agency, ACTIVE, matching skill + district)",
+            "Say how many pooled workers the agency can supply for an HOI staffing request; repeating updates the same response. The hotel owner sees responses as `agency_responses` on `GET /api/v1/jobs/{id}` and gets a notification.",
+            call=f"/api/v1/staffing/requests/{hoi_job['id']}/respond",
+            body={"business_id": ag["id"], "workers": 3, "note": "Can start on the first day"},
+            headers=agency,
+            status=201,
+        )
+        ep(
+            "GET",
+            "/api/v1/business/notifications",
+            "business",
+            "In-portal notifications for the caller (staffing requests for agencies; agency responses for hotel owners). `unread` count included.",
+            headers=agency,
+            keep=1,
+        )
+        note_id = c.get("/api/v1/business/notifications", headers=agency).json()["items"][0]["id"]
+        ep(
+            "POST",
+            "/api/v1/business/notifications/{id}/read",
+            "business",
+            "Mark one notification read.",
+            call=f"/api/v1/business/notifications/{note_id}/read",
+            headers=agency,
         )
 
         section("Analytics: workforce market (official, aggregates only)")

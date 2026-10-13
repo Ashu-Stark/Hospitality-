@@ -3,17 +3,19 @@ import { html, mount, href, load, $, $$, empty, raw, monthName, MONTH_NAMES, imp
 import { api, meta } from '../api.js';
 import { setQuery } from '../router.js';
 import { t } from '../i18n.js';
+import { festCard } from '../cards.js';
+import { thumbsNote } from '../photos.js';
 
 export async function festivals(ctx) {
   const el = ctx.el;
   const now = new Date();
-  const f = { view: 'calendar', month: '', year: String(now.getFullYear()), district: '', destination: '', q: '', ...ctx.query };
+  const f = { view: 'list', month: '', year: String(now.getFullYear()), district: '', destination: '', q: '', ...ctx.query };
   if (f.view === 'calendar' && !f.month) f.month = String(now.getMonth() + 1);
   mount(el, html`<div class="pagehead"><div><h1>Festivals & events</h1>
-      <p>Fairs, yatras and seasonal rushes, with their crowd impact. <span class="pill warn">Verify dates</span>${infoNote('Usual timing only. Lunar-calendar dates are announced each year; check the official notice. District events marked Sample are illustrative.')}</p></div>
-      <div class="tabs"><div class="pillnav" role="group" aria-label="View"><button type="button" data-view="calendar" aria-pressed="false">Month calendar</button><button type="button" data-view="list" aria-pressed="false">List</button></div></div></div>
+      <p>Fairs, yatras and busy holiday times. Dates change each year.${infoNote('Usual timing only. Lunar-calendar dates are announced each year; check the official notice. District events marked Sample are illustrative.')}</p></div>
+      <div class="tabs"><div class="pillnav" role="group" aria-label="View"><button type="button" data-view="list" aria-pressed="false">Cards</button><button type="button" data-view="calendar" aria-pressed="false">Month calendar</button></div></div></div>
     <form class="card tight filters" id="ff" aria-label="Filter events"></form>
-    <div id="fres" class="section" aria-live="polite"></div>`);
+    <div id="fres" class="section" aria-live="polite"></div>${thumbsNote()}`);
   const m = await meta();
   const form = $('#ff', el);
   const drawForm = () => mount(form, html`
@@ -85,7 +87,7 @@ function calendar(box, r, f, refresh) {
     ${usual.length ? html`<div class="list section">${usual.map((e) => html`<div class="item"><div class="main"><strong>${e.name}</strong><div class="sub">${e.window} · ${where(e)}</div></div><div class="side">${impactPill(e.crowd_impact)}</div></div>`)}</div>` : html`<p class="muted section">No usual festivals this month for these filters.</p>`}
     <h3 class="section">Dated events</h3>
     <div class="cal section" aria-labelledby="calh">${['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((d) => html`<div class="dow" aria-hidden="true">${d}</div>`)}${cells}</div>
-    <div class="heat-legend section" aria-label="Legend"><span><i class="lg-high"></i>High crowd impact</span><span><i class="lg-medium"></i>Medium</span><span><i class="lg-low"></i>Low</span></div>
+    <div class="heat-legend section" aria-label="Legend"><span><i class="lg-high"></i>Very busy</span><span><i class="lg-medium"></i>Busier</span><span><i class="lg-low"></i>A little busier</span></div>
     ${!dated.length ? html`<p class="muted section">No dated events posted for ${monthName(month)} ${year}.</p>` : ''}
   </div>`);
   $$('[data-m]', box).forEach((b) => b.addEventListener('click', () => { f.month = b.dataset.m; f.year = b.dataset.y; const s = document.getElementById('e-month'); if (s) s.value = f.month; refresh(); }));
@@ -94,11 +96,5 @@ function calendar(box, r, f, refresh) {
 function listView(box, r, f) {
   const items = [...r.items].sort((a, b) => (a.start_date || '').localeCompare(b.start_date || '') || (a.months?.[0] || 0) - (b.months?.[0] || 0));
   if (!items.length) { mount(box, empty('No events match', 'Try another month or clear the filters.')); return; }
-  pager(box, items, (slice) => html`<div class="list">${slice.map((e) => html`<article class="item"><div class="main">
-      <h2 class="t">${e.name}</h2>
-      <div class="sub">${e.start_date ? `${fmtDate(e.start_date)}${e.end_date && e.end_date !== e.start_date ? ' to ' + fmtDate(e.end_date) : ''}` : e.window} · ${where(e)}</div>
-      ${e.description ? html`<p class="small">${e.description}</p>` : ''}
-      <div class="monthwin" aria-label="Usual months: ${(e.months || []).map((m) => monthName(m)).join(', ')}">${MONTH_NAMES.map((n, i) => html`<span class="${(e.months || []).includes(i + 1) ? 'on' : ''}" aria-hidden="true">${n.slice(0, 1)}</span>`)}</div>
-      </div>
-      <div class="side">${impactPill(e.crowd_impact)}${e.sample ? samplePill() : ''}${e.kind === 'event' ? html`<span class="pill neutral noicon">District event</span>` : ''}</div></article>`)}</div>`, 10);
+  pager(box, items, (slice) => html`<div class="mcgrid g3c">${slice.map(festCard)}</div>`, 12);
 }

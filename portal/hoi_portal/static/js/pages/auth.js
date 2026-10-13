@@ -26,7 +26,7 @@ export async function signin(ctx) {
   const u = user();
   const title = need === 'business' ? 'Business sign in' : need === 'official' ? 'Officials sign in' : need === 'seeker' ? 'Job seeker sign in' : 'Sign in';
   mount(el, html`${crumbs([['Home', '#/'], [title]])}
-    <div class="pagehead"><div><p class="eyebrow">${need === 'business' ? t('for_business') : need === 'official' ? t('for_officials') : need === 'seeker' ? t('jobs') : 'Businesses, job seekers and officials'}</p><h1>${title}</h1>
+    <div class="pagehead"><div><img class="authmark" src="img/brand/hoi-mark.svg" alt="" width="56" height="56"><p class="eyebrow">${need === 'business' ? t('for_business') : need === 'official' ? t('for_officials') : need === 'seeker' ? t('jobs') : 'Businesses, job seekers and officials'}</p><h1>${title}</h1>
       <p>${need === 'seeker' ? 'Sign in to manage your job-seeker profile, applications and employer requests.' : 'Visitors do not need an account. Sign in to manage a business registration, as a job seeker, or as a district officer or state admin.'}</p></div></div>
     ${u ? html`<p class="flag blue">You are signed in as <strong>${u.username}</strong> (${u.role_label}). <a href="#${homeOf(u.role)}">Go to your dashboard</a>.</p>` : ''}
     ${next ? html`<p class="flag amber" role="status">Please sign in${need === 'business' ? ' with a business account' : need === 'official' ? ' with an official account' : ''} to open that page.</p>` : ''}
@@ -88,7 +88,7 @@ export async function register(ctx) {
   let as = ctx.query.as === 'seeker' ? 'job_seeker' : 'business';
   const next = ctx.query.next;
   mount(el, html`${crumbs([['Home', '#/'], ['Create an account']])}
-    <div class="pagehead"><div><p class="eyebrow" id="rg-eb"></p><h1 id="rg-h"></h1><p id="rg-p"></p></div></div>
+    <div class="pagehead"><div><img class="authmark" src="img/brand/hoi-mark.svg" alt="" width="56" height="56"><p class="eyebrow" id="rg-eb"></p><h1 id="rg-h"></h1><p id="rg-p"></p></div></div>
     <form class="card form narrow" id="rf" novalidate>
       <fieldset class="fld"><legend class="lbl">Account type</legend><div class="chips">
         <label class="check"><input type="radio" name="role" value="job_seeker" ${as === 'job_seeker' ? raw('checked') : ''}>I am looking for work</label>
