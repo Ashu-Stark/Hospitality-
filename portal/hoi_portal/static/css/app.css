@@ -199,12 +199,8 @@ textarea.field{min-height:120px;resize:vertical}
 .quick svg{width:22px;height:22px}
 @media (max-width:900px){.quick{grid-template-columns:repeat(3,1fr);row-gap:12px}.quick a:nth-child(3){border-right:0}}
 @media (max-width:640px){.hero{border-radius:24px}.hero-in{padding:40px 14px 28px}.hsearch .panel{flex-direction:column;align-items:stretch}.hsearch .perks{margin:0 8px}}
-.crowdstrip{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(170px,1fr);gap:12px;overflow-x:auto;padding:2px 2px 8px;scroll-snap-type:x mandatory}
-.crowdcard{background:#fff;border-radius:20px;padding:14px 16px;scroll-snap-align:start;text-decoration:none;color:var(--ink);border:1.5px solid transparent;display:block}
-.crowdcard:hover{border-color:var(--line2)}
-.crowdcard b{display:block;font-size:1.05rem;letter-spacing:-.02em}
-.crowdcard .idx{font-size:1.8rem;font-weight:600;letter-spacing:-.04em;margin:6px 0 4px}
-.crowdcard .idx small{font-size:.8rem;color:var(--muted);font-weight:500;letter-spacing:0}
+.crowdstrip{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(178px,1fr);gap:12px;overflow-x:auto;padding:6px 6px 10px;margin:-6px -6px 0;scroll-snap-type:x mandatory}
+.crowdstrip > [role="listitem"]{scroll-snap-align:start;display:flex}
 .roles{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
 .role{border-radius:24px;padding:26px;min-height:200px;color:var(--ink);display:flex;flex-direction:column;gap:8px}
 .role h3{font-size:1.7rem;letter-spacing:-.04em}
@@ -217,15 +213,6 @@ textarea.field{min-height:120px;resize:vertical}
 .stats span{background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.35);border-radius:999px;padding:6px 14px;font-size:.85rem}
 
 /* destination cards */
-.dcard{background:#fff;border-radius:22px;padding:8px;text-decoration:none;color:var(--ink);display:flex;flex-direction:column;transition:transform .2s,box-shadow .2s}
-.dcard:hover{transform:translateY(-3px);box-shadow:var(--shadow)}
-.dcard .art{height:130px;border-radius:16px;position:relative;overflow:hidden;color:#fff;display:flex;flex-direction:column;justify-content:flex-end;padding:12px 14px}
-.dcard .art svg{position:absolute;inset:0;width:100%;height:100%}
-.dcard .art > *:not(svg){position:relative}
-.dcard .art b{font-size:1.5rem;letter-spacing:-.04em;line-height:1}
-.dcard .art small{letter-spacing:.16em;font-size:.66rem;text-transform:uppercase;opacity:.95}
-.dcard .body{padding:10px 8px 6px;display:flex;flex-direction:column;gap:8px;flex:1}
-.dcard .meta{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
 
 /* list rows */
 .list{display:flex;flex-direction:column;gap:10px}
@@ -609,8 +596,6 @@ ol.chainlist a{font-weight:600}
 .onewin{background:linear-gradient(160deg,#e8f1ff,#fff)}
 a.item.nearby{text-decoration:none;color:var(--ink)}
 
-.crowdcard .idxrow{display:flex;align-items:center;gap:10px;margin-top:6px;flex-wrap:wrap}
-.crowdcard .idxrow .idx{margin:0}
 .maplayout{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:16px;align-items:start;margin-top:12px}
 .maplist{max-height:720px;overflow:auto}
 @media (max-width:1000px){.maplayout{grid-template-columns:minmax(0,1fr)}.maplist{max-height:none}}
@@ -622,6 +607,27 @@ a.item.nearby{text-decoration:none;color:var(--ink)}
 .homepage .sechead{margin-bottom:10px}
 
 /* ---------------------------------------------------------------- photos (Wikimedia Commons, illustrative) */
+/* Full-bleed photo card (home crowd strip + destinations list). The scrim is anchored to the bottom in px so the
+   whole text block (max ~140px) sits on >= 58% near-black: white text stays >= 5:1 even over a pure-white photo pixel. */
+.pcard{position:relative;isolation:isolate;overflow:hidden;display:grid;grid-template-rows:auto 1fr auto;grid-template-areas:"top" "." "txt";
+  height:236px;width:100%;border-radius:20px;color:#fff;text-decoration:none;background:#1d2a48;transition:transform .2s,box-shadow .2s}
+.pcard.dcard{height:260px;border-radius:22px}
+.pcard:hover{transform:translateY(-3px);box-shadow:var(--shadow)}
+.pcard:focus-visible{outline:3px solid var(--blue);outline-offset:3px;border-radius:20px}
+.pc-bg{position:absolute;inset:0;z-index:-2}
+.pc-bg > img,.pc-bg > svg{display:block;width:100%;height:100%;max-width:none;object-fit:cover;transition:transform .4s}
+.pcard:hover .pc-bg > img{transform:scale(1.04)}
+.pcard::after{content:"";position:absolute;inset:0;z-index:-1;pointer-events:none;
+  background:linear-gradient(0deg,rgba(6,10,20,.84) 0,rgba(6,10,20,.58) 150px,rgba(6,10,20,0) 210px)}
+.pc-top{grid-area:top;justify-self:end;padding:12px 12px 0}
+.pc-top .pill{box-shadow:0 2px 8px rgba(0,0,0,.18)}
+.pc-txt{grid-area:txt;display:flex;flex-direction:column;gap:1px;padding:0 16px 14px;min-width:0;text-shadow:0 1px 4px rgba(0,0,0,.35)}
+.pc-name{font-size:1.25rem;font-weight:600;letter-spacing:-.03em;line-height:1.15;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.pc-sub{font-size:.8rem;opacity:.92}
+.dcard .pc-sub{letter-spacing:.14em;font-size:.68rem;text-transform:uppercase;font-weight:600}
+.pc-tags{font-size:.78rem;opacity:.92;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pc-score{font-size:2rem;font-weight:600;letter-spacing:-.04em;line-height:1.1;margin-top:6px}
+.pc-score small{font-size:.85rem;font-weight:500;letter-spacing:0;opacity:.9;margin-left:2px}
 .pcredit{display:inline-block;font-size:.72rem;line-height:1.3;color:#fff;background:rgba(0,0,0,.62);padding:3px 8px;border-radius:8px;text-decoration:none;max-width:100%;overflow-wrap:anywhere}
 .pcredit:hover,.pcredit:focus-visible{text-decoration:underline}
 .photohead{position:relative;margin:4px 0 16px;border-radius:24px;overflow:hidden;height:290px;background:#2b3442}
@@ -633,11 +639,6 @@ a.item.nearby{text-decoration:none;color:var(--ink)}
 .hero.photo h1,.hero.photo .eyebrow{text-shadow:0 1px 12px rgba(0,0,0,.35)}
 .herocredit{position:absolute;right:16px;bottom:10px;background:rgba(0,0,0,.45)}
 @media (max-width:640px){.homepage .hero.photo .hero-in{padding-bottom:40px}.herocredit{right:10px;left:10px;text-align:center;bottom:8px}}
-.dcard .art > img.cover{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:0}
-.dcard .art.photo::after{content:"";position:absolute;inset:0;z-index:1;background:linear-gradient(180deg,rgba(0,0,0,0) 30%,rgba(0,0,0,.68) 100%)}
-.dcard .art.photo b,.dcard .art.photo small{z-index:2;text-shadow:0 1px 6px rgba(0,0,0,.4)}
-.crowdcard{overflow:hidden}
-.crowdcard .cthumb{display:block;width:calc(100% + 32px);max-width:none;height:56px;object-fit:cover;margin:-14px -16px 8px}
 .exptile.hasphoto{overflow:hidden}
 .exptile.big.hasphoto .cover{display:block;width:calc(100% + 32px);max-width:none;height:130px;object-fit:cover;margin:-22px -16px 8px}
 .placecard .pthumb{display:block;width:100%;height:84px;object-fit:cover;border-radius:12px;margin-bottom:4px}

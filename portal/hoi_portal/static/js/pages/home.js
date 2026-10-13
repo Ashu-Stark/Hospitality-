@@ -1,12 +1,12 @@
 // Home (hero + unified search typeahead + quick tiles + crowd strip + advisories + festivals + role entries) and Search results.
-import { html, mount, raw, href, load, bandPill, num, debounce, $, $$, announce, empty, errorBox, loading, monthName, impactPill, lastUpdated, infoNote, fmtDate } from '../ui.js';
+import { html, mount, raw, href, load, num, debounce, $, $$, announce, empty, errorBox, loading, monthName, impactPill, lastUpdated, infoNote, fmtDate } from '../ui.js';
 import { api } from '../api.js';
 import { t } from '../i18n.js';
 import { setQuery, go } from '../router.js';
 import { ICONS, resultLink, resultTitle, resultSub, TYPE_LABEL, advisoryLine } from './common.js';
 import { expTile } from './plan.js';
 import { paintTones } from '../art.js';
-import { photo, img, credit } from '../photos.js';
+import { photo, credit, coverCard } from '../photos.js';
 
 const ORDER = ['destinations', 'businesses', 'events', 'dictionary', 'rules', 'advisories'];
 
@@ -67,9 +67,7 @@ export async function home(ctx) {
     load($('#crowd', el), async () => {
       const d = await api('/destinations');
       const top = d.items.filter((x) => x.crowd_today).sort((a, b) => b.crowd_today.index - a.crowd_today.index).slice(0, 6);
-      mount($('#crowd', el), top.length ? html`<div class="crowdstrip" role="list">${top.map((x) => html`<a role="listitem" class="crowdcard" href="${href('/destinations/' + x.id)}">
-        ${photo(x.id) ? img(photo(x.id), { cls: 'cthumb', alt: '' }) : ''}<b>${x.name}</b><span class="muted small">${x.district_name}</span>
-        <div class="idxrow"><span class="idx">${x.crowd_today.index}<small> / 100</small></span>${bandPill(x.crowd_today.band, null, '')}</div></a>`)}</div><p class="hint photonote">Photos: Wikimedia Commons contributors, illustrative only. <a href="#/credits">Photo credits</a></p>` : empty('No crowd estimates yet'));
+      mount($('#crowd', el), top.length ? html`<div class="crowdstrip" role="list">${top.map((x) => html`<div role="listitem">${coverCard({ id: x.id, url: href('/destinations/' + x.id), name: x.name, sub: x.district_name, crowd: x.crowd_today, cls: 'crowdcard' })}</div>`)}</div><p class="hint photonote">Photos: Wikimedia Commons contributors, illustrative only. <a href="#/credits">Photo credits</a></p>` : empty('No crowd estimates yet'));
     }, { skel: 'block' }),
     load($('#adv', el), async () => {
       const a = await api('/advisories');

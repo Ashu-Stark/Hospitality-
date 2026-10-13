@@ -2,7 +2,7 @@
 // The manifest img/photos/credits.json maps an id (destination id, "exp-<experience id>", "hero") to file + attribution.
 // Pages call photo(id) synchronously; app.js awaits loadPhotos() once before the first render. Missing ids -> null,
 // and callers keep their illustration fallback.
-import { html } from './ui.js';
+import { html, bandPill, landscape } from './ui.js';
 
 const BASE = 'img/photos/';
 let byId = new Map();
@@ -54,3 +54,17 @@ export function photoHead(id) {
 
 /** Short line under a group of thumbnails (thumbnails sit inside links, so their credits live on the credits page). */
 export const thumbsNote = () => html`<p class="hint photonote">Photos: Wikimedia Commons contributors (CC BY / CC BY-SA), illustrative only. <a href="#/credits">Photo credits</a></p>`;
+
+/**
+ * Full-bleed destination card: the photo (or the generated landscape when there is none) fills the card,
+ * a bottom scrim keeps white text >= 4.5:1, and the crowd band pill always sits top-right on its own row.
+ * crowd: { index, band } or null.
+ */
+export function coverCard({ id, url, name, sub, extra = '', crowd, cls = '' }) {
+  const p = photo(id);
+  return html`<a class="pcard ${cls} ${p ? '' : 'nophoto'}" href="${url}">
+    <span class="pc-bg" aria-hidden="true">${p ? img(p, { cls: 'pc-img', alt: '' }) : landscape(id)}</span>
+    <span class="pc-txt"><b class="pc-name">${name}</b><span class="pc-sub">${sub}</span>${extra}
+      ${crowd ? html`<span class="pc-score"><span class="sr-only">Crowd index </span>${crowd.index}<small>/100</small></span>` : ''}</span>
+    <span class="pc-top">${crowd ? bandPill(crowd.band, null, '') : html`<span class="pill neutral">Crowd: no estimate</span>`}</span></a>`;
+}

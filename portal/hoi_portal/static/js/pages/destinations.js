@@ -1,13 +1,13 @@
 // Destinations list + destination detail. Detail answers "should I go this week?" first (At a glance tiles), then
 // shows ONE tab panel at a time (deep-linkable: #/destinations/<id>/<tab>).
-import { html, mount, href, load, bandPill, trafficPill, $, $$, empty, monthName, MONTH_NAMES, fmtDate, relTime, roadPill, impactPill, lastUpdated, crumbs, landscape, num, raw, samplePill, collapseFilters, pager, moreList, infoNote } from '../ui.js';
+import { html, mount, href, load, bandPill, trafficPill, $, $$, empty, monthName, MONTH_NAMES, fmtDate, relTime, roadPill, impactPill, lastUpdated, crumbs, num, raw, samplePill, collapseFilters, pager, moreList, infoNote } from '../ui.js';
 import { api, meta } from '../api.js';
 import { setQuery } from '../router.js';
 import { t } from '../i18n.js';
 import { barChart, BAND_FILL, bandLegend, bandOf, miniBars, PALETTE } from '../charts.js';
 import { bizRow, advisoryRow, kv } from './common.js';
 import { nearbyPanel } from './plan.js';
-import { photo, img, photoHead, thumbsNote } from '../photos.js';
+import { photoHead, thumbsNote, coverCard } from '../photos.js';
 
 const EXP_NAMES = { spiritual: 'Spiritual & Char Dham', adventure: 'Adventure & Treks', wildlife: 'Wildlife & Nature', wellness: 'Yoga & Wellness', leisure: 'Hill towns & Leisure', culture: 'Culture & Fairs' };
 
@@ -54,12 +54,10 @@ export async function list(ctx) {
 }
 
 function card(x) {
-  const c = x.crowd_today;
-  const p = photo(x.id);
-  return html`<a class="dcard" href="${href('/destinations/' + x.id)}">
-    <div class="art ${p ? 'photo' : ''}">${p ? img(p, { cls: 'cover', alt: '' }) : landscape(x.id)}<b>${x.name}</b><small>${x.district_name} · ${x.division}</small></div>
-    <div class="body"><div class="meta">${c ? bandPill(c.band, c.index) : html`<span class="pill neutral">Crowd: no estimate</span>`}</div>
-      <div class="meta">${x.tags.slice(0, 3).map((tg) => html`<span class="tag">${tg}</span>`)}</div></div></a>`;
+  return coverCard({
+    id: x.id, url: href('/destinations/' + x.id), name: x.name, sub: `${x.district_name} · ${x.division}`, crowd: x.crowd_today, cls: 'dcard',
+    extra: x.tags.length ? html`<span class="pc-tags">${x.tags.slice(0, 3).join(' · ')}</span>` : '',
+  });
 }
 
 // ------------------------------------------------------------------ detail
