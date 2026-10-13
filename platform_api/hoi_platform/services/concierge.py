@@ -682,8 +682,8 @@ def rules(message: str, lang: str, ctx: dict) -> dict:
             _t(
                 lang,
                 f"I can only help with your own stay in room {room} and the hotel's public information. What can I do for you?",
-                f"मैं सिर्फ़ आपके कमरे {room} और होटल की सामान्य जानकारी में मदद कर सकता हूँ। बताइए, आपके लिए क्या करूँ?",
-                f"Main sirf aapke room {room} aur hotel ki general jaankari mein madad kar sakta hoon. Bataiye, kya karun?",
+                f"मैं सिर्फ़ आपके कमरे {room} और होटल की सामान्य जानकारी में मदद कर सकती हूँ। बताइए, आपके लिए क्या करूँ?",
+                f"Main sirf aapke room {room} aur hotel ki general jaankari mein madad kar sakti hoon. Bataiye, kya karun?",
             )
         )
     # 2. problems (safety > medical > pest > leak > lock > ...): rule-based understanding v2, before anything else
@@ -768,8 +768,8 @@ def rules(message: str, lang: str, ctx: dict) -> dict:
             _t(
                 lang,
                 f"I can request a late checkout until {until} for room {room}; the manager will approve it. Tap Confirm to send.",
-                f"मैं कमरे {room} के लिए {until} बजे तक लेट चेकआउट का अनुरोध भेज सकता हूँ; मैनेजर मंज़ूरी देंगे। भेजने के लिए Confirm दबाइए।",
-                f"Main room {room} ke liye {until} baje tak late checkout ki request bhej sakta hoon; manager approve karenge. Confirm dabaiye.",
+                f"मैं कमरे {room} के लिए {until} बजे तक लेट चेकआउट का अनुरोध भेज सकती हूँ; मैनेजर मंज़ूरी देंगे। भेजने के लिए Confirm दबाइए।",
+                f"Main room {room} ke liye {until} baje tak late checkout ki request bhej sakti hoon; manager approve karenge. Confirm dabaiye.",
             ),
             "late_checkout",
             {"until": until},
@@ -788,8 +788,8 @@ def rules(message: str, lang: str, ctx: dict) -> dict:
                         _t(
                             lang,
                             f"Checkout is at {co}. For {when} I can request a late checkout first; the manager approves it. Tap Confirm to send.",
-                            f"चेकआउट {co} बजे है। {when} के लिए पहले लेट चेकआउट का अनुरोध भेज सकता हूँ; मैनेजर मंज़ूरी देंगे। Confirm दबाइए।",
-                            f"Checkout {co} baje hai. {when} ke liye pehle late checkout ki request bhej sakta hoon; manager approve karenge. Confirm dabaiye.",
+                            f"चेकआउट {co} बजे है। {when} के लिए पहले लेट चेकआउट का अनुरोध भेज सकती हूँ; मैनेजर मंज़ूरी देंगे। Confirm दबाइए।",
+                            f"Checkout {co} baje hai. {when} ke liye pehle late checkout ki request bhej sakti hoon; manager approve karenge. Confirm dabaiye.",
                         ),
                         "late_checkout",
                         {"until": when},
@@ -1014,6 +1014,7 @@ STYLE
 - Warm, calm and human, like the kindest person at the front desk. At most 3 short sentences. Plain text only: no emojis, no markdown, no lists (the reply is read aloud).
 - Always answer in your own complete, friendly sentence; never just repeat the guest's message. If something is broken, say sorry first.
 - Reply in the language and script of the guest's LATEST message: Devanagari Hindi -> Devanagari Hindi; Hindi written in Latin letters (Hinglish) -> Hinglish in Latin letters; English -> English. Put that in "lang" ("hi", "hinglish" or "en").
+- You speak with a woman's voice: in Hindi and Hinglish use feminine first-person verb forms for yourself (e.g. "मैं भेज रही हूँ", "main bhej rahi hoon", "kar sakti hoon", "bula deti hoon"), never masculine ones.
 - Use the guest's own words back when you confirm what they want (e.g. "extra towels for the kids").
 - THIS MESSAGE: the guest wrote in {lang_name}. Your reply MUST be in {lang_name}.
 - Hindi replies are SPOKEN aloud: short, conversational Hindi in Devanagari as people really talk, polite "आप", and keep common English hotel words the way people say them (Wi-Fi, check-out, AC, room service, front desk). No lists, no formal or bookish Hindi.
