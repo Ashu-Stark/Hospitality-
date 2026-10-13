@@ -23,7 +23,7 @@ else:
     title = f"{t['name']} · Hotel admin" if t.get("id") else "HOI Hotel Admin"
     if hotel := st.query_params.get("hotel"):  # "Open in hotel portal" link from the platform console
         st.session_state["want_hotel"] = str(hotel)[:64]
-st.set_page_config(page_title=title, page_icon=portal.page_icon(), layout="wide", initial_sidebar_state="auto")
+st.set_page_config(page_title=title, page_icon=portal.page_icon(), layout="wide", initial_sidebar_state="collapsed")
 st.logo(str(portal.BRAND_DIR / "hoi-icon-192.png"), size="large")  # HOI platform mark (sidebar / collapsed header)
 
 if auth.current() and not config.is_super():

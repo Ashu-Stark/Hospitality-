@@ -61,8 +61,9 @@ with st.container(key="card_inputs"):
     pw = st.slider("Weekends off (kept free) this month", 0, 4, 2)
     overrides: dict[str, float] = {}
     if current_feats:
-        st.markdown("**Or change these numbers yourself** (leave them as they are to work them out from the weekends off)")
-        cols = st.columns(min(3, len(current_feats)))
+        adv = ui.details("Details: change the numbers yourself")
+        adv.caption("Leave them as they are to work them out from the weekends off.")
+        cols = adv.columns(min(3, len(current_feats)))
         for i, (k, v) in enumerate(current_feats.items()):
             with cols[i % len(cols)]:
                 hi = max(10.0, float(v) * 2)

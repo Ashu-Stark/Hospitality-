@@ -10,10 +10,14 @@ ui.setup("pages/10_Dispatch.py", "Jobs")
 cfg = tenancy.active_settings()
 SECONDS = int(cfg.get("offer_seconds", 30))
 
-ui.page_head("Jobs", "Each job goes to the best free person on shift. You only step in when nobody takes it.")
+ui.page_head("Jobs", "Each job goes to a free person on shift. You only step in when nobody takes it.")
+form_slot = st.container()  # send a job (one row)
+live_slot = st.container(key="live_jobs")  # the answer: how many jobs wait, are being done, are done; then the list
+# the list refreshes itself; keep it fully visible while it does (no grey-out flicker on a slow connection)
+ui.html('<style>.st-key-live_jobs [data-stale="true"]{opacity:1 !important;transition:none !important}</style>')
 
 ro, working, bands, day0, shift0 = data.ops_inputs()
-with st.container(key="card_ops"):
+with ui.details("Details: day, shift and job settings"):
     c1, c2 = st.columns([1.4, 1.3])
     with c1:
         days = ro.dates if ro else []
@@ -29,7 +33,7 @@ with st.container(key="card_ops"):
         )
     with c2:
         shift = st.segmented_control("Shift", models.SHIFT_ORDER, default=shift0, key="ops_shift") or shift0
-    c3, c4 = st.expander("Job settings").columns(2)
+    c3, c4 = st.columns(2)
     with c3:
         auto = st.toggle(
             "Send jobs by themselves",
@@ -50,7 +54,8 @@ with st.container(key="card_ops"):
 ro, working, bands, day, shift = data.ops_inputs(day, shift)
 st.session_state["ops_day"], st.session_state["ops_shift_val"] = day, shift
 if not working:
-    ui.html(theme.banner("No one is on shift for this day and shift. Make a shift plan, or add staff in Settings.", "amber", "alert"))
+    with form_slot:
+        ui.html(theme.banner("No one is on shift for this day and shift. Make a shift plan, or add staff in Settings.", "amber", "alert"))
 
 # ------------------------------------------------------------------ new request
 SAMPLES = [
@@ -63,7 +68,7 @@ SAMPLES = [
     ("Bulb fused in bathroom", "maintenance", "low"),
     ("Fresh bed linen", "housekeeping", "low"),
 ]
-with st.container(key="card_new"):
+with form_slot, st.container(key="card_new"):
     a, b, c, d, e = st.columns([2.4, 0.9, 1.2, 1, 1.2])
     with a:
         title = st.text_input("New job", placeholder="e.g. AC not cooling", key="nr_title")
@@ -100,13 +105,21 @@ if sim:
         st.toast(f"New: {t} · room {rm}", icon=":material/notifications_active:")
 
 
+def plain_note(note: str) -> str:
+    """Server notes in owner words."""
+    n = str(note or "")
+    if "no on-shift worker" in n.lower():
+        return "Nobody from this team is free on this shift. Pick someone or press Try again."
+    return n
+
+
 def render_job(j: dict, w: dict) -> None:
     tone, label = {
         "offered": ("watch", "waiting for a yes"),
         "accepted": ("low", "taken"),
         "in_progress": ("low", "in progress"),
         "done": ("low", "done"),
-        "unassigned": ("high", "needs supervisor"),
+        "unassigned": ("high", "nobody took it"),
         "new": ("unknown", "waiting"),
     }[j["status"]]
     who = j.get("offer_to") if j["status"] == "offered" else j.get("assigned_to")
@@ -137,7 +150,11 @@ def render_job(j: dict, w: dict) -> None:
                 )
                 + (f" · task #{theme.esc(j['backend_task_id'])}" if j.get("backend_task_id") else "")
                 + f"</div>{ping}"
-                + (f'<div style="color:#a32020;font-size:.8rem;margin-top:4px">{theme.esc(j["note"])}</div>' if j.get("note") else "")
+                + (
+                    f'<div style="color:#a32020;font-size:.8rem;margin-top:4px">{theme.esc(plain_note(j["note"]))}</div>'
+                    if j.get("note")
+                    else ""
+                )
                 + "</div>"
             )
         with b:
@@ -152,7 +169,7 @@ def render_job(j: dict, w: dict) -> None:
                     ui.safe(platform.retry, j["id"], what="try again")
                     st.rerun(scope="fragment")
         if j.get("ranking"):
-            with st.expander("Why this person?"):
+            with st.expander("Details: why this person?"):
                 st.caption("Fewer open jobs, fewer jobs already done this shift, nearer the room, and not overloaded = picked first.")
                 for i, r in enumerate(j["ranking"][:5], 1):
                     p = r["parts"]
@@ -176,7 +193,7 @@ def render_job(j: dict, w: dict) -> None:
                             )
 
 
-@st.fragment(run_every=1)
+@st.fragment(run_every=2)
 def live() -> None:
     try:
         all_jobs = platform.jobs()
@@ -190,7 +207,7 @@ def live() -> None:
                 theme.tile("Waiting for a yes", str(len(by["offered"])), "sent to someone, not taken yet", "alert"),
                 theme.tile("Being done", str(len(by["accepted"]) + len(by["in_progress"])), "someone took it", "user"),
                 theme.tile("Done", str(len(by["done"])), "with before and after photo", "check"),
-                theme.tile("Needs supervisor", str(len(by["unassigned"]) + len(by["new"])), "nobody took it, or sending is off", "flag"),
+                theme.tile("Nobody took it", str(len(by["unassigned"]) + len(by["new"])), "send it again or pick someone", "flag"),
             ]
         )
     )
@@ -227,7 +244,8 @@ def live() -> None:
             ui.html('<div class="ss-card" style="padding:10px 14px">' + "".join(rows) + "</div>")
 
 
-live()
+with live_slot:
+    live()
 
 
 def performance_section() -> None:
@@ -287,6 +305,6 @@ def performance_section() -> None:
     )
 
 
-with st.expander("How people are doing (to help, not to punish)"):
+with st.expander("Details: how people are doing (to help, not to punish)"):
     performance_section()
 ui.footer()

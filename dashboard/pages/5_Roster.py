@@ -6,11 +6,11 @@ import plotly.graph_objects as go
 import streamlit as st
 
 from lib import api_client as api
-from lib import auth, data, models, nav, theme, ui
+from lib import auth, data, models, nav, theme, today, ui
 from lib.config import current_settings
 
 ui.setup("pages/5_Roster.py", "Shift plan")
-ui.page_head("Shift plan", "Who works which shift this week. The plan follows the rules (rest, leave, weekly off). Gaps are shown first.")
+ui.page_head("Shift plan", "Who works which shift this week, and where we are short of people.")
 
 
 def shortage_prefill(dept: str | None, day: str | None, hours: float = 8.0, source: str = "roster_shortage") -> dict:
@@ -40,7 +40,7 @@ with st.container(key="card_controls"):
     c1, c4 = st.columns([3, 1], vertical_alignment="bottom")
     with c1:
         opts = data.week_options(week0) if week0 else []
-        wk = st.selectbox("Week (starts Monday)", opts, index=0) if opts else None
+        wk = st.selectbox("Week (starts Monday)", opts, index=0, format_func=ui.week_label) if opts else None
     with c4:
         gen = st.button("Make shift plan", type="primary", icon=":material/auto_awesome:", width="stretch")
     with st.expander("Options"):
@@ -109,55 +109,58 @@ if not ro.feasible:
     ui.footer()
     st.stop()
 
-# ------------------------------------------------------------------ summary first
+# ------------------------------------------------------------------ answer first: where are we short?
 cost = ro.cost
 fair = [p.get("fairness_score") for p in ro.people if p.get("fairness_score") is not None]
 short_n = int(cost.get("understaffed_shifts", 0) or 0)
+gaps = sorted(ro.short_by_cell().items(), key=lambda kv: -kv[1])
+gaps = [((dpt, i, sh), h) for (dpt, i, sh), h in gaps if h > 0.5 and 0 <= i < len(ro.dates)]
+ui.verdict(
+    len(gaps),
+    ok_text="Every shift has enough people this week.",
+    bad_text=f"Short of people on {short_n} shift{'s' if short_n != 1 else ''} this week." if short_n else None,
+)
 ui.big_numbers(
     [
         (
-            "Shifts filled",
-            ui.pct(ro.coverage_ratio, 0),
-            "of the hours we need for how full we'll be",
-            "ok" if (ro.coverage_ratio or 0) >= 0.97 else "warn",
-        ),
-        (
             "Shifts short of people",
             short_n,
-            f"{cost.get('understaffed_hours', 0):,.0f} hours without enough people" if short_n else "Every shift has enough people",
+            "Biggest gaps listed below" if short_n else "Every shift has enough people",
             "bad" if short_n else "ok",
         ),
         (
-            "Overtime",
-            f"{cost.get('overtime_hours', 0):,.0f} h",
+            "Extra pay for overtime",
+            ui.inr(cost.get("overtime_cost_inr")),
             f"{sum(1 for p in ro.people if p.get('overtime_hours'))} people work extra",
             "warn" if cost.get("overtime_hours") else "ok",
         ),
-        ("Week cost", ui.inr(cost.get("total_cost_inr")), f"incl. overtime {ui.inr(cost.get('overtime_cost_inr'))}", "info"),
+        ("Week cost", ui.inr(cost.get("total_cost_inr")), "Wages for the week, incl. overtime", "info"),
     ]
 )
-if short_n:
-    worst = max(ro.short_by_cell().items(), key=lambda kv: kv[1], default=None)
-    if worst:
-        (wd, wi, wsh), wh = worst
-        wday = ro.dates[wi] if 0 <= wi < len(ro.dates) else None
-        ui.html(
-            theme.banner(
-                f"<b>Short: {theme.esc(theme.dept_label(wd))}</b>, {theme.esc(wday or '')} {theme.esc(wsh)} shift, about {wh:.0f} h. "
-                "You can ask local staffing partners for extra people.",
-                "amber",
-                "alert",
-            )
+if gaps:
+    ui.html('<h3 class="ss-h3">Biggest gaps</h3>')
+    for n_gap, ((dpt, i, sh), h) in enumerate(gaps[:4]):
+        dday = ro.dates[i]
+        people_n = today.people_for_hours(ro, sh, h)
+        a, b = st.columns([4, 1.3], vertical_alignment="center")
+        a.markdown(
+            f'<div class="ss-donext"><b>Short of {people_n} {theme.esc(theme.dept_label(dpt).lower())} staff on '
+            f"{date.fromisoformat(dday).strftime('%A')} {theme.esc(sh)}</b>"
+            f"<span>About {h:.0f} hours not covered ({theme.esc(date.fromisoformat(dday).strftime('%d %b'))}).</span></div>",
+            unsafe_allow_html=True,
         )
-        request_staff_button(shortage_prefill(wd, wday, wh), "req_staff_short")
+        with b:
+            request_staff_button(shortage_prefill(dpt, dday, h), f"req_staff_gap_{n_gap}")
+    if len(gaps) > 4:
+        st.caption("Smaller gaps are in Details below.")
 if ro.protected_ids:
     st.caption("Weekend off kept free for: " + ", ".join(ui.short_name(e) for e in ro.protected_ids))
 
-# ------------------------------------------------------------------ grid
-ui.takeaway(
-    "Each box = number of people on shift. Red or yellow boxes need more people." if short_n else "Every shift has enough people this week."
-)
-shift = st.segmented_control("Shift", ["All shifts"] + models.SHIFT_ORDER, default="All shifts")
+# ------------------------------------------------------------------ grid (Details)
+details_box = ui.details("Details: people on each shift, every day")
+details_box.caption("Each box = number of people on shift. Red or yellow boxes need more people.")
+with details_box:
+    shift = st.segmented_control("Shift", ["All shifts"] + models.SHIFT_ORDER, default="All shifts")
 dates = ro.dates
 people = ro.cell_people()
 short = ro.short_by_cell()
@@ -179,18 +182,19 @@ def style_cells(_):
     return tones.map(lambda t: f"background-color:{theme.BAND[t]['bg']};color:{theme.BAND[t]['fg']};font-weight:600")
 
 
-st.dataframe(grid.style.apply(style_cells, axis=None), width="stretch")
-ui.html(
+details_box.dataframe(grid.style.apply(style_cells, axis=None), width="stretch")
+details_box.markdown(
     " ".join(
         [
             theme.band_chip("low", "enough people"),
             theme.band_chip("watch", "a few hours short"),
             theme.band_chip("high", "1 shift or more short"),
         ]
-    )
+    ),
+    unsafe_allow_html=True,
 )
 
-with st.expander("Look inside one shift"):
+with st.expander("Details: who works one shift"):
     a, b, c = st.columns(3)
     with a:
         cd = st.selectbox("Department", depts, format_func=theme.dept_label)
@@ -209,7 +213,7 @@ with st.expander("Look inside one shift"):
     )
 
 # ------------------------------------------------------------------ fairness + soft goals (secondary)
-with st.expander("Is it fair?"):
+with st.expander("Details: are weekends and nights shared fairly?"):
     f1, f2 = st.columns([1.2, 1])
     with f1:
         ui.html(theme.section("Fair share of weekends and nights", "Per person", "1 = fair share compared with the department."))
@@ -249,7 +253,7 @@ with st.expander("Is it fair?"):
             ui.html(theme.banner(f"{len(ro.hard_violations)} rule(s) broken (rest, leave or weekly off).", "red", "alert"))
 
 # ------------------------------------------------------------------ before vs with weekends off (secondary)
-with st.expander("Compare two shift plans"):
+with st.expander("Details: compare two shift plans"):
     ui.html(theme.section("Before and with weekends off", "Compare", "Plans from the Support plan page, or any two plan numbers."))
     loop = st.session_state.get("loop_raw") or {}
     c1, c2, c3 = st.columns([1, 1, 1])

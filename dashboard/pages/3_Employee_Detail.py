@@ -77,7 +77,7 @@ if s.contract_type == "seasonal":
     )
 
 # ------------------------------------------------------------------ trajectory (secondary)
-with st.expander("Last 12 weeks"):
+with ui.details("Details: last 12 weeks"):
     if hero and hero.weeks:
         if hero.illustrative:
             st.caption("Example history, to show how it works.")
@@ -141,34 +141,29 @@ with st.expander("Last 12 weeks"):
 # ------------------------------------------------------------------ drivers
 ui.html('<h3 class="ss-h3">Why this person may need support</h3>')
 if s.drivers:
-    ui.takeaway(f"Biggest reason: {max(s.drivers, key=lambda d: d.contribution_logodds).title}. A longer bar means a bigger reason.")
+    ui.takeaway(f"Biggest reason: {max(s.drivers, key=lambda d: d.contribution_logodds).title}.")
 pb = data.playbook()
-d1, d2 = st.columns([1.4, 1])
-with d1:
-    if s.drivers:
+if not s.drivers:
+    ui.empty("No reasons to show." if s.contract_type == "permanent" else "Season contract: grouped by when it ends, no list of reasons.")
+for d in sorted(s.drivers, key=lambda d: -d.contribution_logodds):
+    expl = (pb.get(d.category) or {}).get("explanation", "")
+    ui.html(
+        f'<div class="ss-card" style="padding:14px 16px;margin-bottom:8px"><div style="display:flex;justify-content:space-between;gap:8px">'
+        f"<b>{theme.esc(d.title)}</b>{theme.support_chip(d.support_level)}</div>"
+        f'<div style="font-size:.92rem;margin-top:6px">{theme.esc(d.reason)}</div>'
+        f'<div style="font-size:.8rem;color:#6b6a65;margin-top:4px">{theme.esc(expl)}</div></div>'
+    )
+ui.html(
+    '<div class="ss-card" style="padding:14px 16px;opacity:.75;margin-bottom:8px"><div style="display:flex;justify-content:space-between">'
+    f'<b>Trouble with the manager</b>{theme.support_chip("unsupported")}</div><div style="font-size:.8rem;color:#6b6a65;margin-top:4px">'
+    "We cannot see this in the numbers, so it is never shown as a reason. Ask the person.</div></div>"
+)
+if s.drivers:
+    with ui.details("Details: how much each reason counts"):
+        st.caption(theme.SUPPORT_HELP)
         st.plotly_chart(
             charts.driver_bars(s.drivers, height=max(260, 80 * len(s.drivers) + 80)), width="stretch", config={"displayModeBar": False}
         )
-    else:
-        ui.empty(
-            "No reasons to show." if s.contract_type == "permanent" else "Season contract: grouped by when it ends, no list of reasons."
-        )
-with d2:
-    st.markdown("**In plain language**", help=theme.SUPPORT_HELP)
-    for d in s.drivers:
-        expl = (pb.get(d.category) or {}).get("explanation", "")
-        ui.html(
-            f'<div class="ss-card" style="padding:14px 16px;margin-bottom:8px"><div style="display:flex;justify-content:space-between;gap:8px">'
-            f"<b>{theme.esc(d.title)}</b>{theme.support_chip(d.support_level)}</div>"
-            f'<div style="font-size:.88rem;margin-top:6px">{theme.esc(d.reason)}</div>'
-            f'<div style="font-size:.8rem;color:#6b6a65;margin-top:4px">{theme.esc(expl)}</div></div>'
-        )
-    mr = pb.get("manager_relationship") or {}
-    ui.html(
-        f'<div class="ss-card" style="padding:14px 16px;opacity:.75"><div style="display:flex;justify-content:space-between">'
-        f'<b>Trouble with the manager</b>{theme.support_chip("unsupported")}</div><div style="font-size:.8rem;color:#6b6a65;margin-top:4px">'
-        "We cannot see this in the numbers, so it is never shown as a reason. Ask the person.</div></div>"
-    )
 
 # ------------------------------------------------------------------ interventions
 ui.html('<h3 class="ss-h3">What could help</h3>')

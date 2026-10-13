@@ -19,7 +19,7 @@ CAN_DECIDE = auth.role() in ("owner", "dept_head", "platform_admin")
 STATUS = {  # job status -> (band tone, label guests' requests show)
     "new": ("watch", "waiting"),
     "offered": ("watch", "finding staff"),
-    "unassigned": ("high", "needs supervisor"),
+    "unassigned": ("high", "nobody took it"),
     "accepted": ("low", "accepted"),
     "in_progress": ("low", "in progress"),
     "done": ("unknown", "done"),

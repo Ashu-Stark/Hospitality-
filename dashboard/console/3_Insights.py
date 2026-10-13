@@ -97,20 +97,35 @@ on_time_t = as_pct(ui.pick(tot, "jobs.on_time_pct", "on_time_pct")) or weighted(
 fb_t = num(ui.pick(tot, "feedback_average", "feedback.average")) or weighted("fb_avg", "fb_count")
 ui.big_numbers(
     [
-        ("Hotels live", active, f"{len(hotels) - active} paused", "info"),
-        ("Rooms full now", fmt(occ_t), f"of {fmt(rooms_t)} rooms" + (f" ({occ_t / rooms_t:.0%})" if rooms_t and occ_t else ""), "info"),
-        ("Jobs on time", fmt(on_time_t, "%"), f"{fmt(total(('jobs.count', 'jobs'), 'jobs'))} jobs in {days} days", "ok"),
-        ("Guest rating", fmt(fb_t, "★", 1), f"{fmt(total(('feedback',), 'fb_count'))} ratings", "ok"),
-    ]
+        t
+        for t in [
+            ("Hotels live", active, f"{len(hotels) - active} paused", "info"),
+            ("Rooms full now", fmt(occ_t), f"of {fmt(rooms_t)} rooms" + (f" ({occ_t / rooms_t:.0%})" if rooms_t and occ_t else ""), "info"),
+            ("Jobs on time", fmt(on_time_t, "%"), f"{fmt(total(('jobs.count', 'jobs'), 'jobs'))} jobs in {days} days", "ok"),
+            ("Guest rating", fmt(fb_t, "★", 1), f"{fmt(total(('feedback',), 'fb_count'))} ratings", "ok"),
+        ]
+        if t[1] != "—"
+    ]  # tiles with no data are hidden
 )
 if not hotels:
     ui.empty("No hotels yet. Add one on the Hotels page.")
     ui.footer()
     st.stop()
+rated = [h for h in hotels if h["fb_avg"] is not None and h["status"] != "suspended"]
+lowstock = [h for h in hotels if h["below_reorder"] and h["status"] != "suspended"]
+notes = []
+if len(rated) > 1:  # "lowest" only means something with two or more hotels
+    w = min(rated, key=lambda h: h["fb_avg"])
+    notes.append(f"Lowest guest rating: {w['name']} ({w['fb_avg']:.1f}★)")
+if lowstock:
+    w = max(lowstock, key=lambda h: h["below_reorder"])
+    notes.append(f"most items running low: {w['name']} ({w['below_reorder']:.0f})")
+if notes:
+    ui.takeaway(". ".join(n[0].upper() + n[1:] for n in notes) + ".")
 
 # ------------------------------------------------------------------ per-hotel table
 ui.html(theme.section("Hotels at a glance"))
-f1, f2, f3 = st.columns([2, 1.2, 1.6])
+f1, f2, f3 = st.expander("Filter hotels", icon=":material/filter_list:").columns([2, 1.2, 1.6])
 needle = f1.text_input("Search", placeholder="Hotel name", key="ins_q")
 status_f = f2.segmented_control("Status", ["All", "Active", "Suspended"], default="All", key="ins_status") or "All"
 plans = sorted({h["plan"] for h in hotels})
@@ -237,7 +252,7 @@ with t_guests:
     st.caption(f"Usual time to answer: {fmt(h['median_response'], ' min')} from the request until someone takes it.")
 
     xs, ys = bar_by_day(h["fb_trend"], ("average", "avg", "rating"))
-    fbx = st.expander("Feedback trend")
+    fbx = st.expander("Details: feedback trend")
     if xs and any(y is not None for y in ys):
         last = next((y for y in reversed(ys) if y is not None), None)
         first = next((y for y in ys if y is not None), None)

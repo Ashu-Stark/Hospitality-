@@ -1,7 +1,9 @@
 import pandas as pd
 import streamlit as st
 
-from lib import charts, data, theme, ui
+from lib import api_client as api
+from lib import charts, data, platform, theme, ui
+from lib.config import current_settings
 
 ui.setup("pages/2_Risk_List.py", "May leave soon?")
 ui.page_head(
@@ -21,6 +23,121 @@ if not scores:
 depts = data.dept_map()
 
 
+# ------------------------------------------------------------------ what to do next (retention check-in)
+# Low / moderate chance: talk to them (2-3 points from the model's reasons, then log the talk in the backend's closed loop).
+# High chance: also look for someone on the tourism portal (platform API, which holds the portal key). If nobody fits,
+# the owner posts ONE job with one click: never automatic, because a post cannot be taken back from here and agencies
+# are told at once.
+LEVEL_BAND = {"low": "low", "moderate": "watch", "high": "high"}
+
+
+def _plan(emp: str) -> dict | None:
+    """The backend's plan for this person (level, talking points, talk logged?). None when not available (demo data / old API)."""
+    s = current_settings()
+    if s.use_mocks:
+        return None
+    try:  # no wrapper in lib.api_client yet; the page owns this call
+        rows = api._http("GET", "/retention/plan", s, params={"employee_id": emp, **({"week_start": ui.week()} if ui.week() else {})})
+    except api.ApiError:
+        return None
+    return rows[0] if rows else None
+
+
+def _fallback_points(sc) -> list[str]:
+    pts = [f"{d.title}. Ask how they feel about it." for d in sc.drivers[:3]]
+    return (pts + ["Ask how work is going for them this month.", "Ask if one thing would make their week easier."])[: max(2, len(pts))]
+
+
+def _talk_block(emp: str, sc, plan: dict | None) -> None:
+    points = plan["talking_points"] if plan else _fallback_points(sc)
+    st.markdown("**Talk to them**")
+    for x in points:
+        st.markdown(f"- {x}")
+    if plan and plan.get("talked"):
+        st.success(f"Talk noted on {str(plan.get('talked_at') or '')[:10]}.", icon=":material/check_circle:")
+        return
+    if plan is None:
+        st.caption("Saving a talk needs the live server.")
+        return
+    if st.button("We talked", key=f"talk_{emp}", icon=":material/forum:", help="Saves that the talk happened. No notes are stored."):
+        try:
+            api._http("POST", "/retention/talks", current_settings(), json={"employee_id": emp, "week_start": plan["week_start"], "points": points})
+            st.toast("Talk noted.")
+            st.rerun()
+        except api.ApiError as e:
+            st.error(e.message)
+
+
+def _candidate_card(c: dict) -> None:
+    skills = ", ".join(f"{x.get('label')} ({x.get('years', 0)} yrs)" for x in c.get("skills") or [])
+    places = ", ".join(c.get("districts") or [])
+    match = f"{c['match']}% match" if c.get("match") is not None else ""
+    sample = " · sample profile" if c.get("synthetic") else ""
+    st.markdown(f"**{c.get('code') or ''}** · {skills}")
+    st.caption(f"{places} · {c.get('availability') or ''} · {match}{sample}")
+    if c.get("open_url"):
+        st.link_button("Contact via the portal", c["open_url"], icon=":material/open_in_new:")
+
+
+def _cover_block(emp: str) -> None:
+    st.markdown("**Look for someone who could help**")
+    key = f"cover_{emp}"
+    if st.button("Look on the job portal", key=f"look_{emp}", icon=":material/person_search:"):
+        try:
+            st.session_state[key] = platform.call("GET", f"/staffing/cover/{emp}", params=platform._pid_params())
+        except platform.PlatformError as e:
+            st.session_state[key] = {"status": "error", "message": e.message, "candidates": [], "job": None}
+    res = st.session_state.get(key)
+    if not res:
+        st.caption("Checks the Uttarakhand Travel Guide for job seekers with the same skill near the hotel.")
+        return
+    job = res.get("job")
+    if res["status"] == "matches":
+        st.info(res["message"], icon=":material/group:")
+        for c in res.get("candidates") or []:
+            with st.container(border=True):
+                _candidate_card(c)
+        if res.get("search_url"):
+            st.link_button("See all on the portal", res["search_url"], icon=":material/open_in_new:")
+        st.caption(res.get("privacy") or "")
+    elif job and job.get("status") == "sent":
+        st.success("Job posted on the Uttarakhand Travel Guide.", icon=":material/check_circle:")
+    elif res["status"] == "no_matches":
+        st.warning(res["message"], icon=":material/person_off:")
+        st.caption("Posts one opening for this role for the next 30 days. The post does not name anyone or say why.")
+        if st.button("Post the job on the Uttarakhand Travel Guide", key=f"post_{emp}", type="primary", icon=":material/campaign:"):
+            try:
+                out = platform.call("POST", f"/staffing/cover/{emp}/post", params=platform._pid_params())
+                st.session_state[key] = {**res, "job": out["job"]}
+                st.toast(out["message"])
+                st.rerun()
+            except platform.PlatformError as e:
+                st.error(e.message)
+    else:
+        st.info(res.get("message") or "The job portal could not be checked.", icon=":material/info:")
+    if job and job.get("job_url"):
+        st.link_button("Open the job post", job["job_url"], icon=":material/open_in_new:")
+    elif job and job.get("status") == "pending_send":
+        st.caption("A job is saved but not on the portal yet: " + (job.get("last_error") or "try again later."))
+
+
+def _next_steps(emp: str, sc) -> None:
+    plan = _plan(emp)
+    level = plan["level"] if plan else {"watch": "moderate"}.get(sc.band, sc.band)
+    label = {"low": "Low", "moderate": "Moderate", "high": "High"}.get(level, "Not known")
+    ui.html(f"<div style='margin:6px 0'>Chance of leaving: {theme.band_chip(LEVEL_BAND.get(level, 'unknown'), label)}</div>")
+    if level == "high":
+        t, c = st.columns(2)
+        with t:
+            _talk_block(emp, sc, plan)
+        with c:
+            _cover_block(emp)
+    else:
+        _talk_block(emp, sc, plan)
+    st.caption("Based on a model trained on SYNTHETIC (made-up) data. A prompt for a friendly chat, not a judgement.")
+
+
+
 # ------------------------------------------------------------------ summary first
 n_by = {b: sum(1 for x in scores if x.band == b) for b in ("high", "watch", "low")}
 ui.big_numbers(
@@ -37,7 +154,7 @@ dept_opts = sorted({depts.get(s.employee_id, "unknown") for s in scores})
 with f1:
     sel_depts = st.multiselect("Department", dept_opts, default=[], format_func=theme.dept_label, placeholder="All departments")
 with f4:
-    q = st.text_input("Search ID / name", placeholder="E134, Sunita")
+    q = st.text_input("Search ID / name", placeholder="Search by staff ID, e.g. HS05")
 with st.expander("More filters"):
     g1, g2 = st.columns(2)
     sel_bands = g1.multiselect(
@@ -70,7 +187,7 @@ for s in scores:
             "of": s.group_size,
             "Same place": "yes" if s.rank_is_tied else "",
             "Based on": theme.BASIS[s.band_basis][0],
-            "Main reason": td.title if td else "—",
+            "Main reason": td.title if td and s.band != "low" else "—",
             "Chance (90 days)": s.risk,
             "_band": s.band,
         }
@@ -148,11 +265,9 @@ else:
                 ui.html(" ".join(theme.support_chip(k) for k in theme.SUPPORT))
                 for d in s.drivers:
                     st.markdown(f"- **{d.title}**: {d.reason}")
-                if s.actions:
-                    st.markdown("**Suggested next step**")
-                    for ac in s.actions:
-                        st.markdown(f"- {ac.action} · _{ac.owner}_")
-                if st.button("Open this person", type="primary", icon=":material/person:"):
+                if st.button("Open this person", icon=":material/person:"):
                     ui.go_to_employee(emp)
+            st.divider()
+            _next_steps(emp, s)
 
 ui.footer()

@@ -94,7 +94,7 @@ if waiting or busy:
             "offered": f"sent to {who}",
             "accepted": f"taken by {who}",
             "in_progress": f"{who} cleaning now",
-            "unassigned": "no one on shift accepted: assign on Dispatch",
+            "unassigned": "nobody took it: send it again on the Jobs page",
             "done": "done",
         }.get(j.get("status"), "queued")
         ui.html(

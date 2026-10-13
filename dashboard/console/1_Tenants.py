@@ -20,8 +20,8 @@ ui.html(
 )
 
 # ------------------------------------------------------------------ onboard
-ui.html(theme.section("Add a hotel", "New customer"))
-with st.form("onboard", clear_on_submit=True):
+add_box = st.expander("Add a hotel", icon=":material/add_business:", expanded=not ts)
+with add_box, st.form("onboard", clear_on_submit=True):
     c1, c2, c3 = st.columns([2, 1, 1])
     name = c1.text_input("Hotel or hotel group name", placeholder="Garhwal Heritage Hotels")
     plan = c2.selectbox("Plan", list(tenancy.PLANS), format_func=lambda p: tenancy.PLANS[p]["label"], index=1)
@@ -94,7 +94,7 @@ for t in ts:
                 ui.safe(platform.update_tenant, t["id"], status="active" if suspended else "suspended", what="change status")
                 st.rerun()
             portal.open_hotel_control(x3, t["id"], disabled=suspended, key=f"open_{t['id']}")
-        with st.expander("What this hotel can use, and owner invite"):
+        with st.expander("Details: what this hotel can use, and owner invite"):
             picked = st.multiselect(
                 "Turned on",
                 list(access.MODULE_PAGES),

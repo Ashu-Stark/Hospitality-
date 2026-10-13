@@ -113,6 +113,7 @@ def _section_nav(nav: list, page_file: str, u: dict | None) -> None:
             scols = st.columns(len(sub), gap="small")
             for col, (f, label, _ic) in zip(scols, sub):
                 with col:
+                    label = "Overview" if label == active else label  # the section tab above already says "Today"
                     if f == page_file:
                         st.markdown(f'<div class="ss-subactive">{theme.esc(label)}</div>', unsafe_allow_html=True)
                     else:
@@ -167,7 +168,8 @@ def _sidebar(t: dict, u: dict | None) -> None:
                 opts,
                 index=opts.index(cur) if cur in opts else 0,
                 key="week_start",
-                help="The week shown on the check-in, person and week-numbers pages.",
+                format_func=week_label,
+                help="The week shown on the check-in, person and week-numbers pages. The demo hotel's weeks are synthetic.",
             )
             if s.use_mocks and st.session_state.get("week_start") != anchor:
                 st.caption("Practice data has only one week.")
@@ -178,6 +180,18 @@ def _sidebar(t: dict, u: dict | None) -> None:
         if t.get("is_demo") and not tenancy.is_homestay() and (u is None or u["role"] in ("owner", "platform_admin")):
             if c2.button("Tour", icon=":material/explore:", width="stretch"):
                 tour.start()
+
+
+def week_label(w: str | None) -> str:
+    """'2029-12-24' -> 'Demo week: Mon 24 Dec' for the synthetic demo data, else 'Week of Mon 24 Dec'."""
+    from datetime import date
+
+    try:
+        d = date.fromisoformat(str(w))
+    except ValueError:
+        return str(w)
+    demo = bool(tenancy.active().get("is_demo")) or current_settings().use_mocks
+    return f"Demo week: {d.strftime('%a %d %b')}" if demo else f"Week of {d.strftime('%a %d %b')}"
 
 
 def ensure_demo_week() -> str | None:
@@ -431,3 +445,143 @@ def table(df, main: list[str], *, key: str, height: int | None = None, column_co
     cols = [c for c in df.columns if c in main or show_all]
     kw = {"height": height} if height else {}
     st.dataframe(df[cols], hide_index=True, width="stretch", column_config=column_config or {}, **kw)
+
+
+# ------------------------------------------------------------------ owner-first building blocks (answer first, one action per card)
+def verdict(problems: int, ok_text: str = "Yes, everything looks fine today.", bad_text: str | None = None) -> None:
+    """The one-line answer at the top of a page: green when nothing needs the owner, amber otherwise."""
+    if problems:
+        text = bad_text or f"{problems} thing{'s' if problems != 1 else ''} need{'s' if problems == 1 else ''} you today."
+        html(f'<div class="ss-verdict warn">{theme.icon("alert", 22)}<span>{theme.esc(text)}</span></div>')
+    else:
+        html(f'<div class="ss-verdict ok">{theme.icon("check", 22)}<span>{theme.esc(ok_text)}</span></div>')
+
+
+def tile_skeleton(n: int) -> str:
+    """Grey placeholder tiles with the same size as the real ones (keeps the page from jumping while data loads)."""
+    cells = "".join(
+        '<div class="ss-big skel"><div class="v">…</div><div class="l">Loading</div><div class="m">&nbsp;</div></div>' for _ in range(n)
+    )
+    return f'<div class="ss-bigs ss-acts n{n}">{cells}</div>'
+
+
+def action_tiles(items: list[dict], key: str = "acts") -> None:
+    """Big-number tiles, each with ONE action button underneath.
+
+    item = {label, value, meaning, tone (ok|warn|bad|info), button, target (page file | callable | None), key}
+    A page target is skipped (button hidden) when that page is not in this user's navigation."""
+    visible = {f for f, _, _ in st.session_state.get("_nav", [])}
+    with st.container(key=f"ss_{key}"):
+        cols = st.columns(len(items), gap="small")
+        for col, it in zip(cols, items):
+            with col:
+                html(
+                    f'<div class="ss-big act {theme.esc(it.get("tone", "info"))}"><div class="v">{theme.esc(it["value"])}</div>'
+                    f'<div class="l">{theme.esc(it["label"])}</div><div class="m">{theme.esc(it.get("meaning", ""))}</div></div>'
+                )
+                tgt = it.get("target")
+                if not it.get("button") or tgt is None or (isinstance(tgt, str) and tgt not in visible):
+                    html('<div class="ss-actpad"></div>')
+                    continue
+                if st.button(it["button"], key=f"{key}_{it.get('key', it['label'])}", width="stretch", type=it.get("type", "secondary")):
+                    if isinstance(tgt, str):
+                        st.switch_page(nav.page(tgt))
+                    try:
+                        tgt()
+                        st.toast("Done")
+                    except platform.PlatformError as e:
+                        st.toast(e.message)
+                    data.clear()
+                    st.rerun()
+
+
+def details(label: str = "Details") -> Any:
+    """Expander that holds the older, more technical view of a section."""
+    return st.expander(label, icon=":material/info:")
+
+
+def simple_bars(
+    labels: list[str],
+    values: list[float],
+    *,
+    highlight: int | None = None,
+    fmt: str = "{:.0f}",
+    height: int = 220,
+    hover: str = "%{x}: %{y}",
+    y_max: float | None = None,
+) -> None:
+    """One simple bar chart (one colour; the bar the takeaway talks about is darker and labelled). No legend, no gridlines."""
+    import plotly.graph_objects as go  # local: keeps lib.ui import light
+
+    base, strong = "#9cc3f0", "#1f6fe5"
+    colors = [strong if i == highlight else base for i in range(len(values))]
+    text = [fmt.format(v) if (highlight is None or i == highlight) else "" for i, v in enumerate(values)]
+    fig = go.Figure(
+        go.Bar(
+            x=labels,
+            y=values,
+            marker=dict(color=colors, cornerradius=4, line=dict(color="#fff", width=2)),
+            text=text,
+            textposition="outside",
+            cliponaxis=False,
+            hovertemplate=hover + "<extra></extra>",
+        )
+    )
+    theme.style_fig(fig, height, legend=False)
+    fig.update_yaxes(showgrid=False, showticklabels=False, rangemode="tozero", **({"range": [0, y_max]} if y_max else {}))
+    fig.update_layout(margin=dict(t=24, b=8, l=8, r=8), bargap=0.35)
+    st.plotly_chart(fig, width="stretch", config={"displayModeBar": False, "staticPlot": False})
+
+
+ACTION_WORDS = {  # activity-log codes -> plain words (unknown codes fall back to the code with spaces)
+    "login.ok": "Signed in",
+    "login.demo": "Signed in (demo account)",
+    "login.failed": "Sign-in failed",
+    "platform.open_workspace": "HOI team opened this hotel",
+    "platform.tenant_created": "Hotel added",
+    "platform.tenant_updated": "Hotel settings changed",
+    "platform.tenant_deleted": "Hotel removed",
+    "platform.invite": "Owner invite made",
+    "invite.created": "Invite made",
+    "invite.redeemed": "Invite used (new account)",
+    "user.created": "Account added",
+    "user.disabled": "Account switched off",
+    "user.enabled": "Account switched on",
+    "staff.imported": "Staff list added",
+    "workspace.updated": "Hotel settings changed",
+    "property.added": "Building added",
+    "property.settings": "Building settings changed",
+    "hotel_profile.updated": "Hotel profile changed",
+    "job.created": "Job made",
+    "job.accepted": "Job taken",
+    "job.done": "Job done",
+    "job.inspected": "Room checked",
+    "job.manual_offer": "Job sent to a person by hand",
+    "job.retry": "Job sent again",
+    "dispatch.reset": "Jobs cleared (demo)",
+    "guest.express_checkout": "Guest booked a checkout",
+    "guest.express_checkout_released": "Checkout room released",
+    "guest.feedback": "Guest left a rating",
+    "guest.late_checkout_requested": "Guest asked for late checkout",
+    "guest.urgent_alert": "Guest sent an urgent alert",
+    "inv.issue": "Stock given out",
+    "inv.item_added": "Stock item added",
+    "inv.request": "Stock asked for",
+    "inv.reject": "Stock request turned down",
+    "count.posted": "Stock count saved",
+    "po.created": "Order made",
+    "po.received": "Order delivered",
+    "staffing.requested": "Extra staff asked for",
+    "staffing.sent": "Extra staff request sent",
+    "voice.report_issue": "Voice note problem reported",
+    "retention.cover_checked": "Cover for a day off checked",
+}
+
+
+def action_label(code: str | None) -> str:
+    c = str(code or "")
+    if c in ACTION_WORDS:
+        return ACTION_WORDS[c]
+    if c.startswith("guest.late_checkout_"):
+        return "Late checkout " + c.rsplit("_", 1)[-1]
+    return c.replace(".", " · ").replace("_", " ").capitalize()

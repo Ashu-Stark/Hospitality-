@@ -43,6 +43,7 @@ def gather() -> dict:
     if gs is not None:
         reqs = [q for q in gs.get("open_requests", []) if not numbers or q.get("room") in numbers]
         out["late_checkouts"] = gs.get("late_checkouts_pending", 0)
+        out["checkouts_today"] = (gs.get("checkouts_today") or {}).get("count")
         out["urgent"] = [a for a in gs.get("urgent_alerts", []) if not numbers or a.get("room") in numbers]
     out["requests"] = reqs
 
@@ -78,6 +79,7 @@ def gather() -> dict:
         out["on_shift"] = len(team) if team is not None else None  # homestay: the whole small team, no roster
     else:
         ctx = _try(platform.get_context)
+        out["context"] = ctx
         ids = {s["employee_id"] for s in team or []}
         out["on_shift"] = len([e for e in (ctx or {}).get("working", {}) if not ids or e in ids]) if ctx is not None else None
 
@@ -104,3 +106,41 @@ def n(x) -> str:
     if x is None:
         return "—"
     return str(len(x)) if isinstance(x, list) else str(x)
+
+
+def shortfall(ctx: dict | None) -> list[dict]:
+    """Departments short of people in the current shift (day + shift from the dispatch context), from the week's shift plan.
+
+    Each row: {department, hours, people}. people = hours short / that shift's usual length in the plan, rounded up
+    (an estimate; the plan itself reports hours). Empty when there is no plan, no context or the ML API is unreachable."""
+    from . import api_client, data
+
+    if not ctx or not ctx.get("shift"):
+        return []
+    try:
+        rid = data.current_roster_id()
+        ro = data.roster(rid) if rid is not None else None
+    except api_client.ApiError:
+        return []
+    if ro is None or not ro.dates:
+        return []
+    day, shift = ctx.get("day") or ro.dates[0], ctx["shift"]
+    if day not in ro.dates:
+        return []
+    i = ro.dates.index(day)
+    rows = [
+        {"department": d, "hours": h, "people": people_for_hours(ro, shift, h)}
+        for (d, di, sh), h in ro.short_by_cell().items()
+        if di == i and sh == shift and h > 0.5
+    ]
+    return sorted(rows, key=lambda r: -r["hours"])
+
+
+def people_for_hours(ro, shift: str, hours: float) -> int:
+    """Hours short -> about how many people: divided by that shift's usual length in the plan, rounded up (an estimate)."""
+    from math import ceil
+    from statistics import median
+
+    lengths = [float(a.get("hours") or 0) for a in ro.assignments if a.get("shift") == shift and a.get("hours")]
+    shift_h = median(lengths) if lengths else 8.0
+    return max(1, ceil(hours / shift_h - 0.15))

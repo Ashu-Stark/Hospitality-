@@ -1,9 +1,11 @@
-"""Today: the manager's home. A photo header, 4-6 big numbers with one-line meanings, a short "do next" list with
-one-click actions, and nothing else (routed from app.py). Works in hotel and homestay mode (plain words in homestay)."""
+"""Today: the owner's home. It answers "Is everything OK today?" in one line, then five big tiles (guests, rooms to clean,
+staff on shift versus needed, guest requests waiting, supplies low), each with one action button, then a short
+"also needs you" list. Space for the answer and the tiles is reserved while the numbers load, so nothing jumps.
+Works in hotel and homestay mode (plain words in homestay). All demo data is synthetic."""
 
 import streamlit as st
 
-from lib import auth, data, nav, platform, portal, tenancy, theme, today, ui
+from lib import auth, data, nav, platform, tenancy, theme, today, ui
 
 ui.setup("home.py", "Today")
 T = tenancy.active()
@@ -17,14 +19,11 @@ prof = ui.api(platform.hotel_profile, what="load the hotel profile") or {}
 prof = prof if isinstance(prof, dict) else {}
 cover = prof.get("cover_photo_url") or ""
 cover_src = platform.asset_data_uri(cover.replace(".jpg", "_sm.jpg")) if cover.startswith("/shared/photos/") else None
-logo = portal.logo_src({**T, "logo_url": prof.get("logo_url") or (T.get("logo_url") if not HOMESTAY else None)})
 name = prof.get("display_name") or prop.get("name") or T.get("name", "")
-greet = "Good to see you" if HOMESTAY else "Today at a glance"
 style = f"background-image:linear-gradient(90deg,rgba(8,18,34,.78),rgba(8,18,34,.25)),url('{cover_src}')" if cover_src else ""
 ui.html(
     f'<div class="ss-photohead" style="{style}">'
-    + (f'<img class="logo" src="{theme.esc(logo)}" alt="">' if logo else "")
-    + f'<div><div class="eyebrow">{theme.esc(greet)} · {"Homestay" if HOMESTAY else "Hotel"} mode</div>'
+    + f'<div><div class="eyebrow">{"Good to see you · Homestay mode" if HOMESTAY else "Today · Hotel mode"}</div>'
     f"<h1>{theme.esc(name)}</h1></div>"
     + (  # photo credit: a small (i) with the credit on hover, not a visible caption
         f'<span class="ss-photoinfo" title="Photo: {theme.esc(prof.get("cover_photo_credit"))}" aria-label="Photo credit">i</span>'
@@ -41,20 +40,142 @@ _pp, _ = st.columns([1, 2])
 with _pp:
     ui.property_picker(key="prop_pick_today", label="Looking at")
 
-# ------------------------------------------------------------------ big numbers
+# ------------------------------------------------------------------ reserve the space, then load
+answer_slot = st.empty()
+tiles_slot = st.empty()
+answer_slot.markdown('<div class="ss-verdict" style="background:#fff;color:#9b9a96">Checking today…</div>', unsafe_allow_html=True)
+tiles_slot.markdown(ui.tile_skeleton(5), unsafe_allow_html=True)
+
 d = today.gather()
 s = d.get("summary") or {}
+reqs, late, low, urgent = d.get("requests"), d.get("jobs_late"), d.get("low_stock"), d.get("urgent") or []
+total = s.get("total")
 to_clean = (s.get("dirty", 0) + s.get("cleaning", 0) + s.get("inspection", 0)) if s else None
-reqs, late, low = d.get("requests"), d.get("jobs_late"), d.get("low_stock")
+short = [] if HOMESTAY else today.shortfall(d.get("context"))
+short_people = sum(r["people"] for r in short)
+shift = ((d.get("context") or {}).get("shift") or "").lower()
 
 
-def tone(v, warn_at: int = 1, bad_at: int = 3) -> str:
-    if v is None:
-        return "info"
-    k = len(v) if isinstance(v, list) else int(v)
-    return "bad" if k >= bad_at else "warn" if k >= warn_at else "ok"
+def go_extra_staff() -> None:
+    """Open Extra staff with the biggest gap of this shift filled in (the owner still checks and sends it)."""
+    r = short[0]
+    day = (d.get("context") or {}).get("day")
+    st.session_state["staffing_prefill"] = {
+        "department": r["department"],
+        "date_from": day,
+        "date_to": day,
+        "openings": r["people"],
+        "note": f"Shift plan short by about {r['hours']:.0f} hours ({shift} shift, {day}).",
+        "source": "roster_shortage",
+    }
+    st.switch_page(nav.page("pages/20_Extra_Staff.py"))
 
 
+# 1 guests
+occ = s.get("occupied")
+co = d.get("checkouts_today")
+t_guests = {
+    "label": "Rooms with guests" if not HOMESTAY else "Rooms with guests",
+    "value": f"{occ} of {total}" if occ is not None and total else "—",
+    "meaning": (f"{co} leaving today" if co else "Nobody has booked a checkout yet") if co is not None else "From the room board",
+    "tone": "info",
+    "button": "See rooms",
+    "target": "pages/14_Rooms.py",
+    "key": "guests",
+}
+# 2 rooms to clean
+t_clean = {
+    "label": "Rooms to clean or check",
+    "value": "—" if to_clean is None else to_clean,
+    "meaning": (f"{s.get('ready', 0)} ready for the next guest" if s else "Room board not available"),
+    "tone": "info" if to_clean is None else ("warn" if to_clean else "ok"),
+    "button": "Check rooms" if s.get("inspection") else "See rooms",
+    "target": "pages/14_Rooms.py",
+    "key": "clean",
+}
+# 3 staff on shift vs needed
+on = d.get("on_shift")
+if HOMESTAY:
+    t_staff = {
+        "label": "Team today",
+        "value": today.n(on),
+        "meaning": "Your whole team",
+        "tone": "info",
+        "button": "Our team",
+        "target": "pages/19_Staff.py",
+        "key": "staff",
+    }
+elif short:
+    worst = short[0]
+    t_staff = {
+        "label": f"Staff on shift ({shift})" if shift else "Staff on shift",
+        "value": f"{on} of {on + short_people}" if isinstance(on, int) else "—",
+        "meaning": f"Short of {worst['people']} {theme.dept_label(worst['department']).lower()} staff"
+        + (f" and {len(short) - 1} more team(s)" if len(short) > 1 else ""),
+        "tone": "bad" if short_people >= 3 else "warn",
+        "button": "Ask for extra staff",
+        "target": go_extra_staff if auth.can_open("pages/20_Extra_Staff.py") else "pages/5_Roster.py",
+        "key": "staff",
+    }
+else:
+    t_staff = {
+        "label": f"Staff on shift ({shift})" if shift else "Staff on shift",
+        "value": today.n(on),
+        "meaning": "Enough people for this shift" if on else "Nobody on the shift plan right now",
+        "tone": "ok" if on else "info",
+        "button": "See who",
+        "target": "pages/19_Staff.py",
+        "key": "staff",
+    }
+# 4 guest requests
+if reqs:
+    oldest = max(reqs, key=lambda q: q.get("minutes_open") or 0)
+    req_mean = f"Oldest: room {oldest['room']}, waiting {int(oldest.get('minutes_open') or 0)} min"
+else:
+    req_mean = "No guest is waiting" if reqs is not None else "Not available for your role"
+t_reqs = {
+    "label": "Guest requests waiting",
+    "value": today.n(reqs),
+    "meaning": (f"URGENT in room {urgent[0]['room']}. " if urgent else "") + req_mean,
+    "tone": "bad" if urgent else ("info" if reqs is None else "warn" if reqs else "ok"),
+    "button": "See requests",
+    "target": "pages/17_Guest_Services.py",
+    "key": "reqs",
+    "type": "primary" if urgent else "secondary",
+}
+# 5 supplies
+t_low = {
+    "label": "Supplies running low",
+    "value": today.n(low),
+    "meaning": (", ".join(i["name"] for i in low[:2]) + (" …" if len(low) > 2 else ""))
+    if low
+    else ("Stock is fine" if low is not None else "Not available for your role"),
+    "tone": "info" if low is None else ("warn" if low else "ok"),
+    "button": "Order stock" if low else "See stock",
+    "target": "pages/13_Inventory.py",
+    "key": "low",
+}
+tiles = [t_guests, t_clean, t_staff, t_reqs, t_low]
+
+# ------------------------------------------------------------------ the answer
+needs = [t for t in tiles if t["tone"] in ("warn", "bad")]
+names = {"clean": "rooms to clean", "staff": "staff short", "reqs": "guest requests", "low": "low supplies"}
+if urgent:
+    answer_slot.markdown(
+        f'<div class="ss-verdict warn" style="background:#fdeceb;color:#8a1c1c">{theme.icon("alert", 22)}'
+        f"<span>Urgent: room {theme.esc(urgent[0]['room'])}, {theme.esc(urgent[0]['title'])}. Go now or send the duty manager.</span></div>",
+        unsafe_allow_html=True,
+    )
+elif needs:
+    with answer_slot.container():
+        ui.verdict(len(needs), bad_text="Mostly fine. Look at: " + ", ".join(names.get(t["key"], t["label"].lower()) for t in needs) + ".")
+else:
+    with answer_slot.container():
+        ui.verdict(0, ok_text="Yes, everything looks fine today.")
+with tiles_slot.container():
+    ui.action_tiles(tiles, key="today")
+
+# ------------------------------------------------------------------ also needs you (only what the tiles do not cover)
 checkin: list[str] = []  # people to check in with: supportive, never for discipline
 if HOMESTAY:
     loads: dict[str, int] = {}
@@ -68,51 +189,7 @@ elif ROLE in ("owner", "hr", "platform_admin"):
     except Exception:  # noqa: BLE001 - the ML backend may be asleep; the home page still works
         checkin = []
 
-nums = [
-    (
-        "Rooms ready",
-        s.get("ready", "—") if s else "—",
-        f"{to_clean} more to clean or check" if to_clean else "Nothing waiting to be cleaned",
-        "ok",
-    ),
-    ("Guest requests open", today.n(reqs), "Waiting for someone to finish them" if reqs else "No guest is waiting", tone(reqs, 1, 4)),
-    (
-        "Tasks running late" if HOMESTAY else "Jobs late",
-        today.n(late),
-        "Past their target time" if late else "Everything on time",
-        tone(late, 1, 2),
-    ),
-    (
-        "Team today" if HOMESTAY else "Staff on shift",
-        today.n(d.get("on_shift")),
-        "Your whole team (no roster needed)" if HOMESTAY else "Working right now (from the shift plan)",
-        "info",
-    ),
-    ("Low stock", today.n(low), "Running out: time to order" if low else "Stock is fine", tone(low, 1, 4)),
-]
-if checkin or not HOMESTAY:
-    nums.append(
-        (
-            "People to check in with",
-            str(len(checkin)),
-            "A friendly chat may help" if checkin else "No one this week",
-            "warn" if checkin else "ok",
-        )
-    )
-ui.big_numbers(nums)
-
-# ------------------------------------------------------------------ do next (one click each)
 todo: list[tuple[str, str, str, str, object]] = []  # (title, why, button label, key, action)
-for a in d.get("urgent") or []:  # safety / medical alerts from guests come first
-    todo.append(
-        (
-            f"URGENT · room {a['room']}: {a['title']}",
-            f"Open {a.get('minutes_open', 0)} min. Go now or send the duty manager.",
-            "Open",
-            f"act_urgent_{a['id']}",
-            "pages/17_Guest_Services.py",
-        )
-    )
 for r in d.get("staffing_pending") or []:
     todo.append(
         (
@@ -125,7 +202,7 @@ for r in d.get("staffing_pending") or []:
     )
 seen_titles: set[str] = set()
 for j in d.get("waiting_jobs") or []:
-    if j["title"] in seen_titles or len(seen_titles) >= 3:  # one row per request (a request can go to two teams)
+    if j["title"] in seen_titles or len(seen_titles) >= 2:  # one row per request (a request can go to two teams)
         continue
     seen_titles.add(j["title"])
     todo.append(
@@ -137,45 +214,16 @@ for j in d.get("waiting_jobs") or []:
             lambda jid=j["id"]: platform.retry(jid),
         )
     )
+if late:
+    todo.append((f"Jobs running late: {len(late)}", "Past their target time.", "See jobs", "act_late_jobs", "pages/10_Dispatch.py"))
 if d.get("late_checkouts"):
     todo.append(
         (
-            f"{d['late_checkouts']} late checkout request(s)",
+            f"Late checkout asks: {d['late_checkouts']}",
             "A guest is waiting for your yes or no.",
             "Decide",
             "act_late",
             "pages/17_Guest_Services.py",
-        )
-    )
-if reqs:
-    oldest = max(reqs, key=lambda q: q.get("minutes_open") or 0)
-    todo.append(
-        (
-            f"Guest request: {oldest['title']} (room {oldest['room']})",
-            f"Open for {int(oldest.get('minutes_open') or 0)} min.",
-            "See requests",
-            "act_reqs",
-            "pages/17_Guest_Services.py",
-        )
-    )
-if s.get("inspection"):
-    todo.append(
-        (
-            f"{s['inspection']} room(s) waiting for a check",
-            "Check them so the next guest can have them.",
-            "Check rooms",
-            "act_insp",
-            "pages/14_Rooms.py",
-        )
-    )
-if low:
-    todo.append(
-        (
-            f"Low stock: {', '.join(i['name'] for i in low[:3])}" + (" …" if len(low) > 3 else ""),
-            "Order before you run out.",
-            "Open stock",
-            "act_stock",
-            "pages/13_Inventory.py",
         )
     )
 if checkin and not HOMESTAY:
@@ -192,15 +240,14 @@ elif checkin:
     todo.append((f"{', '.join(checkin)} has a lot on", "Ask if they need a hand.", "See team", "act_team", "pages/19_Staff.py"))
 
 visible = {f for f, _, _ in st.session_state.get("_nav", [])}
-todo = [t for t in todo if not isinstance(t[4], str) or t[4] in visible][:5]
-ui.html('<h3 class="ss-h3">Do next</h3>')
-if not todo:
-    ui.html(theme.banner("<b>All clear.</b> Nothing needs you right now.", "blue", "check"))
+todo = [t for t in todo if not isinstance(t[4], str) or t[4] in visible][:4]
+if todo:
+    ui.html('<h3 class="ss-h3">Also needs you</h3>')
 for title, why, label, key, action in todo:
     a, b = st.columns([4, 1.3], vertical_alignment="center")
     a.markdown(f'<div class="ss-donext"><b>{theme.esc(title)}</b><span>{theme.esc(why)}</span></div>', unsafe_allow_html=True)
     with b:
-        if st.button(label, key=key, type="primary", width="stretch"):
+        if st.button(label, key=key, width="stretch"):
             if isinstance(action, str):
                 st.switch_page(nav.page(action))
             try:
@@ -210,3 +257,22 @@ for title, why, label, key, action in todo:
                 st.toast(e.message)
             data.clear()
             st.rerun()
+
+with ui.details("Details: where these numbers come from"):
+    st.caption(
+        "Rooms: the room board. Guest requests and checkouts: guest services. Staff on shift: the shift plan for this "
+        "day and shift; 'needed' adds the hours the plan could not fill, turned into people by that shift's length "
+        "(an estimate). Supplies: items at or below their 'order when below' level. Demo hotel data is synthetic."
+    )
+    ui.big_numbers(
+        [
+            ("Ready rooms", s.get("ready", "—") if s else "—", "Clean and free", "info"),
+            ("Jobs late", today.n(late), "Past their target time", "info"),
+            ("Jobs nobody took", today.n(d.get("waiting_jobs")), "Waiting for someone", "info"),
+        ]
+    )
+    if short:
+        st.caption(
+            "Short this shift: "
+            + "; ".join(f"{theme.dept_label(r['department'])} about {r['hours']:.0f} h (about {r['people']} people)" for r in short)
+        )

@@ -7,10 +7,11 @@ from lib import models, theme, ui
 from lib.api_client import ApiError
 
 ui.setup("pages/7_Tasks.py", "Tasks")
-ui.page_head("Tasks", "Follow-up tasks and how much time is left for each.")
+ui.page_head("Tasks", "Follow-up tasks for your team: what is late, what is open, what is done.")
+board_slot = st.container()  # the answer (tiles + task cards) goes first; the practice clock sits in Details underneath
 
-# ------------------------------------------------------------------ demo clock (demo-only control)
-with st.container(key="card_clock"):
+# ------------------------------------------------------------------ demo clock (demo-only control, under Details)
+with ui.details("Details: practice clock and auto-update"):
     clock_raw = ui.safe(api.get_clock, what="read the practice clock")
     clock = models.parse_clock(clock_raw) if clock_raw else None
     a, b, c = st.columns([1.1, 2.9, 1.1])
@@ -76,15 +77,6 @@ def board() -> None:
         c = None
     now = c.virtual_now if c and c.virtual_now else datetime.utcnow()
 
-    f1, f2, f3 = st.columns([1.5, 1.5, 2])
-    with f1:
-        who = st.multiselect("Who does it", sorted({t.assignee for t in tasks}), placeholder="Everyone")
-    with f2:
-        emp = st.multiselect(
-            "About which person", sorted({t.employee_id for t in tasks if t.employee_id}), format_func=ui.short_name, placeholder="Any"
-        )
-    show_keys = False
-    tasks = [t for t in tasks if (not who or t.assignee in who) and (not emp or t.employee_id in emp)]
     if not tasks:
         ui.empty("No tasks yet. Make the support plan, add one from a person's page, or use a voice note.")
         return
@@ -102,19 +94,34 @@ def board() -> None:
         return "", ""
 
     n_over = sum(1 for t in tasks if urgency(t)[0] == "overdue")
-    ui.html(
-        theme.tiles(
-            [
-                theme.tile("Open", str(sum(t.status == "open" for t in tasks)), "nobody has seen it yet", "flag"),
-                theme.tile("Seen", str(sum(t.status == "acked" for t in tasks)), "someone is on it", "clock"),
-                theme.tile("Done", str(sum(t.status == "done" for t in tasks)), "finished", "check"),
-                theme.tile("Late", str(n_over), "past the time, not done", "alert"),
-            ]
-        )
+    n_open = sum(t.status == "open" for t in tasks)
+    ui.verdict(
+        n_over,
+        ok_text="No task is late." + (f" {n_open} not seen yet." if n_open else ""),
+        bad_text=f"{n_over} task{'s are' if n_over != 1 else ' is'} late. Start with the red ones.",
     )
-    ui.html('<div style="height:12px"></div>')
+    ui.big_numbers(
+        [
+            ("Late", n_over, "Past the time, not done", "bad" if n_over else "ok"),
+            ("Not seen yet", n_open, "Nobody has opened it", "warn" if n_open else "ok"),
+            ("Being done", sum(t.status == "acked" for t in tasks), "Someone is on it", "info"),
+            ("Done", sum(t.status == "done" for t in tasks), "Finished", "ok"),
+        ]
+    )
+    f1, f2, _f3 = st.columns([1.5, 1.5, 2])
+    with f1:
+        who = st.multiselect("Who does it", sorted({t.assignee for t in tasks}), placeholder="Everyone")
+    with f2:
+        emp = st.multiselect(
+            "About which person", sorted({t.employee_id for t in tasks if t.employee_id}), format_func=ui.short_name, placeholder="Any"
+        )
+    show_keys = False
+    tasks = [t for t in tasks if (not who or t.assignee in who) and (not emp or t.employee_id in emp)]
+    if not tasks:
+        ui.empty("No tasks match these filters.")
+        return
     cols = st.columns(3)
-    for col, (status, title) in zip(cols, (("open", "Open"), ("acked", "Seen"), ("done", "Done"))):
+    for col, (status, title) in zip(cols, (("open", "Not seen yet"), ("acked", "Being done"), ("done", "Done"))):
         with col:
             group = sorted((t for t in tasks if t.status == status), key=lambda t: t.deadline or datetime.max)
             ui.html(
@@ -148,5 +155,6 @@ def board() -> None:
                             st.caption(f"{str(e.get('at', ''))[:16].replace('T', ' ')} · {e.get('kind')}: {e.get('message')}")
 
 
-board()
+with board_slot:
+    board()
 ui.footer()

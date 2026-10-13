@@ -13,6 +13,18 @@ import streamlit as st
 from lib import auth, platform, theme, ui
 
 ui.setup("pages/16_Hotel_Profile.py", "Hotel profile")
+
+
+def _day(iso) -> str:
+    """'2026-10-13T14:03…' -> '13 Oct' (owners read dates, not timestamps)."""
+    from datetime import datetime
+
+    try:
+        return datetime.fromisoformat(str(iso)[:19]).strftime("%d %b")
+    except ValueError:
+        return "never" if not iso else str(iso)[:10]
+
+
 CAN_EDIT = auth.role() in ("owner", "dept_head", "platform_admin")
 FIELDS = [
     "display_name",
@@ -77,7 +89,12 @@ ui.html(
             theme.tile("Profile complete", f"{len(SECTIONS) - len(missing)} of {len(SECTIONS)}", "sections filled in", "check"),
             theme.tile("Dining items", str(len(prof.get("dining") or [])), "with prices guests can see", "rupee"),
             theme.tile("Answers to common questions", str(len(prof.get("faq") or [])), "questions answered", "info"),
-            theme.tile("Last updated", str(prof.get("updated_at") or "never")[:16].replace("T", " "), "saved profile", "clock"),
+            theme.tile(
+                "Last updated",
+                _day(prof.get("updated_at")),
+                ("at " + str(prof.get("updated_at"))[11:16]) if prof.get("updated_at") else "not saved yet",
+                "clock",
+            ),
         ]
     )
 )

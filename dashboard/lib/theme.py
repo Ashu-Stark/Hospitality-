@@ -331,6 +331,20 @@ button:focus-visible, a:focus-visible, [role="tab"]:focus-visible, input:focus-v
 .ss-takeaway svg {{ color:var(--blue); flex:none; }}
 .ss-donext {{ background:#fff; border-radius:18px; padding:14px 16px; display:flex; flex-direction:column; gap:2px; }}
 .ss-donext b {{ font-size:1.02rem; }} .ss-donext span {{ color:var(--muted); font-size:.85rem; }}
+/* owner-first: one answer line, tiles with one action each, placeholder tiles while loading */
+.ss-verdict {{ display:flex; gap:12px; align-items:center; border-radius:20px; padding:16px 20px; margin:10px 0 12px;
+  font-size:1.25rem; font-weight:650; letter-spacing:-.01em; min-height:62px; box-sizing:border-box; }}
+.ss-verdict.ok {{ background:#ecfbea; color:#0a5a10; }} .ss-verdict.warn {{ background:#fff6df; color:#6b4600; }}
+.ss-verdict svg {{ flex:none; }}
+.ss-big.act {{ min-height:172px; border-radius:22px 22px 8px 8px; margin-bottom:6px; padding:18px 18px; }}
+.ss-big.act .v {{ font-size:2.4rem; }} .ss-big.act .l {{ line-height:1.25; }}
+.ss-big.act .m {{ display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden; }}
+.ss-big.skel {{ min-height:222px; color:var(--muted); }} .ss-big.skel .v {{ color:#d6d5cf; }}
+.ss-bigs.ss-acts {{ grid-template-columns:repeat(5, minmax(0,1fr)); }}
+.ss-bigs.ss-acts.n4 {{ grid-template-columns:repeat(4, minmax(0,1fr)); }} .ss-bigs.ss-acts.n3 {{ grid-template-columns:repeat(3, minmax(0,1fr)); }}
+@media (max-width: 900px) {{ .ss-bigs.ss-acts, .ss-bigs.ss-acts.n4, .ss-bigs.ss-acts.n3 {{ grid-template-columns:1fr; }} }}
+.ss-actpad {{ height:44px; }}
+@media (max-width: 640px) {{ .ss-big.act {{ min-height:0; }} .ss-big.skel {{ min-height:170px; }} .ss-verdict {{ font-size:1.08rem; }} }}
 .stButton > button, .stLinkButton > a {{ min-height:44px; }}
 div[class*="st-key-act_"] .stButton > button {{ min-height:48px; font-size:1rem; }}
 

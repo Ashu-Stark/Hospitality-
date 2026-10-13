@@ -9,6 +9,15 @@ ui.page_head("Home", "All hotels at a glance.")
 
 ts = ui.safe(platform.tenants, what="load the hotels") or []
 active = [t for t in ts if t["status"] != "suspended"]
+setting_up = [t for t in ts if not t["onboarded"] and t["status"] != "suspended"]
+ui.verdict(
+    len(setting_up),
+    ok_text="The active hotel is set up and running." if len(active) == 1 else f"All {len(active)} active hotels are set up and running.",
+    bad_text=f"{len(setting_up)} hotel{'s are' if len(setting_up) != 1 else ' is'} still setting up: "
+    + ", ".join(t["name"] for t in setting_up[:3])
+    + (" …" if len(setting_up) > 3 else "")
+    + ".",
+)
 ui.html(
     theme.tiles(
         [
@@ -32,7 +41,7 @@ with c1:
                     "When": r["at"][:16].replace("T", " "),
                     "Hotel": names.get(r["tenant_id"], "platform"),
                     "User": r["actor"],
-                    "Action": r["action"],
+                    "What happened": ui.action_label(r["action"]),
                 }
                 for r in rows
             ],
