@@ -24,6 +24,8 @@ SHOW_AFTER_S = 1.5  # show the notice only when the ping is actually slow
 FIRST_TIMEOUT_S = 30.0
 RETRY_TIMEOUT_S = 90.0
 RETRY_STATUSES = {502, 503, 504}  # what Render's proxy returns while the app is still starting
+WAKE_BUDGET_S = 75.0  # a sleeping Render free server takes about 30-60 s to boot
+WAKE_PAUSE_S = 3.0
 MESSAGE = "Waking up the server, this can take about 30 seconds…"
 
 _last_ok: dict[str, float] = {}  # base URL -> time of the last successful answer (process-wide; servers are shared)
@@ -63,10 +65,23 @@ def request(method: str, url: str, base: str, *, timeout: float | None = None, s
         if r.status_code < 500:
             mark_ok(base)
         return r
-    r = send(method, url, timeout=max(RETRY_TIMEOUT_S, first), **kw)
-    if r.status_code < 500:
-        mark_ok(base)
-    return r
+    # Render answers 502/503 for the whole 30-60 s boot of a sleeping free server, so keep retrying (with a pause)
+    # until it is up or WAKE_BUDGET_S has passed, instead of failing on the first retry.
+    deadline = time.time() + WAKE_BUDGET_S
+    while True:
+        try:
+            r = send(method, url, timeout=max(RETRY_TIMEOUT_S, first), **kw)
+        except (requests.exceptions.ConnectTimeout, requests.exceptions.ConnectionError):
+            if time.time() >= deadline:
+                raise
+            time.sleep(WAKE_PAUSE_S)
+            continue
+        if r.status_code in RETRY_STATUSES and time.time() < deadline:
+            time.sleep(WAKE_PAUSE_S)
+            continue
+        if r.status_code < 500:
+            mark_ok(base)
+        return r
 
 
 def warm(base: str, health_path: str = "/health") -> None:
