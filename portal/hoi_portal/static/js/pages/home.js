@@ -161,7 +161,6 @@ export async function home(ctx) {
   el.classList.add('homepage', 'hv');
   const hp = photo('hero');
   const banner = photo('itin-char-dham-yatra');
-  const band = photo('lx-farm_stay');
   mount(el, html`
   <section class="hv-hero" aria-labelledby="hero-h">
     ${hp ? html`<img class="hv-hero-img" src="img/photos/${hp.file}" alt="" width="${hp.width}" height="${hp.height}" fetchpriority="high" decoding="async">` : ''}
@@ -216,18 +215,6 @@ export async function home(ctx) {
       <h2 id="band-h"><span>List your property,</span> <span>free</span></h2>
       <p>Get a registration guests can check, show your rooms to travellers and host village walks or home meals. No fee in this demo.</p>
       <div class="hv-band-btns"><a class="hv-btn-white" href="#/host">List your property ${icon('arrow')}</a><a class="hv-btn-line" href="#/jobs/hire">Hire staff</a></div>
-    </div>
-    <div class="hv-phones" aria-hidden="true">
-      <div class="hv-phone p1"><div class="hv-scr">
-        <div class="hv-scr-top">Your listing</div>
-        <div class="hv-scr-ph">${band ? img(band, { alt: '' }) : ''}</div>
-        <div class="hv-scr-b"><b>Sample Homestay</b><span>Munsiyari · 4 rooms</span><span class="hv-scr-pill">Verified</span>
-          <span class="hv-scr-row"><i></i><i></i></span><span class="hv-scr-row s"><i></i></span></div></div></div>
-      <div class="hv-phone p2"><div class="hv-scr">
-        <div class="hv-scr-top">Requests</div>
-        <div class="hv-scr-b"><span class="hv-scr-card"><b>Village walk</b><span>2 people · Sat</span></span>
-          <span class="hv-scr-card"><b>Home meal</b><span>4 people · Sun</span></span><span class="hv-scr-card dim"><b>Stay, 2 nights</b><span>Ask about rooms</span></span></div></div></div>
-      <p class="hv-phones-cap">Example screens</p>
     </div>
   </section>`);
 
