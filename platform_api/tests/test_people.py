@@ -4,13 +4,13 @@ Recognition facts are written straight into a fresh test tenant (jobs, after pho
 visibility and roles are checked through the API on the demo tenant. The tourism portal is always a fake: no network.
 """
 
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta
 
 import pytest
 from conftest import auth
 
 from hoi_platform import mongo, seed
-from hoi_platform.services import portal_client, recognition, staffing, tenants
+from hoi_platform.services import dispatch, portal_client, recognition, staffing, tenants
 
 MONTH = "2026-03"
 T0 = datetime(2026, 3, 10, 6, 0, tzinfo=UTC)
@@ -73,6 +73,9 @@ def test_homestay_jobs_go_to_the_homestay_team(client, owner):
         "/dispatch/jobs", json={"title": "Towels", "department": "housekeeping", "room": "101", "urgency": "low"}, headers=owner
     ).json()
     assert hotel_job["offer_to"] == "HS05"
+    # offer window: a family team gets 15 minutes to answer (the card shows no countdown bar); the hotel keeps its 30 s
+    assert 14 * 60 < job["seconds_left"] <= dispatch.HOMESTAY_OFFER_SECONDS
+    assert hotel_job["seconds_left"] <= 30
 
 
 # ------------------------------------------------------------------ recognition points
@@ -229,7 +232,9 @@ def _homestay(client, owner):
     return next(p for p in client.get("/workspace/properties", headers=owner).json() if p["mode"] == "homestay")["id"]
 
 
-REQ = {"department": "housekeeping", "skill": "room_cleaning", "date_from": "2026-10-19", "date_to": "2026-10-21", "openings": 2}
+D0 = date.today() + timedelta(days=5)  # relative: the portal (and now the platform) refuse windows already over
+REQ = {"department": "housekeeping", "skill": "room_cleaning", "date_from": D0.isoformat(),
+       "date_to": (D0 + timedelta(days=2)).isoformat(), "openings": 2}
 
 
 def test_staffing_request_forwarded_with_the_property_key(client, owner, monkeypatch):
@@ -283,9 +288,73 @@ def test_staffing_request_validation_and_roles(client, owner, store):
     assert client.post("/staffing/requests", json=REQ, headers=worker).status_code == 403
     assert client.post("/staffing/requests", json=REQ, headers=store).status_code == 403
     assert client.post("/staffing/requests", json={**REQ, "openings": 0}, headers=owner).status_code == 422
-    assert client.post("/staffing/requests", json={**REQ, "date_to": "2026-10-01"}, headers=owner).status_code == 422
+    before = (D0 - timedelta(days=1)).isoformat()
+    assert client.post("/staffing/requests", json={**REQ, "date_to": before}, headers=owner).status_code == 422
+    past = (date.today() - timedelta(days=3)).isoformat()
+    r = client.post("/staffing/requests", json={**REQ, "date_from": past, "date_to": past}, headers=owner)
+    assert r.status_code == 422 and "already over" in r.text
+    far = (date.today() + timedelta(days=staffing.PORTAL_MAX_LEAD_DAYS + 1)).isoformat()  # e.g. the 2029 demo roster week
+    r = client.post("/staffing/requests", json={**REQ, "date_from": far, "date_to": far}, headers=owner)
+    assert r.status_code == 422 and "within 180 days" in r.text
     assert client.post("/staffing/requests", json={**REQ, "worker_name": "X"}, headers=owner).status_code == 422  # no extra fields
     assert client.post("/staffing/requests", json={**REQ, "property_id": "prop_other"}, headers=owner).status_code == 404
+
+
+def test_payload_fits_the_portal_limits():
+    base = {"id": "stf_1", "department": "kitchen", "date_from": "2026-11-01", "date_to": "2026-11-02", "openings": 1}
+    # free text skill -> the department's portal key; the words go into the note
+    p = staffing.payload({**base, "skill": "tandoor, North Indian curries", "note": "Wedding"})
+    assert p["skill"] == "cook_indian" and p["note"] == "Skill: tandoor, North Indian curries. Wedding"
+    assert set(p) == {"external_id", "department", "skill", "date_from", "date_to", "openings", "note"}
+    # a key-like skill is sent as it is (the portal maps or falls back to the department)
+    assert staffing.payload({**base, "skill": "kitchen_helper"})["skill"] == "kitchen_helper"
+    long = staffing.payload({**base, "skill": "x " * 30, "note": "n" * 500})
+    assert len(long["skill"]) <= staffing.PORTAL_SKILL_MAX and len(long["note"]) == staffing.PORTAL_NOTE_MAX
+    assert staffing.payload({**base, "department": "spa", "skill": ""})["skill"] == "spa"  # unmapped: the department
+
+
+def test_portal_rejection_reason_is_shown(monkeypatch):
+    class R:
+        status_code = 422
+
+        def json(self):
+            return {"detail": "The staffing window starts more than 180 days from now."}
+
+    monkeypatch.setattr(portal_client.httpx, "request", lambda *a, **k: R())
+    with pytest.raises(portal_client.PortalError) as e:
+        portal_client.send({"external_id": "a"}, "k1")
+    assert e.value.message == "The tourism portal answered HTTP 422: The staffing window starts more than 180 days from now."
+    assert "k1" not in e.value.message
+
+
+def test_portal_client_retries_once_on_a_cold_start(monkeypatch):
+    calls = []
+
+    class R:
+        status_code = 201
+
+        def json(self):
+            return {"job_id": "JOB-1"}
+
+    def slow_then_ok(method, url, **kw):
+        calls.append(kw["timeout"])
+        if len(calls) == 1:
+            raise portal_client.httpx.ReadTimeout("cold start")
+        return R()
+
+    monkeypatch.setattr(portal_client.httpx, "request", slow_then_ok)
+    assert portal_client.send({"external_id": "a"}, "k1") == {"job_id": "JOB-1"} and len(calls) == 2
+    assert calls[0].read >= 20  # a longer read timeout than the old 10 s
+
+    def always_slow(method, url, **kw):
+        calls.append(1)
+        raise portal_client.httpx.ReadTimeout("cold start")
+
+    calls.clear()
+    monkeypatch.setattr(portal_client.httpx, "request", always_slow)
+    with pytest.raises(portal_client.PortalError) as e:
+        portal_client.send({"external_id": "a"}, "k1")
+    assert len(calls) == 2 and "ReadTimeout" in e.value.message and "try again" in e.value.message
 
 
 def test_portal_client_uses_env_url_and_key_header(monkeypatch):

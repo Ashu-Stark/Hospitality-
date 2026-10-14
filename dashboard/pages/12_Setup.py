@@ -5,7 +5,7 @@ import pandas as pd
 import streamlit as st
 
 from lib import api_client as api
-from lib import auth, dispatch, nav, platform, tenancy, theme, ui
+from lib import auth, dispatch, nav, platform, tenancy, theme, timefmt, ui
 from lib.config import DEFAULT_API, Settings, current_settings
 
 ui.setup("pages/12_Setup.py", "Setup")
@@ -312,7 +312,7 @@ with tab_team:
         a.markdown(
             f"**{u['username']}**"
             + (f" · {u['employee_id']}" if u["employee_id"] else "")
-            + f"  \n<span style='color:#6b6a65;font-size:.8rem'>last sign-in {(u['last_login'] or 'never')[:16].replace('T', ' ')}</span>",
+            + f"  \n<span style='color:#6b6a65;font-size:.8rem'>last sign-in {timefmt.stamp(u['last_login']) if u['last_login'] else 'never'}</span>",
             unsafe_allow_html=True,
         )
         b.markdown(theme.band_chip("low" if u["active"] else "high", auth.ROLES.get(u["role"], u["role"])), unsafe_allow_html=True)

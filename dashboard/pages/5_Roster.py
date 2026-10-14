@@ -1,5 +1,5 @@
 from collections import Counter
-from datetime import date
+from datetime import date, timedelta
 
 import pandas as pd
 import plotly.graph_objects as go
@@ -15,15 +15,26 @@ ui.page_head("Shift plan", "Who works which shift this week, and where we are sh
 
 def shortage_prefill(dept: str | None, day: str | None, hours: float = 8.0, source: str = "roster_shortage") -> dict:
     """Fill the Extra staff form from a roster gap: department, that day, about one person per 8 hours short (ASSUMED)."""
-    d = day or date.today().isoformat()
+    gap = day or date.today().isoformat()
+    d = request_day(gap)
     return {
         "department": dept or "housekeeping",
         "date_from": d,
         "date_to": d,
         "openings": max(1, round(hours / 8)),
-        "note": f"Shift plan short by about {hours:.0f} hours on {d}.",
+        "note": f"Shift plan short by about {hours:.0f} hours on {date.fromisoformat(gap).strftime('%A')}.",
         "source": source,
+        "gap_day": gap,
     }
+
+
+def request_day(day: str) -> str:
+    """The tourism portal takes requests from today up to 180 days ahead. The demo shift plan is a SYNTHETIC future week
+    (2029), so a gap outside that range is asked for on the same weekday in the coming week (the form can still change it)."""
+    d, t = date.fromisoformat(day), date.today()
+    if t <= d <= t + timedelta(days=180):
+        return day
+    return (t + timedelta(days=(d.weekday() - t.weekday()) % 7 or 7)).isoformat()
 
 
 def request_staff_button(pre: dict, key: str) -> None:
@@ -68,6 +79,10 @@ if gen:
         if raw.get("id"):
             st.session_state["last_roster_id"] = raw["id"]
         data.clear()
+        made = models.parse_roster(raw)
+        if made is not None and made.status != "infeasible":  # publishing happens here, when the plan is made
+            err = data.publish_plan(made)
+            ui.flash("Shift plan made and sent to staff phones." if err is None else f"Shift plan made. Not sent to staff: {err}", ok=err is None)
 
 raw = st.session_state.get("roster_raw")
 ro: models.Roster | None = models.parse_roster(raw) if raw else None

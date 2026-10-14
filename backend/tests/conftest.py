@@ -3,6 +3,7 @@ import os
 # Tests run offline on in-memory mongomock, never on Atlas: set before the app is imported.
 os.environ["MONGODB_URI"] = "mongomock://"
 os.environ.pop("HOI_ENV", None)
+os.environ.pop("HOI_OPS_API_KEY", None)  # open API unless a test sets the key (test_auth.py)
 os.environ.pop("LOCATIONIQ_API_KEY", None)  # geocoding: tests use a fake, never the network
 # These tests were written for the original dataset (ml/data: 45 rooms, 55 staff, demo heroes);
 # the fictional Himsagar hotel (the served default) is tested in test_hotel_himsagar.py.

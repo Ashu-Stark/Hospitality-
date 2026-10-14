@@ -21,7 +21,12 @@ import httpx
 DEFAULT_PORTAL_URL = "https://hoi-portal.vercel.app"
 PATH = "/api/v1/ingest/staffing-request"
 MATCHES_PATH = "/api/v1/ingest/candidate-matches"
-TIMEOUT_S = 10.0
+# The free portal host (Vercel) cold-starts: the first request after a quiet spell can take 10-20 s. So: a 25 s read timeout and
+# ONE retry on a timeout, a dropped connection or a 502/503/504. Retrying the POST is safe: the portal is idempotent per
+# external_id. Worst case about 60 s, under the dashboard's 120 s wait for these calls (dashboard/lib/platform.py SLOW_S).
+TIMEOUT = httpx.Timeout(25.0, connect=10.0)
+TIMEOUT_S = 25.0
+RETRY_STATUSES = {502, 503, 504}
 log = logging.getLogger("hoi.portal_client")
 
 
@@ -45,16 +50,46 @@ HINTS = {
 }
 
 
+def _reason(r: httpx.Response) -> str:
+    """The portal's own plain reason for a 409 / 422 (e.g. "The staffing window starts more than 180 days from now"), so the
+    owner knows what to change. The portal never echoes the API key; capped and single-line anyway."""
+    try:
+        body = r.json()
+    except ValueError:
+        return ""
+    if not isinstance(body, dict) or not isinstance(body.get("detail"), str):
+        return ""
+    text = body["detail"]
+    errs = [e for e in body.get("errors") or [] if isinstance(e, dict)]
+    if errs:  # field validation: name the fields
+        text += " " + "; ".join(f"{e.get('field') or 'body'}: {e.get('message')}" for e in errs[:3])
+    return " ".join(text.split())[:200]
+
+
 def _call(method: str, path: str, api_key: str, *, json: dict | None = None, params: dict | None = None) -> dict:
     """One request to the portal. Returns its JSON object. Raises PortalError (never with the key in it)."""
-    try:
-        r = httpx.request(method, base_url() + path, json=json, params=params, headers={"X-API-Key": api_key}, timeout=TIMEOUT_S)
-    except httpx.HTTPError as e:
-        log.warning("portal %s %s failed: %s", method, path, type(e).__name__)
-        raise PortalError(f"The tourism portal could not be reached ({type(e).__name__}).") from None
+    r = None
+    for attempt in (1, 2):
+        try:
+            r = httpx.request(method, base_url() + path, json=json, params=params, headers={"X-API-Key": api_key}, timeout=TIMEOUT)
+        except (httpx.TimeoutException, httpx.NetworkError) as e:
+            log.warning("portal %s %s failed (try %s): %s", method, path, attempt, type(e).__name__)
+            if attempt == 2:
+                raise PortalError(
+                    f"The tourism portal could not be reached ({type(e).__name__}). It may be starting up: try again in a minute."
+                ) from None
+            continue
+        except httpx.HTTPError as e:
+            log.warning("portal %s %s failed: %s", method, path, type(e).__name__)
+            raise PortalError(f"The tourism portal could not be reached ({type(e).__name__}).") from None
+        if r.status_code not in RETRY_STATUSES or attempt == 2:
+            break
+        log.warning("portal %s %s busy (try %s): HTTP %s", method, path, attempt, r.status_code)
     if r.status_code >= 400:
         log.warning("portal %s %s rejected: HTTP %s", method, path, r.status_code)
-        raise PortalError(f"The tourism portal answered HTTP {r.status_code}: {HINTS.get(r.status_code, 'try again later')}.", r.status_code)
+        reason = _reason(r) if r.status_code in (409, 422) else ""
+        hint = reason or HINTS.get(r.status_code, "try again later")
+        raise PortalError(f"The tourism portal answered HTTP {r.status_code}: {hint.rstrip('.')}.", r.status_code)
     try:
         out = r.json()
     except ValueError:

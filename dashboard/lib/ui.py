@@ -37,6 +37,7 @@ def setup(page_file: str, title: str, *, employee: bool = False) -> None:
         # stale URL can land on the one not allowed right now: go to the right one instead of showing "no access"
         nav.go(visible[0][0])
     _topbar(page_file, t, u)
+    show_flash()
     if not allowed:
         html(theme.banner("<b>You do not have access to this page.</b> Ask your hotel admin if you need it.", "red", "shield"))
         st.stop()
@@ -45,6 +46,22 @@ def setup(page_file: str, title: str, *, employee: bool = False) -> None:
     if not employee and page_file != access.PICK_PAGE[0]:
         _sidebar(t, u)
         tour.render(page_file)
+
+
+FLASH_KEY = "_flash"
+
+
+def flash(message: str, ok: bool = True) -> None:
+    """Queue a toast for the next run: a toast drawn right before st.rerun() can be lost, so the result of a button
+    (sent / not sent) is shown after the rerun instead."""
+    st.session_state[FLASH_KEY] = (message, ok)
+
+
+def show_flash() -> None:
+    item = st.session_state.pop(FLASH_KEY, None)
+    if item:
+        msg, ok = item
+        st.toast(msg, icon=":material/check_circle:" if ok else ":material/error:", duration="long")
 
 
 def _topbar(page_file: str, t: dict, u: dict | None) -> None:

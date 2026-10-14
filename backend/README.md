@@ -58,6 +58,7 @@ Environment variables the app reads:
 | `HOI_OPS_DB` | `hoi_ops` | MongoDB database name |
 | `MOCK` | 0 | `1` serves `ml/data/mocks/*.json` instead of the models |
 | `CORS_ORIGINS` | `*` | comma-separated allowed origins; `*` (all) is relaxed for the hackathon demo |
+| `HOI_OPS_API_KEY` | unset (= open) | shared secret; when set, every endpoint except `/health` and the API docs needs the header `X-HOI-Key: <value>` (else 401). Secret, `sync: false`; set the same value on the dashboards (`backend/auth.py`) |
 | `GROQ_API_KEY` | unset | optional voice provider (Groq Whisper) |
 | `SARVAM_API_KEY` | unset | optional voice provider (Sarvam) |
 

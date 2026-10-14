@@ -15,6 +15,7 @@ Retention cover (someone's chance of leaving is HIGH, from the attrition model o
 
 from __future__ import annotations
 
+import re
 from datetime import date, timedelta
 
 from pymongo import DESCENDING
@@ -26,6 +27,12 @@ from .errors import Invalid, NotFound
 
 STATUSES = ("pending_send", "sent")
 MAX_DAYS = 31
+# The tourism portal's own limits (portal/hoi_portal: StaffingRequestIn and services/staffing.ingest_request). A request outside
+# them is refused by the portal with HTTP 422, so it is refused here first, with the reason, before anything is saved.
+PORTAL_MAX_LEAD_DAYS = 180  # the window must start within 180 days
+PORTAL_SKILL_MAX = 40  # characters of `skill`
+PORTAL_NOTE_MAX = 300  # characters of `note`
+_SKILL_KEY = re.compile(r"^[a-z][a-z_]{1,39}$")
 
 
 def _scrub(text: str) -> str:
@@ -62,6 +69,11 @@ def create(
         raise Invalid("The end date is before the start date.")
     if (d1 - d0).days >= MAX_DAYS:
         raise Invalid(f"One request covers at most {MAX_DAYS} days.")
+    today = date.today()
+    if d1 < today:
+        raise Invalid("These dates are already over. Choose dates from today on.")
+    if d0 > today + timedelta(days=PORTAL_MAX_LEAD_DAYS):
+        raise Invalid(f"The tourism portal takes requests that start within {PORTAL_MAX_LEAD_DAYS} days. Choose earlier dates.")
     doc = {
         "id": rid or mongo.new_id("stf"),
         "tenant_id": tid,
@@ -100,14 +112,27 @@ def _raw(tid: str, rid: str) -> dict:
 
 
 def payload(r: dict) -> dict:
+    """The exact body the portal accepts: {external_id, department, skill, date_from, date_to, openings, note}.
+
+    `skill` must be a short key (the portal maps HOI department names and falls back to `department` for an unknown key),
+    so free text typed by the owner ("room cleaning, tandoor") goes into the note instead, and the skill becomes the
+    department's portal key. The note is cut to the portal's 300 characters (contract test: portal/tests/test_hoi_contract.py)."""
+    free = " ".join((r.get("skill") or "").split())
+    note = r.get("note") or ""
+    if _SKILL_KEY.match(free):
+        skill = free
+    else:
+        skill = portal_skill(r["department"]) or r["department"]
+        if free:
+            note = f"Skill: {free}. {note}".strip()
     return {
         "external_id": r["id"],
         "department": r["department"],
-        "skill": r.get("skill") or "",
+        "skill": skill[:PORTAL_SKILL_MAX],
         "date_from": r["date_from"],
         "date_to": r["date_to"],
         "openings": r["openings"],
-        "note": r.get("note") or "",
+        "note": note[:PORTAL_NOTE_MAX],
     }
 
 

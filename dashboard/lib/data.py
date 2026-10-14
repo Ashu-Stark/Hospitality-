@@ -141,13 +141,34 @@ def dept_map() -> dict[str, str]:
         return {}
 
 
+PUBLISHERS = ("owner", "dept_head", "hr", "platform_admin")
+
+
+def publish_plan(ro) -> str | None:  # noqa: ANN001 - models.Roster
+    """Publish a plan a manager just made (staff phones and the live on-shift list read it). Returns an error text or None.
+    Called ONLY from the Shift plan page's "Make shift plan" action, never on a page load."""
+    from . import auth, platform
+
+    if ro is None or getattr(ro, "status", "") == "infeasible" or not ro.assignments:
+        return "This plan was not published: it has no shifts."
+    if auth.role() not in PUBLISHERS:
+        return "Only a manager can publish a shift plan."
+    try:
+        platform.publish_roster(ro.week_start, ro.assignments)
+    except platform.PlatformError as e:
+        return e.message
+    return None
+
+
 def ops_inputs(day: str | None = None, shift: str | None = None):
     """(roster, working{emp: dept}, bands{emp: band}, day, shift) for the dispatch engine. Never raises.
 
     Who is on shift NOW comes from the platform's live context: the published roster and the clock (hotel local time),
     or a manual override the owner set on the Jobs page (practice clock), which ends with the shift. Page loads only
-    publish the roster (staff read their own shifts from it) and the chance-of-leaving bands; they never set who is on
-    shift. `day` / `shift` are accepted for older callers and ignored. The context is kept in session "ops_ctx"."""
+    publish the chance-of-leaving bands; they never publish a roster (that changed who is on shift whenever someone had
+    made a newer plan: the roster is published only when a manager makes a plan on the Shift plan page,
+    publish_plan below) and never set who is on shift. `day` / `shift` are accepted for older callers and ignored.
+    The context is kept in session "ops_ctx"."""
     from . import auth, dispatch, platform, tenancy
 
     rid = current_roster_id()
@@ -164,12 +185,6 @@ def ops_inputs(day: str | None = None, shift: str | None = None):
     except api.ApiError:
         bands = {}
     if manager:
-        if ro is not None and st.session_state.get("roster_pub") != ro.id:  # employees read their own shifts from this
-            try:
-                platform.publish_roster(ro.week_start, ro.assignments)
-                st.session_state["roster_pub"] = ro.id
-            except platform.PlatformError:
-                pass
         sig = hash((tuple(sorted(bands.items())), tenancy.floors()))
         if st.session_state.get("ctx_sig") != sig:  # bands for the retention guard; not who is on shift
             try:

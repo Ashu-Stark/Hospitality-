@@ -86,7 +86,8 @@ def gather() -> dict:
         ctx = _try(platform.get_context)
         out["context"] = ctx
         ids = {s["employee_id"] for s in team or []}
-        out["on_shift"] = len([e for e in (ctx or {}).get("working", {}) if not ids or e in ids]) if ctx is not None else None
+        out["working"] = {e: dpt for e, dpt in (ctx or {}).get("working", {}).items() if not ids or e in ids}
+        out["on_shift"] = len(out["working"]) if ctx is not None else None
 
     stock = _try(platform.inv, "GET", "/stock")
     items = _try(platform.inv, "GET", "/items")
@@ -99,6 +100,31 @@ def gather() -> dict:
     sr = _try(platform.staffing_requests) if auth.role() in ("owner", "hr", "dept_head", "platform_admin") else None
     out["staffing_pending"] = [r for r in sr or [] if r.get("status") == "pending_send"]
     return out
+
+
+WAITING = ("new", "unassigned", "offered")
+
+
+def uncovered(working: dict[str, str] | None, jobs: list[dict] | None) -> list[tuple[str, int]]:
+    """Departments with jobs waiting for someone but NOBODY of that department on shift: [(department, jobs waiting)],
+    most jobs first. (Live QA: "2 on shift, enough people" while both were security and housekeeping jobs waited.)"""
+    on = set((working or {}).values())
+    need: dict[str, int] = {}
+    for j in jobs or []:
+        dpt = j.get("department")
+        if dpt and j.get("status") in WAITING and dpt not in on:
+            need[dpt] = need.get(dpt, 0) + 1
+    return sorted(need.items(), key=lambda x: (-x[1], x[0]))
+
+
+def on_shift_mix(working: dict[str, str] | None, label=lambda d: d) -> str:  # noqa: ANN001
+    """'security only', or 'housekeeping 2, security 1'. Empty when nobody is on shift."""
+    counts: dict[str, int] = {}
+    for dpt in (working or {}).values():
+        counts[dpt] = counts.get(dpt, 0) + 1
+    if len(counts) == 1:
+        return f"{label(next(iter(counts))).lower()} only"
+    return ", ".join(f"{label(k).lower()} {v}" for k, v in sorted(counts.items(), key=lambda x: (-x[1], x[0])))
 
 
 def _is_first(pid: str | None) -> bool:
@@ -238,3 +264,12 @@ def late_checkout_sentence(count: int, rows: list[dict] | None) -> tuple[str, st
 def names_sentence(names: list[str]) -> str:
     """['HS05'] -> 'HS05', ['HS05', 'HS12'] -> 'HS05 and HS12', 3+ -> 'HS05, HS12 and HS14'."""
     return names[0] if len(names) == 1 else ", ".join(names[:-1]) + " and " + names[-1]
+
+def action_result(out) -> tuple[str, bool]:
+    """(toast text, ok) for a Today action's answer. A staffing request that is still "pending_send" did NOT reach the
+    tourism portal: say so with the reason, instead of a bare "Done"."""
+    if isinstance(out, dict) and out.get("status") == "pending_send":
+        return "Still not sent: " + (out.get("last_error") or "the tourism portal did not answer. Try again in a minute."), False
+    if isinstance(out, dict) and out.get("status") == "sent" and "openings" in out:
+        return "Sent to the tourism portal.", True
+    return "Done", True

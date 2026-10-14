@@ -3,7 +3,7 @@ from datetime import datetime
 import streamlit as st
 
 from lib import api_client as api
-from lib import models, theme, ui
+from lib import models, theme, timefmt, ui
 from lib.api_client import ApiError
 
 ui.setup("pages/7_Tasks.py", "Tasks")
@@ -152,7 +152,7 @@ def board() -> None:
                 if t.events:
                     with st.expander(f"History ({len(t.events)})"):
                         for e in t.events:
-                            st.caption(f"{str(e.get('at', ''))[:16].replace('T', ' ')} · {e.get('kind')}: {e.get('message')}")
+                            st.caption(f"{timefmt.stamp(e.get('at'))} · {e.get('kind')}: {e.get('message')}")
 
 
 with board_slot:

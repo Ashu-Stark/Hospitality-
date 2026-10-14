@@ -12,6 +12,15 @@ Express checkout (documented behaviour):
 - If staff already checked the room out on the room board, the scheduled checkout simply closes (`already_checked_out`).
 - A time after the profile's checkout time needs an approved late checkout covering it.
 
+Express and late checkout are mutually exclusive per stay (the later action wins, and the reply says so in `message` /
+`message_hi`):
+- Booking express checkout at or before the normal checkout time cancels a pending or approved late checkout request.
+  (A later express time is only possible on an approved late checkout covering it; that late checkout is kept, since
+  the express checkout is the same departure.)
+- Asking for a late checkout while an express checkout is still scheduled cancels the express checkout and closes its
+  front-office job (marked done with a "Cancelled by the guest" note; jobs have no cancelled status). The guest can book
+  express checkout again afterwards.
+
 Times are "HH:MM" in hotel local time (config.hotel_utc_offset_minutes, default IST). No personal data is stored:
 free-text reasons and comments are length-capped and phone numbers / e-mail addresses are masked.
 """
@@ -84,6 +93,30 @@ def _local(dt: datetime | None) -> str | None:
     return dt.astimezone(tz()).strftime("%Y-%m-%d %H:%M")
 
 
+def hotel_hhmm(v: str | datetime | None) -> str:
+    """'HH:MM' in hotel local time for a stored time. mongo.iso() strings are server-local without an offset (UTC on
+    the host, IST on a laptop), so slicing them shows the wrong clock; naive strings are read as server-local here."""
+    if not v:
+        return ""
+    try:
+        dt = v if isinstance(v, datetime) else datetime.fromisoformat(str(v))
+    except ValueError:
+        return ""
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=UTC) if isinstance(v, datetime) else dt.astimezone()  # stored datetimes are UTC
+    return dt.astimezone(tz()).strftime("%H:%M")
+
+
+def with_local_times(payload: dict) -> dict:
+    """Adds `at_local` (hotel-local HH:MM) to each request in a guest payload, and the hotel's UTC offset."""
+    if isinstance(payload, dict):
+        for q in payload.get("requests") or []:
+            if isinstance(q, dict) and "at" in q:
+                q["at_local"] = hotel_hhmm(q["at"])
+        payload["utc_offset_minutes"] = config.settings.hotel_utc_offset_minutes
+    return payload
+
+
 # ------------------------------------------------------------------ status for the guest page
 def _checkout_out(d: dict | None) -> dict | None:
     if not d:
@@ -113,7 +146,7 @@ def _late_out(d: dict | None) -> dict:
 
 def stay_status(room: dict) -> dict:
     tid, rid, stay = room["tenant_id"], room["id"], _stay(room)
-    co = mongo.col("guest_checkouts").find_one({"tenant_id": tid, "room_id": rid, "stay": stay})
+    co = mongo.col("guest_checkouts").find_one({"tenant_id": tid, "room_id": rid, "stay": stay, "status": {"$ne": "cancelled"}})
     late = mongo.col("late_checkouts").find_one({"tenant_id": tid, "room_id": rid, "stay": stay}, sort=[("created_at", -1), ("_id", -1)])
     fb = mongo.col("guest_feedback").find_one({"tenant_id": tid, "room_id": rid, "stay": stay}, {"rating": 1})
     return {
@@ -146,6 +179,9 @@ def express_checkout(token: str, time: str, luggage_help: bool) -> dict:
         late = mongo.col("late_checkouts").find_one({"tenant_id": tid, "room_id": r["id"], "stay": stay, "status": "approved"})
         if not late or late["until"] < time:
             raise Invalid(f"Checkout time is {prof['checkout_time']}. For a later time, please request a late checkout first.")
+    old = mongo.col("guest_checkouts").find_one({"tenant_id": tid, "room_id": r["id"], "stay": stay})
+    if old and old["status"] == "cancelled":  # cancelled earlier by a late checkout request: the guest books again
+        mongo.col("guest_checkouts").delete_one({"id": old["id"], "status": "cancelled"})
     due = next_occurrence(time)
     doc = {
         "id": mongo.new_id("xco"),
@@ -189,7 +225,52 @@ def express_checkout(token: str, time: str, luggage_help: bool) -> dict:
         raise
     mongo.col("guest_checkouts").update_one({"id": doc["id"]}, {"$set": {"front_job_id": job["id"]}})
     tenants.audit(tid, "guest", "guest.express_checkout", f"room {r['number']} at {time}{' luggage' if luggage_help else ''}")
-    return {"ok": True, **stay_status(rooms.by_token(token))}
+    out: dict = {"ok": True}
+    if time <= prof["checkout_time"]:  # leaving on time: a late checkout request no longer applies
+        late = _cancel_late(r, stay, f"Cancelled: the guest booked express checkout at {time}.")
+        if late:
+            out.update(
+                replaced={"what": "late_checkout", "until": late["until"], "status": late["status"]},
+                message=f"Your late checkout request (until {late['until']}) is cancelled, because you booked express checkout at {time}.",
+                message_hi=f"आपकी {late['until']} बजे तक की लेट check-out माँग रद्द कर दी गई है, क्योंकि आपने {time} बजे जल्दी check-out बुक किया है।",
+            )
+    return {**out, **stay_status(rooms.by_token(token))}
+
+
+def _cancel_late(r: dict, stay: int, note: str) -> dict | None:
+    """Cancel this stay's pending / approved late checkout request (the guest chose express checkout instead)."""
+    d = mongo.col("late_checkouts").find_one_and_update(
+        {"tenant_id": r["tenant_id"], "room_id": r["id"], "stay": stay, "status": {"$in": ["pending", "approved"]}},
+        {"$set": {"status": "cancelled", "note": note, "decided_by": "guest", "decided_at": mongo.now()}},
+        return_document=ReturnDocument.BEFORE,
+    )
+    if d:
+        tenants.audit(r["tenant_id"], "guest", "guest.late_checkout_cancelled", f"room {r['number']} until {d['until']} ({d['status']})")
+    return d
+
+
+def _cancel_express(r: dict, stay: int, note: str) -> dict | None:
+    """Cancel this stay's scheduled express checkout and close its front-office job (the guest asked for late checkout)."""
+    tid = r["tenant_id"]
+    d = mongo.col("guest_checkouts").find_one_and_update(
+        {"tenant_id": tid, "room_id": r["id"], "stay": stay, "status": "scheduled"},
+        {"$set": {"status": "cancelled", "outcome": note, "done_at": mongo.now()}},
+        return_document=ReturnDocument.AFTER,
+    )
+    if not d:
+        return None
+    jid = d.get("front_job_id")
+    if jid:
+        job = mongo.col("jobs").find_one({"id": jid, "tenant_id": tid}, {"title": 1, "status": 1})
+        if job and job["status"] != "done":
+            # jobs have no "cancelled" status (every app reads done / open): close it with a visible note instead
+            title = job["title"] if job["title"].startswith("Cancelled: ") else "Cancelled: " + job["title"]
+            mongo.col("jobs").update_one(
+                {"id": jid, "tenant_id": tid, "status": {"$ne": "done"}},
+                {"$set": {"status": "done", "done_at": mongo.now(), "note": note, "title": title[:200]}, "$inc": {"_v": 1}},
+            )
+    tenants.audit(tid, "guest", "guest.express_checkout_cancelled", f"room {r['number']} at {d['time']}")
+    return d
 
 
 def release_due(tid: str, now: datetime | None = None) -> int:
@@ -259,7 +340,21 @@ def request_late(token: str, until: str, reason: str = "") -> dict:
     }
     mongo.col("late_checkouts").insert_one(doc)
     tenants.audit(tid, "guest", "guest.late_checkout_requested", f"room {r['number']} until {until}")
-    return _late_out(doc)
+    out = _late_out(doc)
+    xco = _cancel_express(r, stay, f"Cancelled by the guest: asked for a late checkout until {until} instead.")
+    if xco:
+        out.update(
+            replaced={"what": "express_checkout", "time": xco["time"]},
+            message=(
+                f"Your express checkout at {xco['time']} is cancelled, because you asked for a late checkout until {until}. "
+                "You can book express checkout again after the manager answers."
+            ),
+            message_hi=(
+                f"आपका {xco['time']} बजे का जल्दी check-out रद्द कर दिया गया है, क्योंकि आपने {until} बजे तक लेट check-out माँगा है। "
+                "मैनेजर के जवाब के बाद आप जल्दी check-out फिर से बुक कर सकते हैं।"
+            ),
+        )
+    return out
 
 
 def _late_staff(d: dict) -> dict:

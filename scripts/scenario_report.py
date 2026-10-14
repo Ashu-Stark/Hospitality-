@@ -18,6 +18,7 @@ from __future__ import annotations
 import argparse
 import json
 import logging
+import os
 import sys
 import time
 from datetime import date, datetime
@@ -175,10 +176,10 @@ def run_offline(args: argparse.Namespace) -> dict:
 
 # ---------------------------------------------------------------------------------------------- live
 class Live:
-    def __init__(self, base: str, timeout: float = 90) -> None:
+    def __init__(self, base: str, timeout: float = 90, headers: dict | None = None) -> None:
         import httpx
 
-        self.base, self.c = base.rstrip("/"), httpx.Client(base_url=base.rstrip("/"), timeout=timeout)
+        self.base, self.c = base.rstrip("/"), httpx.Client(base_url=base.rstrip("/"), timeout=timeout, headers=headers or {})
         self.checks: list[dict] = []
 
     def call(self, method: str, path: str, **kw):  # noqa: ANN201
@@ -200,7 +201,8 @@ class Live:
 
 def live_ops(url: str) -> list[dict]:
     line(f"LIVE ops backend {url}")
-    L = Live(url, timeout=180)
+    key = os.getenv("HOI_OPS_API_KEY", "").strip()  # the ops API's shared secret (backend/auth.py); never printed
+    L = Live(url, timeout=180, headers={"X-HOI-Key": key} if key else None)
     r = L.call("GET", "/health")
     h = r.json() if r is not None and r.status_code == 200 else {}
     L.check("health", r is not None and r.status_code == 200, {"database": h.get("database"), "mock": h.get("mock")})

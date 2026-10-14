@@ -26,19 +26,19 @@ def _view_limit(request: Request) -> None:
 @router.get("/guest/{token}")
 def guest_view(token: str, request: Request) -> dict:
     _view_limit(request)
-    return rooms.guest_view(token)
+    return guest.with_local_times(rooms.guest_view(token))
 
 
 @router.get("/guest/{token}/requests")
 def guest_requests(token: str, request: Request) -> dict:
     _view_limit(request)
-    return rooms.guest_requests(token)
+    return guest.with_local_times(rooms.guest_requests(token))
 
 
 @router.post("/guest/{token}/requests", status_code=201)
 def guest_request(token: str, body: GuestRequestIn, request: Request) -> dict:
     ratelimit.hit(f"guest-req:{ratelimit.client_ip(request)}", 10)
-    return rooms.guest_request(token, body.key, body.note)
+    return guest.with_local_times(rooms.guest_request(token, body.key, body.note))
 
 
 @router.post("/guest/{token}/transcribe")
@@ -81,7 +81,7 @@ def chat(token: str, body: GuestChatIn, request: Request) -> dict:
 def actions(token: str, body: GuestActionIn, request: Request) -> dict:
     """Runs one proposed action. Only the guest's Confirm tap calls this; the chat never does."""
     _limit(request, token, "act", config.settings.guest_action_rate_per_minute)
-    return concierge.execute(token, body.action, body.params)
+    return guest.with_local_times(concierge.execute(token, body.action, body.params))
 
 
 @router.post("/guest/{token}/checkout", status_code=201)

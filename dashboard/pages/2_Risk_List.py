@@ -100,7 +100,7 @@ def _cover_block(emp: str) -> None:
     key = f"cover_{emp}"
     if st.button("Look on the job portal", key=f"look_{emp}", icon=":material/person_search:"):
         try:
-            st.session_state[key] = platform.call("GET", f"/staffing/cover/{emp}", params=platform._pid_params())
+            st.session_state[key] = platform.call("GET", f"/staffing/cover/{emp}", params=platform._pid_params(), timeout=platform.SLOW_S)
         except platform.PlatformError as e:
             st.session_state[key] = {"status": "error", "message": e.message, "candidates": [], "job": None}
     res = st.session_state.get(key)
@@ -123,7 +123,9 @@ def _cover_block(emp: str) -> None:
         st.caption("Posts one opening for this role for the next 30 days. The post does not name anyone or say why.")
         if st.button("Post the job on the Uttarakhand Travel Guide", key=f"post_{emp}", type="primary", icon=":material/campaign:"):
             try:
-                out = platform.call("POST", f"/staffing/cover/{emp}/post", params=platform._pid_params())
+                out = platform.call(
+                    "POST", f"/staffing/cover/{emp}/post", params=platform._pid_params(), timeout=platform.SLOW_S
+                )
                 st.session_state[key] = {**res, "job": out["job"]}
                 st.toast(out["message"])
                 st.rerun()
@@ -169,7 +171,7 @@ dept_opts = sorted({depts.get(s.employee_id, "unknown") for s in scores})
 with f1:
     sel_depts = st.multiselect("Department", dept_opts, default=[], format_func=theme.dept_label, placeholder="All departments")
 with f4:
-    q = st.text_input("Search ID / name", placeholder="Search by staff ID, e.g. HS05")
+    q = st.text_input("Search by staff ID", placeholder="e.g. HS05")
 with st.expander("More filters"):
     g1, g2 = st.columns(2)
     sel_bands = g1.multiselect(

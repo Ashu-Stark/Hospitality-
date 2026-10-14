@@ -4,13 +4,13 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from datetime import date
+from datetime import datetime
 
 import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
 
-from lib import auth, platform, tenancy, theme, ui
+from lib import auth, platform, tenancy, theme, timefmt, ui
 
 ui.setup("pages/17_Guest_Services.py", "Guest services")
 REFRESH = 15  # seconds
@@ -49,8 +49,7 @@ def count(v) -> int | None:
 
 
 def hhmm(v) -> str:
-    s = str(v or "")
-    return s[11:16] if "T" in s else s[:5]
+    return timefmt.hhmm(v)  # hotel local time (IST), not the API server's clock
 
 
 @st.fragment(run_every=REFRESH)
@@ -154,7 +153,7 @@ def live() -> None:
 # ------------------------------------------------------------------ checkouts today
 @st.fragment(run_every=REFRESH)
 def checkouts() -> None:
-    day = date.today().isoformat()
+    day = datetime.now(timefmt.local_tz()).date().isoformat()  # the hotel's today, not the server's
     res = ui.api(platform.guest_checkouts, day, what="load today's checkouts", feature="express checkouts")
     if res in (None, ui.NEEDS_API):
         return
@@ -249,7 +248,7 @@ def feedback() -> None:
         acc: dict[str, list[float]] = defaultdict(list)
         for i in items:
             if isinstance(i.get("rating"), (int, float)):
-                acc[str(i.get("created_at") or i.get("at") or "")[:10]].append(float(i["rating"]))
+                acc[timefmt.stamp(i.get("created_at") or i.get("at"))[:10]].append(float(i["rating"]))
         trend = [{"date": d, "average": sum(v) / len(v), "count": len(v)} for d, v in sorted(acc.items()) if d]
     low = sum(1 for r in ratings if r <= 2)
     ui.takeaway(
@@ -291,7 +290,7 @@ def feedback() -> None:
         + "".join(
             f'<div class="ss-wrow"><span style="color:#fab219;min-width:84px">{ui.stars(i.get("rating"))}</span>'
             f"<div style='flex:1'>{theme.esc(i.get('comment') or '(no comment)')}"
-            f"<div class='m'>{theme.esc(str(i.get('created_at') or i.get('at') or '')[:16].replace('T', ' '))}"
+            f"<div class='m'>{theme.esc(timefmt.stamp(i.get('created_at') or i.get('at')))}"
             + (f" · room {theme.esc(i.get('room'))}" if i.get("room") else "")
             + (f" · {theme.esc(i.get('lang'))}" if i.get("lang") else "")
             + "</div></div></div>"

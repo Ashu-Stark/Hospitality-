@@ -76,6 +76,23 @@ def offer_seconds(tid: str) -> int:
     return int(_settings(tid).get("offer_seconds", 30))
 
 
+# A homestay is a family team of 2-4 people doing everything between other chores: a 30 s "answer now" window (made for a
+# hotel's on-shift staff holding the app) passed a task on before anyone had even seen it. ASSUMED: 15 minutes. A request
+# type with its own short window (urgent safety / medical issues, services/issues.py) keeps that window.
+HOMESTAY_OFFER_SECONDS = 15 * 60
+
+
+def offer_window(tid: str, job: dict) -> int:
+    """Seconds the offered person has to answer: the job's own window (urgent request types), else 15 min for a homestay,
+    else the hotel's offer_seconds setting."""
+    if job.get("offer_seconds"):
+        return int(job["offer_seconds"])
+    prop = job_property(tid, job)
+    if prop and prop.get("mode") == "homestay":
+        return HOMESTAY_OFFER_SECONDS
+    return offer_seconds(tid)
+
+
 # ------------------------------------------------------------------ shift context
 # Who is on shift NOW comes from the published roster (roster_snapshots) and the live clock in hotel local time
 # (services/shifts.py: ASSUMED shift windows, night across midnight, the roster week repeating by weekday).
@@ -340,7 +357,7 @@ def _offer_next(tid: str, job: dict, ranking: list[dict], cond: dict | None = No
     else:
         top = ranking[0]
         attempts.append({"employee_id": top["employee_id"], "offered_at": mongo.now(), "outcome": "pending"})
-        exp = mongo.now() + timedelta(seconds=int(job.get("offer_seconds") or offer_seconds(tid)))  # urgent jobs: shorter window
+        exp = mongo.now() + timedelta(seconds=offer_window(tid, job))  # urgent jobs: shorter; homestays: longer
         fields = {
             "status": "offered",
             "offer_to": top["employee_id"],
@@ -351,6 +368,40 @@ def _offer_next(tid: str, job: dict, ranking: list[dict], cond: dict | None = No
     if not _update(tid, job["id"], fields, cond):
         raise Conflict("This job changed meanwhile. Refresh and try again.")
     return get_job(tid, job["id"])
+
+
+DUPLICATE_MINUTES = 10  # ASSUMED: the same issue for the same room within this window is one job, not two
+
+
+def check_room(tid: str, room: str | None) -> str | None:
+    """The room number as stored, or NotFound when the hotel has rooms and this is not one of them. A hotel with no room
+    list yet (rooms not set up) accepts any room, as before."""
+    number = str(room or "").strip()
+    if not number:
+        return None
+    rooms = mongo.col("rooms")
+    if rooms.find_one({"tenant_id": tid, "number": number}, {"_id": 1}) is None and rooms.find_one({"tenant_id": tid}, {"_id": 1}):
+        raise NotFound(f"Room {number} not found.")
+    return number
+
+
+def _same_issue(a: str | None, b: str | None) -> bool:
+    norm = lambda s: " ".join(str(s or "").casefold().split()).rstrip(".!")  # noqa: E731
+    return norm(a) == norm(b)
+
+
+def open_duplicate(tid: str, title: str, room: str | None, minutes: int = DUPLICATE_MINUTES) -> dict | None:
+    """An open (not done) job for the same room and the same issue made in the last `minutes`, else None.
+    Read-only, so asking twice is safe; the caller returns this job instead of making a second one."""
+    number = str(room or "").strip()
+    if not number or not str(title or "").strip():
+        return None
+    since = mongo.now() - timedelta(minutes=minutes)
+    flt = {"tenant_id": tid, "room": number, "status": {"$ne": "done"}, "created_at": {"$gte": since}}
+    for raw in mongo.col("jobs").find(flt).sort([("created_at", -1), ("_id", -1)]):
+        if _same_issue(raw.get("title"), title):
+            return {**_job(raw), "existing": True, "duplicate_of": raw["id"]}
+    return None
 
 
 def create_job(

@@ -1,5 +1,7 @@
 """Employee self-service: my shifts and my department (used by the worker portal)."""
 
+from datetime import datetime
+
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, Request, Response, UploadFile
 
 from .. import config, ratelimit
@@ -30,8 +32,12 @@ def my_shifts(p: Principal = Depends(roles("worker"))) -> dict:
         "shift": ctx.get("shift"),
         "window": ctx.get("shift_window"),
         "roster_week_mapped": bool(ctx.get("roster_week_mapped")),
+        "local_date": ctx.get("local_date"),  # the real calendar date of that shift (hotel time); `day` is the roster's
         "source": ctx.get("source"),
     }
+    # API times without an offset (mongo.iso) are this server's clock: UTC on the host, IST on a laptop. The app needs
+    # the offset to show them in hotel time.
+    out["server_utc_offset_minutes"] = int(datetime.now().astimezone().utcoffset().total_seconds() // 60)
     return out
 
 

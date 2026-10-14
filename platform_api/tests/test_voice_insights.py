@@ -94,6 +94,45 @@ def test_worker_voice_report_issue_and_decline(client, owner, worker):
     assert cmd(client, worker, "my shift")["intent"] == "my_shift"
 
 
+@pytest.mark.parametrize(
+    ("text", "lang", "item", "qty", "room"),
+    [
+        ("I need 2 bottles of water for room 205", "en", "Mineral water 1 L", 2, "205"),
+        ("room 101 ke liye 3 tauliya chahiye", "en", "Bath towel", 3, "101"),
+        ("कमरा 204 के लिए दो साबुन चाहिए", "hi", "Soap 25 g", 2, "204"),
+        ("please bring 4 hand towels", "en", "Hand towel", 4, None),
+    ],
+)
+def test_worker_voice_supplies_intent(client, owner, worker, text, lang, item, qty, room):
+    _setup(client, owner)
+    r = cmd(client, worker, text, lang)
+    assert r["intent"] == "request_supplies", r
+    a = r["proposed_action"]
+    assert a["action"] == "request_supplies" and a["params"]["room"] == room and item in a["label"]
+    items = {i["id"]: i["name"] for i in mongo.find("inv_items", {"tenant_id": "org_demo"})}
+    ((iid, q),) = a["params"]["lines"].items()
+    assert items[iid] == item and q == qty
+    if lang == "hi":
+        assert "हाँ, कर दो" in r["reply"]  # names the real confirm button of the Hindi app
+
+
+def test_worker_voice_supplies_act_creates_a_stock_request(client, owner, worker):
+    _setup(client, owner)
+    a = cmd(client, worker, "I need 2 bottles of water for room 205")["proposed_action"]
+    before = mongo.col("inv_reqs").count_documents({"tenant_id": "org_demo"})
+    r = client.post("/me/voice/act", json={"action": a["action"], "params": a["params"]}, headers=worker)
+    assert r.status_code == 200, r.text
+    rid = r.json()["request"]["id"]
+    assert mongo.col("inv_reqs").count_documents({"tenant_id": "org_demo"}) == before + 1
+    mine = client.get("/inventory/requests", headers=worker).json()  # the Supplies tab lists it
+    row = next(x for x in mine if x["id"] == rid)
+    assert row["room"] == "205" and row["status"] == "pending" and row["lines"][0]["qty"] == 2
+    bad = client.post("/me/voice/act", json={"action": "request_supplies", "params": {"lines": {}, "room": None}}, headers=worker)
+    assert bad.status_code == 422
+    # an issue is still an issue, not a supplies request
+    assert cmd(client, worker, "room 204 tap leaking, need a plumber")["intent"] == "report_issue"
+
+
 def test_worker_voice_roles_and_transcribe(client, owner, worker, monkeypatch):
     assert client.post("/me/voice/command", json={"text": "next"}, headers=owner).status_code == 403
     files = {"audio": ("a.webm", b"0" * 3000, "audio/webm")}

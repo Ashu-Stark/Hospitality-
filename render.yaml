@@ -13,6 +13,8 @@ services:
         value: "0"
       - key: CORS_ORIGINS                 # comma-separated allowed origins; "*" = all (demo)
         value: "*"
+      - key: HOI_OPS_API_KEY              # secret: callers must send it as X-HOI-Key (all but /health); same value on both dashboards
+        sync: false
       - key: MONGODB_URI                  # secret: Atlas connection string, set in the dashboard
         sync: false
       - key: HOI_OPS_DB                   # MongoDB database of this service
@@ -75,6 +77,8 @@ services:
         sync: false
       - key: PLATFORM_API_URL              # hoi-platform-api public URL
         sync: false
+      - key: HOI_OPS_API_KEY               # secret: the same value as on the ops API, sent as X-HOI-Key
+        sync: false
       - key: PLATFORM_PUBLIC_URL           # same URL; shown to staff phones and in QR links
         sync: false
 
@@ -97,6 +101,8 @@ services:
       - key: API_BASE_URL                  # hoi-backend public URL
         sync: false
       - key: PLATFORM_API_URL              # hoi-platform-api public URL
+        sync: false
+      - key: HOI_OPS_API_KEY               # secret: the same value as on the ops API, sent as X-HOI-Key
         sync: false
       - key: PLATFORM_PUBLIC_URL           # same URL
         sync: false

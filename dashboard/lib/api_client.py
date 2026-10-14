@@ -7,6 +7,7 @@ message; pages show it with ui.safe_call (banner, never a stack trace).
 
 from __future__ import annotations
 
+import os
 from typing import Any
 
 import requests
@@ -16,6 +17,27 @@ from . import wake
 from .config import Settings, current_settings
 
 _session = requests.Session()
+
+OPS_KEY_ENV = "HOI_OPS_API_KEY"  # shared secret of the ops / ML API (backend/auth.py); never printed or logged
+OPS_KEY_HEADER = "X-HOI-Key"
+KNOWN_OPS_URLS = ("https://hoi-ops.onrender.com",)  # the deployed ops API (also OPS_API_URL in platform_api/seed.py)
+
+
+def _origin(url: str) -> str:
+    from urllib.parse import urlsplit
+
+    p = urlsplit(url.strip().lower())
+    return f"{p.scheme}://{p.netloc}"
+
+
+def _auth_headers(base: str) -> dict[str, str]:
+    """X-HOI-Key, only for our own ops API: the env API_BASE_URL, the known deployment or a local server. A workspace can
+    point "Server address" anywhere, and the shared secret must never be sent to a server we do not run."""
+    key = os.getenv(OPS_KEY_ENV, "").strip()
+    if not key:
+        return {}
+    trusted = {_origin(u) for u in (*KNOWN_OPS_URLS, os.getenv("API_BASE_URL", ""), os.getenv("OPS_API_URL", "")) if u.strip()}
+    return {OPS_KEY_HEADER: key} if _origin(base) in trusted or wake.is_local(base) else {}
 
 
 class ApiError(Exception):
@@ -45,6 +67,8 @@ def _friendly(status: int, detail: Any, endpoint: str, base: str) -> str:
         return d or "This is not available right now."
     if status == 503:
         return f"The server could not do this right now: {d}" if d else "The server is busy. Try again in a minute."
+    if status == 401:
+        return "The data server refused the request: this portal's access key (HOI_OPS_API_KEY) is missing or wrong."
     if status == 403:
         return "This was blocked. Check the text for unusual characters."
     if status >= 500:
@@ -66,7 +90,16 @@ def _http(
     url = s.api_base_url + path
     try:
         r = wake.request(  # one retry with a longer timeout while a sleeping (Render free tier) server wakes up
-            method, url, s.api_base_url, session=_session, params=params, json=json, data=data, files=files, timeout=timeout or s.timeout_s
+            method,
+            url,
+            s.api_base_url,
+            session=_session,
+            params=params,
+            json=json,
+            data=data,
+            files=files,
+            headers=_auth_headers(s.api_base_url),
+            timeout=timeout or s.timeout_s,
         )
     except requests.exceptions.ConnectionError as e:
         raise ApiError(

@@ -106,6 +106,19 @@ if HOMESTAY:
         "target": "pages/19_Staff.py",
         "key": "staff",
     }
+elif gaps := today.uncovered(d.get("working"), d.get("open_jobs")):
+    dpt, n_jobs = gaps[0]
+    mix = today.on_shift_mix(d.get("working"), theme.dept_label)
+    t_staff = {
+        "label": t("Staff on shift") + (f" ({shift})" if shift else ""),
+        "value": f"{on} ({mix})" if isinstance(on, int) and on and mix else today.n(on),
+        "meaning": f"No {theme.dept_label(dpt).lower()} on shift: {n_jobs} job{'s' if n_jobs != 1 else ''} waiting"
+        + (f"; also {', '.join(theme.dept_label(x).lower() for x, _ in gaps[1:])}" if len(gaps) > 1 else ""),
+        "tone": "bad",
+        "button": t("See jobs"),
+        "target": "pages/10_Dispatch.py",
+        "key": "staff",
+    }
 elif short:
     worst = short[0]
     t_staff = {
@@ -122,7 +135,9 @@ else:
     t_staff = {
         "label": t("Staff on shift") + (f" ({shift})" if shift else ""),
         "value": today.n(on),
-        "meaning": t("Enough people for this shift" if on else "Nobody on the shift plan right now"),
+        "meaning": (t("Enough people for this shift") + f" ({today.on_shift_mix(d.get('working'), theme.dept_label)})")
+        if on
+        else t("Nobody on the shift plan right now"),
         "tone": "ok" if on else "info",
         "button": t("See who"),
         "target": "pages/19_Staff.py",
@@ -261,11 +276,11 @@ for title, why, label, key, action in todo:
         if st.button(t(label), key=key, width="stretch"):
             if isinstance(action, str):
                 nav.go(action)
-            try:
-                action()
-                st.toast("Done")
-            except platform.PlatformError as e:
-                st.toast(e.message)
+            with st.spinner("Working on it… the tourism portal can take up to a minute to wake up."):
+                try:
+                    ui.flash(*today.action_result(action()))
+                except platform.PlatformError as e:
+                    ui.flash(e.message, ok=False)
             data.clear()
             st.rerun()
 

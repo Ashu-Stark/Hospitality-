@@ -165,6 +165,9 @@ def test_me_shifts_use_the_same_live_context(client, owner, worker, clock):
     me = client.get("/me/shifts", headers=worker).json()
     assert me["on_shift_now"] is True and me["current_shift"]["shift"] == "morning" and me["current_shift"]["day"] == "2029-12-26"
     assert me["current_shift"]["source"] == "live roster (auto)"
+    # the real date of that shift, so the app shows today's date instead of the SYNTHETIC roster week's
+    real = date.fromisoformat(me["current_shift"]["local_date"])
+    assert real.year < 2029 and real.weekday() == date(2029, 12, 26).weekday() and me["current_shift"]["roster_week_mapped"]
     clock("18:00")
     me = client.get("/me/shifts", headers=worker).json()
     assert me["on_shift_now"] is False and me["current_shift"]["shift"] == "evening"

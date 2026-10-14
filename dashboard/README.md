@@ -54,6 +54,10 @@ There is one switch, `USE_MOCKS` in `dashboard/.env`:
 | `USE_MOCKS=true` | Serves `dashboard/mocks/*.json`. Works offline; mutations (tasks, ack/done, clock, reset, loop) run in an in-memory mock. |
 | `USE_MOCKS=false` | Calls `API_BASE_URL` (default `https://hospitality-management-9jdk.onrender.com`). |
 
+`HOI_OPS_API_KEY`: when the ops API has a shared secret, set the same value here; `lib/api_client.py` sends it as
+`X-HOI-Key`, but only to `API_BASE_URL`, `OPS_API_URL`, `https://hoi-ops.onrender.com` or a local server (never to another
+"Server address" a workspace enters). A wrong or missing key shows "access key ... missing or wrong".
+
 You can also switch at runtime on **Admin → Data source** (per browser session); no code changes are needed.
 The top-bar badge always shows `MOCK DATA` or `LIVE`.
 

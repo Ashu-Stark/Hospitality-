@@ -105,7 +105,7 @@ def _checkouts(tid: str, since) -> dict:  # noqa: ANN001
         r["_id"]: r["n"] for r in mongo.col("late_checkouts").aggregate([{"$match": flt}, {"$group": {"_id": "$status", "n": {"$sum": 1}}}])
     }
     return {
-        "express": mongo.col("guest_checkouts").count_documents(flt),
+        "express": mongo.col("guest_checkouts").count_documents({**flt, "status": {"$ne": "cancelled"}}),
         "late_requested": sum(late.values()),
         "late_approved": late.get("approved", 0),
         "late_pending": late.get("pending", 0),

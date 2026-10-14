@@ -20,6 +20,7 @@ import streamlit as st
 from . import wake
 
 BACKEND_DIR = Path(__file__).resolve().parents[2] / "platform_api"
+SLOW_S = 120.0  # calls that wait on the tourism portal (a free host that cold-starts; the API retries once): see portal_client
 
 
 class PlatformError(Exception):
@@ -47,10 +48,12 @@ def _token() -> str | None:
     return st.session_state.get("auth_token")
 
 
-def _send(method: str, path: str, headers: dict, **kw) -> Any:
+def _send(method: str, path: str, headers: dict, timeout: float | None = None, **kw) -> Any:
     try:
         if mode() == "embedded":
             return _embedded_client().request(method, path, headers=headers, **kw)
+        if timeout:
+            kw["timeout"] = timeout
         base = mode().rstrip("/")
         return wake.request(method, base + path, base, headers=headers, **kw)  # one retry while a sleeping server wakes up
     except requests.exceptions.RequestException:
@@ -101,14 +104,17 @@ def call(
     token: str | None = None,
     raw: bool = False,
     auth: bool = True,
+    timeout: float | None = None,
     _retry: bool = True,
 ) -> Any:
     tok = token or (_token() if auth else None)
     headers = {"Authorization": f"Bearer {tok}"} if tok else {}
-    r = _send(method, path, headers, json=json, params=params, files=files, data=data)
+    r = _send(method, path, headers, timeout, json=json, params=params, files=files, data=data)
     if r.status_code == 401 and auth and _retry and try_refresh():  # access token expired: refresh once and retry
         fresh = st.session_state.get("platform_token") if token and token == st.session_state.get("platform_token") else None
-        return call(method, path, json=json, params=params, files=files, data=data, token=fresh, raw=raw, auth=auth, _retry=False)
+        return call(
+            method, path, json=json, params=params, files=files, data=data, token=fresh, raw=raw, auth=auth, timeout=timeout, _retry=False
+        )
     if r.status_code == 401 and auth:
         st.session_state.pop("auth_token", None)
         st.session_state.pop("user", None)
@@ -391,11 +397,11 @@ def staffing_requests() -> list[dict]:
 
 
 def create_staffing_request(**body) -> dict:
-    return call("POST", "/staffing/requests", json={**_pid_params(), **body})
+    return call("POST", "/staffing/requests", json={**_pid_params(), **body}, timeout=SLOW_S)
 
 
 def resend_staffing_request(rid: str) -> dict:
-    return call("POST", f"/staffing/requests/{rid}/send")
+    return call("POST", f"/staffing/requests/{rid}/send", timeout=SLOW_S)
 
 
 def guest_summary() -> dict:

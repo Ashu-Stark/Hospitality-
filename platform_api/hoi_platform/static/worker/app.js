@@ -21,6 +21,16 @@
   const fill = (s, o) => s.replace(/\{(\w+)\}/g, (_, k) => esc(o[k] ?? ""));
   const isHomestay = () => S.me?.mode === "homestay";
   // Local calendar date as YYYY-MM-DD. Converting through UTC would shift Indian (UTC+5:30) dates back by one day.
+  // Times: the API sends UTC; staff read hotel time (IST, Asia/Kolkata +05:30). A string without an offset is UTC.
+  const TZ = "Asia/Kolkata";
+  // a time without an offset is the API server's clock (S.me.server_utc_offset_minutes: 0 on the host, 330 on a laptop)
+  const toDate = (iso) => {
+    if (!iso) return null;
+    if (/(Z|[+-]\d\d:?\d\d)$/.test(iso)) { const d = new Date(iso); return isNaN(d) ? null : d; }
+    const d = new Date(iso + "Z"); return isNaN(d) ? null : new Date(d.getTime() - (Number(S.me?.server_utc_offset_minutes) || 0) * 60000);
+  };
+  const hm = (iso) => { const d = toDate(iso); return d ? d.toLocaleTimeString("en-GB", { timeZone: TZ, hour: "2-digit", minute: "2-digit", hour12: false }) : ""; };
+  const dhm = (iso) => { const d = toDate(iso); return d ? d.toLocaleString("en-GB", { timeZone: TZ, day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", hour12: false }) : ""; };
   const ymd = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 
   // ---------------------------------------------------------------- state
@@ -113,10 +123,17 @@
   // ---------------------------------------------------------------- boot
   async function boot() {
     $("#login").classList.add("hidden"); $("#app").classList.remove("hidden");
-    try { S.me = await api("GET", "/me/shifts"); } catch (e) { S.me = { shifts: [], department: null }; }
-    try { S.items = await api("GET", "/inventory/items"); } catch (e) { S.items = []; }
-    await loadRecognition();
-    await loadWork();
+    // a skeleton at once, then the four first answers in parallel (they used to load one after another: ~3.5 s blank)
+    $("#todayHero").className = "todayhero";
+    $("#todayHero").innerHTML = '<div class="skel l1"></div><div class="skel l2"></div><div class="skel l3"></div>';
+    $("#week").innerHTML = '<div class="skel l2" style="width:100%"></div>';
+    const [me, items] = await Promise.all([
+      api("GET", "/me/shifts").catch(() => ({ shifts: [], department: null })),
+      api("GET", "/inventory/items").catch(() => []),
+      loadRecognition(),
+      loadWork(),
+    ]);
+    S.me = me; S.items = items;
     renderAll();
     await pollJobs();
     clearInterval(S.poll);
@@ -165,7 +182,7 @@
     const rows = done.map((j) => {
       const pid = j.photos?.after || j.photos?.before;
       const m = j.minutes?.work;
-      const bits = [j.room ? `${t("room")} ${j.room}` : dept(j.department), j.started_at ? fill(t("w_started"), { t: j.started_at.slice(11, 16) }) : "",
+      const bits = [j.room ? `${t("room")} ${j.room}` : dept(j.department), j.started_at ? fill(t("w_started"), { t: hm(j.started_at) }) : "",
         m != null ? fill(t("w_took"), { n: Math.max(1, Math.round(m)) }) : ""].filter(Boolean);
       return `<li class="wrow">${pid ? `<img class="wthumb ph" data-pid="${esc(pid)}" alt="${esc(t("w_photo"))}" width="52" height="52">` : `<span class="wthumb none" aria-hidden="true">✓</span>`}` +
         `<div class="jrowt"><b>${esc(j.title)}</b><span class="muted">${esc(bits.join(" · "))}</span></div></li>`;
@@ -230,8 +247,9 @@
       $("#weekCard .eyebrow").textContent = t("your_team");
       return;
     }
-    const shifts = S.me?.shifts || [];
-    const curDay = S.me?.current_shift?.day;
+    // The demo plan is a SYNTHETIC future week mapped onto today (current_shift.roster_week_mapped): show real dates.
+    const shifts = (S.me?.shifts || []).map((s) => ({ ...s, date: realIso(s.date) }));
+    const curDay = realIso(S.me?.current_shift?.day);
     // The header chip follows the live "working now" list (what job offers use); if the published plan has no
     // entry for today but that list says this person is working, show the live shift so both agree.
     const cur = S.me?.current_shift;
@@ -248,7 +266,7 @@
     }
     const wk = $("#week");
     if (!shifts.length && !S.me?.week_start) { wk.innerHTML = ""; $("#weekNote").textContent = t("no_roster"); return; }
-    const start = S.me.week_start ? new Date(S.me.week_start + "T00:00:00") : new Date();
+    const start = S.me.week_start ? new Date(realIso(S.me.week_start) + "T00:00:00") : new Date();
     const by = Object.fromEntries(shifts.map((s) => [s.date, s]));
     let html = "";
     for (let i = 0; i < 7; i++) {
@@ -261,6 +279,13 @@
     $("#weekNote").textContent = `${shifts.length} ${t("shifts_week")} · ${hrs} ${t("hours")}`;
   }
   const fmtDay = (iso) => { const d = new Date(iso + "T00:00:00"); return `${day(d.getDay())} ${d.getDate()}`; };
+  // roster date -> real date: shifted by (real date of the running shift - its roster date) when the week is mapped
+  function realIso(iso) {
+    const c = S.me?.current_shift || {};
+    if (!iso || !c.roster_week_mapped || !c.local_date || !c.day) return iso;
+    const diff = Math.round((new Date(c.local_date + "T00:00:00") - new Date(c.day + "T00:00:00")) / 86400000);
+    const d = new Date(iso + "T00:00:00"); d.setDate(d.getDate() + diff); return ymd(d);
+  }
 
   // ---------------------------------------------------------------- jobs
   async function pollJobs() {
@@ -287,6 +312,8 @@
     renderJobs();
   }
 
+  // "25 s to answer", or "14 min to answer" for long windows (homestays: 15 min)
+  function leftText(left) { return left >= 120 ? fill(t("answer_in_min"), { n: Math.ceil(left / 60) }) : fill(t("answer_in"), { n: left }); }
   function renderJobs() {
     const me = S.user.employee_id || S.user.username;
     const offer = S.jobs.find((j) => j.status === "offered" && j.offer_to === me);
@@ -296,10 +323,12 @@
     if (offer && oEl.dataset.oid === offer.id && oEl.dataset.mode === (isHomestay() ? "hs" : "hotel") && oEl.dataset.lang === S.lang) {
       // same offer as on screen: only the time left changes (no re-render, no flicker every poll)
       const left = offer.seconds_left || 0, total = Math.max(left, Number(oEl.dataset.total) || 30);
-      const ol = oEl.querySelector(".oleft"); if (ol) ol.textContent = fill(t("answer_in"), { n: left });
+      const ol = oEl.querySelector(".oleft"); if (ol) ol.textContent = leftText(left);
       const bar = oEl.querySelector(".bar i"); if (bar) bar.style.width = Math.round((100 * left) / total) + "%";
-    } else if (offer && isHomestay()) {  // homestay: a plain task card, no timer
-      oEl.innerHTML = `<div class="offer simple anim"><div class="otop"><span class="sbadge s-new">${esc(t("new_task"))}</span></div>` +
+    } else if (offer && isHomestay()) {  // homestay: a plain task card; a quiet "time to answer" (15 min by default), no bar
+      oEl.dataset.total = String(Math.max(offer.seconds_left || 0, 30));
+      oEl.innerHTML = `<div class="offer simple anim"><div class="otop"><span class="sbadge s-new">${esc(t("new_task"))}</span>` +
+        `<span class="oleft" aria-live="off">${esc(leftText(offer.seconds_left || 0))}</span></div>` +
         `<h2>${esc(offer.title)}</h2><div class="jmeta">${roleImg(offer.department)}<span class="jroom">${offer.room ? esc(t("room")) + " " + esc(offer.room) : ""}</span>` +
         `<span class="urg">${esc(t("urgency_" + offer.urgency))}</span></div>` +
         `<button class="btn primary big" data-act="accept" data-id="${esc(offer.id)}">${esc(t("take_it"))}</button>` +
@@ -310,7 +339,7 @@
       const urgent = ["high", "urgent"].includes(offer.urgency);
       oEl.dataset.total = String(total);
       oEl.innerHTML = `<div class="offer anim"><div class="otop"><span class="sbadge s-new">${esc(t("new_request"))}</span>` +
-        `<span class="oleft" aria-live="off">${esc(fill(t("answer_in"), { n: left }))}</span></div>` +
+        `<span class="oleft" aria-live="off">${esc(leftText(left))}</span></div>` +
         `<h2>${esc(offer.title)}</h2><div class="jmeta">${roleImg(offer.department)}<span class="jroom">${offer.room ? esc(t("room")) + " " + esc(offer.room) : esc(dept(offer.department))}</span>` +
         `<span class="urg ${urgent ? "hi" : ""}">${esc(t("urgency_" + offer.urgency))}</span></div>` +
         `<div class="bar"><i data-w="${Math.round((100 * left) / total)}"></i></div>` +
@@ -353,7 +382,7 @@
     renderNoJobs();
     const doneHtml = done.length ? `<h3 class="subh">${esc(t("completed_recent"))}</h3>` + done.map((j) =>
       `<div class="jrow s-done"><i class="sdot" aria-hidden="true"></i><div class="jrowt"><b>${esc(j.title)}</b>` +
-      `<span class="muted">${j.room ? esc(t("room")) + " " + esc(j.room) + " · " : ""}${esc((j.done_at || "").slice(11, 16))}</span></div>` +
+      `<span class="muted">${j.room ? esc(t("room")) + " " + esc(j.room) + " · " : ""}${esc(hm(j.done_at))}</span></div>` +
       `<span class="sbadge s-done">${esc(t("done"))}</span></div>`).join("") : "";
     if ($("#doneList")._h !== doneHtml) { $("#doneList").innerHTML = doneHtml; $("#doneList")._h = doneHtml; }
   }
@@ -374,9 +403,11 @@
     const cur = S.me?.current_shift || {}, order = ["morning", "evening", "night"], list = S.me?.shifts || [];
     const today = cur.day || ymd(new Date());
     const next = list.find((s) => s.date > today || (s.date === today && order.indexOf(s.shift) > order.indexOf(cur.shift)));
-    return next || (cur.roster_week_mapped ? list[0] : null);  // the published week repeats: wrap to its first shift
+    if (next || !cur.roster_week_mapped || !list[0]) return next || null;
+    const d = new Date(list[0].date + "T00:00:00"); d.setDate(d.getDate() + 7);  // the published week repeats: next week's first shift
+    return { ...list[0], date: ymd(d) };
   }
-  const shiftDay = (iso) => (S.me?.current_shift?.roster_week_mapped ? day(new Date(iso + "T00:00:00").getDay()) : fmtDay(iso));
+  const shiftDay = (iso) => fmtDay(realIso(iso));
   function renderNoJobs() {
     const off = !isHomestay() && S.me && S.me.on_shift_now === false;
     const n = off ? nextShift() : null;
@@ -464,8 +495,14 @@
   function renderItems() {
     const q = ($("#itemSearch").value || "").toLowerCase();
     const dept = S.me?.department;
-    const list = S.items.filter((i) => (!dept || !i.department || i.department === dept) && (!q || i.name.toLowerCase().includes(q))).slice(0, 40);
-    $("#items").innerHTML = list.map((i) =>
+    // Items of the person's own team first; a team with no items of its own (e.g. security) sees the whole store list
+    const own = S.items.filter((i) => !dept || !i.department || i.department === dept);
+    const all = !own.length && S.items.length;
+    const list = (all ? S.items : own).filter((i) => !q || i.name.toLowerCase().includes(q)).slice(0, 40);
+    const note = !S.items.length ? `<p class="muted">${esc(t("items_none"))}</p>`
+      : all && !q ? `<p class="muted">${esc(fill(t("items_all"), { d: dept ? dept.replace(/_/g, " ") : "" }))}</p>`
+      : !list.length ? `<p class="muted">${esc(t("items_nomatch"))}</p>` : "";
+    $("#items").innerHTML = note + list.map((i) =>
       `<div class="item"><div class="name">${esc(i.name)}<small>${esc(i.unit)}</small></div><div class="stepper">` +
       `<button type="button" data-step="-1" data-item="${esc(i.id)}" aria-label="less">−</button><b>${S.basket[i.id] || 0}</b>` +
       `<button type="button" data-step="1" data-item="${esc(i.id)}" aria-label="more">+</button></div></div>`).join("");
@@ -494,7 +531,7 @@
     $("#reqs").innerHTML = reqs.slice(0, 15).map((r) =>
       `<div class="req"><div class="row"><b>${r.lines.map((l) => esc(name[l.item_id] || "?") + " " + l.qty_issued + "/" + l.qty).join(", ")}</b>` +
       `<span class="chip ${tone[r.status] || "gray"}">${esc(t(r.status))}</span></div>` +
-      `<div class="muted">${esc(r.created_at.slice(0, 16).replace("T", " "))}${r.room ? " · " + esc(t("room")) + " " + esc(r.room) : ""}</div></div>`).join("");
+      `<div class="muted">${esc(dhm(r.created_at))}${r.room ? " · " + esc(t("room")) + " " + esc(r.room) : ""}</div></div>`).join("");
   }
 
   // ---------------------------------------------------------------- voice assistant (/me/voice/*)
@@ -561,7 +598,8 @@
     if (a.action === "photo") { vLog(t("voice_photo"), "bot"); closeVoice(); show("jobs"); openCamera(a.params.job_id, a.params.kind); return; }
     try {
       await api("POST", "/me/voice/act", { action: a.action, params: a.params });
-      vLog(t("voice_done"), "bot"); vSpeak(t("voice_done"), S.lang); toast(t("voice_done")); await pollJobs();
+      vLog(t("voice_done"), "bot"); vSpeak(t("voice_done"), S.lang); toast(t("voice_done"));
+      if (a.action === "request_supplies") loadRequests(); else await pollJobs();
     } catch (err) { vLog(err.message.includes("no longer") ? t("gone") : err.message, "bot"); await pollJobs(); }
   }
   function pickMime() {

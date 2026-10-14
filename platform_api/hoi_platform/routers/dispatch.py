@@ -43,10 +43,19 @@ def get_context(p: Principal = Depends(roles(*HOTEL_MANAGERS, "worker"))) -> dic
 
 
 @router.post("/jobs", status_code=201)
-def create_job(body: JobIn, p: Principal = Depends(roles(*HOTEL_MANAGERS))) -> dict:
+def create_job(body: JobIn, response: Response, p: Principal = Depends(roles(*HOTEL_MANAGERS))) -> dict:
+    """New job. A room must be one of the hotel's rooms (404 "Room 212 not found."). The same issue for the same room
+    while an earlier job is still open (within dispatch.DUPLICATE_MINUTES) returns that job with existing=true and
+    duplicate_of=<its id> (200) instead of sending it twice."""
     tid = tenant_of(p)
     pid = tenants.get_property(tid, body.property_id)["id"] if body.property_id else None
-    return dispatch.create_job(tid, body.title, body.department, body.room, body.urgency, body.source, p.username, property_id=pid)
+    room = dispatch.check_room(tid, body.room)
+    dup = dispatch.open_duplicate(tid, body.title, room)
+    if dup:
+        response.status_code = 200
+        return dup
+    job = dispatch.create_job(tid, body.title, body.department, room, body.urgency, body.source, p.username, property_id=pid)
+    return {**job, "existing": False}
 
 
 @router.get("/jobs")

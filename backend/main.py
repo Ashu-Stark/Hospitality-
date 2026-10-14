@@ -15,7 +15,7 @@ from fastapi import Depends, FastAPI, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pymongo.database import Database
 
-from backend import demo, loop, retention
+from backend import auth, demo, loop, retention
 from backend.config import Settings, default_settings
 from backend.db import audit, ensure_seeded
 from backend.mongo import database_kind, get_database
@@ -83,6 +83,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     app = FastAPI(title="Hospitality Operations Intelligence (HOI) API (SYNTHETIC data)",
                   lifespan=lifespan)
+    auth.install(app)  # X-HOI-Key when HOI_OPS_API_KEY is set; added before CORS = inside it
     # CORS: relaxed to every origin by default for the hackathon demo, so a frontend hosted
     # elsewhere (e.g. Streamlit) can call the API. Set CORS_ORIGINS (comma-separated) to the
     # frontend's URL to restrict it. No cookies or credentials are used.

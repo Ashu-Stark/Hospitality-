@@ -10,7 +10,7 @@ from datetime import time
 import pandas as pd
 import streamlit as st
 
-from lib import auth, platform, theme, ui
+from lib import auth, platform, theme, timefmt, ui
 
 ui.setup("pages/16_Hotel_Profile.py", "Hotel profile")
 
@@ -92,7 +92,7 @@ ui.html(
             theme.tile(
                 "Last updated",
                 _day(prof.get("updated_at")),
-                ("at " + str(prof.get("updated_at"))[11:16]) if prof.get("updated_at") else "not saved yet",
+                ("at " + timefmt.hhmm(prof.get("updated_at"))) if prof.get("updated_at") else "not saved yet",
                 "clock",
             ),
         ]

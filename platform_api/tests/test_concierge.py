@@ -66,6 +66,11 @@ def room(client, owner) -> dict:
         if r["status"] == "occupied" and r["id"] not in USED:
             USED.add(r["id"])
             return r
+    for r in client.get("/rooms", headers=owner).json()["rooms"]:  # all used: check a fresh guest into a ready room
+        if r["status"] == "ready" and r["id"] not in USED:
+            assert client.post(f"/rooms/{r['id']}/check-in", headers=owner).status_code == 200
+            USED.add(r["id"])
+            return {**r, "status": "occupied"}
     raise AssertionError("no occupied room left")
 
 
@@ -162,6 +167,22 @@ def test_chat_llm_valid_json_proposes_but_does_not_act(client, owner):
     a = client.post(f"/public/guest/{r['guest_token']}/actions", json=out["proposed_action"] | {"params": out["proposed_action"]["params"]})
     assert a.status_code == 200 and a.json()["requests"][0]["title"].startswith("Fresh towels")
     assert mongo.col("jobs").count_documents({"room_id": r["id"]}) == before + 1
+
+
+@pytest.mark.parametrize(
+    ("llm_reply", "source"),
+    [
+        ("Breakfast is served 07:00-10:30 at the restaurant.", "rules"),  # the live QA answer: wrong start time
+        ("Breakfast is from 7 am to 10:30 in the restaurant.", "rules"),
+        ("The breakfast buffet is 07:30-10:30 at Ridge Kitchen, ground floor.", "llm"),
+    ],
+)
+def test_breakfast_answer_comes_from_the_profile(client, owner, llm_reply, source):
+    r = room(client, owner)
+    # the demo hotel profile (services/profiles.py) says "Breakfast buffet 07:30-10:30"; its restaurant opens at 07:00
+    ai.use(chat=FakeChat({"reply": llm_reply, "lang": "en", "action": None}))
+    out = client.post(f"/public/guest/{r['guest_token']}/chat", json={"message": "What time is breakfast?"}).json()
+    assert out["source"] == source and "07:30-10:30" in out["reply"] and "07:00" not in out["reply"]
 
 
 def test_chat_invalid_json_and_out_of_menu_fall_back_to_rules(client, owner):
@@ -441,7 +462,7 @@ def test_requests_endpoint_and_stages(client, owner):
     client.post(f"/public/guest/{tok}/requests", json={"key": "water"})
     out = client.get(f"/public/guest/{tok}/requests").json()
     assert out["room"] == r["number"] and out["requests"][0]["stage"] == "open"
-    assert all(set(q) == {"id", "title", "status", "stage", "department", "at"} for q in out["requests"])  # no staff ids
+    assert all(set(q) == {"id", "title", "status", "stage", "department", "at", "at_local"} for q in out["requests"])  # no staff ids
 
 
 def test_llm_reply_language_and_claims_are_checked(client, owner):
@@ -464,3 +485,94 @@ def test_llm_reply_language_and_claims_are_checked(client, owner):
 def test_nukta_variants_match():
     assert concierge.has(" " + concierge.norm("वाई-फ़ाई?") + " ", ("वाई-फाई",))
     assert concierge.has(" " + concierge.norm("एसी ख़राब है") + " ", ("खराब",))
+
+
+# ------------------------------------------------------------------ live-QA fixes (guest page)
+def _guest_js() -> str:
+    from pathlib import Path
+
+    return (Path(__file__).resolve().parents[1] / "hoi_platform" / "static" / "guest" / "guest.js").read_text(encoding="utf-8")
+
+
+def test_hindi_reply_names_the_real_confirm_button(client, owner, no_ai):
+    """The Hindi reply must name the button the guest page shows ("हाँ, भेज दो"), not "Confirm"."""
+    js = _guest_js()
+    assert 'confirm: "हाँ, भेज दो"' in js and 'confirm: "Confirm"' in js and '"Haan, bhej do"' in js
+    r = room(client, owner)
+    out = client.post(f"/public/guest/{r['guest_token']}/chat", json={"message": "मुझे दो तौलिये चाहिए", "lang": "hi"}).json()
+    assert out["lang"] == "hi" and out["proposed_action"], out
+    assert "हाँ, भेज दो" in out["reply"] and "Confirm" not in out["reply"]
+    hing = client.post(f"/public/guest/{r['guest_token']}/chat", json={"message": "mujhe towel chahiye"}).json()
+    assert hing["lang"] == "hinglish" and "Haan, bhej do" in hing["reply"] and "Confirm" not in hing["reply"]
+    en = client.post(f"/public/guest/{r['guest_token']}/chat", json={"message": "towels please"}).json()
+    assert "Confirm" in en["reply"]
+    assert "Confirm दबाइए" not in concierge.SYSTEM and "Confirm dabaiye" not in concierge.SYSTEM
+
+
+def test_guest_request_times_are_hotel_local(client, owner):
+    from hoi_platform.services import guest
+
+    r = room(client, owner)
+    tok = r["guest_token"]
+    client.post(f"/public/guest/{tok}/requests", json={"key": "towels", "note": ""})
+    v = client.get(f"/public/guest/{tok}").json()
+    q = v["requests"][0]
+    raw = mongo.col("jobs").find_one({"room_id": r["id"], "kind": "guest"}, sort=[("created_at", -1)])
+    created = raw["created_at"] if raw["created_at"].tzinfo else raw["created_at"].replace(tzinfo=UTC)
+    assert q["at_local"] == created.astimezone(guest.tz()).strftime("%H:%M")
+    assert v["utc_offset_minutes"] == config.settings.hotel_utc_offset_minutes
+    assert client.get(f"/public/guest/{tok}/requests").json()["requests"][0]["at_local"] == q["at_local"]
+    # 04:30 UTC is 10:00 IST
+    assert guest.hotel_hhmm(datetime(2026, 10, 14, 4, 30, tzinfo=UTC)) == "10:00"
+    assert guest.hotel_hhmm("2026-10-14T04:30:00+00:00") == "10:00" and guest.hotel_hhmm("") == ""
+
+
+def test_express_checkout_cancels_late_checkout(client, owner):
+    r = room(client, owner)
+    tok = r["guest_token"]
+    lr = client.post(f"/public/guest/{tok}/late-checkout", json={"until": "13:00"}).json()
+    hk = auth(client, "demo.housekeeping")
+    assert client.post(f"/guest-services/late-checkouts/{lr['id']}/decide", json={"approve": True}, headers=hk).status_code == 200
+    out = client.post(f"/public/guest/{tok}/checkout", json={"time": "10:30", "luggage_help": False})
+    body = out.json()
+    assert out.status_code == 201 and body["checkout"]["status"] == "scheduled"
+    assert body["replaced"]["what"] == "late_checkout" and "cancelled" in body["message"] and "13:00" in body["message"]
+    assert "रद्द" in body["message_hi"]
+    assert body["late_checkout"]["status"] == "cancelled"
+    assert mongo.col("late_checkouts").find_one({"id": lr["id"]})["status"] == "cancelled"
+    # a cancelled request cannot be decided again; the guest page shows only the express checkout
+    assert client.post(f"/guest-services/late-checkouts/{lr['id']}/decide", json={"approve": False}, headers=owner).status_code == 409
+    # an express checkout that relies on the approved late checkout keeps it (same departure)
+    r2 = room(client, owner)
+    t2 = r2["guest_token"]
+    l2 = client.post(f"/public/guest/{t2}/late-checkout", json={"until": "13:00"}).json()
+    client.post(f"/guest-services/late-checkouts/{l2['id']}/decide", json={"approve": True}, headers=hk)
+    o2 = client.post(f"/public/guest/{t2}/checkout", json={"time": "13:00", "luggage_help": False}).json()
+    assert "message" not in o2 and o2["late_checkout"]["status"] == "approved"
+
+
+def test_late_checkout_replaces_express_checkout(client, owner):
+    ctx(client, owner)
+    r = room(client, owner)
+    tok = r["guest_token"]
+    assert client.post(f"/public/guest/{tok}/checkout", json={"time": "10:30", "luggage_help": True}).status_code == 201
+    co = mongo.col("guest_checkouts").find_one({"room_id": r["id"]})
+    lr = client.post(f"/public/guest/{tok}/late-checkout", json={"until": "13:00"})
+    body = lr.json()
+    assert lr.status_code == 201 and body["status"] == "pending"
+    assert body["replaced"] == {"what": "express_checkout", "time": "10:30"} and "10:30" in body["message"] and "रद्द" in body["message_hi"]
+    assert mongo.col("guest_checkouts").find_one({"id": co["id"]})["status"] == "cancelled"
+    job = mongo.col("jobs").find_one({"id": co["front_job_id"]})
+    assert job["status"] == "done" and job["title"].startswith("Cancelled: ") and "late checkout" in job["note"]
+    v = client.get(f"/public/guest/{tok}").json()
+    assert v["stay"]["checkout"] is None and v["stay"]["late_checkout"]["status"] == "pending"
+    # the cancelled checkout is never released into a room checkout
+    mongo.col("guest_checkouts").update_one({"id": co["id"]}, {"$set": {"due_at": datetime(2000, 1, 1, tzinfo=UTC)}})
+    client.get("/dispatch/jobs", headers=owner)
+    assert mongo.col("rooms").find_one({"id": r["id"]})["status"] == "occupied"
+    # booking express checkout again (on time) works and in turn cancels the pending late request
+    again = client.post(f"/public/guest/{tok}/checkout", json={"time": "10:45", "luggage_help": False})
+    assert again.status_code == 201 and again.json()["checkout"]["time"] == "10:45" and again.json()["replaced"]["what"] == "late_checkout"
+    # through the chat's Confirm (/actions) the message comes back too
+    act = client.post(f"/public/guest/{tok}/actions", json={"action": "late_checkout", "params": {"until": "12:30"}}).json()
+    assert act["late_checkout"]["replaced"]["what"] == "express_checkout" and act["late_checkout"]["message"]

@@ -88,6 +88,7 @@
       late: "लेट check-out", until: "कब तक", reason: "वजह (अगर चाहें)", ask_late: "लेट check-out माँगें",
       late_hint: "अगर कमरा खाली हो तो {t} बजे तक रुक सकते हैं। मैनेजर हाँ या ना बताएँगे।", late_none: "यहाँ लेट check-out नहीं होता।",
       late_pending: "{t} बजे तक की माँग भेज दी। मैनेजर के जवाब का इंतज़ार है।", late_ok: "हाँ, आप {t} बजे तक रुक सकते हैं।", late_no: "माफ़ कीजिए, {t} बजे तक लेट check-out नहीं हो पाएगा।",
+      welcome_dflt: "नमस्ते! {h} में आपका स्वागत है। अपने स्टे के बारे में कुछ भी पूछिए।",
       feedback: "आपका स्टे कैसा रहा?", comment: "आपकी बात", comment_ph: "और बताइए (अगर चाहें)", send_feedback: "फ़ीडबैक भेजें",
       fb_thanks: "आपके फ़ीडबैक के लिए धन्यवाद!", bill: "आपका बिल", bill_est: "मेन्यू के दामों से जोड़ा गया", total: "कुल (लगभग)",
       bill_note: "पूरा बिल फ़्रंट डेस्क से लें।", bill_est_note: "यह सिर्फ़ अंदाज़ा है। पूरा बिल फ़्रंट डेस्क देगा।",
@@ -123,6 +124,31 @@
   const base = `/public/guest/${encodeURIComponent(token)}`;
   const tr = (k) => (T[S.lang] || T.en)[k] ?? T.en[k] ?? k;
   const fmt = (k, o) => tr(k).replace(/\{(\w)\}/g, (_, x) => o[x] ?? "");
+  // The confirm-card buttons speak the reply's language (the assistant mirrors how the guest wrote, not the page
+  // language), so a Hindi reply that says "“हाँ, भेज दो” दबाइए" sits above a button with exactly that label.
+  // Keep these labels in step with services/concierge.py (its replies name the button).
+  const BTN = { en: [T.en.confirm, T.en.not_now], hi: [T.hi.confirm, T.hi.not_now], hinglish: ["Haan, bhej do", "Abhi nahi"] };
+
+  // Times: every clock time is shown in the hotel's time zone (IST, +05:30, by default), never the server's or UTC.
+  // The API sends `at_local` (hotel-local HH:MM) for requests; ISO strings with an offset / Z are converted here.
+  const HOTEL_TZ = "Asia/Kolkata";
+  function hotelTime(r) {
+    if (r && r.at_local) return r.at_local;
+    const s = String((r && r.at) || "");
+    if (!/(Z|[+-]\d\d:?\d\d)$/.test(s)) return s.slice(11, 16);  // no offset: the server already gave local time
+    const d = new Date(s);
+    if (isNaN(d)) return "";
+    const off = S.data && Number.isFinite(S.data.utc_offset_minutes) ? S.data.utc_offset_minutes : null;
+    if (off !== null && off !== 330) {  // a hotel outside IST: shift by its offset
+      const t = new Date(d.getTime() + off * 60000);
+      return `${String(t.getUTCHours()).padStart(2, "0")}:${String(t.getUTCMinutes()).padStart(2, "0")}`;
+    }
+    try { return new Intl.DateTimeFormat("en-GB", { timeZone: HOTEL_TZ, hour: "2-digit", minute: "2-digit", hour12: false }).format(d); }
+    catch (e) { const t = new Date(d.getTime() + 330 * 60000); return `${String(t.getUTCHours()).padStart(2, "0")}:${String(t.getUTCMinutes()).padStart(2, "0")}`; }
+  }
+  // A server message in the page language (e.g. "your late check-out request was cancelled").
+  const srvMsg = (o) => (o ? (S.lang === "hi" && o.message_hi) || o.message || "" : "");
+  function coNotice(msg) { const el = $("#coNotice"); el.textContent = msg || ""; el.classList.toggle("hidden", !msg); }
 
   // ---------------------------------------------------------------- api
   async function api(method, path, body, isForm) {
@@ -160,7 +186,9 @@
     paintMark(window.HOI_SAFE_IMG(p.logo_url));
     paintCover(window.HOI_SAFE_IMG(p.cover_photo_url), p.cover_photo_credit || "");
     $("#roomNo").textContent = d.room;
-    $("#welcome").textContent = p.welcome || "";
+    // The welcome follows the page language: the hotel's own Hindi line if it has one (welcome_hi), else a short
+    // Hindi greeting with the hotel's name (the hotel's free-text welcome is usually English only).
+    $("#welcome").textContent = S.lang === "hi" ? (p.welcome_hi || (p.welcome ? fmt("welcome_dflt", { h: p.display_name || d.hotel }) : "")) : (p.welcome || "");
     // The header already welcomes the guest: the chat starts with the quick buttons ("What do you need?"), no greeting bubble.
     paintMenu(); paintRequests(); paintExplore(); paintCheckout();
   }
@@ -187,6 +215,11 @@
     $("#abar").dataset.state = st;
     $("#aStatus").textContent = tr("st_" + st);
     $("#stopSpeak").classList.toggle("hidden", !S.speaking);
+    // While the Stop pill floats over the thread, the Ask tab gets extra bottom room (guest.css body.speaking) so the pill
+    // never covers the last card's buttons (e.g. Open in Maps); the newest message is scrolled back into view.
+    const pill = !document.body.classList.contains("speaking") && S.speaking;
+    document.body.classList.toggle("speaking", S.speaking);
+    if (pill) scrollThread();
     $("#mic").setAttribute("aria-label", tr(S.rec && S.rec.target === "chat" ? "mic_stop" : "mic_talk"));
   }
   function stopSpeaking() { if (window.HOIVoice) window.HOIVoice.stop(); S.speaking = false; status(); }
@@ -231,7 +264,7 @@
       const i = order.indexOf(r.stage);
       const dep = reqDept(r), team = (T[S.lang].team || T.en.team)[dep] || T.en.team.generic;
       return `<div class="st"><div class="row"><img class="ravatar" src="${esc(window.HOI_AVATAR(dep))}" alt="" width="40" height="40">` +
-        `<span><b>${esc(r.title)}</b><br><span class="muted">${esc(team)} · ${esc((r.at || "").slice(11, 16))}</span></span>` +
+        `<span><b>${esc(r.title)}</b><br><span class="muted">${esc(team)} · ${esc(hotelTime(r))}</span></span>` +
         `<span class="chip ${tone[r.stage] || "gray"}">${esc(tr("stage_" + r.stage))}</span></div>` +
         `<div class="prog" aria-hidden="true">${order.map((_, k) => `<span class="${k <= i ? "on" : ""}"></span>`).join("")}</div></div>`;
     }).join("") : `<p class="muted">${esc(tr("none"))}</p>`;
@@ -245,7 +278,7 @@
   function reqMeta(r) {
     const team = (T[S.lang].team || T.en.team)[reqDept(r)] || T.en.team.generic;
     const stage = STAGE_WORD[r.stage] || "received";
-    return `<span class="rtick" aria-hidden="true">✓</span><span>${esc(fmt("sent_to", { d: team }))} · ${esc((r.at || "").slice(11, 16))}</span>` +
+    return `<span class="rtick" aria-hidden="true">✓</span><span>${esc(fmt("sent_to", { d: team }))} · ${esc(hotelTime(r))}</span>` +
       `<span class="rstage ${esc(r.stage || "open")}">${esc(tr(stage))}</span>`;
   }
 
@@ -388,7 +421,8 @@
       c._action = action; $("#thread").appendChild(c);
     } else if (action) {
       const c = document.createElement("div"); c.className = "confirm";
-      c.innerHTML = `<b>${esc(S.lang === "hi" && action.label_hi ? action.label_hi : action.label)}</b><div class="row"><button type="button" class="btn" data-no>${esc(tr("not_now"))}</button><button type="button" class="btn primary" data-yes>${esc(tr("confirm"))}</button></div>`;
+      const [yesL, noL] = BTN[lang] || BTN[S.lang] || BTN.en;  // the button the reply names
+      c.innerHTML = `<b>${esc(S.lang === "hi" && action.label_hi ? action.label_hi : action.label)}</b><div class="row"><button type="button" class="btn" data-no>${esc(noL)}</button><button type="button" class="btn primary" data-yes>${esc(yesL)}</button></div>`;
       c._action = action; $("#thread").appendChild(c);
     }
     scrollThread();
@@ -432,7 +466,10 @@
         const m = document.createElement("div"); m.className = "rmeta"; m.innerHTML = reqMeta(newest); card.appendChild(m);
       }
       const msg = action.urgent ? tr("alert_sent") : { request: tr("sent"), checkout: fmt("co_booked", { t: params.time, l: params.luggage_help ? tr("co_lug") : "" }), late_checkout: fmt("late_pending", { t: params.until }), feedback: tr("fb_thanks") }[action.action];
-      bot(tr("done_ok") + msg, null, S.lang);
+      // express and late check-out replace each other: say what was cancelled
+      const extra = srvMsg(res) || srvMsg(res && res.late_checkout);
+      bot(tr("done_ok") + msg + (extra ? " " + extra : ""), null, S.lang);
+      if (extra) coNotice(extra);
       await load();
     } catch (e) { card.querySelectorAll("button").forEach((b) => { b.disabled = false; }); bot(e.message, null, null, true); }
   }
@@ -604,12 +641,12 @@
   $("#consentNo").addEventListener("click", () => { $("#consent").classList.add("hidden"); S.pendingMic = null; $("#msg").focus(); });
   $("#coBtn").addEventListener("click", async () => {
     $("#coBtn").disabled = true;
-    try { await api("POST", "/checkout", { time: $("#coTime").value, luggage_help: $("#coLug").checked }); await load(); toast(tr("done_ok")); }
+    try { const res = await api("POST", "/checkout", { time: $("#coTime").value, luggage_help: $("#coLug").checked }); coNotice(srvMsg(res)); await load(); toast(tr("done_ok")); }
     catch (e) { fail(e.message); } finally { $("#coBtn").disabled = false; }
   });
   $("#lateBtn").addEventListener("click", async () => {
     $("#lateBtn").disabled = true;
-    try { await api("POST", "/late-checkout", { until: $("#lateUntil").value, reason: $("#lateReason").value }); $("#lateReason").value = ""; await load(); }
+    try { const res = await api("POST", "/late-checkout", { until: $("#lateUntil").value, reason: $("#lateReason").value }); coNotice(srvMsg(res)); $("#lateReason").value = ""; await load(); }
     catch (e) { fail(e.message); } finally { $("#lateBtn").disabled = false; }
   });
   $("#fbBtn").addEventListener("click", async () => {

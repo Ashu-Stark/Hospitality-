@@ -62,6 +62,9 @@ cd dashboard; $env:API_BASE_URL="http://127.0.0.1:8000"; $env:PLATFORM_API_URL="
 | Tourism portal | http://localhost:8200 | tourists need none; demo state admin, district officer, business under "Sign in" |
 | API docs | http://localhost:8000/docs · http://localhost:8100/docs · http://localhost:8200/docs | |
 
+The ops API is open when `HOI_OPS_API_KEY` is unset (local runs). When it is set (production), the dashboards need the
+same `HOI_OPS_API_KEY` (sent as the `X-HOI-Key` header); `/health` stays open.
+
 Docker: `docker compose up --build` runs all four services against the Atlas URI in `.env` (written, not build-tested here).
 
 ## Tests and quality (all offline on mongomock)

@@ -4,7 +4,7 @@ import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
 
-from lib import auth, data, dispatch, platform, tenancy, theme, ui
+from lib import auth, data, dispatch, platform, tenancy, theme, timefmt, ui
 
 ui.setup("pages/13_Inventory.py", "Stock")
 U = auth.current()
@@ -182,7 +182,29 @@ if HOMESTAY:
     ui.footer()
     st.stop()
 
+
 # ------------------------------------------------------------------ requests
+def req_title(r: dict) -> str:
+    """Plain words: "Towels ×2 for Housekeeping · room 204" (the API sends `title`; older APIs do not)."""
+    if r.get("title"):
+        return str(r["title"])
+    named = [f"{item_by.get(l['item_id'], {}).get('name', 'item')} ×{l['qty']:g}" for l in r["lines"][:3]]
+    named += [f"+{len(r['lines']) - 3} more"] if len(r["lines"]) > 3 else []
+    room = f" · room {r['room']}" if r.get("room") else ""
+    return f"{', '.join(named) or 'Stock request'} for {theme.dept_label(r['department'])}{room}"
+
+
+def give_from(r: dict) -> str | None:
+    """Default "Give from": the API's pick (a place that has enough of every item), else a place that has enough here,
+    else the Main store."""
+    if r.get("give_from"):
+        return r["give_from"]
+    need = {l["item_id"]: l["qty"] - l["qty_issued"] for l in r["lines"]}
+    able = [l["id"] for l in locs if all(stk.get((i, l["id"]), 0) >= q for i, q in need.items())]
+    main = next((l["id"] for l in locs if "main" in l["name"].lower()), None)
+    return main if main in able or not able else able[0]
+
+
 with tabs[1]:
     st.markdown("**New request**")
     with st.form("newreq", clear_on_submit=True):
@@ -212,10 +234,10 @@ with tabs[1]:
         )
         with st.container(key=f"card_req_{r['id']}"):
             ui.html(
-                f'<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><b>{theme.esc(r["id"])}</b>{theme.band_chip(tone, req_label)}'
-                f'<span class="ss-tag">{theme.esc(theme.dept_label(r["department"]))}</span><span class="ss-tag">by {theme.esc(ui.short_name(r["requested_by"]))}</span>'
-                + (f'<span class="ss-tag">room {theme.esc(r["room"])}</span>' if r.get("room") else "")
-                + f'<span style="color:#6b6a65;font-size:.78rem">{r["created_at"][:16].replace("T", " ")} · {theme.esc(r.get("note") or "")}</span></div>'
+                f'<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><b>{theme.esc(req_title(r))}</b>{theme.band_chip(tone, req_label)}'
+                + f'<span style="color:#6b6a65;font-size:.78rem">{timefmt.stamp(r["created_at"])}'
+                + (f" · {theme.esc(r['note'])}" if r.get("note") else "")
+                + "</span></div>"
             )
             st.dataframe(
                 pd.DataFrame(
@@ -234,7 +256,14 @@ with tabs[1]:
             )
             if CAN_MANAGE and r["status"] in ("pending", "partial"):
                 c1, c2, c3, c4 = st.columns([1.4, 1, 1, 1])
-                src = c1.selectbox("Give from", [l["id"] for l in locs], format_func=lambda i: loc_by[i]["name"], key=f"src_{r['id']}")
+                loc_ids = [l["id"] for l in locs]
+                src = c1.selectbox(
+                    "Give from",
+                    loc_ids,
+                    index=loc_ids.index(give_from(r)) if give_from(r) in loc_ids else 0,
+                    format_func=lambda i: loc_by[i]["name"],
+                    key=f"src_{r['id']}",
+                )
                 if c2.button("Give all", key=f"iss_{r['id']}", type="primary", width="stretch"):
                     act(
                         "POST",
@@ -408,7 +437,7 @@ with tabs[3]:
             pd.DataFrame(
                 [
                     {
-                        "When": m["at"][:16].replace("T", " "),
+                        "When": timefmt.stamp(m["at"]),
                         "Item": item_by.get(m["item_id"], {}).get("name", m["item_id"]),
                         "Place": loc_by.get(m["location_id"], {}).get("name", ""),
                         "How many": m["qty"],
@@ -443,7 +472,7 @@ with tabs[4]:
         ui.empty("No count going on. Start one, type what is really on the shelf, then save.")
     for cnt in oc:
         ui.html(
-            f"<b>Counting {theme.esc(loc_by.get(cnt['location_id'], {}).get('name', ''))}</b> · started {cnt['created_at'][:16].replace('T', ' ')}"
+            f"<b>Counting {theme.esc(loc_by.get(cnt['location_id'], {}).get('name', ''))}</b> · started {timefmt.stamp(cnt['created_at'])}"
         )
         df = pd.DataFrame(
             [

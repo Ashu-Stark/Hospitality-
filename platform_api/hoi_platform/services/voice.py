@@ -11,7 +11,7 @@ from __future__ import annotations
 import re
 
 from .. import mongo
-from . import concierge, dispatch, issues, tenants
+from . import concierge, dispatch, inventory, issues, tenants
 from .errors import Invalid, NotFound
 
 URGENT = ("urgent", "jaldi", "turant", "abhi", "emergency", "ज़रूरी", "जरूरी", "जल्दी", "तुरंत", "fast", "asap")
@@ -63,6 +63,75 @@ WORDS = {
         "टूट",
     ),
 }
+
+# Supplies ("I need 2 bottles of water for room 205", "205 ke liye 2 paani chahiye", "कमरा 205 में दो तौलिया चाहिए"):
+# a request verb + an item of THIS hotel's catalogue (matched by name, or by a spoken alias below). Confirmed requests use
+# the same stock-request flow as the Supplies tab (inventory.request). ASSUMED word lists; extend them as staff use it.
+SUPPLY_VERBS = (
+    "need", "want", "bring", "send", "get me", "require", "supply", "supplies", "refill",
+    "chahiye", "chahie", "chaiye", "lao", "laao", "le aao", "le ao", "bhej", "bhejo", "de do", "dedo", "mangwa", "mangao",
+    "चाहिए", "चाहिये", "लाओ", "लाइए", "ले आओ", "भेजो", "भेज दो", "दे दो", "मँगवा", "मंगवा", "मँगाओ",
+)
+SUPPLY_ALIASES = {  # spoken word -> a word of the item's name
+    "water": "water", "paani": "water", "pani": "water", "पानी": "water", "bottle": "water", "bottles": "water", "बोतल": "water",
+    "towel": "towel", "towels": "towel", "tauliya": "towel", "toliya": "towel", "तौलिया": "towel", "तौलिए": "towel",
+    "soap": "soap", "sabun": "soap", "साबुन": "soap", "shampoo": "shampoo", "शैम्पू": "shampoo", "शैंपू": "shampoo",
+    "bedsheet": "bedsheet", "sheet": "bedsheet", "sheets": "bedsheet", "chadar": "bedsheet", "चादर": "bedsheet",
+    "pillow": "pillow", "takiya": "pillow", "तकिया": "pillow", "slipper": "slippers", "slippers": "slippers",
+    "chappal": "slippers", "चप्पल": "slippers", "toilet paper": "toilet", "toilet roll": "toilet", "tissue": "toilet",
+    "dental": "dental", "toothbrush": "dental", "tea": "tea", "chai": "tea", "चाय": "tea",
+    "coffee": "coffee", "कॉफी": "coffee", "sugar": "sugar", "cheeni": "sugar", "chini": "sugar", "चीनी": "sugar",
+    "bulb": "bulb", "बल्ब": "bulb", "battery": "batteries", "batteries": "batteries",
+    "garbage bag": "garbage", "dustbin bag": "garbage", "kachra": "garbage",
+}
+NUMBER_WORDS = {
+    "a": 1, "an": 1, "one": 1, "two": 2, "three": 3, "four": 4, "five": 5, "six": 6, "seven": 7, "eight": 8, "nine": 9, "ten": 10,
+    "ek": 1, "teen": 3, "char": 4, "chaar": 4, "paanch": 5, "panch": 5, "chhe": 6, "saat": 7, "aath": 8, "nau": 9, "das": 10,
+    "एक": 1, "दो": 2, "तीन": 3, "चार": 4, "पाँच": 5, "पांच": 5, "छह": 6, "सात": 7, "आठ": 8, "नौ": 9, "दस": 10,
+}  # "do" (2) is left out: in Hinglish it is also "give" ("de do")
+MAX_SUPPLY_QTY = 50
+_GENERIC = {"of", "box", "pack", "roll", "pair", "pc", "ml", "kg", "the", "and", "for", "with"}
+_ROOM = re.compile(r"(?:room|kamra|kamre|कमरा|कमरे|rm)\s*(?:no\.?|number|नंबर)?\s*(\d{3,4})")
+_WORD = re.compile(r"\d+|[a-zऀ-ॿ]+")
+
+
+def _item_words(name: str) -> set[str]:
+    return {w for w in re.findall(r"[a-zऀ-ॿ]+", concierge.norm(name)) if len(w) > 2 and w not in _GENERIC}
+
+
+def _qty(segment: str) -> int:
+    for w in _WORD.findall(segment):
+        if w.isdigit() and 0 < int(w) < 100:
+            return min(int(w), MAX_SUPPLY_QTY)
+        if w in NUMBER_WORDS:
+            return NUMBER_WORDS[w]
+    return 1
+
+
+def parse_supplies(tid: str, text: str) -> dict | None:
+    """{"lines": [{item_id, name, unit, qty}], "room"} when the text asks for items of this hotel's catalogue, else None."""
+    t = concierge.norm(text)
+    if not concierge.has(" " + t + " ", SUPPLY_VERBS):
+        return None
+    m = _ROOM.search(t) or re.search(r"(?<!\d)(\d{3,4})(?!\d)", t)
+    room = m.group(1) if m else None
+    body = _ROOM.sub(" ", t)
+    if room:
+        body = re.sub(rf"(?<!\d){room}(?!\d)", " ", body)
+    items = [i for i in inventory.items(tid) if i.get("active", True)]
+    lines: dict[str, dict] = {}
+    for seg in re.split(r",| and | aur | और |&", body):
+        seg_words = set(_WORD.findall(seg))
+        wanted = {v for k, v in SUPPLY_ALIASES.items() if concierge.has(" " + seg + " ", (k,))}
+        best, score = None, 0
+        for i in items:
+            words = _item_words(i["name"])
+            s = 2 * len(words & wanted) + len(words & seg_words)
+            if s > score:
+                best, score = i, s
+        if best is not None and best["id"] not in lines:
+            lines[best["id"]] = {"item_id": best["id"], "name": best["name"], "unit": best.get("unit") or "", "qty": _qty(seg)}
+    return {"lines": list(lines.values()), "room": room} if lines else None
 
 
 def _t(lang: str, en: str, hi: str) -> str:
@@ -122,6 +191,21 @@ def command(tid: str, emp: str, text: str, lang_hint: str = "en") -> dict:
         prop = {"action": action, "params": params or {}, "label": label} if action else None
         return {"intent": intent, "reply": reply, "lang": lang, "proposed_action": prop}
 
+    supply = None if concierge.has(t, WORDS["issue"]) else parse_supplies(tid, text)
+    if supply:
+        what = ", ".join(f"{x['qty']} × {x['name']}" for x in supply["lines"])
+        room = supply["room"]
+        return out(
+            "request_supplies",
+            _t(
+                lang,
+                f"Ask the store for {what}" + (f" for room {room}" if room else "") + "? Press Confirm to send.",
+                "स्टोर से मँगाएँ: " + what + (f", कमरा {room} के लिए" if room else "") + "। भेजने के लिए 'हाँ, कर दो' दबाएँ।",
+            ),
+            "request_supplies",
+            {"lines": {x["item_id"]: x["qty"] for x in supply["lines"]}, "room": room},
+            _t(lang, "Supplies: ", "सामान: ") + what + (f" · {_t(lang, 'room', 'कमरा')} {room}" if room else ""),
+        )
     issue = parse_issue(text) if concierge.has(t, WORDS["issue"]) or issues.top(text) else None
     if issue:
         dept_label = issue["department"].replace("_", " ")
@@ -130,7 +214,7 @@ def command(tid: str, emp: str, text: str, lang_hint: str = "en") -> dict:
             _t(
                 lang,
                 f"Report for room {issue['room']} to {dept_label}: {issue['issue']}. Confirm to send.",
-                f"कमरा {issue['room']} की रिपोर्ट {dept_label} को: {issue['issue']}। भेजने के लिए Confirm दबाएँ।",
+                f"कमरा {issue['room']} की रिपोर्ट {dept_label} को: {issue['issue']}। भेजने के लिए 'हाँ, कर दो' दबाएँ।",
             ),
             "report_issue",
             issue,
@@ -259,8 +343,10 @@ def command(tid: str, emp: str, text: str, lang_hint: str = "en") -> dict:
 def _help(lang: str) -> str:
     return _t(
         lang,
-        "You can say: what's next, accept, decline, start, done, my shift, or report a problem like 'room 204 tap leaking'.",
-        "आप बोल सकते हैं: अगला काम, स्वीकार, मना, शुरू, हो गया, मेरी शिफ़्ट, या समस्या जैसे 'कमरा 204 नल लीक'।",
+        "You can say: what's next, accept, decline, start, done, my shift, report a problem like 'room 204 tap leaking', "
+        "or ask for supplies like 'I need 2 bottles of water for room 205'.",
+        "आप बोल सकते हैं: अगला काम, स्वीकार, मना, शुरू, हो गया, मेरी शिफ़्ट, समस्या जैसे 'कमरा 204 नल लीक', "
+        "या सामान जैसे 'कमरा 205 के लिए 2 पानी की बोतल चाहिए'।",
     )
 
 
@@ -300,4 +386,27 @@ def act(tid: str, emp: str, actor: str, action: str, params: dict) -> dict:
         )
         tenants.audit(tid, actor, "voice.report_issue", f"{job['id']} room {room}")
         return {"ok": True, "action": action, "job": {k: job.get(k) for k in ("id", "title", "status", "department", "urgency", "room")}}
+    if action == "request_supplies":
+        raw = params.get("lines") if isinstance(params.get("lines"), dict) else {}
+        lines = {}
+        for k, v in list(raw.items())[:10]:
+            try:
+                q = float(v)
+            except (TypeError, ValueError):
+                continue
+            if 0 < q <= MAX_SUPPLY_QTY:
+                lines[str(k)] = q
+        if not lines:
+            raise Invalid("Say the item and how many, e.g. '2 bottles of water for room 205'.")
+        room = str(params.get("room") or "").strip()[:8] or None
+        if room and not mongo.col("rooms").find_one({"tenant_id": tid, "number": room}, {"id": 1}):
+            raise NotFound(f"Room {room} not found.")
+        staff = mongo.col("staff").find_one({"tenant_id": tid, "employee_id": emp}, {"department": 1}) or {}
+        dept = staff.get("department") or "housekeeping"
+        try:  # the same request the Supplies tab sends (POST /inventory/requests): the storekeeper sees it in the queue
+            rid = inventory.request(tid, emp, dept, lines, room=room, note="voice")
+        except inventory.InventoryError as e:
+            raise Invalid(str(e)) from None
+        tenants.audit(tid, actor, "voice.request_supplies", rid)
+        return {"ok": True, "action": action, "request": {"id": rid, "room": room, "department": dept}}
     raise Invalid("This action needs the app buttons.")

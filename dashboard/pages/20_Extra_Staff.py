@@ -7,7 +7,7 @@ from datetime import date, timedelta
 import pandas as pd
 import streamlit as st
 
-from lib import platform, theme, ui
+from lib import platform, theme, timefmt, today, ui
 
 ui.setup("pages/20_Extra_Staff.py", "Extra staff")
 ui.page_head(
@@ -45,7 +45,8 @@ def request_form(prefill: dict | None = None, key: str = "stf") -> None:
                     source=p.get("source", "manual"),
                 )
                 st.session_state.pop("staffing_prefill", None)
-                st.toast("Sent to the tourism portal" if r["status"] == "sent" else "Saved. Not sent yet: " + (r.get("last_error") or ""))
+                sent = r["status"] == "sent"
+                ui.flash("Sent to the tourism portal." if sent else "Saved. Not sent yet: " + (r.get("last_error") or ""), ok=sent)
                 st.rerun()
             except platform.PlatformError as ex:
                 st.error(ex.message)
@@ -65,7 +66,11 @@ ui.big_numbers(
 pre = st.session_state.get("staffing_prefill")
 with st.expander("Request staff", expanded=bool(pre) or not rows):
     if pre:
-        st.caption(f"Filled in from the shift plan: {theme.dept_label(pre['department'])} is short on {pre['date_from']}.")
+        gap = pre.get("gap_day") or pre["date_from"]
+        st.caption(
+            f"Filled in from the shift plan: {theme.dept_label(pre['department'])} is short on {gap}."
+            + (" The tourism portal takes requests up to 180 days ahead, so the dates are in the coming week." if gap != pre["date_from"] else "")
+        )
     request_form(pre)
 
 for r in pending:  # one clear action per card
@@ -76,11 +81,11 @@ for r in pending:  # one clear action per card
         unsafe_allow_html=True,
     )
     if b.button("Send again", key=f"act_resend_{r['id']}", type="primary", width="stretch"):
-        try:
-            out = platform.resend_staffing_request(r["id"])
-            st.toast("Sent" if out["status"] == "sent" else "Still not sent: " + (out.get("last_error") or ""))
-        except platform.PlatformError as ex:
-            st.toast(ex.message)
+        with st.spinner("Sending… the tourism portal can take up to a minute to wake up."):
+            try:
+                ui.flash(*today.action_result(platform.resend_staffing_request(r["id"])))
+            except platform.PlatformError as ex:
+                ui.flash(ex.message, ok=False)
         st.rerun()
 
 if rows:
@@ -95,7 +100,7 @@ if rows:
                 "Portal number": r.get("portal_ref") or "",
                 "Tries": r.get("attempts"),
                 "From": "roster" if r.get("source") == "roster_shortage" else "manual",
-                "Created": str(r.get("created_at", ""))[:16].replace("T", " "),
+                "Created": timefmt.stamp(r.get("created_at")),
             }
             for r in rows
         ]

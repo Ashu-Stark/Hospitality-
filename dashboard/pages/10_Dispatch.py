@@ -4,7 +4,7 @@ from datetime import date
 import pandas as pd
 import streamlit as st
 
-from lib import data, dispatch, models, nav, platform, tenancy, theme, ui
+from lib import data, dispatch, models, nav, platform, tenancy, theme, timefmt, ui
 
 ui.setup("pages/10_Dispatch.py", "Jobs")
 cfg = tenancy.active_settings()
@@ -100,6 +100,11 @@ SAMPLES = [
     ("Bulb fused in bathroom", "maintenance", "low"),
     ("Fresh bed linen", "housekeeping", "low"),
 ]
+if st.session_state.pop("nr_clear", False):  # the last job was sent: start with an empty form
+    st.session_state["nr_title"], st.session_state["nr_room"] = "", ""
+flash = st.session_state.pop("nr_flash", None)
+if flash:
+    st.toast(flash[0], icon=flash[1])
 with form_slot, st.container(key="card_new"):
     a, b, c, d, e = st.columns([2.4, 0.9, 1.2, 1, 1.2])
     with a:
@@ -116,7 +121,7 @@ with form_slot, st.container(key="card_new"):
             key=f"nr_dept_{guess}",
         )
     with d:
-        urg = st.selectbox("Urgency", ["high", "medium", "low"], index=1)
+        urg = st.selectbox("Urgency", ["high", "medium", "low"], index=1, key="nr_urg")
     with e:
         ui.html('<div style="height:26px"></div>')
         send = st.button("Send", type="primary", icon=":material/bolt:", width="stretch", disabled=not title)
@@ -125,16 +130,44 @@ with form_slot, st.container(key="card_new"):
         sim = st.button("Try a guest request", icon=":material/notifications_active:")
     with s2:
         st.caption("We guess the department from the words. You can change it before you send.")
+
+
+def sent_message(job: dict) -> tuple[str, str]:
+    """Toast text after Send: a repeat of a job that is still open is not sent twice."""
+    if job.get("existing"):
+        return (
+            "This job is already open" + (f" for room {job['room']}" if job.get("room") else "") + ". Not sent again.",
+            ":material/info:",
+        )
+    return ("Job sent" if auto else "Job waiting for a supervisor", ":material/bolt:")
+
+
 if send and title:
-    if ui.safe(platform.create_job, title, dept, room or None, urg, "manual", what="send the job"):
-        st.toast("Job sent" if auto else "Job waiting for a supervisor", icon=":material/bolt:")
+    try:
+        made = platform.create_job(title, dept, room.strip() or None, urg, "manual")
+    except platform.PlatformError as e:  # e.g. "Room 212 not found.": keep the text so it can be corrected
+        with form_slot:
+            ui.html(theme.banner(f"<b>Could not send the job.</b> {theme.esc(e.message)}", "red", "alert"))
+    else:
+        st.session_state["nr_flash"] = sent_message(made or {})
+        st.session_state["nr_clear"] = True
+        st.rerun()
 if sim:
     staffed = set(working.values())
     pool = [s for s in SAMPLES if s[1] in staffed] or SAMPLES
     t, dpt, u = random.choice(pool)
-    rm = f"{random.randint(1, tenancy.floors())}{random.randint(1, 12):02d}"
-    if ui.safe(platform.create_job, t, dpt, rm, u, "simulated", what="make a practice request"):
-        st.toast(f"New: {t} · room {rm}", icon=":material/notifications_active:")
+    try:  # a real room of this hotel: the API refuses rooms that do not exist
+        numbers = [str(r["number"]) for r in platform.rooms().get("rooms", [])]
+    except platform.PlatformError:
+        numbers = []
+    rm = random.choice(numbers) if numbers else f"{random.randint(1, tenancy.floors())}{random.randint(1, 12):02d}"
+    try:
+        made = platform.create_job(t, dpt, rm, u, "simulated")
+    except platform.PlatformError as e:
+        with form_slot:
+            ui.html(theme.banner(f"<b>Could not make a practice request.</b> {theme.esc(e.message)}", "red", "alert"))
+    else:
+        st.toast(f"New: {t} · room {rm}" if not made.get("existing") else sent_message(made)[0], icon=":material/notifications_active:")
 
 
 def plain_note(note: str) -> str:
@@ -174,7 +207,7 @@ def render_job(j: dict, w: dict) -> None:
                 f'<span class="ss-tag">{theme.esc(theme.dept_label(j["department"]))}</span>'
                 + (f'<span class="ss-tag">room {theme.esc(j["room"])}</span>' if j.get("room") else "")
                 + f'<span class="ss-tag">{theme.esc(j["urgency"])}</span></div>'
-                f'<div style="color:#6b6a65;font-size:.78rem;margin-top:4px">{theme.esc(j["source"])} · {j["created_at"][11:16]}'
+                f'<div style="color:#6b6a65;font-size:.78rem;margin-top:4px">{theme.esc(j["source"])} · {timefmt.hhmm(j["created_at"])}'
                 + (
                     f" · done by <b>{theme.esc(ui.short_name(who))}</b>"
                     if j["status"] in ("accepted", "in_progress", "done") and who
@@ -221,7 +254,9 @@ def render_job(j: dict, w: dict) -> None:
                     with col:
                         if kind in ph:
                             st.image(
-                                platform.photo_bytes(ph[kind]["id"]), caption=f"{kind} · {ph[kind]['server_ts'][11:19]}", width="stretch"
+                                platform.photo_bytes(ph[kind]["id"]),
+                                caption=f"{kind} · {timefmt.hhmm(ph[kind]['server_ts'], seconds=True)}",
+                                width="stretch",
                             )
 
 
@@ -238,7 +273,7 @@ def live() -> None:
             [
                 theme.tile("Waiting for a yes", str(len(by["offered"])), "sent to someone, not taken yet", "alert"),
                 theme.tile("Being done", str(len(by["accepted"]) + len(by["in_progress"])), "someone took it", "user"),
-                theme.tile("Done", str(len(by["done"])), "with before and after photo", "check"),
+                theme.tile("Done", str(len(by["done"])), "finished (photo only if the job needs one)", "check"),
                 theme.tile("Nobody took it", str(len(by["unassigned"]) + len(by["new"])), "send it again or pick someone", "flag"),
             ]
         )

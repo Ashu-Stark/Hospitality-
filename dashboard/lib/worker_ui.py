@@ -8,7 +8,7 @@ from datetime import datetime
 import streamlit as st
 
 from . import api_client as api
-from . import auth, platform, theme, ui
+from . import auth, platform, theme, timefmt, ui
 from .api_client import ApiError
 
 
@@ -98,10 +98,10 @@ def phone(me: str, dept: str | None, shift: str, seconds: int, allow_upload: boo
                             api.done_task(j["backend_task_id"])
                         except ApiError:
                             pass
-                    st.toast(f"{kind.capitalize()} photo saved at {info['server_ts'][11:19]}", icon=":material/photo_camera:")
+                    st.toast(f"{kind.capitalize()} photo saved at {timefmt.hhmm(info['server_ts'], seconds=True)}", icon=":material/photo_camera:")
                     st.rerun()
             if "before" in ph:
-                st.image(platform.photo_bytes(ph["before"]["id"]), caption=f"before · {ph['before']['server_ts'][11:19]}", width="stretch")
+                st.image(platform.photo_bytes(ph["before"]["id"]), caption=f"before · {timefmt.hhmm(ph['before']['server_ts'], seconds=True)}", width="stretch")
 
 
 def completed(me: str, limit: int = 5) -> None:
@@ -115,7 +115,7 @@ def completed(me: str, limit: int = 5) -> None:
     for j in done:
         ph = platform.job_photos(j["id"])
         with st.container(key=f"card_wdone_{j['id']}"):
-            st.markdown(f"**{j['title']}** · done {j['done_at'][11:16]}")
+            st.markdown(f"**{j['title']}** · done {timefmt.hhmm(j['done_at'])}")
             c1, c2 = st.columns(2)
             for col, k in zip((c1, c2), ("before", "after")):
                 with col:

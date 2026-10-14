@@ -92,19 +92,76 @@ def moves(tid: str, limit: int = 300, since: str | None = None) -> list[dict]:
     return mongo.find("inv_moves", flt, [("id", DESCENDING)], limit)
 
 
-def _req_out(r: dict) -> dict:
+DEPT_LABEL = {  # same words as the dashboard and the staff app
+    "housekeeping": "Housekeeping",
+    "fnb_service": "F&B service",
+    "kitchen": "Kitchen",
+    "front_office": "Front office",
+    "maintenance": "Maintenance",
+    "security": "Security",
+}
+TITLE_MAX_LINES = 3  # items named in a request title; the rest become "+N more"
+
+
+def request_title(lines: list[tuple[str, float]], department: str | None, room: str | None = None) -> str:
+    """Plain title for a stock request, e.g. "Towels ×2, Soap ×4 for Housekeeping · room 204" (no ids, no usernames)."""
+    named = [f"{name} ×{qty:g}" for name, qty in lines[:TITLE_MAX_LINES]]
+    if len(lines) > TITLE_MAX_LINES:
+        named.append(f"+{len(lines) - TITLE_MAX_LINES} more")
+    dept = DEPT_LABEL.get(str(department), str(department or "").replace("_", " ").capitalize())
+    title = (", ".join(named) or "Stock request") + (f" for {dept}" if dept else "")
+    return title + (f" · room {room}" if room else "")
+
+
+def main_store(locs: list[dict]) -> str | None:
+    """The hotel's main store: a location named "Main ...", else the first store, else the first location."""
+    for pick in (lambda l: "main" in str(l.get("name", "")).casefold(), lambda l: l.get("kind") == "store", lambda l: True):
+        hit = next((l["id"] for l in locs if pick(l)), None)
+        if hit:
+            return hit
+    return None
+
+
+def choose_source(need: dict[str, float], stock_map: dict[tuple[str, str], float], locs: list[dict]) -> str | None:
+    """Where "Give all" should take from: a location that has enough of every item still owed (the main store first,
+    then the one with the most of these items); when no single location has enough, the main store."""
+    main = main_store(locs)
+    need = {i: q for i, q in need.items() if q > EPS}
+    if need:
+        able = [l["id"] for l in locs if all(stock_map.get((i, l["id"]), 0.0) >= q - EPS for i, q in need.items())]
+        if able:
+            return main if main in able else max(able, key=lambda lid: sum(stock_map.get((i, lid), 0.0) for i in need))
+    return main
+
+
+def _req_out(r: dict, names: dict[str, str] | None = None) -> dict:
     out = mongo.clean(r)
     out["lines"] = [{"req_id": r["id"], **ln} for ln in r.get("lines") or []]
+    if names is not None:
+        named = [(names.get(ln["item_id"], "item"), float(ln["qty"])) for ln in out["lines"]]
+        out["title"] = request_title(named, r.get("department"), r.get("room"))
     return out
 
 
 def reqs(tid: str, status: tuple[str, ...] | None = None, requested_by: str | None = None) -> list[dict]:
+    """Requests, newest first, each with a plain `title` and `give_from`: the location suggested for "Give all"."""
     flt: dict = {"tenant_id": tid}
     if status:
         flt["status"] = {"$in": list(status)}
     if requested_by:
         flt["requested_by"] = requested_by
-    return [_req_out(r) for r in mongo.col("inv_reqs").find(flt).sort([("created_at", DESCENDING), ("_id", DESCENDING)])]
+    rows = list(mongo.col("inv_reqs").find(flt).sort([("created_at", DESCENDING), ("_id", DESCENDING)]))
+    if not rows:
+        return []
+    names = {i["id"]: i.get("name") or "item" for i in mongo.col("inv_items").find({"tenant_id": tid}, {"id": 1, "name": 1})}
+    stock_map, locs = stock(tid), locations(tid)
+    out = []
+    for r in rows:
+        o = _req_out(r, names)
+        need = {ln["item_id"]: float(ln["qty"]) - float(ln["qty_issued"]) for ln in r.get("lines") or []}
+        o["give_from"] = choose_source(need, stock_map, locs)
+        out.append(o)
+    return out
 
 
 def pos(tid: str) -> list[dict]:

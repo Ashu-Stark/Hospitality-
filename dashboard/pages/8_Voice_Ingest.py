@@ -1,7 +1,7 @@
 import streamlit as st
 
 from lib import api_client as api
-from lib import data, nav, platform, theme, ui
+from lib import data, nav, platform, theme, timefmt, ui
 from lib.api_client import ApiError
 
 ui.setup("pages/8_Voice_Ingest.py", "Voice")
@@ -89,7 +89,7 @@ if state:
         ui.html(
             theme.banner(
                 f"<b>Task #{task.get('id')} made:</b> {theme.esc(task.get('title'))} · for {theme.esc(task.get('assignee'))} · "
-                f"due {theme.esc(str(task.get('deadline', ''))[:16].replace('T', ' '))}",
+                f"due {theme.esc(timefmt.stamp(task.get('deadline')))}",
                 "blue",
                 "check",
             )

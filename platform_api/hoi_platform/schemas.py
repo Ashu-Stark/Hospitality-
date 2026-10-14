@@ -426,7 +426,7 @@ class VoiceCommandIn(BaseModel):
 
 
 class VoiceActIn(BaseModel):
-    action: Literal["accept", "decline", "start", "complete", "report_issue"]
+    action: Literal["accept", "decline", "start", "complete", "report_issue", "request_supplies"]
     params: dict = Field(default_factory=dict)
 
 
