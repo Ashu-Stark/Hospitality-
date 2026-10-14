@@ -125,7 +125,7 @@ def _search_text(*parts) -> str:
 
 class Generator:
     def __init__(self, anchor: date | None = None):
-        self.anchor = anchor or date.today()
+        self.anchor = anchor or mongo.today()
         self.rng = random.Random(RNG_SEED)
         self.counters: dict[str, int] = defaultdict(int)
 

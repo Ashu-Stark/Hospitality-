@@ -61,7 +61,7 @@ def _months_between(start: str, end: str) -> list[int]:
 
 
 def _current(docs) -> list[dict]:
-    today = date.today().isoformat()
+    today = mongo.today().isoformat()
     return [e for e in docs if not e.get("end_date") or e["end_date"] >= today]
 
 

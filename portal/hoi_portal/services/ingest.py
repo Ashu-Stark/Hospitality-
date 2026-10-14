@@ -98,7 +98,7 @@ def ingest(raw_key: str | None, body: dict) -> dict:
         day = date.fromisoformat(body["date"])
     except (TypeError, ValueError):
         raise Invalid("date must be YYYY-MM-DD.") from None
-    today = date.today()
+    today = mongo.today()
     if day > today:
         raise Invalid("date cannot be in the future.")
     if day < today - timedelta(days=MAX_BACKDATE_DAYS):
@@ -150,7 +150,7 @@ def submit_month(b: dict, month: str, rooms_available: int, occupied_room_nights
         first = date(y, m, 1)
     except (ValueError, AttributeError):
         raise Invalid("month must be YYYY-MM.") from None
-    today = date.today()
+    today = mongo.today()
     if first > today:
         raise Invalid("month cannot be in the future.")
     if first < today.replace(day=1) - timedelta(days=MAX_BACKDATE_DAYS):

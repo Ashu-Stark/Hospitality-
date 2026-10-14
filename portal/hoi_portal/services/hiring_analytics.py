@@ -30,7 +30,7 @@ def _available_months(p: dict) -> set[int]:
     f, t = p.get("available_from"), p.get("available_to")
     if not f and not t:
         return set(range(1, 13))
-    a = date.fromisoformat(f) if f else date.today()
+    a = date.fromisoformat(f) if f else mongo.today()
     b = date.fromisoformat(t) if t else a + timedelta(days=365)
     months, cur = set(), date(a.year, a.month, 1)
     while cur <= b and len(months) < 12:
@@ -45,7 +45,7 @@ def _k(n: int) -> int | None:
 
 def workforce_market(district: str | None) -> dict:
     d = mongo.db()
-    today = date.today().isoformat()
+    today = mongo.today().isoformat()
     jf = {"district": district} if district else {}
     jobs = [mongo.clean(j) for j in d.job_posts.find(jf)]
     open_jobs = [j for j in jobs if j["status"] == "open" and j["closes_on"] >= today]

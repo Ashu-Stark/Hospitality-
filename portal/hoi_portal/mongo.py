@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import logging
 import threading
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime, timedelta
 
 from pymongo import ASCENDING, DESCENDING, ReturnDocument
 
@@ -52,6 +52,14 @@ def reset() -> None:
                 pass
         _CLIENT = None
         generation += 1
+
+
+IST = timedelta(hours=5, minutes=30)
+
+
+def today() -> date:
+    """Today's date in India (IST). Servers run in UTC, so date.today() is a day behind between 00:00 and 05:30 IST."""
+    return (datetime.now(UTC) + IST).date()
 
 
 def now() -> datetime:

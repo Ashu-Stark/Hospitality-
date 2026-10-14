@@ -186,7 +186,7 @@ def for_destination(dest_id: str, ctx: Context | None = None) -> dict:
     if dest_id not in BY_ID_DEST:
         raise NotFound("Destination not found.")
     ctx = ctx or Context()
-    today = date.today()
+    today = mongo.today()
     look = outlook(ctx, dest_id, today, 14)
     peak = max(look, key=lambda x: x["index"])
     return {

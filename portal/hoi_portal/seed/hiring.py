@@ -102,7 +102,7 @@ def _dt(d: date, hour: int = 10) -> datetime:
 
 class HiringGenerator:
     def __init__(self, anchor: date | None = None):
-        self.anchor = anchor or date.today()
+        self.anchor = anchor or mongo.today()
         self.r = random.Random(RNG_SEED)
         self.n_app = 0
         self.n_int = 0

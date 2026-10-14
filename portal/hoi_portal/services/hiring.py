@@ -71,7 +71,7 @@ def vocab() -> dict:
 
 
 def _today() -> str:
-    return date.today().isoformat()
+    return mongo.today().isoformat()
 
 
 def _skill(k: str) -> dict:
@@ -379,7 +379,7 @@ def create_job(user_id: str, actor: str, data: dict) -> dict:
         raise Invalid("Seasonal jobs need season start and end dates.")
     _check_pay(data.get("pay_min"), data.get("pay_max"))
     _check_dates(data["closes_on"], None, "Closes on")
-    today = date.today()
+    today = mongo.today()
     if not (today.isoformat() <= data["closes_on"] <= (today + timedelta(days=CLOSES_MAX_DAYS)).isoformat()):
         raise Invalid(f"'Closes on' must be between today and {CLOSES_MAX_DAYS} days from now.")
     d = mongo.db()
@@ -455,7 +455,7 @@ def update_job(user_id: str, job_id: str, data: dict, actor: str) -> dict:
     upd: dict = {k: v for k, v in data.items() if v is not None and k not in ("status", "closed_reason")}
     if "closes_on" in upd:
         _check_dates(upd["closes_on"], None, "Closes on")
-        today = date.today()
+        today = mongo.today()
         if not (today.isoformat() <= upd["closes_on"] <= (today + timedelta(days=CLOSES_MAX_DAYS)).isoformat()):
             raise Invalid(f"'Closes on' must be between today and {CLOSES_MAX_DAYS} days from now.")
     status = data.get("status")

@@ -86,7 +86,7 @@ def get_experience(exp_id: str) -> dict:
     if not e:
         raise NotFound("Experience not found.")
     ctx = crowd.Context()
-    today = date.today()
+    today = mongo.today()
     dests = [_dest_card(d, ctx, today) for d in DESTINATIONS if exp_id in d.get("themes", [])]
     db = mongo.db()
     fest = [events.public(x) for x in db.events.find({"id": {"$in": e["festival_ids"]}})]
@@ -210,7 +210,7 @@ def get_itinerary(itin_id: str) -> dict:
     if not i:
         raise NotFound("Itinerary not found.")
     ctx = crowd.Context()
-    today = date.today()
+    today = mongo.today()
     wx_by_dest = _stop_weather([d for d, _ in i["stops"]])
     bs = best_start(ctx, i["stops"], today)
     arrive = date.fromisoformat(bs["date"])  # day each stop is reached when starting on the suggested day
@@ -252,7 +252,7 @@ def nearby(dest_id: str, limit: int = 6) -> dict:
     if not d:
         raise NotFound("Destination not found.")
     ctx = crowd.Context()
-    today = date.today()
+    today = mongo.today()
     others = sorted((haversine_km(d, o), o) for o in DESTINATIONS if o["id"] != dest_id)
     items = [{**_dest_card(o, ctx, today), "distance_km": round(km)} for km, o in others[:limit]]
     return {"destination_id": dest_id, "items": items, "total": len(items), "distance_note": DISTANCE_NOTE}
@@ -260,7 +260,7 @@ def nearby(dest_id: str, limit: int = 6) -> dict:
 
 def map_points() -> dict:
     ctx = crowd.Context()
-    today = date.today()
+    today = mongo.today()
     pts = [_dest_card(d, ctx, today) | {"circuits": [c["id"] for c in CIRCUITS if d["id"] in c["destination_ids"]]} for d in DESTINATIONS]
     return {
         "items": pts,

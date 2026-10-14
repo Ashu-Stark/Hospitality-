@@ -7,7 +7,6 @@ Status is stored, but an `active` record past its `valid_until` date is shown as
 from __future__ import annotations
 
 import re
-from datetime import date
 
 from .. import catalog, mongo
 from ..errors import Invalid, NotFound
@@ -44,7 +43,7 @@ def issue_reg_no(btype: str, district: str) -> str:
 
 
 def effective_status(b: dict, today: str | None = None) -> str:
-    today = today or date.today().isoformat()
+    today = today or mongo.today().isoformat()
     if b.get("status") == "active" and b.get("valid_until") and b["valid_until"] < today:
         return "expired"
     return b.get("status", "pending")
@@ -93,7 +92,7 @@ def list_businesses(
 ) -> dict:
     """`type` may be a comma list (e.g. "hotel,homestay"); `sort` is "name" (A-Z) or "rating" (best first)."""
     f: dict = {}
-    today = date.today().isoformat()
+    today = mongo.today().isoformat()
     if type:
         types = [t for t in type.split(",") if t]
         if not types or any(t not in catalog.BUSINESS_TYPES for t in types):
@@ -175,7 +174,7 @@ def verify(reg_no: str) -> dict:
 
 
 def nearby(destination_id: str, limit: int = 6) -> dict:
-    today = date.today().isoformat()
+    today = mongo.today().isoformat()
     docs = mongo.db().businesses.find({"destination_id": destination_id, "status": "active", "valid_until": {"$gte": today}})
     items = sorted((public(mongo.clean(b)) for b in docs), key=lambda x: (not x["verified"], -(x["rating"] or 0), x["name"]))
     groups = {"stays": [], "guides": [], "transport": [], "other": []}

@@ -150,7 +150,7 @@ def build(d, demo_owner: str | None, agency_owner: str | None, anchor: date | No
     """Plan all documents (nothing written). Reads the seeded businesses."""
     from ..services.search import normalize
 
-    anchor = anchor or date.today()
+    anchor = anchor or mongo.today()
     today = anchor.isoformat()
     r = random.Random(RNG_SEED)
     biz = [mongo.clean(b) for b in d.businesses.find({}).sort("id", 1)]
@@ -338,7 +338,7 @@ def seed_community(d, demo_owner: str | None, agency_owner: str | None, anchor: 
     if hotel:
         from ..services import staffing
 
-        start = (anchor or date.today()) + timedelta(days=6)
+        start = (anchor or mongo.today()) + timedelta(days=6)
         r = staffing.ingest_request(
             mongo.clean(hotel),
             "seed",

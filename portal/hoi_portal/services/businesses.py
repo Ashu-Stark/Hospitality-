@@ -16,7 +16,7 @@ RENEWAL_WINDOW_DAYS = 60
 def _owner_view(b: dict) -> dict:
     out = registry.public(b)
     d = mongo.db()
-    days_left = (date.fromisoformat(b["valid_until"]) - date.today()).days if b.get("valid_until") else None
+    days_left = (date.fromisoformat(b["valid_until"]) - mongo.today()).days if b.get("valid_until") else None
     open_renewal = d.applications.find_one(
         {"business_id": b["id"], "kind": "renewal", "status": {"$in": ["submitted", "changes_requested"]}}
     )

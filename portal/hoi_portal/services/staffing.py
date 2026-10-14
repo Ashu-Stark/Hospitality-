@@ -47,7 +47,7 @@ NOTE = "Agencies and offers shown here are synthetic sample data unless marked o
 
 
 def _today() -> date:
-    return date.today()
+    return mongo.today()
 
 
 def _skill_key(raw: str) -> str:

@@ -116,7 +116,7 @@ def list_public(
     d = mongo.db()
     docs = [mongo.clean(e) for e in d.local_experiences.find(f).sort([("destination_id", 1), ("id", 1)])]
     hosts = _businesses([e["host_business_id"] for e in docs])
-    today = date.today().isoformat()
+    today = mongo.today().isoformat()
     # Only experiences whose host registration is currently active are public.
     docs = [
         e for e in docs if e["host_business_id"] in hosts and registry.effective_status(hosts[e["host_business_id"]], today) == "active"
@@ -151,7 +151,7 @@ def get_public(exp_id: str) -> dict:
     host = biz.get(e["host_business_id"])
     if e.get("status") != "listed" or not host or registry.effective_status(host) != "active":
         raise NotFound("Experience not found.")
-    today = date.today().isoformat()
+    today = mongo.today().isoformat()
     stays = [biz[s] for s in e.get("stay_business_ids", []) if s in biz and registry.effective_status(biz[s], today) == "active"]
     out = public(e, host, stays)
     more = mongo.db().local_experiences.find({"destination_id": e["destination_id"], "status": "listed", "id": {"$ne": e["id"]}}).limit(3)
@@ -252,7 +252,7 @@ def mine(user_id: str) -> dict:
         c = counts.setdefault(r["experience_id"], {"pending": 0, "total": 0})
         c["total"] += 1
         c["pending"] += r["status"] == "pending"
-    today = date.today().isoformat()
+    today = mongo.today().isoformat()
     return {
         "items": [_owner_view(e, counts) for e in items],
         "total": len(items),
@@ -361,7 +361,7 @@ def request_join(exp_id: str, data: dict) -> dict:
         day = date.fromisoformat(data["date"])
     except ValueError:
         raise Invalid("date must be YYYY-MM-DD.") from None
-    today = date.today()
+    today = mongo.today()
     if day < today or day > today + timedelta(days=JOIN_HORIZON_DAYS):
         raise Invalid(f"Choose a date between today and {JOIN_HORIZON_DAYS} days from now.")
     if day.month not in e["months"]:

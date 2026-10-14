@@ -5,7 +5,6 @@ from __future__ import annotations
 import copy
 import threading
 import time
-from datetime import date
 
 from .. import config, mongo
 from ..errors import Invalid, NotFound
@@ -50,7 +49,7 @@ def summary(d: dict, ctx: crowd.Context | None = None) -> dict:
     out = {k: d.get(k) for k in FIELDS}
     out["district_name"] = DISTRICTS[d["district"]]["name"]
     if ctx is not None:
-        t = crowd.day_index(ctx, d["id"], date.today())
+        t = crowd.day_index(ctx, d["id"], mongo.today())
         out["crowd_today"] = {"index": t["index"], "band": t["band"], "label": "estimate"}
         # Usual band per month (Jan..Dec), the same estimate as the detail page's usual_by_month; feeds the month strip.
         out["usual_busy"] = [m["band"] for m in crowd.usual_by_month(ctx, d["id"])]
@@ -60,7 +59,7 @@ def summary(d: dict, ctx: crowd.Context | None = None) -> dict:
 def list_destinations(district: str | None = None, tag: str | None = None, q: str | None = None, with_crowd: bool = True) -> dict:
     if district or tag or q or not with_crowd:
         return _list(district, tag, q, with_crowd)
-    key = (mongo.generation, config.settings.db_name, date.today().isoformat())
+    key = (mongo.generation, config.settings.db_name, mongo.today().isoformat())
     with _LIST_LOCK:
         if _LIST_CACHE["key"] == key and time.monotonic() - _LIST_CACHE["at"] < LIST_TTL_S:
             return copy.deepcopy(_LIST_CACHE["data"])

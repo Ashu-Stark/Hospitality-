@@ -64,7 +64,7 @@ def kpis(district: str | None) -> dict:
     g = [mongo.clean(x) for x in db.grievances.find(f)]
     open_g = [x for x in g if x["status"] in catalog.GRIEVANCE_OPEN]
     overdue = [x for x in open_g if mongo.now() > mongo.aware(x["sla_due_at"])]
-    today = date.today()
+    today = mongo.today()
     ctx = crowd.Context()
     last30 = [today - timedelta(days=i) for i in range(1, 31)]
     occ30 = _occ_pct(ctx.data, _dests(district), last30)
@@ -98,7 +98,7 @@ def kpis(district: str | None) -> dict:
 # ------------------------------------------------------------------ rush
 def rush(district: str | None, top_n: int = 10) -> dict:
     ctx = crowd.Context()
-    today = date.today()
+    today = mongo.today()
     monday = today - timedelta(days=today.weekday())
     weeks = [monday + timedelta(weeks=w) for w in range(-8, 8)]
     rows, top, alerts = [], [], []
@@ -151,7 +151,7 @@ def rush(district: str | None, top_n: int = 10) -> dict:
 # ------------------------------------------------------------------ occupancy trend
 def occupancy_trend(district: str | None, btype: str | None, days: int = 365, granularity: str = "daily") -> dict:
     data = crowd.occupancy_data()
-    today = date.today()
+    today = mongo.today()
     days = max(7, min(days, 730))
     all_days = [today - timedelta(days=i) for i in range(days, 0, -1)]
     if granularity == "weekly":
@@ -250,7 +250,7 @@ def market(district: str | None) -> dict:
 def registrations_monthly(district: str | None, months: int = 24) -> dict:
     db = mongo.db()
     f = {"district": district} if district else {}
-    today = date.today()
+    today = mongo.today()
     keys = []
     y, m = today.year, today.month
     for _ in range(max(1, min(months, 60))):
@@ -311,7 +311,7 @@ def workforce(district: str | None, group_by: str = "district") -> dict:
     if not months:
         return _envelope(district, k_min=K_MIN, group_by=group_by, month=None, groups=[], overall=None)
     # Latest COMPLETE month (the current month is still filling up from HOI ingest).
-    current = date.today().strftime("%Y-%m")
+    current = mongo.today().strftime("%Y-%m")
     complete = [m for m in months if m < current] or months
     latest = complete[-1]
     window = complete[-12:]

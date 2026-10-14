@@ -1,6 +1,6 @@
 // Hash router: #/path/:param?query. Deep-linkable; filters update the URL with replaceState (no re-render).
 import { role } from './api.js';
-import { announce, href, mount, html, errorBox } from './ui.js';
+import { announce, href, mount, html, errorBox, empty } from './ui.js';
 
 const routes = [];
 let renderId = 0;
@@ -41,6 +41,18 @@ export async function render() {
   if (typeof cleanup === 'function') { try { cleanup(); } catch { /* ignore */ } }
   cleanup = null;
   if (r?.roles && !r.roles.includes(role())) {
+    const me = role();
+    if (me) { // signed in, but this page is for another role: say so here instead of showing the sign-in form again
+      const home = ['district_officer', 'state_admin'].includes(me) ? '/officer' : me === 'business' ? '/business' : me === 'job_seeker' ? '/seeker' : '/';
+      onNav(path, r);
+      const page = document.createElement('div');
+      page.className = 'wrap page';
+      main.replaceChildren(page);
+      mount(page, empty('This page is not open to your account', r.roles.includes('state_admin') && r.roles.length === 1 ? 'Only the state admin can see it.' : 'Your account cannot open it.',
+        html`<p><a class="btn" href="${href(home)}">Back to your dashboard</a></p>`));
+      announce('This page is not open to your account');
+      return;
+    }
     go('/signin', { next: path + (Object.keys(query).length ? '?' + new URLSearchParams(query) : ''), need: r.roles.includes('business') ? 'business' : r.roles.includes('job_seeker') ? 'seeker' : 'official' });
     return;
   }

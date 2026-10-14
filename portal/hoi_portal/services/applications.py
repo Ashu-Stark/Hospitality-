@@ -156,7 +156,7 @@ def renew(user_id: str, username: str, business_id: str) -> dict:
     status = registry.effective_status(b)
     if status == "suspended":
         raise Forbidden("A suspended registration cannot be renewed online. Contact the district office.")
-    days_left = (date.fromisoformat(b["valid_until"]) - date.today()).days
+    days_left = (date.fromisoformat(b["valid_until"]) - mongo.today()).days
     if status == "active" and days_left > RENEWAL_WINDOW_DAYS:
         raise Conflict(f"Renewal opens {RENEWAL_WINDOW_DAYS} days before expiry ({b['valid_until']}).")
     d = mongo.db()
@@ -271,7 +271,7 @@ def decide(app_id: str, action: str, reason: str | None, district: str | None, a
 
 def _approve(a: dict, actor: str) -> dict:
     d = mongo.db()
-    today = date.today()
+    today = mongo.today()
     if a["kind"] == "renewal":
         b = d.businesses.find_one({"id": a["business_id"]})
         if not b:
