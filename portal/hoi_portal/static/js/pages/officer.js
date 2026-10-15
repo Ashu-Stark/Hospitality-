@@ -1,6 +1,6 @@
 // Officials' analytics dashboard: overview KPIs, rush heatmap, occupancy trend, market growth (SYNTHETIC),
 // grievances, workforce (k-anonymous). District officers see their district only; the state admin gets a district filter.
-import { html, mount, href, load, $, $$, raw, fmtDate, fmtMonth, monthName, num, pct, empty, table, bandPill, announce, fmtDateTime, titleCase, infoNote, pager, statTile, details } from '../ui.js';
+import { html, mount, href, load, $, $$, raw, fmtDate, fmtMonth, monthName, num, pct, empty, table, bandPill, announce, fmtDateTime, titleCase, infoNote, pager, statTile, details, crowdAlertText, CONF_WORD } from '../ui.js';
 import { api, meta, user, role } from '../api.js';
 import { setQuery } from '../router.js';
 import { lineChart, barChart, hbarChart, heatmap, PALETTE, BAND_FILL, bandOf, bandCell } from '../charts.js';
@@ -77,7 +77,7 @@ async function overview(box, district) {
       ${statTile({ label: 'Complaints that are late', value: v('grievances_overdue'), tone: v('grievances_overdue') ? 'bad' : 'ok', note: html`${v('grievances_open')} open · <a href="#/officer/grievances">Open queue</a>` })}`)}
     <div class="grid g2 section"><div id="bs"></div>
       <section class="card" aria-labelledby="ca-h"><h2 id="ca-h" class="h3">${k.crowd_alerts?.length ? `${k.crowd_alerts.length} place${k.crowd_alerts.length > 1 ? 's' : ''} will be very crowded in the next 14 days` : 'No place is expected to be very crowded in the next 14 days'}</h2>
-        ${k.crowd_alerts?.length ? html`<ul class="lines section">${k.crowd_alerts.slice(0, 5).map((a) => html`<li>${bandPill(bandOf(a.peak_index), a.peak_index, '')}<a href="${href('/destinations/' + a.destination_id + '/crowd')}">${a.name}</a><span class="muted small">peak ${fmtDate(a.peak_date, { weekday: true, noYear: true })}</span></li>`)}</ul>` : ''}
+        ${k.crowd_alerts?.length ? html`<ul class="lines section">${k.crowd_alerts.slice(0, 5).map((a) => html`<li>${bandPill(bandOf(a.peak_index), a.peak_index, '')}<a href="${href('/destinations/' + a.destination_id + '/crowd')}">${a.name}</a><span class="muted small">${crowdAlertText({ date: a.first_date || a.peak_date, reason: a.reason })}${a.source === 'real_model' ? ' · official counts' : ' · sample data'}</span></li>`)}</ul>` : ''}
         </section></div>`);
   const st = k.businesses_by_status || {};
   const tot = Object.values(st).reduce((a, b) => a + b, 0);
@@ -93,6 +93,7 @@ async function rush(box, district) {
     ${tiles(html`${statTile({ label: 'Busiest place, next 2 weeks', value: busiest ? busiest.name : '—', note: '' })}
       ${statTile({ label: 'Very busy places', value: vh, tone: vh ? 'bad' : 'ok' })}
       ${statTile({ label: 'Very busy days ahead', value: r.alerts?.length || 0, tone: r.alerts?.length ? 'warn' : 'ok' })}`)}
+    ${firstAlerts(r.alerts).length ? html`<div class="flag amber section" role="status"><ul class="plain">${firstAlerts(r.alerts).slice(0, 6).map((a) => html`<li><strong><a href="${href('/destinations/' + a.destination_id + '/crowd')}">${a.name}</a></strong>: ${crowdAlertText(a)} <span class="muted small">(${(CONF_WORD[a.confidence] || CONF_WORD.low).toLowerCase()}${a.source === 'real_model' ? ', official counts' : ', sample data'})</span></li>`)}</ul></div>` : ''}
     <div id="top" class="section"></div>
     ${details('Week by week, every place', html`<div id="hm"></div>`)}
     ${r.alerts?.length ? details(`All ${r.alerts.length} very busy days`, html`<div id="alt"></div>`) : ''}`);
@@ -107,7 +108,13 @@ async function rush(box, district) {
     colFmt: (c, j, long) => (long ? 'Week of ' + fmtDate(c) : shortDate(c)), cell: bandCell,
     note: 'Weeks start on Monday.',
   }));
-  if (r.alerts?.length) pager(box.querySelector('#alt'), r.alerts, (slice) => table([{ key: 'name', label: 'Destination', render: (a) => html`<a href="${href('/destinations/' + a.destination_id + '/crowd')}">${a.name}</a>` }, { key: 'date', label: 'Date', render: (a) => fmtDate(a.date, { weekday: true }) }, { key: 'index', label: 'How busy (0-100)', num: true }, { key: 'events', label: 'Events', render: (a) => (a.events || []).join(', ') || '—' }], slice, 'Very busy days'), 8);
+  if (r.alerts?.length) pager(box.querySelector('#alt'), r.alerts, (slice) => table([{ key: 'name', label: 'Destination', render: (a) => html`<a href="${href('/destinations/' + a.destination_id + '/crowd')}">${a.name}</a>` }, { key: 'date', label: 'Date', render: (a) => fmtDate(a.date, { weekday: true }) }, { key: 'index', label: 'How busy (0-100)', num: true }, { key: 'reason', label: 'Why', render: (a) => a.reason || ((a.events || []).join(', ') || '—') }, { key: 'confidence', label: 'How sure', render: (a) => (CONF_WORD[a.confidence] || CONF_WORD.low).replace(' confidence', '').replace(' (rough guide)', '') }], slice, 'Very busy days'), 8);
+}
+
+/** First very busy day per place (alerts are sorted by date). */
+function firstAlerts(alerts) {
+  const seen = new Set();
+  return (alerts || []).filter((a) => !seen.has(a.destination_id) && seen.add(a.destination_id));
 }
 
 async function occupancy(box, district, m, isAdmin) {

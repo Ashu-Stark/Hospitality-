@@ -1,0 +1,76 @@
+utdb_destination,portal_id,year,indian,foreign,total,source_key
+Kedarnath,kedarnath,2021,242985,27,243012,utdb_2021_2023
+Kedarnath,kedarnath,2022,1563280,968,1564248,utdb_2021_2023
+Kedarnath,kedarnath,2023,1957609,1254,1958863,utdb_2021_2023
+Kedarnath,kedarnath,2024,1652076,1505,1653581,utdb_2024
+Kedarnath,kedarnath,2025,1768745,1529,1770274,utdb_2025
+Badrinath,badrinath,2021,199406,3,199409,utdb_2021_2023
+Badrinath,badrinath,2022,1763384,194,1763578,utdb_2021_2023
+Badrinath,badrinath,2023,1779930,499,1780429,utdb_2021_2023
+Badrinath,badrinath,2024,1772571,1693,1774264,utdb_2024
+Badrinath,badrinath,2025,1776508,1790,1778298,utdb_2025
+Gangotri,gangotri,2021,33771,0,33771,utdb_2021_2023
+Gangotri,gangotri,2022,781903,58,781961,utdb_2021_2023
+Gangotri,gangotri,2023,712749,0,712749,utdb_2021_2023
+Gangotri,gangotri,2024,540190,0,540190,utdb_2024
+Gangotri,gangotri,2025,758249,0,758249,utdb_2025
+Yamunotri,yamunotri,2021,33311,0,33311,utdb_2021_2023
+Yamunotri,yamunotri,2022,621504,34,621538,utdb_2021_2023
+Yamunotri,yamunotri,2023,560918,0,560918,utdb_2021_2023
+Yamunotri,yamunotri,2024,515067,0,515067,utdb_2024
+Yamunotri,yamunotri,2025,644637,0,644637,utdb_2025
+Hemkund Sahib,,2021,19909,0,19909,utdb_2021_2023
+Hemkund Sahib,,2022,190198,86,190284,utdb_2021_2023
+Hemkund Sahib,,2023,164501,45,164546,utdb_2021_2023
+Hemkund Sahib,,2024,185797,175,185972,utdb_2024
+Hemkund Sahib,,2025,187734,240,187974,utdb_2025
+Valley of Flowers,valley-of-flowers,2021,10383,15,10398,utdb_2021_2023
+Valley of Flowers,valley-of-flowers,2022,20550,280,20830,utdb_2021_2023
+Valley of Flowers,valley-of-flowers,2023,12831,401,13232,utdb_2021_2023
+Valley of Flowers,valley-of-flowers,2024,19106,330,19436,utdb_2024
+Valley of Flowers,valley-of-flowers,2025,20432,461,20893,utdb_2025
+Auli,auli,2021,127487,1,127488,utdb_2021_2023
+Auli,auli,2022,412674,78,412752,utdb_2021_2023
+Auli,auli,2023,181353,328,181681,utdb_2021_2023
+Auli,auli,2024,141674,553,142227,utdb_2024
+Auli,auli,2025,146397,880,147277,utdb_2025
+Dehradun,dehradun,2021,2866107,1675,2867782,utdb_2021_2023
+Dehradun,dehradun,2022,5816212,13447,5829659,utdb_2021_2023
+Dehradun,dehradun,2023,6113424,26262,6139686,utdb_2021_2023
+Dehradun,dehradun,2024,6461583,30457,6492040,utdb_2024
+Dehradun,dehradun,2025,6703542,31529,6735071,utdb_2025
+Rishikesh,rishikesh,2021,291230,1576,292806,utdb_2021_2023
+Rishikesh,rishikesh,2022,756264,1817,758081,utdb_2021_2023
+Rishikesh,rishikesh,2023,1038891,3993,1042884,utdb_2021_2023
+Rishikesh,rishikesh,2024,964036,4857,968893,utdb_2024
+Rishikesh,rishikesh,2025,1028052,5273,1033325,utdb_2025
+Mussoorie,mussoorie,2021,1229528,280,1229808,utdb_2021_2023
+Mussoorie,mussoorie,2022,1171786,1275,1173061,utdb_2021_2023
+Mussoorie,mussoorie,2023,1469663,2250,1471913,utdb_2021_2023
+Mussoorie,mussoorie,2024,2131543,3083,2134626,utdb_2024
+Mussoorie,mussoorie,2025,1590087,4134,1594221,utdb_2025
+Haridwar,haridwar,2021,12717825,616,12718441,utdb_2021_2023
+Haridwar,haridwar,2022,34252800,6607,34259407,utdb_2021_2023
+Haridwar,haridwar,2023,37050845,20657,37071502,utdb_2021_2023
+Haridwar,haridwar,2024,34912520,24204,34936724,utdb_2024
+Haridwar,haridwar,2025,34224900,24480,34249380,utdb_2025
+Nainital,nainital,2021,325626,633,326259,utdb_2021_2023
+Nainital,nainital,2022,525656,4020,529676,utdb_2021_2023
+Nainital,nainital,2023,776526,7971,784497,utdb_2021_2023
+Nainital,nainital,2024,1014602,9537,1024139,utdb_2024
+Nainital,nainital,2025,1300637,22237,1322874,utdb_2025
+Corbett National Park,jim-corbett-ramnagar,2021,287324,6813,294137,utdb_2021_2023
+Corbett National Park,jim-corbett-ramnagar,2022,349746,3537,353283,utdb_2021_2023
+Corbett National Park,jim-corbett-ramnagar,2023,328372,4721,333093,utdb_2021_2023
+Corbett National Park,jim-corbett-ramnagar,2024,351771,10120,361891,utdb_2024
+Corbett National Park,jim-corbett-ramnagar,2025,128290,1829,130119,utdb_2025
+Almora,almora,2021,38027,171,38198,utdb_2021_2023
+Almora,almora,2022,147195,1606,148801,utdb_2021_2023
+Almora,almora,2023,235571,3040,238611,utdb_2021_2023
+Almora,almora,2024,419510,2782,422292,utdb_2024
+Almora,almora,2025,423450,3198,426648,utdb_2025
+Pauri,pauri,2021,7350,0,7350,utdb_2021_2023
+Pauri,pauri,2022,12443,25,12468,utdb_2021_2023
+Pauri,pauri,2023,13735,29,13764,utdb_2021_2023
+Pauri,pauri,2024,16074,15,16089,utdb_2024
+Pauri,pauri,2025,14697,13,14710,utdb_2025

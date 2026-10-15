@@ -1,0 +1,1003 @@
+{
+  "label": "REAL public data; daily values partly ESTIMATED (see DATA_CARD.md)",
+  "selection": {
+    "validation_season": 2024,
+    "validation_mae": {
+      "regression leaves=7 min_leaf=20 rounds=200": 2849.5,
+      "regression leaves=7 min_leaf=20 rounds=600": 2556.5,
+      "regression leaves=7 min_leaf=60 rounds=200": 3072.1,
+      "regression leaves=7 min_leaf=60 rounds=600": 2649.0,
+      "regression leaves=15 min_leaf=20 rounds=200": 2587.9,
+      "regression leaves=15 min_leaf=20 rounds=600": 2503.3,
+      "regression leaves=15 min_leaf=60 rounds=200": 2795.9,
+      "regression leaves=15 min_leaf=60 rounds=600": 2645.3,
+      "regression_l1 leaves=7 min_leaf=20 rounds=200": 2910.3,
+      "regression_l1 leaves=7 min_leaf=20 rounds=600": 2520.8,
+      "regression_l1 leaves=7 min_leaf=60 rounds=200": 3225.2,
+      "regression_l1 leaves=7 min_leaf=60 rounds=600": 2888.3,
+      "regression_l1 leaves=15 min_leaf=20 rounds=200": 2584.0,
+      "regression_l1 leaves=15 min_leaf=20 rounds=600": 2478.2,
+      "regression_l1 leaves=15 min_leaf=60 rounds=200": 2815.6,
+      "regression_l1 leaves=15 min_leaf=60 rounds=600": 2685.1
+    },
+    "chosen": "regression_l1 leaves=15 min_leaf=20 rounds=600"
+  },
+  "seasons": {
+    "badrinath_2022": {
+      "anchors": 14,
+      "days": 196,
+      "usable": true,
+      "basis_counts": {
+        "spread": 191,
+        "reported": 5
+      },
+      "dropped": [
+        "inconsistent anchor 2022-11-19 annual 1763578 (utdb_2022) dropped",
+        "inconsistent anchor 2022-11-19 season_total 1765649 (https://www.etvbharat.com/english/bharat/badrinath-closed-for-winter-char-dham-yatra-concludes/na20221119193250521521513) dropped",
+        "cumulative 2022-05-12 76968 within 3 days of 2022-05-10: dropped (dates are +-1 day)",
+        "cumulative 2022-05-15 142548 within 3 days of 2022-05-13: dropped (dates are +-1 day)",
+        "cumulative 2022-06-15 719599 within 3 days of 2022-06-13: dropped (dates are +-1 day)",
+        "cumulative 2022-09-19 1305636 within 3 days of 2022-09-18: dropped (dates are +-1 day)"
+      ]
+    },
+    "badrinath_2023": {
+      "anchors": 13,
+      "days": 206,
+      "usable": true,
+      "basis_counts": {
+        "spread": 196,
+        "reported": 10
+      },
+      "dropped": [
+        "inconsistent anchor 2023-11-18 annual 1780429 (utdb_2023) dropped",
+        "inconsistent anchor 2023-05-04 cumulative 4537 (https://www.amarujala.com/dehradun/chardham-yatra-2023-more-than-3-52-lakh-pilgrims-have-visited-chardham-till-now-2023-05-04) dropped",
+        "inconsistent anchor 2023-05-21 cumulative 427214 (https://www.amarujala.com/dehradun/chardham-yatra-2023-this-year-97-thousand-less-pilgrims-visit-chardham-from-last-year-in-a-month-2023-05-21) dropped",
+        "cumulative 2023-04-28 16000 within 3 days of 2023-04-26: dropped (dates are +-1 day)",
+        "cumulative 2023-05-07 118116 within 3 days of 2023-05-06: dropped (dates are +-1 day)",
+        "cumulative 2023-05-08 128141 within 3 days of 2023-05-06: dropped (dates are +-1 day)"
+      ]
+    },
+    "badrinath_2024": {
+      "anchors": 17,
+      "days": 190,
+      "usable": true,
+      "basis_counts": {
+        "spread": 187,
+        "reported": 3
+      },
+      "dropped": [
+        "inconsistent anchor 2024-11-17 annual 1774264 (utdb_2024) dropped"
+      ]
+    },
+    "badrinath_2025": {
+      "anchors": 12,
+      "days": 206,
+      "usable": true,
+      "basis_counts": {
+        "spread": 199,
+        "reported": 7
+      },
+      "dropped": []
+    },
+    "badrinath_2026": {
+      "anchors": 11,
+      "days": 168,
+      "usable": true,
+      "basis_counts": {
+        "spread": 162,
+        "reported": 6
+      },
+      "dropped": [
+        "inconsistent anchor 2026-06-04 cumulative 832903 (https://www.newsarenaindia.com/states/heavy-rush-at-badrinath-kedarnath-pilgrims-advised-caution/79058) dropped",
+        "cumulative 2026-05-13 324081 within 3 days of 2026-05-12: dropped (dates are +-1 day)",
+        "cumulative 2026-06-06 908619 within 3 days of 2026-06-04: dropped (dates are +-1 day)",
+        "cumulative 2026-09-14 1736619 within 3 days of 2026-09-12: dropped (dates are +-1 day)"
+      ]
+    },
+    "gangotri_2022": {
+      "anchors": 13,
+      "days": 177,
+      "usable": true,
+      "basis_counts": {
+        "spread": 175,
+        "reported": 2
+      },
+      "dropped": [
+        "inconsistent anchor 2022-10-26 annual 781961 (utdb_2022) dropped",
+        "inconsistent anchor 2022-05-15 cumulative 84863 (https://www.etvbharat.com/english/national/bharat/uttarakhand-over-4-lakh-pilgrims-took-part-in-chardham-yatra/na20220515164310631631132) dropped",
+        "cumulative 2022-06-15 373789 within 3 days of 2022-06-13: dropped (dates are +-1 day)"
+      ]
+    },
+    "gangotri_2023": {
+      "anchors": 13,
+      "days": 207,
+      "usable": true,
+      "basis_counts": {
+        "spread": 202,
+        "reported": 5
+      },
+      "dropped": [
+        "inconsistent anchor 2023-11-14 annual 712749 (utdb_2023) dropped"
+      ]
+    },
+    "gangotri_2024": {
+      "anchors": 17,
+      "days": 177,
+      "usable": true,
+      "basis_counts": {
+        "spread": 173,
+        "reported": 4
+      },
+      "dropped": [
+        "inconsistent anchor 2024-11-02 annual 540190 (utdb_2024) dropped"
+      ]
+    },
+    "gangotri_2025": {
+      "anchors": 10,
+      "days": 176,
+      "usable": true,
+      "basis_counts": {
+        "spread": 170,
+        "reported": 6
+      },
+      "dropped": []
+    },
+    "gangotri_2026": {
+      "anchors": 9,
+      "days": 172,
+      "usable": true,
+      "basis_counts": {
+        "spread": 168,
+        "reported": 4
+      },
+      "dropped": [
+        "cumulative 2026-05-13 205425 within 3 days of 2026-05-12: dropped (dates are +-1 day)",
+        "cumulative 2026-09-14 789773 within 3 days of 2026-09-12: dropped (dates are +-1 day)"
+      ]
+    },
+    "kedarnath_2022": {
+      "anchors": 12,
+      "days": 175,
+      "usable": true,
+      "basis_counts": {
+        "spread": 170,
+        "reported": 5
+      },
+      "dropped": [
+        "inconsistent anchor 2022-10-27 annual 1564248 (utdb_2022) dropped",
+        "inconsistent anchor 2022-10-27 season_total 1563278 (https://www.amarujala.com/dehradun/chardham-yatra-2023-will-start-from-april-22-this-time-gangotri-yamunotri-doors-will-open-on-akshaya-tritiya-2023-02-18) dropped",
+        "cumulative 2022-06-15 714061 within 3 days of 2022-06-13: dropped (dates are +-1 day)",
+        "cumulative 2022-09-09 1100890 within 3 days of 2022-09-08: dropped (dates are +-1 day)"
+      ]
+    },
+    "kedarnath_2023": {
+      "anchors": 13,
+      "days": 205,
+      "usable": true,
+      "basis_counts": {
+        "spread": 185,
+        "reported": 20
+      },
+      "dropped": [
+        "inconsistent anchor 2023-11-15 annual 1958863 (utdb_2023) dropped",
+        "inconsistent anchor 2023-05-21 cumulative 324684 (https://www.amarujala.com/dehradun/chardham-yatra-2023-this-year-97-thousand-less-pilgrims-visit-chardham-from-last-year-in-a-month-2023-05-21) dropped"
+      ]
+    },
+    "kedarnath_2024": {
+      "anchors": 17,
+      "days": 178,
+      "usable": true,
+      "basis_counts": {
+        "spread": 164,
+        "nil": 11,
+        "reported": 3
+      },
+      "dropped": [
+        "inconsistent anchor 2024-11-03 annual 1653581 (utdb_2024) dropped"
+      ]
+    },
+    "kedarnath_2025": {
+      "anchors": 12,
+      "days": 175,
+      "usable": true,
+      "basis_counts": {
+        "spread": 166,
+        "reported": 9
+      },
+      "dropped": [
+        "inconsistent anchor 2025-10-23 annual 1770274 (utdb_2025) dropped",
+        "cumulative 2025-05-31 696934 within 3 days of 2025-05-29: dropped (dates are +-1 day)"
+      ]
+    },
+    "kedarnath_2026": {
+      "anchors": 11,
+      "days": 169,
+      "usable": true,
+      "basis_counts": {
+        "spread": 163,
+        "reported": 6
+      },
+      "dropped": [
+        "inconsistent anchor 2026-06-04 cumulative 1050670 (https://www.newsarenaindia.com/states/heavy-rush-at-badrinath-kedarnath-pilgrims-advised-caution/79058) dropped",
+        "inconsistent anchor 2026-08-10 cumulative 1450116 (https://telanganatoday.com/char-dham-yatra-crosses-47-lakh-pilgrims-in-114-days) dropped",
+        "cumulative 2026-05-13 523582 within 3 days of 2026-05-12: dropped (dates are +-1 day)",
+        "cumulative 2026-06-06 1105676 within 3 days of 2026-06-04: dropped (dates are +-1 day)",
+        "cumulative 2026-09-14 1498544 within 3 days of 2026-09-12: dropped (dates are +-1 day)"
+      ]
+    },
+    "yamunotri_2022": {
+      "anchors": 12,
+      "days": 178,
+      "usable": true,
+      "basis_counts": {
+        "spread": 177,
+        "reported": 1
+      },
+      "dropped": [
+        "inconsistent anchor 2022-10-27 annual 621538 (utdb_2022) dropped",
+        "inconsistent anchor 2022-05-15 cumulative 71518 (https://www.etvbharat.com/english/national/bharat/uttarakhand-over-4-lakh-pilgrims-took-part-in-chardham-yatra/na20220515164310631631132) dropped"
+      ]
+    },
+    "yamunotri_2023": {
+      "anchors": 12,
+      "days": 208,
+      "usable": true,
+      "basis_counts": {
+        "spread": 203,
+        "reported": 5
+      },
+      "dropped": [
+        "inconsistent anchor 2023-11-15 annual 560918 (utdb_2023) dropped"
+      ]
+    },
+    "yamunotri_2024": {
+      "anchors": 17,
+      "days": 178,
+      "usable": true,
+      "basis_counts": {
+        "spread": 174,
+        "reported": 4
+      },
+      "dropped": [
+        "inconsistent anchor 2024-11-03 annual 515067 (utdb_2024) dropped"
+      ]
+    },
+    "yamunotri_2025": {
+      "anchors": 11,
+      "days": 177,
+      "usable": true,
+      "basis_counts": {
+        "spread": 171,
+        "reported": 6
+      },
+      "dropped": []
+    },
+    "yamunotri_2026": {
+      "anchors": 9,
+      "days": 172,
+      "usable": true,
+      "basis_counts": {
+        "spread": 168,
+        "reported": 4
+      },
+      "dropped": [
+        "cumulative 2026-05-13 207390 within 3 days of 2026-05-12: dropped (dates are +-1 day)",
+        "cumulative 2026-09-14 708407 within 3 days of 2026-09-12: dropped (dates are +-1 day)"
+      ]
+    }
+  },
+  "tests": {
+    "2025": {
+      "rows_scored": 595,
+      "rows_without_last_season": 0,
+      "daily": {
+        "snaive": {
+          "n": 595,
+          "mae": 3254.3940341043935,
+          "mape_pct": 70.33702289086634
+        },
+        "ma7": {
+          "n": 595,
+          "mae": 3901.667723642559,
+          "mape_pct": 112.80242908092023
+        },
+        "model": {
+          "n": 595,
+          "mae": 3140.331872461063,
+          "mape_pct": 81.11203242851101
+        },
+        "xgb_gpu": {
+          "n": 595,
+          "mae": 3127.051255940425,
+          "mape_pct": 87.47864582772546
+        },
+        "model_no_weather": {
+          "n": 595,
+          "mae": 3065.631992081742,
+          "mape_pct": 84.69093994059186
+        },
+        "model_no_school": {
+          "n": 595,
+          "mae": 3138.0962659643446,
+          "mape_pct": 82.34501680779128
+        },
+        "model_no_holidays": {
+          "n": 595,
+          "mae": 3063.6427202685877,
+          "mape_pct": 80.68601782400401
+        },
+        "model_no_lags": {
+          "n": 595,
+          "mae": 3053.197546525711,
+          "mape_pct": 72.78995013060567
+        }
+      },
+      "by_horizon": {
+        "1-3": {
+          "snaive": {
+            "n": 135,
+            "mae": 3373.348778220725,
+            "mape_pct": 65.07942027510121
+          },
+          "ma7": {
+            "n": 135,
+            "mae": 2894.614083987453,
+            "mape_pct": 78.14669091110494
+          },
+          "model": {
+            "n": 135,
+            "mae": 3056.188810739535,
+            "mape_pct": 75.16370802511575
+          }
+        },
+        "4-7": {
+          "snaive": {
+            "n": 176,
+            "mae": 2816.7182829290123,
+            "mape_pct": 69.01074413391005
+          },
+          "ma7": {
+            "n": 176,
+            "mae": 3435.459336530887,
+            "mape_pct": 102.15234698174773
+          },
+          "model": {
+            "n": 176,
+            "mae": 3078.2750757927106,
+            "mape_pct": 83.91243242436855
+          }
+        },
+        "8-14": {
+          "snaive": {
+            "n": 284,
+            "mae": 3469.084321960598,
+            "mape_pct": 73.6581546315445
+          },
+          "ma7": {
+            "n": 284,
+            "mae": 4669.290672533733,
+            "mape_pct": 135.8761583146506
+          },
+          "model": {
+            "n": 284,
+            "mae": 3218.7871877640086,
+            "mape_pct": 82.20412184818508
+          }
+        }
+      },
+      "by_basis": {
+        "reported": {
+          "snaive": {
+            "n": 49,
+            "mae": 4256.55302883058,
+            "mape_pct": 26.273590554307845
+          },
+          "ma7": {
+            "n": 49,
+            "mae": 2815.564322444121,
+            "mape_pct": 41.495449182763195
+          },
+          "model": {
+            "n": 49,
+            "mae": 3743.6681327762512,
+            "mape_pct": 29.249276036797806
+          }
+        },
+        "spread": {
+          "snaive": {
+            "n": 546,
+            "mae": 3164.456688423838,
+            "mape_pct": 74.29143348517286
+          },
+          "ma7": {
+            "n": 546,
+            "mae": 3999.138541698829,
+            "mape_pct": 119.20177343075484
+          },
+          "model": {
+            "n": 546,
+            "mae": 3086.186310637905,
+            "mape_pct": 85.76638236110067
+          }
+        }
+      },
+      "intervals": {
+        "snaive": {
+          "n": 38,
+          "mae": 17874.18559269911,
+          "mape_pct": 57.58633819828924
+        },
+        "ma7": {
+          "n": 38,
+          "mae": 11859.482182954094,
+          "mape_pct": 38.8084737500492
+        },
+        "model": {
+          "n": 38,
+          "mae": 17404.238457673775,
+          "mape_pct": 66.47146979104826
+        }
+      },
+      "band_accuracy": {
+        "snaive": 0.5428571428571428,
+        "ma7": 0.4789915966386555,
+        "model": 0.42016806722689076
+      },
+      "range80": {
+        "coverage": 0.7563025210084033,
+        "mean_width": 8547.375618069575
+      },
+      "failure_analysis": {
+        "opening week (day 0-6)": {
+          "n": 28,
+          "model_mae": 2008.2476148727906,
+          "snaive_mae": 3348.9369820655547,
+          "mean_actual": 13814.44601113173
+        },
+        "days 7-29": {
+          "n": 158,
+          "model_mae": 3241.2118926145677,
+          "snaive_mae": 3469.811549491297,
+          "mean_actual": 16588.870467788194
+        },
+        "days 30-89": {
+          "n": 220,
+          "model_mae": 3208.8528211771877,
+          "snaive_mae": 3415.0135957305974,
+          "mean_actual": 10586.268049944632
+        },
+        "day 90+": {
+          "n": 189,
+          "model_mae": 3143.9546624646114,
+          "snaive_mae": 2873.3386185921804,
+          "mean_actual": 4464.569909103242
+        },
+        "last 14 days before closing": {
+          "n": 105,
+          "model_mae": 3263.9168560831667,
+          "snaive_mae": 3308.2895579784426,
+          "mean_actual": 3442.493015873016
+        },
+        "heavy-rain days (>= 35 mm, day or day before)": {
+          "n": 3,
+          "model_mae": 2500.9040043855925,
+          "snaive_mae": 2500.3317460317458,
+          "mean_actual": 6583.077777777778
+        },
+        "officially nil days": {
+          "n": 0,
+          "model_mae": null,
+          "snaive_mae": null,
+          "mean_actual": null
+        },
+        "worst_days": [
+          {
+            "dest": "badrinath",
+            "date": "2025-05-04",
+            "h": 1,
+            "actual": 23000,
+            "model": 11430,
+            "snaive": 11574,
+            "basis": "reported",
+            "day_of_season": 0,
+            "heavy_rain": false
+          },
+          {
+            "dest": "kedarnath",
+            "date": "2025-06-06",
+            "h": 8,
+            "actual": 25452,
+            "model": 14588,
+            "snaive": 14353,
+            "basis": "spread",
+            "day_of_season": 35,
+            "heavy_rain": false
+          },
+          {
+            "dest": "kedarnath",
+            "date": "2025-05-24",
+            "h": 10,
+            "actual": 25340,
+            "model": 14952,
+            "snaive": 20033,
+            "basis": "reported",
+            "day_of_season": 22,
+            "heavy_rain": false
+          },
+          {
+            "dest": "kedarnath",
+            "date": "2025-05-25",
+            "h": 11,
+            "actual": 24342,
+            "model": 15006,
+            "snaive": 20033,
+            "basis": "spread",
+            "day_of_season": 23,
+            "heavy_rain": false
+          },
+          {
+            "dest": "kedarnath",
+            "date": "2025-05-02",
+            "h": 1,
+            "actual": 30154,
+            "model": 20906,
+            "snaive": 26240,
+            "basis": "reported",
+            "day_of_season": 0,
+            "heavy_rain": false
+          },
+          {
+            "dest": "kedarnath",
+            "date": "2025-05-23",
+            "h": 9,
+            "actual": 23450,
+            "model": 14732,
+            "snaive": 20033,
+            "basis": "spread",
+            "day_of_season": 21,
+            "heavy_rain": false
+          },
+          {
+            "dest": "kedarnath",
+            "date": "2025-06-07",
+            "h": 9,
+            "actual": 23532,
+            "model": 14834,
+            "snaive": 14353,
+            "basis": "reported",
+            "day_of_season": 36,
+            "heavy_rain": false
+          },
+          {
+            "dest": "kedarnath",
+            "date": "2025-05-22",
+            "h": 8,
+            "actual": 23450,
+            "model": 14763,
+            "snaive": 20889,
+            "basis": "spread",
+            "day_of_season": 20,
+            "heavy_rain": false
+          },
+          {
+            "dest": "kedarnath",
+            "date": "2025-06-05",
+            "h": 12,
+            "actual": 25452,
+            "model": 16985,
+            "snaive": 18398,
+            "basis": "spread",
+            "day_of_season": 34,
+            "heavy_rain": false
+          },
+          {
+            "dest": "kedarnath",
+            "date": "2025-05-26",
+            "h": 12,
+            "actual": 24342,
+            "model": 16231,
+            "snaive": 20033,
+            "basis": "spread",
+            "day_of_season": 24,
+            "heavy_rain": false
+          }
+        ]
+      },
+      "conformal_q_scaled": 0.37929012454445615,
+      "xgb_device": "cuda",
+      "train_seasons": [
+        2022,
+        2023,
+        2024
+      ]
+    },
+    "2026": {
+      "rows_scored": 560,
+      "rows_without_last_season": 0,
+      "daily": {
+        "snaive": {
+          "n": 560,
+          "mae": 2881.041477570778,
+          "mape_pct": 42.16053426759425
+        },
+        "ma7": {
+          "n": 560,
+          "mae": 4866.770553813525,
+          "mape_pct": 76.17742570515182
+        },
+        "model": {
+          "n": 560,
+          "mae": 2684.7356179746635,
+          "mape_pct": 43.370506721419204
+        },
+        "xgb_gpu": {
+          "n": 560,
+          "mae": 2656.1602648396683,
+          "mape_pct": 33.532878978177266
+        },
+        "model_no_weather": {
+          "n": 560,
+          "mae": 2916.0840516510157,
+          "mape_pct": 50.66137644044231
+        },
+        "model_no_school": {
+          "n": 560,
+          "mae": 2830.4317798364527,
+          "mape_pct": 44.76453281032386
+        },
+        "model_no_holidays": {
+          "n": 560,
+          "mae": 2688.1697053058506,
+          "mape_pct": 44.286850552172
+        },
+        "model_no_lags": {
+          "n": 560,
+          "mae": 2919.204768850878,
+          "mape_pct": 44.82824304429992
+        }
+      },
+      "by_horizon": {
+        "1-3": {
+          "snaive": {
+            "n": 120,
+            "mae": 3063.4663534419306,
+            "mape_pct": 42.40546913303351
+          },
+          "ma7": {
+            "n": 120,
+            "mae": 4572.625331533001,
+            "mape_pct": 61.932966678857106
+          },
+          "model": {
+            "n": 120,
+            "mae": 3017.3247624455503,
+            "mape_pct": 39.9508685239555
+          }
+        },
+        "4-7": {
+          "snaive": {
+            "n": 160,
+            "mae": 2742.1558491695146,
+            "mape_pct": 43.42691937228101
+          },
+          "ma7": {
+            "n": 160,
+            "mae": 4345.986936447695,
+            "mape_pct": 63.599801568826344
+          },
+          "model": {
+            "n": 160,
+            "mae": 2710.6413048654786,
+            "mape_pct": 42.77904273323362
+          }
+        },
+        "8-14": {
+          "snaive": {
+            "n": 280,
+            "mae": 2882.2226041410063,
+            "mape_pct": 41.33191355115642
+          },
+          "ma7": {
+            "n": 280,
+            "mae": 5290.423430428509,
+            "mape_pct": 89.46940765146411
+          },
+          "model": {
+            "n": 280,
+            "mae": 2527.394163549531,
+            "mape_pct": 45.174045370723995
+          }
+        }
+      },
+      "by_basis": {
+        "reported": {
+          "snaive": {
+            "n": 18,
+            "mae": 3032.8018518518525,
+            "mape_pct": 17.604687322638352
+          },
+          "ma7": {
+            "n": 18,
+            "mae": 5925.913251563252,
+            "mape_pct": 35.00991035085404
+          },
+          "model": {
+            "n": 18,
+            "mae": 3741.16355564735,
+            "mape_pct": 21.688112023314105
+          }
+        },
+        "spread": {
+          "snaive": {
+            "n": 542,
+            "mae": 2876.0014651407796,
+            "mape_pct": 42.97604209971456
+          },
+          "ma7": {
+            "n": 542,
+            "mae": 4831.596073076449,
+            "mape_pct": 77.54461256193662
+          },
+          "model": {
+            "n": 542,
+            "mae": 2649.651295321327,
+            "mape_pct": 44.09058625013856
+          }
+        }
+      },
+      "intervals": {
+        "snaive": {
+          "n": 20,
+          "mae": 26695.658054447857,
+          "mape_pct": 31.48130289530519
+        },
+        "ma7": {
+          "n": 20,
+          "mae": 35062.34823784059,
+          "mape_pct": 38.2729692296731
+        },
+        "model": {
+          "n": 20,
+          "mae": 24701.62843842812,
+          "mape_pct": 23.338981728264457
+        }
+      },
+      "band_accuracy": {
+        "snaive": 0.5767857142857142,
+        "ma7": 0.3821428571428571,
+        "model": 0.6410714285714286
+      },
+      "range80": {
+        "coverage": 0.8214285714285714,
+        "mean_width": 9026.699028197367
+      },
+      "failure_analysis": {
+        "opening week (day 0-6)": {
+          "n": 29,
+          "model_mae": 4503.4397538480325,
+          "snaive_mae": 3210.6624720107484,
+          "mean_actual": 13784.027899686524
+        },
+        "days 7-29": {
+          "n": 164,
+          "model_mae": 3476.2849235049302,
+          "snaive_mae": 3258.1395882891225,
+          "mean_actual": 17035.299140254774
+        },
+        "days 30-89": {
+          "n": 185,
+          "model_mae": 2825.352965372827,
+          "snaive_mae": 3898.738346507512,
+          "mean_actual": 11617.64897716942
+        },
+        "day 90+": {
+          "n": 182,
+          "model_mae": 1538.7426766782248,
+          "snaive_mae": 1454.2446657583434,
+          "mean_actual": 3572.0857261165343
+        },
+        "last 14 days before closing": {
+          "n": 0,
+          "model_mae": null,
+          "snaive_mae": null,
+          "mean_actual": null
+        },
+        "heavy-rain days (>= 35 mm, day or day before)": {
+          "n": 9,
+          "model_mae": 1104.6947681352804,
+          "snaive_mae": 1645.3643430737736,
+          "mean_actual": 5185.293221239309
+        },
+        "officially nil days": {
+          "n": 0,
+          "model_mae": null,
+          "snaive_mae": null,
+          "mean_actual": null
+        },
+        "worst_days": [
+          {
+            "dest": "kedarnath",
+            "date": "2026-04-27",
+            "h": 6,
+            "actual": 29636,
+            "model": 11954,
+            "snaive": 22543,
+            "basis": "spread",
+            "day_of_season": 5,
+            "heavy_rain": false
+          },
+          {
+            "dest": "kedarnath",
+            "date": "2026-04-28",
+            "h": 7,
+            "actual": 29636,
+            "model": 12742,
+            "snaive": 22543,
+            "basis": "spread",
+            "day_of_season": 6,
+            "heavy_rain": false
+          },
+          {
+            "dest": "kedarnath",
+            "date": "2026-04-22",
+            "h": 1,
+            "actual": 29636,
+            "model": 12888,
+            "snaive": 30154,
+            "basis": "spread",
+            "day_of_season": 0,
+            "heavy_rain": false
+          },
+          {
+            "dest": "kedarnath",
+            "date": "2026-04-23",
+            "h": 2,
+            "actual": 29636,
+            "model": 13133,
+            "snaive": 22543,
+            "basis": "spread",
+            "day_of_season": 1,
+            "heavy_rain": false
+          },
+          {
+            "dest": "kedarnath",
+            "date": "2026-04-26",
+            "h": 5,
+            "actual": 29636,
+            "model": 13188,
+            "snaive": 22543,
+            "basis": "spread",
+            "day_of_season": 4,
+            "heavy_rain": false
+          },
+          {
+            "dest": "kedarnath",
+            "date": "2026-04-24",
+            "h": 3,
+            "actual": 29636,
+            "model": 13800,
+            "snaive": 22543,
+            "basis": "spread",
+            "day_of_season": 2,
+            "heavy_rain": false
+          },
+          {
+            "dest": "kedarnath",
+            "date": "2026-04-25",
+            "h": 4,
+            "actual": 29636,
+            "model": 14047,
+            "snaive": 22543,
+            "basis": "spread",
+            "day_of_season": 3,
+            "heavy_rain": false
+          },
+          {
+            "dest": "kedarnath",
+            "date": "2026-05-10",
+            "h": 1,
+            "actual": 32002,
+            "model": 19471,
+            "snaive": 23450,
+            "basis": "spread",
+            "day_of_season": 18,
+            "heavy_rain": false
+          },
+          {
+            "dest": "kedarnath",
+            "date": "2026-05-11",
+            "h": 2,
+            "actual": 32002,
+            "model": 20315,
+            "snaive": 23450,
+            "basis": "spread",
+            "day_of_season": 19,
+            "heavy_rain": false
+          },
+          {
+            "dest": "kedarnath",
+            "date": "2026-05-13",
+            "h": 4,
+            "actual": 32423,
+            "model": 20869,
+            "snaive": 23450,
+            "basis": "reported",
+            "day_of_season": 21,
+            "heavy_rain": false
+          }
+        ]
+      },
+      "conformal_q_scaled": 0.4177370101379856,
+      "xgb_device": "cuda",
+      "train_seasons": [
+        2022,
+        2023,
+        2024,
+        2025
+      ]
+    }
+  },
+  "deployed": {
+    "trained_on": [
+      2022,
+      2023,
+      2024,
+      2025
+    ],
+    "objective": "regression_l1",
+    "conformal_q_scaled": 0.4177370101379856,
+    "caps": {
+      "kedarnath": 48400.0,
+      "badrinath": 35100.0,
+      "gangotri": 23700.0,
+      "yamunotri": 22600.0
+    },
+    "band_edges": {
+      "kedarnath": [
+        3094.285714285714,
+        9707.6,
+        19780.363636363636
+      ],
+      "badrinath": [
+        3746.4727272727273,
+        9582.185185185184,
+        16840.777777777777
+      ],
+      "gangotri": [
+        2098.1666666666665,
+        2809.150684931507,
+        9471.363636363636
+      ],
+      "yamunotri": [
+        1436.8333333333333,
+        2578.3698630136987,
+        7948.272727272727
+      ]
+    },
+    "guard": {
+      "drift_margin": 0.25,
+      "lag_grace_days": 3,
+      "fallback_low": 0.5,
+      "fallback_high": 1.5,
+      "width_floor": 200.0,
+      "high_width": 0.6,
+      "low_width": 1.2,
+      "abstain_width": 3.0
+    },
+    "params": {
+      "learning_rate": 0.05,
+      "num_leaves": 15,
+      "min_data_in_leaf": 20,
+      "feature_fraction": 0.8,
+      "bagging_fraction": 0.8,
+      "bagging_freq": 1,
+      "lambda_l2": 1.0,
+      "seed": 42,
+      "deterministic": true,
+      "force_row_wise": true,
+      "verbose": -1,
+      "num_threads": 4,
+      "rounds": 600
+    }
+  }
+}

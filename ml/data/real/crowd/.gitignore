@@ -1,0 +1,3 @@
+# Raw downloads (official PDFs, NGO report, Open-Meteo archive) are re-fetched by
+# `python -m ml.realdata.crowd.fetch`; their sites' terms do not clearly allow redistribution.
+raw/

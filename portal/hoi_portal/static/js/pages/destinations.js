@@ -1,6 +1,6 @@
 // Destinations list + destination detail. Detail answers "should I go this week?" first (At a glance tiles), then
 // shows ONE tab panel at a time (deep-linkable: #/destinations/<id>/<tab>).
-import { html, mount, href, load, bandPill, trafficPill, $, $$, empty, monthName, MONTH_NAMES, fmtDate, relTime, roadPill, impactPill, lastUpdated, crumbs, num, raw, samplePill, pager, moreList, infoNote, dayStrip, takeaway, details, icon, BANDS, monthChips, debounce, announce, errorBox } from '../ui.js';
+import { html, mount, href, load, bandPill, trafficPill, $, $$, empty, monthName, MONTH_NAMES, fmtDate, relTime, roadPill, impactPill, lastUpdated, crumbs, num, raw, samplePill, pager, moreList, infoNote, dayStrip, crowdAlertText, CONF_WORD, takeaway, details, icon, BANDS, monthChips, debounce, announce, errorBox } from '../ui.js';
 import { api, meta } from '../api.js';
 import { setQuery } from '../router.js';
 import { t } from '../i18n.js';
@@ -249,7 +249,8 @@ export async function detail(ctx) {
     const roadWorst = d.roads?.worst || (worst ? { status: worst.status, source: 'advisory' } : null);
     const ft = cr?.foot_traffic || null; // BestTime typical foot traffic at one well-known venue
     const outlook = cr?.outlook || [];
-    const quiet = outlook.length ? outlook.reduce((a, b) => (b.index < a.index ? b : a)) : null;
+    const openDays = outlook.filter((z) => !z.closed);
+    const quiet = openDays.length ? openDays.reduce((a, b) => (b.index < a.index ? b : a)) : null;
     const nowM = new Date().getMonth() + 1;
     const goodNow = x.best_months?.includes(nowM);
     const wWarn = (w?.warnings || [])[0];
@@ -262,7 +263,7 @@ export async function detail(ctx) {
           ${w?.available ? html`<span class="v">${Math.round(w.current?.temperature_c)}°C <small>${w.current?.summary || ''}</small></span><span class="s">${wWarn ? html`<strong>⚠ ${wWarn.kind === 'snow' ? 'Snow' : 'Heavy rain'} ${short(wWarn.date)}</strong>` : 'No rain or snow warnings, 7 days'}</span>`
             : html`<span class="v">—</span><span class="s">Weather not available</span>`}</a>
         <a class="gl ${cr?.today?.band === 'very_high' ? 'r' : cr?.today?.band === 'high' ? 'w' : ''}" href="#${base}/crowd"><span class="k">How busy today</span>
-          ${cr?.today ? html`<span class="v">${bandPill(cr.today.band, cr.today.index, '')}</span><span class="s">Quietest day soon: ${short(quiet.date)}</span>` : html`<span class="v">—</span><span class="s">Not known</span>`}
+          ${cr?.today ? html`<span class="v">${cr.today.closed ? html`<span class="pill neutral noicon">Closed for the season</span>` : bandPill(cr.today.band, cr.today.index, '')}</span><span class="s">${cr.alerts?.length ? html`<strong>${crowdAlertText(cr.alerts[0])}</strong>` : quiet ? `Quietest day soon: ${short(quiet.date)}` : 'Open again next season'}</span>` : html`<span class="v">—</span><span class="s">Not known</span>`}
           ${ft?.best_window ? html`<span class="s ft">${raw(miniBars(ft.today_by_hour, bestSet(ft)))}<span>Quietest today: <strong>${ft.best_window.label}</strong></span></span>` : ''}</a>
         <a class="gl ${roadWorst?.status === 'closed' ? 'r' : roadWorst?.status === 'caution' ? 'w' : ''}" href="#${base}/roads"><span class="k">Roads</span>
           ${roadWorst && roadWorst.source !== 'advisory' && live ? html`<span class="v">${roadPill(live.status)}</span><span class="s">${live.summary}</span>`
@@ -361,11 +362,16 @@ const PANELS = {
     const cr = d.crowd;
     if (!cr) { mount(p, html`${ph('How busy')}<p class="muted">Not known right now.</p>`); return; }
     const days = cr.outlook || [];
-    const quiet = days.length ? days.reduce((a, b) => (b.index < a.index ? b : a)) : null;
+    const open = days.filter((z) => !z.closed);
+    const quiet = open.length ? open.reduce((a, b) => (b.index < a.index ? b : a)) : null;
     const um = cr.usual_by_month || [];
     const top = um.slice().sort((a, b) => b.index - a.index).slice(0, 2).map((m) => monthName(m.month)).join(' and ');
+    const t = cr.today || {};
+    const al = cr.alerts || [];
     mount(p, html`${ph('How busy')}
       ${takeaway(stripHeadline(x.name, days) + (quiet ? `. Quietest day: ${fmtDate(quiet.date, { weekday: true, noYear: true })}.` : '.'))}
+      ${al.length ? html`<p class="flag amber" role="status"><strong>${crowdAlertText(al[0])}</strong>${al.length > 1 ? ` · ${al.length - 1} more very busy day${al.length > 2 ? 's' : ''} in the next 2 weeks` : ''}</p>` : ''}
+      <p class="crowdconf small muted"><span>${CONF_WORD[t.confidence] || CONF_WORD.low}</span><span>${cr.source === 'real_model' ? 'Based on official pilgrim counts (real data)' : 'Estimate from sample data'}</span>${t.pilgrims != null && !t.closed ? html`<span>About ${num(t.pilgrims)} pilgrims today (likely ${num(t.range[0])}–${num(t.range[1])})</span>` : ''}</p>
       ${dayStrip(days)}
       ${um.length ? details(`Each month: usually busiest in ${top}`, html`<div id="usual"></div>`) : ''}
       ${cr.foot_traffic?.best_window ? details(`Today: usually busiest at ${ft2(cr.foot_traffic).busy}, quietest at ${cr.foot_traffic.best_window.label}`, html`<div id="ftraffic"></div>`) : ''}`);
@@ -474,6 +480,13 @@ function liveTraffic(lv) {
 
 function stripHeadline(name, days) {
   if (!days.length) return `${name}: not known yet`;
+  if (days.every((z) => z.closed)) return `${name} is closed for the season`;
+  const shut = days.findIndex((z) => z.closed);
+  if (shut > 0) return `${openHeadline(name, days.slice(0, shut))}; closed for the season from ${fmtDate(days[shut].date, { weekday: true, noYear: true })}`;
+  return openHeadline(name, days.filter((z) => !z.closed));
+}
+
+function openHeadline(name, days) {
   const busy = (z) => z.index >= 65;
   const vh = days.some((z) => z.index >= 85);
   if (busy(days[0])) {

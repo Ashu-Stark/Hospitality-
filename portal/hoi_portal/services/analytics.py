@@ -73,8 +73,18 @@ def kpis(district: str | None) -> dict:
         look = crowd.outlook(ctx, dest, today, 14)
         peak = max(look, key=lambda x: x["index"])
         if peak["index"] >= crowd.ALERT_AT:
+            first = crowd.alert_days(look)
             alerts.append(
-                {"destination_id": dest, "name": BY_ID_DEST[dest]["name"], "peak_index": peak["index"], "peak_date": peak["date"]}
+                {
+                    "destination_id": dest,
+                    "name": BY_ID_DEST[dest]["name"],
+                    "peak_index": peak["index"],
+                    "peak_date": peak["date"],
+                    "first_date": first[0]["date"] if first else peak["date"],
+                    "reason": first[0]["reason"] if first else "",
+                    "confidence": peak.get("confidence", crowd.CONF_ESTIMATE),
+                    "source": peak.get("source", "estimate"),
+                }
             )
     pending = db.applications.count_documents({**f, "status": "submitted"})
     tiles = [
@@ -121,17 +131,20 @@ def rush(district: str | None, top_n: int = 10) -> dict:
                 "peak_date": peak["date"],
             }
         )
-        for x in look:
-            if x["index"] >= crowd.ALERT_AT:
-                alerts.append(
-                    {
-                        "destination_id": dest,
-                        "name": BY_ID_DEST[dest]["name"],
-                        "date": x["date"],
-                        "index": x["index"],
-                        "events": x["events"],
-                    }
-                )
+        by_date = {x["date"]: x for x in look}
+        for x in crowd.alert_days(look):
+            alerts.append(
+                {
+                    "destination_id": dest,
+                    "name": BY_ID_DEST[dest]["name"],
+                    "date": x["date"],
+                    "index": x["index"],
+                    "events": by_date[x["date"]]["events"],
+                    "reason": x["reason"],
+                    "confidence": x["confidence"],
+                    "source": x["source"],
+                }
+            )
     top.sort(key=lambda x: -x["avg_index_14d"])
     return _envelope(
         district,

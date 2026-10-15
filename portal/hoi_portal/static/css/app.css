@@ -814,6 +814,8 @@ details.more .more-b .chart{padding:6px 0 0;box-shadow:none}
 .daystrip .moderate{background:#ffe39a;color:#4d3200}
 .daystrip .high{background:#f8b48a;color:#5c1f06}
 .daystrip .very_high{background:#c62f22;color:#fff}
+.daystrip .closed{background:#e6e4df;color:#3d3b37}
+.crowdconf{display:flex;flex-wrap:wrap;gap:4px 12px;margin:4px 0 8px}
 @media (max-width:640px){.daystrip{grid-template-columns:repeat(7,minmax(0,1fr))}}
 .bandkey{display:flex;flex-wrap:wrap;gap:6px 12px;font-size:.78rem;color:var(--ink2)}
 

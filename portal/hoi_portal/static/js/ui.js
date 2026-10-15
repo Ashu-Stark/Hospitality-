@@ -498,13 +498,20 @@ export function details(summary, body, cls = '') {
 }
 
 /** Crowd strip: one coloured cell per day with weekday, date and index printed in it (no axes, no legend). */
+/** Plain alert line: "Very busy expected Sat 17 Oct · usual for opening weeks". */
+export function crowdAlertText(a) {
+  return `Very busy expected ${fmtDate(a.date, { weekday: true, noYear: true }).replace(',', '')}${a.reason ? ' · ' + a.reason : ''}`;
+}
+export const CONF_WORD = { high: 'High confidence', medium: 'Medium confidence', low: 'Low confidence (rough guide)' };
+
 export function dayStrip(days) {
   const B = { low: 'Quiet', moderate: 'Normal', high: 'Busy', very_high: 'Very busy' };
   const band = (v) => (v < 40 ? 'low' : v < 65 ? 'moderate' : v < 85 ? 'high' : 'very_high');
   return html`<ol class="daystrip" aria-label="Crowd estimate per day">${days.map((d) => {
     const dt = new Date(d.date + 'T00:00');
-    const b = d.band || band(d.index);
+    const b = d.closed ? 'closed' : d.band || band(d.index);
+    const word = d.closed ? 'Closed' : B[b];
     const wd = dt.toLocaleDateString('en-IN', { weekday: 'short' });
-    return html`<li class="ds ${b}"><span class="sr-only">${dt.toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'short' })}: ${B[b]}</span><span class="ds-d" aria-hidden="true">${wd.slice(0, 2)} ${dt.getDate()}</span><b aria-hidden="true">${B[b]}</b></li>`;
+    return html`<li class="ds ${b}"><span class="sr-only">${dt.toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'short' })}: ${word}${d.confidence === 'low' ? ' (rough guess)' : ''}</span><span class="ds-d" aria-hidden="true">${wd.slice(0, 2)} ${dt.getDate()}</span><b aria-hidden="true">${word}</b></li>`;
   })}</ol>`;
 }
