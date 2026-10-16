@@ -440,8 +440,6 @@ ML has its own tests in `ml/tests/`.
 | `docs/HOI_Final_Pitch.pptx` | 11-slide minimal deck (black style), no pricing |
 | `videos/HOI_Final_Pitch_with_video.pptx` | Same deck with the film embedded (not in git; large) |
 | `videos/HOI_demo_2min.mp4` + `.srt` | 2:04 product film "One Saturday", recorded on the live apps, voice-over and captions (not in git) |
-| `docs/VIDEO_2MIN_SCRIPT.md` | The film's shot-by-shot script |
-| `docs/VIDEO_SCRIPT.md`, `docs/VIDEO_DEMO_SCRIPT.md` | Earlier 60 s and 2 min scripts |
 | `docs/MARKET_AND_DIFFERENTIATION.md` | Competitors, sources, validation plan |
 | `docs/REAL_DATA_RESULTS.md` | Real-data model results |
 | `docs/USABILITY_TEST.md` | 5-person usability test kit |

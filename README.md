@@ -120,7 +120,6 @@ Staff-leaving ranking on real records: ROC-AUC 0.66 vs 0.55 for a checklist (1,1
 | [docs/HOI_FULL_CONTEXT.md](docs/HOI_FULL_CONTEXT.md) | Everything built, every feature and the thinking behind it |
 | [docs/PITCH_SCRIPT.md](docs/PITCH_SCRIPT.md) | 3-minute pitch, 60 s version, framework, hard-question answers |
 | [docs/HOI_Final_Pitch.pptx](docs/HOI_Final_Pitch.pptx) | 11-slide minimal deck |
-| [docs/VIDEO_2MIN_SCRIPT.md](docs/VIDEO_2MIN_SCRIPT.md) | Shot-by-shot script of the 2-minute product film |
 | [docs/USABILITY_TEST.md](docs/USABILITY_TEST.md) | 5-person usability test kit |
 | `videos/`, `HOI_Screenshots.zip` | Product film and screenshots of every screen (local only, not in git) |
 
