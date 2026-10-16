@@ -53,6 +53,11 @@ def _roster(base, mocks, rid):
     return api.get_roster(rid, settings=_settings(base, mocks))
 
 
+@st.cache_data(ttl=TTL, show_spinner=False)
+def _alerts(base, mocks, inventory_json):
+    return api.get_alerts(json.loads(inventory_json) if inventory_json else None, settings=_settings(base, mocks))
+
+
 @st.cache_data(ttl=300, show_spinner=False)
 def _heroes():
     return api.heroes()
@@ -76,6 +81,11 @@ def metrics(replacement_cost: float | None = None) -> m.Metrics:
 
 def roster(roster_id) -> m.Roster:
     return m.parse_roster(_roster(*_k(), roster_id))
+
+
+def alerts(inventory: list[dict] | None = None) -> dict:
+    """Hotel alerts from the ops API ({alerts, not_checked, ...}); inventory rows (optional) add the stock-out rule."""
+    return _alerts(*_k(), json.dumps(inventory, sort_keys=True) if inventory is not None else "")
 
 
 def heroes() -> list[m.Hero]:

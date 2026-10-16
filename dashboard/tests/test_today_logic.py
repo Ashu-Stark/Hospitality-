@@ -40,3 +40,36 @@ def test_ops_key_is_sent_only_to_our_own_ops_api(monkeypatch):
     assert api_client._auth_headers("https://someone-else.example.org") == {}  # a workspace's own "Server address"
     monkeypatch.delenv("HOI_OPS_API_KEY")
     assert api_client._auth_headers("https://ops.example.test") == {}
+
+
+def test_pick_alerts_most_severe_first_then_soonest():
+    res = {
+        "alerts": [
+            {"id": "a", "severity": "medium", "dates": ["2029-12-25"]},
+            {"id": "b", "severity": "high", "dates": ["2029-12-29"]},
+            {"id": "c", "severity": "medium", "dates": ["2029-12-24"]},
+            {"id": "d", "severity": "low", "dates": []},
+        ]
+    }
+    top, rest = today.pick_alerts(res)
+    assert [a["id"] for a in top] == ["b", "c", "a"] and [a["id"] for a in rest] == ["d"]
+    assert today.pick_alerts(None) == ([], [])
+    assert today.alert_button({"kind": "staff_short"}) == "Ask for extra staff"
+
+
+def test_inventory_rows_only_carry_what_the_stock_alert_needs():
+    items = [{"id": "towel", "name": "Bath towel", "per_occ_room": 1, "lead_days": 3, "unit_cost": 120}]
+    rows = today.inventory_rows(items, {"on_hand": {"towel": 40}, "on_order": {}})
+    assert rows == [{"id": "towel", "name": "Bath towel", "on_hand": 40.0, "on_order": 0.0, "per_occ_room": 1.0, "lead_days": 3}]
+
+
+def test_mock_alerts_are_plain_sentences_with_one_action():
+    res = api_client.get_alerts(settings=api_client.Settings(**{**api_client.current_settings().__dict__, "use_mocks": True}))
+    assert res["synthetic"] and res["alerts"]
+    for a in res["alerts"]:
+        assert a["title"].endswith(".") and a["action"] and a["severity"] in ("high", "medium", "low")
+
+
+def test_alerts_unavailable_note_is_friendly():
+    assert "next update" in today.alerts_unavailable(404)
+    assert "Refresh" in today.alerts_unavailable(503) and "Refresh" in today.alerts_unavailable(None)

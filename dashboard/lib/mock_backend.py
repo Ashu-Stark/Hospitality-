@@ -332,6 +332,11 @@ def forecast(params: dict) -> dict:
     return d
 
 
+def alerts(body: dict) -> dict:
+    """Captured GET /alerts of the demo hotel (SYNTHETIC); inventory rows are ignored in MOCK mode."""
+    return copy.deepcopy(load("alerts.json"))
+
+
 def metrics(params: dict) -> dict:
     d = copy.deepcopy(load("metrics_overview.json"))
     rc = params.get("replacement_cost_inr")

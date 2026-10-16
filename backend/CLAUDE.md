@@ -7,7 +7,10 @@ conventions (all services): docs/MONGODB.md.
 ## Rules for this folder
 
 - Use ONLY the ml entry points `forecast.predict`, `attrition.score`, `attrition.rescore`,
-  `voice.extract` (plus the result types and `attrition.heroes`), loaded from `ml/artifacts`.
+  `voice.extract` (plus the result types and `attrition.heroes`), loaded from `ml/artifacts`, called
+  through their GUARDED wrappers (`ml/forecast/guarded.py`, `ml/attrition/guarded.py`; shared checks
+  `ml/guardrails.py`), plus `ml/models/workload_api.py` (guarded workload) and
+  `ml/realdata/hotel_alerts/api.py` (cancellation, trained on REAL public data).
   Never train, never read `ml/data/internal/`. The seed and the roster read ml/data OUTPUT tables
   (employee_v2, weekly_behaviour, weekly_signals, employee_skill, pay_changes, demo/), which are
   synthetic data, not models.
@@ -39,6 +42,8 @@ backend/            the `backend` package (repo root on PYTHONPATH, like ml/)
   loop.py           POST /loop/run (closed loop)
   demo.py           metrics, demo reset, voice ingest
   onboarding/       hotel onboarding by voice (docs/onboarding.md): YAML config, flow, extractors
+  alerts.py         hotel alerts engine (GET/POST /alerts): rules, dedup, cooldown (alert_log)
+  weather.py        live Open-Meteo daily forecast for the hotel location (tests use a fake)
   smoke.py          python run.py backend-smoke
   tests/            pytest (slow marker: the 100-scenario roster test)
 ```
@@ -61,9 +66,12 @@ python run.py eval-onboarding # onboarding extraction eval on SYNTHETIC utteranc
 | method | path | what |
 |---|---|---|
 | GET | /health | status, MOCK flag, database (mongodb / mongomock), model name / version / dataset hash per artifact |
-| GET | /forecast?from=&to=&as_of= | forecast.predict (ForecastResult) |
-| POST | /attrition/score | attrition.score (list[AttritionScore]) |
-| POST | /attrition/rescore | attrition.rescore (RescoreResult, a SIMULATION) |
+| GET | /forecast?from=&to=&as_of= | guarded forecast.predict (ForecastResult + rooms, confidence, checks, fallback_days) |
+| POST | /attrition/score | guarded attrition.score (AttritionScore + source, confidence, checks per person) |
+| POST | /attrition/rescore | guarded attrition.rescore (RescoreResult, a SIMULATION, + confidence, checks) |
+| GET | /workload/next-week?week_start= | next week's load ratio per department (guarded; naive fallback) |
+| POST | /cancellation/score | per-booking cancel / no-show chance (REAL-data model, guarded; booking fields only) |
+| GET / POST | /alerts?today= | hotel alerts: rush ahead, staff short, high cancellation, weather, staff leaving, stock-out (POST adds inventory / bookings); severity, reason, one action, notify (12 h cooldown); not_checked lists rules that could not run |
 | POST | /roster/generate | CP-SAT roster for the snapshot week (protected_ids, use_cache); status infeasible + causes when impossible |
 | GET | /roster/{id} | a stored roster |
 | POST | /tasks | create (idempotency_key: a retry returns the same task; another task -> 409) |
@@ -172,3 +180,15 @@ The closed loop reads its baseline + protected rosters through the same path. `/
 printed) solves the demo week + N following weeks, baseline and protected variants, deterministic, re-checked, and
 upserts them. Following weeks use ASSUMED inputs: occupancy of the same weekdays 52 weeks earlier, no leave, carry-in
 and last shift chained from the previous week. Why: Render's free tier (~0.1 CPU) hits the 10 s limit with a poor roster.
+
+## Hotel alerts and prediction checks
+
+`backend/alerts.py` (config `alerts` in config.yaml, every threshold ASSUMED): six pure rule functions
+(tested one by one in tests/test_alerts.py), dedup by alert id (one per rule and subject), cooldown via
+collection `alert_log` (notify only when new, severity rose, or cooldown_hours passed). "Today" = the
+snapshot week's Monday; the forecast window stops at the end of the SYNTHETIC data. Weather comes from
+Open-Meteo (live, real dates; free non-commercial tier, CC BY 4.0 data; only the coordinates are sent);
+tests set `app.state.weather` to a fake or None and never call the network. Stock-out needs the
+platform's inventory rows (POST body); the ops API holds no inventory. Every guarded response carries
+`confidence` and `checks`; MOCK mode answers with confidence low and a `mock_mode` check. Results and
+limits: ml/realdata/hotel_alerts/RESULTS.md.

@@ -29,6 +29,7 @@ def fresh_settings(mock: bool = False):  # noqa: ANN201
 def _client(mock: bool):  # noqa: ANN202
     settings = fresh_settings(mock)
     with TestClient(create_app(settings)) as c:
+        c.app.state.weather = None  # alerts: tests never call the live weather API
         yield c
     get_database(settings).client.drop_database(settings.database_name)
 

@@ -130,6 +130,37 @@ class VoiceConfig(_Strict):
     department_owner: dict[str, str]
 
 
+class WeatherConfig(_Strict):
+    enabled: bool
+    url: str
+    location_name: str
+    latitude: float = Field(ge=-90, le=90)
+    longitude: float = Field(ge=-180, le=180)
+    timeout_seconds: float = Field(gt=0)
+    cache_minutes: float = Field(ge=0)
+    heavy_rain_mm: float = Field(gt=0)
+    rather_heavy_rain_mm: float = Field(gt=0)
+    snow_cm: float = Field(gt=0)
+    heavy_snow_cm: float = Field(gt=0)
+
+
+class AlertsConfig(_Strict):
+    """Hotel alerts (backend/alerts.py); every value ASSUMED."""
+
+    horizon_days: int = Field(ge=1, le=30)
+    rush_occupancy: float = Field(gt=0, le=1)
+    rush_jump_share: float = Field(gt=0, le=1)
+    rush_jump_min_rooms: int = Field(ge=1)
+    peak_occupancy: float = Field(gt=0, le=1)
+    cancel_alert_share: float = Field(gt=0, le=1)
+    coverage_min: float = Field(gt=0, le=1)
+    short_hours_min: float = Field(ge=0)
+    leaving_min_increase: int = Field(ge=1)
+    stock_buffer_days: int = Field(ge=0)
+    cooldown_hours: float = Field(ge=0)
+    weather: WeatherConfig
+
+
 class BackendConfig(_Strict):
     database_name: str
     mock_env_var: str
@@ -138,6 +169,7 @@ class BackendConfig(_Strict):
     tasks: TaskConfig
     metrics: MetricsConfig
     voice: VoiceConfig
+    alerts: AlertsConfig
 
 
 class HotelData(BaseModel):

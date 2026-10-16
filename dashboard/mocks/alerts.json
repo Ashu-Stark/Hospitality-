@@ -1,0 +1,56 @@
+{
+  "today": "2029-12-24",
+  "window": [
+    "2029-12-24",
+    "2029-12-31"
+  ],
+  "alerts": [
+    {
+      "id": "staff_short:2029-12-24",
+      "kind": "staff_short",
+      "severity": "high",
+      "title": "Short of staff in 6 team(s) this week; kitchen is the biggest gap (27 h).",
+      "reason": "The shift plan leaves 120 of the hours the forecast needs uncovered: kitchen 27 h short; front desk 26 h short; restaurant 24 h short; housekeeping 18 h short. Worst kitchen shifts: Sat 29 Dec morning 4 h, Fri 28 Dec evening 3 h, Sun 30 Dec morning 3 h.",
+      "action": "Ask for about 1 extra kitchen person(s) on the short days, or move someone from a quieter team.",
+      "target": "pages/20_Extra_Staff.py",
+      "dates": [
+        "2029-12-24",
+        "2029-12-25",
+        "2029-12-26",
+        "2029-12-27",
+        "2029-12-28",
+        "2029-12-29",
+        "2029-12-30"
+      ],
+      "confidence": "medium",
+      "data_note": "SYNTHETIC shift plan and forecast",
+      "notify": true
+    },
+    {
+      "id": "rush_ahead:2029-12-29",
+      "kind": "rush_ahead",
+      "severity": "medium",
+      "title": "Busy Sat 29 Dec: about 21 of 24 rooms expected.",
+      "reason": "Saturday about 21 of 24 rooms (likely 20-23); last Saturday 22. Also busy: Mon 24 Dec about 19, Tue 25 Dec about 17, Wed 26 Dec about 16 and 1 more day(s).",
+      "action": "Check the shift plan for these days and line up extra housekeeping and kitchen help early.",
+      "target": "pages/5_Roster.py",
+      "dates": [
+        "2029-12-24",
+        "2029-12-25",
+        "2029-12-26",
+        "2029-12-27",
+        "2029-12-29"
+      ],
+      "confidence": "medium",
+      "data_note": "SYNTHETIC forecast",
+      "notify": true
+    }
+  ],
+  "not_checked": [
+    "forecast stops at 2029-12-31 (end of the SYNTHETIC data), not 14 days ahead",
+    "stock-out: inventory not sent (POST /alerts with the platform's /inventory/suggestions rows)",
+    "weather: not captured in MOCK mode (the live server checks the Open-Meteo forecast)"
+  ],
+  "synthetic": true,
+  "note": "Forecast, shift plan, staff and the demo calendar are SYNTHETIC. Cancellation rates come from REAL Portuguese hotel data, not this hotel. Weather is a REAL live forecast for real calendar days."
+}

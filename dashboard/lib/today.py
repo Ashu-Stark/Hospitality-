@@ -94,8 +94,10 @@ def gather() -> dict:
     if stock is not None and items is not None:
         have = stock.get("on_hand") or {}
         out["low_stock"] = [i for i in items if float(have.get(i["id"], 0) or 0) <= float(i.get("reorder_point") or 0)]
+        out["inventory_rows"] = inventory_rows(items, stock)
     else:
         out["low_stock"] = None
+        out["inventory_rows"] = None
 
     sr = _try(platform.staffing_requests) if auth.role() in ("owner", "hr", "dept_head", "platform_admin") else None
     out["staffing_pending"] = [r for r in sr or [] if r.get("status") == "pending_send"]
@@ -273,3 +275,50 @@ def action_result(out) -> tuple[str, bool]:
     if isinstance(out, dict) and out.get("status") == "sent" and "openings" in out:
         return "Sent to the tourism portal.", True
     return "Done", True
+
+
+# ------------------------------------------------------------------ alerts ahead (ops API /alerts)
+SEVERITY = {"high": 0, "medium": 1, "low": 2}
+ALERT_BUTTON = {
+    "rush_ahead": "See shift plan",
+    "staff_short": "Ask for extra staff",
+    "high_cancellation": "See guests",
+    "weather_risk": "Tell guests",
+    "staff_leaving": "See who",
+    "stock_out": "Order stock",
+}
+
+
+def inventory_rows(items: list[dict], stock: dict) -> list[dict]:
+    """Rows for the stock-out alert: what the alert needs from the platform's catalog + stock, nothing else."""
+    have, coming = stock.get("on_hand") or {}, stock.get("on_order") or {}
+    return [
+        {
+            "id": i["id"],
+            "name": i.get("name") or i["id"],
+            "on_hand": float(have.get(i["id"], 0) or 0),
+            "on_order": float(coming.get(i["id"], 0) or 0),
+            "per_occ_room": float(i.get("per_occ_room") or 0),
+            "lead_days": int(i.get("lead_days") or 0),
+        }
+        for i in items
+        if i.get("id")
+    ]
+
+
+def pick_alerts(result: dict | None, n: int = 3) -> tuple[list[dict], list[dict]]:
+    """(top n, the rest): most severe first, then soonest date. Empty when the ops API gave nothing."""
+    alerts = list((result or {}).get("alerts") or [])
+    alerts.sort(key=lambda a: (SEVERITY.get(a.get("severity"), 3), (a.get("dates") or ["9999"])[0]))
+    return alerts[:n], alerts[n:]
+
+
+def alert_button(a: dict) -> str:
+    return ALERT_BUTTON.get(a.get("kind", ""), "Open")
+
+
+def alerts_unavailable(status: int | None) -> str:
+    """Plain note for Today when the ops API gives no alerts: a server without /alerts (404) is an older version."""
+    if status == 404:
+        return "Alerts ahead are available after the next update of the data server."
+    return "Alerts ahead could not be loaded right now. Press Refresh in a minute."

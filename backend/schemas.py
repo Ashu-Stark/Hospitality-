@@ -8,12 +8,19 @@ from datetime import date
 from pydantic import BaseModel, Field
 
 from ml.attrition.api import Action, AttritionScore, Driver, HeroInfo, RescoreResult
+from ml.attrition.guarded import GuardedAttritionScore, GuardedRescore
 from ml.forecast.api import ForecastDay, ForecastResult
+from ml.forecast.guarded import GuardedForecast
+from ml.guardrails import Check
+from ml.models.workload_api import WorkloadForecast
+from ml.realdata.hotel_alerts.api import BookingScores
 from ml.voice.api import VoiceResult
 
 __all__ = [
     "Action", "AttritionScore", "Driver", "ForecastDay", "ForecastResult", "HeroInfo",
     "RescoreResult", "VoiceResult", "ScoreRequest", "RescoreRequest", "Health", "ModelVersion",
+    "GuardedAttritionScore", "GuardedForecast", "GuardedRescore", "Check", "WorkloadForecast",
+    "BookingScores", "BookingsRequest",
 ]
 
 
@@ -41,3 +48,10 @@ class Health(BaseModel):
     models: list[ModelVersion]
     database: str  # "mongodb" or "mongomock" (never the URI)
     synthetic: bool = True
+
+
+class BookingsRequest(BaseModel):
+    """Bookings on the books (no guest names or personal data: booking fields only)."""
+
+    as_of: date | None = None  # default: the day before the snapshot week
+    bookings: list[dict] = Field(default_factory=list, max_length=2000)

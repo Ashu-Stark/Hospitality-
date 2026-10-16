@@ -1,0 +1,39 @@
+{
+  "synthetic": true,
+  "hotel": "default",
+  "rooms": 45,
+  "forecast": {
+    "1d": {
+      "days": 84,
+      "mae_rooms_model": 1.533,
+      "mae_rooms_baseline": 3.167,
+      "band_coverage": 0.893,
+      "latest_window_mae_model": 1.347,
+      "latest_window_mae_baseline": 3.357,
+      "windows": 57,
+      "windows_model_worse": 0,
+      "warning": false
+    },
+    "7d": {
+      "days": 84,
+      "mae_rooms_model": 1.666,
+      "mae_rooms_baseline": 3.167,
+      "band_coverage": 0.881,
+      "latest_window_mae_model": 1.645,
+      "latest_window_mae_baseline": 3.357,
+      "windows": 57,
+      "windows_model_worse": 0,
+      "warning": false
+    }
+  },
+  "workload": {
+    "weeks": 12,
+    "rows": 72,
+    "mae_model": 0.059,
+    "mae_baseline": 0.0458,
+    "warning": true
+  },
+  "warnings": [
+    "workload: model MAE 0.059 > naive 0.0458"
+  ]
+}

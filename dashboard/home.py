@@ -5,7 +5,7 @@ Works in hotel and homestay mode (plain words in homestay). All demo data is syn
 
 import streamlit as st
 
-from lib import auth, data, nav, platform, tenancy, theme, today, ui
+from lib import api_client, auth, data, nav, platform, tenancy, theme, today, ui
 from lib.i18n import t
 
 ui.setup("home.py", "Today")
@@ -192,6 +192,43 @@ else:
         ui.verdict(0, ok_text=t("Yes, everything looks fine today."))
 with tiles_slot.container():
     ui.action_tiles(tiles, key="today")
+
+# ------------------------------------------------------------------ coming up: top 3 alerts, one action each
+if not HOMESTAY and ROLE in ("owner", "hr", "dept_head", "platform_admin"):
+    alert_note = ""
+    try:
+        alert_res = data.alerts(d.get("inventory_rows"))
+    except api_client.ApiError as e:  # the ops API may be asleep or older; Today still works without alerts
+        alert_res = None
+        alert_note = today.alerts_unavailable(e.status)
+    if alert_note:
+        st.caption(t(alert_note))
+    top_alerts, more_alerts = today.pick_alerts(alert_res)
+    shown = {f for f, _, _ in st.session_state.get("_nav", [])}
+    if top_alerts:
+        ui.html(f'<h3 class="ss-h3">{t("Coming up")}</h3>')
+    for a in top_alerts:
+        c1, c2 = st.columns([4, 1.3], vertical_alignment="center")
+        c1.markdown(
+            f'<div class="ss-donext"><b>{theme.esc(a["title"])}</b><span>{theme.esc(a["action"])}</span></div>',
+            unsafe_allow_html=True,
+        )
+        if a.get("target") in shown and c2.button(t(today.alert_button(a)), key=f"alert_{a['id']}", width="stretch"):
+            nav.go(a["target"])
+    if alert_res is not None:
+        with ui.details(t("All alerts") + f" ({len(top_alerts) + len(more_alerts)})"):
+            for a in top_alerts + more_alerts:
+                st.markdown(
+                    f"**{theme.esc(a['title'])}**  \n{theme.esc(a['reason'])}  \n"
+                    f"*{t('What to do')}:* {theme.esc(a['action'])}  \n"
+                    f":gray[{theme.esc(a['severity'])} · {t('confidence')} {theme.esc(a.get('confidence', ''))} · "
+                    f"{theme.esc(a.get('data_note', ''))}]"
+                )
+            if not top_alerts:
+                st.caption(t("No alerts for the days ahead."))
+            if alert_res.get("not_checked"):
+                st.caption(t("Not checked") + ": " + "; ".join(alert_res["not_checked"]))
+            st.caption(alert_res.get("note", ""))
 
 # ------------------------------------------------------------------ also needs you (only what the tiles do not cover)
 checkin: list[str] = []  # people to check in with: supportive, never for discipline

@@ -141,6 +141,16 @@ def health(settings: Settings | None = None) -> dict:
     return _mock(mock.load, "health.json", endpoint="/health") if s.use_mocks else _http("GET", "/health", s)
 
 
+def get_alerts(inventory: list[dict] | None = None, settings: Settings | None = None) -> dict:
+    """Hotel alerts (plain sentences, severity, reason, one action). With inventory rows the stock-out rule runs too."""
+    s = _s(settings)
+    if s.use_mocks:
+        return _mock(mock.alerts, {"inventory": inventory}, endpoint="/alerts")
+    if inventory is not None:
+        return _http("POST", "/alerts", s, json={"inventory": inventory})
+    return _http("GET", "/alerts", s)
+
+
 def get_forecast(date_from: str, date_to: str, as_of: str | None = None, settings: Settings | None = None) -> dict:
     s = _s(settings)
     params = {"from": date_from, "to": date_to, **({"as_of": as_of} if as_of else {})}

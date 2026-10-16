@@ -17,6 +17,9 @@ Usage:
     python run.py smoke     # fresh process: forecast week, scores, Sunita rescore (exit 1 on error)
     python run.py mocks     # write data/mocks/*.json for the frontend from the real model outputs
     python run.py realdata [--no-timesfm] [--cpu]  # REAL public data benchmarks (GPU), ml/realdata
+    python run.py train-cancellation [--cpu]  # REAL data booking cancellation model (hotel alerts)
+    python run.py guard-reference  # training reference stats for the guardrail drift checks
+    python run.py backtest-monitor [--hotel himsagar] [--strict]  # rolling error vs baselines
 
 Commands run with .venv's Python when it exists (ml/.venv or the repo-root .venv), so
 activating the venv is optional. The Python package is ml/ itself (imported as `ml.*`), so
@@ -166,6 +169,19 @@ def cmd_realdata(*args: str) -> int:
     return _run(["ml.realdata.run_realdata", *args])
 
 
+def cmd_train_cancellation(*args: str) -> int:
+    """REAL data: booking cancellation risk (ml/realdata/hotel_alerts)."""
+    return _run(["ml.realdata.hotel_alerts.train", *args])
+
+
+def cmd_guard_reference() -> int:
+    return _run(["ml.eval.guard_reference"])
+
+
+def cmd_backtest_monitor(*args: str) -> int:
+    return _run(["ml.eval.backtest_monitor", *args])
+
+
 def cmd_check_artifacts() -> int:
     return _run(["ml.eval.check_artifacts"])
 
@@ -187,10 +203,14 @@ COMMANDS = {
     "smoke": cmd_smoke,
     "mocks": cmd_mocks,
     "realdata": cmd_realdata,
+    "train-cancellation": cmd_train_cancellation,
+    "guard-reference": cmd_guard_reference,
+    "backtest-monitor": cmd_backtest_monitor,
 }
 
 
-TAKES_ARGS = {"test", "validate-seeds", "generate-hotel", "realdata"}
+TAKES_ARGS = {"test", "validate-seeds", "generate-hotel", "realdata", "train-cancellation",
+              "backtest-monitor"}
 
 
 def main(argv: list[str]) -> int:

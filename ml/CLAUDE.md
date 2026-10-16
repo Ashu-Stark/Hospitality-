@@ -648,3 +648,22 @@ and fine-tuned TimesFM layers are gitignored. Optional deps (torch cu128, xgboos
 `realdata/requirements-gpu.txt`. Protected columns are dropped in `realdata/attrition.py`.
 Tests: `tests/test_realdata.py` (no download, no GPU). Results: `docs/REAL_DATA_RESULTS.md`
 (repo root) and `realdata/README.md`.
+
+## Hotel alerts: cancellation model (REAL data) and prediction checks for every model
+
+- `ml/realdata/hotel_alerts/` (features.py, train.py, api.py, DATA_CARD.md, RESULTS.md):
+  booking cancellation / no-show risk on Hotel Booking Demand (REAL, CC BY 4.0), booking-time
+  features only (leaky columns excluded and tested), snapshots at booking and 1-90 days before
+  arrival, split by arrival date (train <= 2016-10-31, val Dec-Jan, test Mar-Aug 2017).
+  `python run.py train-cancellation [--cpu]` -> `artifacts/cancellation/real_v1/`. Test at booking:
+  LightGBM ROC 0.820 / PR 0.786 / Brier 0.168 vs base rate 0.638 / 0.494 / 0.234 (logistic 0.795).
+  Night-level source (model vs base-rate table) chosen per horizon on validation: base-rate table at
+  every horizon (the model was better on the test at 14 / 30 days; reported, not switched).
+- `ml/guardrails.py`: schema / range checks, output clipping, drift (row z-score + range; PSI for
+  batches >= 200 rows) against `reference_stats.json`, baseline fallback, confidence label,
+  stale-model rejection (365 days), logging (`hoi.guardrails`). Guarded entry points:
+  `ml/forecast/guarded.py`, `ml/attrition/guarded.py`, `ml/models/workload_api.py`,
+  `ml/realdata/hotel_alerts/api.py`. `python run.py guard-reference` rewrites the v1 references
+  (models unchanged). `python run.py backtest-monitor [--hotel himsagar] [--strict]`: rolling error
+  vs baselines (finds: default-hotel workload worse than naive over the last 12 weeks; Himsagar
+  forecast band covers ~67% instead of 80%). Tests: tests/test_guardrails.py, tests/test_hotel_alerts.py.

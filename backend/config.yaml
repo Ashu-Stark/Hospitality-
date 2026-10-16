@@ -78,3 +78,29 @@ voice:
     fnb_service: F&B captain
     kitchen: head chef
     security: security head
+
+# Hotel alerts (backend/alerts.py). Every threshold is ASSUMED (a design choice), not a measured fact.
+alerts:
+  horizon_days: 14                      # look this many days ahead (capped at the end of the SYNTHETIC data)
+  rush_occupancy: 0.85                  # forecast occupancy at or above this = a rush day
+  rush_jump_share: 0.15                 # or this share of the rooms above the same weekday last week
+  rush_jump_min_rooms: 3                #   (and at least this many rooms)
+  peak_occupancy: 0.80                  # nights checked for cancellations
+  cancel_alert_share: 0.05              # expected cancellations >= this share of rooms (min 2 rooms)
+  coverage_min: 0.95                    # shift plan: a department below this coverage is short
+  short_hours_min: 4                    # or at least this many unfilled hours in one department
+  leaving_min_increase: 1               # more people in the high band than last week by this many
+  stock_buffer_days: 2                  # stock must last the supplier lead time + this many days
+  cooldown_hours: 12                    # the same alert (same id, same or lower severity) is not re-notified within this
+  weather:
+    enabled: true                       # live Open-Meteo forecast (no key; free non-commercial tier)
+    url: https://api.open-meteo.com/v1/forecast
+    location_name: Mussoorie            # approximate town-centre coordinates (verify for the real property)
+    latitude: 30.4598
+    longitude: 78.0664
+    timeout_seconds: 6
+    cache_minutes: 60
+    heavy_rain_mm: 64.5                 # IMD "heavy rain" lower bound (mm per day; verify)
+    rather_heavy_rain_mm: 35.6          # IMD "rather heavy" lower bound (verify)
+    snow_cm: 5                          # ASSUMED: snow that slows hill roads
+    heavy_snow_cm: 15                   # ASSUMED

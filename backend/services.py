@@ -1,5 +1,9 @@
 """The only bridge to ml/: forecast.predict, attrition.score, attrition.rescore, voice.extract
-(loaded from ml/artifacts; nothing is trained here, nothing reads ml/data/internal/).
+(loaded from ml/artifacts; nothing is trained here, nothing reads ml/data/internal/), called
+through their GUARDED versions (ml/forecast/guarded.py, ml/attrition/guarded.py; shared checks in
+ml/guardrails.py), plus the guarded workload interface (ml/models/workload_api.py) and the
+REAL-data cancellation interface (ml/realdata/hotel_alerts/api.py). Every forecast, score and
+rescore therefore carries `confidence` and `checks`.
 
 ModelService calls the real interfaces; MockService (MOCK=1) serves ml/data/mocks/*.json through
 the same result types, so the frontend can run without the models.
@@ -15,12 +19,21 @@ from typing import Protocol
 from backend.config import ML_ARTIFACTS, MOCKS_DIR, HotelData, hotel_data
 from backend.schemas import (
     AttritionScore,
+    BookingScores,
+    Check,
     ForecastResult,
+    GuardedAttritionScore,
+    GuardedForecast,
+    GuardedRescore,
     HeroInfo,
     ModelVersion,
     RescoreResult,
     VoiceResult,
+    WorkloadForecast,
 )
+
+MOCK_CHECK = Check(name="mock_mode", status="warn",
+                   detail="MOCK mode: canned outputs from ml/data/mocks; prediction checks not run")
 
 
 class NotAvailable(LookupError):
@@ -42,6 +55,10 @@ class Service(Protocol):
 
     def voice(self, audio_path: Path) -> VoiceResult: ...
 
+    def workload(self, week_start: date | None) -> WorkloadForecast: ...
+
+    def cancellation(self, bookings: list[dict], as_of: date) -> BookingScores: ...
+
 
 def model_versions(artifacts: Path = ML_ARTIFACTS) -> list[ModelVersion]:
     out = []
@@ -59,11 +76,11 @@ class ModelService:
     def __init__(self, hotel: str | None = None) -> None:
         self.hotel: HotelData = hotel_data(hotel)
 
-    def forecast(self, start: date, end: date, as_of: date | None) -> ForecastResult:
-        from ml import forecast
+    def forecast(self, start: date, end: date, as_of: date | None) -> GuardedForecast:
+        from ml.forecast import guarded
 
-        return forecast.predict(start, end, as_of, data_dir=self.hotel.data_dir,
-                                rooms=self.hotel.rooms)
+        return guarded.predict(start, end, as_of, data_dir=self.hotel.data_dir,
+                               rooms=self.hotel.rooms)
 
     def latest_week(self) -> date:
         from ml import attrition
@@ -71,11 +88,11 @@ class ModelService:
         return attrition.api.latest_week(data_dir=self.hotel.data_dir)
 
     def score(self, week_start: date | None, employee_ids: list[str] | None
-              ) -> list[AttritionScore]:
-        from ml import attrition
+              ) -> list[GuardedAttritionScore]:
+        from ml.attrition import guarded
 
-        return attrition.score(week_start or self.latest_week(), employee_ids,
-                               data_dir=self.hotel.data_dir)
+        return guarded.score(week_start or self.latest_week(), employee_ids,
+                             data_dir=self.hotel.data_dir)
 
     def rescore(self, employee_id: str, overrides: dict, week_start: date | None,
                 protected_weekends_off: int | None) -> RescoreResult:
@@ -86,7 +103,9 @@ class ModelService:
             merged = {**attrition.protected_weekends_off(employee_id, protected_weekends_off,
                                                          week_start,
                                                          data_dir=self.hotel.data_dir), **merged}
-        return attrition.rescore(employee_id, merged, week_start, data_dir=self.hotel.data_dir)
+        from ml.attrition import guarded
+
+        return guarded.rescore(employee_id, merged, week_start, data_dir=self.hotel.data_dir)
 
     def heroes(self) -> list[HeroInfo]:
         from ml import attrition
@@ -98,6 +117,16 @@ class ModelService:
 
         return voice.extract(audio_path)
 
+    def workload(self, week_start: date | None) -> WorkloadForecast:
+        from ml.models import workload_api
+
+        return workload_api.predict_next_week(self.hotel.data_dir, week_start)
+
+    def cancellation(self, bookings: list[dict], as_of: date) -> BookingScores:
+        from ml.realdata.hotel_alerts import api as cancellation
+
+        return cancellation.score_bookings(bookings, as_of)
+
 
 class MockService:
     """Serves the frontend mock files; only what they contain is available."""
@@ -108,19 +137,23 @@ class MockService:
     def _load(self, name: str) -> object:
         return json.loads((self.dir / f"{name}.json").read_text(encoding="utf-8"))
 
-    def forecast(self, start: date, end: date, as_of: date | None) -> ForecastResult:
+    def forecast(self, start: date, end: date, as_of: date | None) -> GuardedForecast:
         full = ForecastResult.model_validate(self._load("forecast_week"))
         days = [d for d in full.days if start <= d.date <= end]
         if not days:
             raise NotAvailable(f"MOCK forecast covers {full.days[0].date}..{full.days[-1].date}")
-        return full.model_copy(update={"days": days})
+        return GuardedForecast(**full.model_dump(), rooms=hotel_data().rooms, confidence="low",
+                               checks=[MOCK_CHECK], fallback_used=False).model_copy(
+            update={"days": days})
 
     def latest_week(self) -> date:
         return AttritionScore.model_validate(self._load("attrition_scores")[0]).week_start
 
     def score(self, week_start: date | None, employee_ids: list[str] | None
-              ) -> list[AttritionScore]:
-        scores = [AttritionScore.model_validate(x) for x in self._load("attrition_scores")]
+              ) -> list[GuardedAttritionScore]:
+        scores = [GuardedAttritionScore(**AttritionScore.model_validate(x).model_dump(),
+                                        confidence="low", checks=[MOCK_CHECK])
+                  for x in self._load("attrition_scores")]
         if week_start is not None and week_start != scores[0].week_start:
             raise NotAvailable(f"MOCK scores exist only for week {scores[0].week_start}")
         if employee_ids is None:
@@ -136,10 +169,16 @@ class MockService:
         r = RescoreResult.model_validate(self._load("rescore_sunita"))
         if employee_id != r.employee_id:
             raise NotAvailable(f"MOCK rescore exists only for {r.employee_id}")
-        return r
+        return GuardedRescore(**r.model_dump(), confidence="low", checks=[MOCK_CHECK])
 
     def heroes(self) -> list[HeroInfo]:
         return [HeroInfo.model_validate(x) for x in self._load("heroes")]
 
     def voice(self, audio_path: Path) -> VoiceResult:
         raise NotAvailable("voice is not mocked; run without MOCK=1")
+
+    def workload(self, week_start: date | None) -> WorkloadForecast:
+        raise NotAvailable("workload is not mocked; run without MOCK=1")
+
+    def cancellation(self, bookings: list[dict], as_of: date) -> BookingScores:
+        raise NotAvailable("cancellation scoring is not mocked; run without MOCK=1")
