@@ -41,7 +41,11 @@ window.HOI_I18N = {
     add_photo: "Add photo", photo_added: "Photo added · add another", add_photo_title: "Add a photo (optional)", photo_saved: "Photo saved with the time.",
     off_now: "You're off shift now", off_now_sub: "Jobs come to staff on shift.", next_shift: "Your next shift: {s}.", next_shift_none: "Your manager has not shared your next shift yet.",
     w_title: "My work today", w_jobs: "jobs done", w_minutes: "minutes on jobs", w_started: "started {t}", w_took: "took {n} min", w_photo: "Job photo",
-    w_none: "No finished jobs yet today.", w_note: "Time from Start to Done in this app."
+    w_none: "No finished jobs yet today.", w_note: "Time from Start to Done in this app.",
+    pulse_title: "How was your week?", pulse_ask: "Can we ask you this once a week? One tap.",
+    pulse_note: "Optional. It helps the owner see when work gets too heavy. Stop any time: your answers are then deleted.",
+    pulse_yes: "Yes, ask me", pulse_no: "No thanks", pulse_good: "Good", pulse_ok: "OK", pulse_hard: "Hard",
+    pulse_thanks: "Thank you. You can change it this week.", pulse_stop: "Stop asking"
   },
   hi: {
     offline: "इंटरनेट नहीं है। इंटरनेट आने तक बदलाव सेव नहीं होंगे।",
@@ -84,6 +88,10 @@ window.HOI_I18N = {
     add_photo: "फ़ोटो जोड़ें", photo_added: "फ़ोटो जुड़ गई · एक और", add_photo_title: "फ़ोटो जोड़ें (ज़रूरी नहीं)", photo_saved: "फ़ोटो समय के साथ सेव हो गई।",
     off_now: "अभी आपकी ड्यूटी नहीं है", off_now_sub: "काम ड्यूटी पर मौजूद स्टाफ़ को आते हैं।", next_shift: "आपकी अगली शिफ़्ट: {s}।", next_shift_none: "मैनेजर ने अगली शिफ़्ट अभी नहीं डाली है।",
     w_title: "आज मेरा काम", w_jobs: "काम पूरे", w_minutes: "मिनट काम पर", w_started: "शुरू {t}", w_took: "{n} मिनट लगे", w_photo: "काम की फ़ोटो",
-    w_none: "आज अभी कोई काम पूरा नहीं हुआ।", w_note: "इस ऐप में शुरू से पूरा तक का समय।"
+    w_none: "आज अभी कोई काम पूरा नहीं हुआ।", w_note: "इस ऐप में शुरू से पूरा तक का समय।",
+    pulse_title: "आपका हफ़्ता कैसा रहा?", pulse_ask: "क्या हम यह हफ़्ते में एक बार पूछ सकते हैं? बस एक टैप।",
+    pulse_note: "ज़रूरी नहीं। इससे मालिक को पता चलता है कि काम ज़्यादा भारी तो नहीं। कभी भी बंद करें: तब आपके जवाब मिटा दिए जाएँगे।",
+    pulse_yes: "हाँ, पूछिए", pulse_no: "नहीं, धन्यवाद", pulse_good: "अच्छा", pulse_ok: "ठीक", pulse_hard: "मुश्किल",
+    pulse_thanks: "धन्यवाद। इस हफ़्ते आप इसे बदल सकते हैं।", pulse_stop: "पूछना बंद करें"
   }
 };

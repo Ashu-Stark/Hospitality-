@@ -132,6 +132,7 @@
       api("GET", "/inventory/items").catch(() => []),
       loadRecognition(),
       loadWork(),
+      loadPulse(),
     ]);
     S.me = me; S.items = items;
     renderAll();
@@ -156,8 +157,39 @@
     if (S.tenant?.brand_color) document.documentElement.style.setProperty("--brand", S.tenant.brand_color);
     document.body.classList.toggle("homestay", isHomestay());
     if (S.me?.property?.name) $("#meHotel").textContent = S.me.property.name;
-    renderToday(); renderJobs(); renderItems(); loadRequests(); renderRecognition(); renderWork();
+    renderToday(); renderJobs(); renderItems(); loadRequests(); renderRecognition(); renderWork(); renderPulse();
   }
+
+  // ---------------------------------------------------------------- "How was your week?" (optional, one tap, consented)
+  // Asked once for consent; then one tap a week. "Stop asking" deletes the answers on the server.
+  async function loadPulse() {
+    try { S.pulse = await api("GET", "/me/pulse"); } catch (e) { S.pulse = null; }
+  }
+  const PULSE_ICON = { good: "🙂", ok: "😐", hard: "😟" };
+  function renderPulse() {
+    const el = $("#pulseCard"), p = S.pulse;
+    if (!el) return;
+    if (!p || (p.asked && !p.consent)) { el.classList.add("hidden"); return; }
+    el.classList.remove("hidden");
+    const opts = (p.options || []).map((o) => `<button class="btn pbtn${p.answer === o ? " on" : ""}" data-pulse="${esc(o)}"><span aria-hidden="true">${PULSE_ICON[o] || ""}</span>${esc(t("pulse_" + o))}</button>`).join("");
+    if (!p.asked) {
+      el.innerHTML = `<div class="eyebrow">${esc(t("pulse_title"))}</div><p>${esc(t("pulse_ask"))}</p><p class="muted small">${esc(t("pulse_note"))}</p>` +
+        `<div class="row"><button class="btn primary" data-pconsent="1">${esc(t("pulse_yes"))}</button><button class="btn ghost" data-pconsent="0">${esc(t("pulse_no"))}</button></div>`;
+    } else {
+      el.innerHTML = `<div class="eyebrow">${esc(t("pulse_title"))}</div>` +
+        (p.answer ? `<p>${esc(t("pulse_thanks"))}</p>` : "") + `<div class="prow">${opts}</div>` +
+        `<button class="btn ghost small" data-pconsent="0">${esc(t("pulse_stop"))}</button>`;
+    }
+  }
+  $("#pulseCard").addEventListener("click", async (e) => {
+    const a = e.target.closest("[data-pulse]"), c = e.target.closest("[data-pconsent]");
+    try {
+      if (a) S.pulse = await api("POST", "/me/pulse", { answer: a.dataset.pulse });
+      else if (c) S.pulse = await api("PUT", "/me/pulse/consent", { consent: c.dataset.pconsent === "1" });
+      else return;
+      renderPulse();
+    } catch (err) { toast(t("wrong")); }
+  });
 
   // ---------------------------------------------------------------- my work today (own jobs only: /me/worklog)
   // Minutes are the app's Start -> Done stamps (server clock); they show the work, they are not attendance.

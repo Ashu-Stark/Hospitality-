@@ -27,7 +27,7 @@ from pydantic import BaseModel, Field
 from pymongo.database import Database
 
 from backend.db import INTERVENTIONS, NO_ID, audit, insert
-from backend.schemas import AttritionScore
+from backend.schemas import AttritionScore, LiveSignals
 from backend.services import NotAvailable, Service
 from backend.tasks import engine
 
@@ -90,6 +90,26 @@ class TalkOut(BaseModel):
     points: list[str]
     created_at: datetime
     synthetic: bool = True
+
+
+def add_checkins(db: Database, live: LiveSignals) -> LiveSignals:
+    """Count the logged "We talked" check-ins (intervention kind "talk") into the live weekly
+    records, by the week they were logged (a context signal for the staff-leaving estimate)."""
+    ids = sorted({r.employee_id for r in live.records})
+    counts: dict[tuple[str, date], int] = {}
+    for d in db[INTERVENTIONS].find({"kind": "talk", "employee_id": {"$in": ids}},
+                                    {"employee_id": 1, "created_at": 1}):
+        at = d.get("created_at")
+        at = datetime.fromisoformat(at) if isinstance(at, str) else at
+        if not isinstance(at, datetime):
+            continue
+        week = at.date() - timedelta(days=at.weekday())
+        counts[(d["employee_id"], week)] = counts.get((d["employee_id"], week), 0) + 1
+    if not counts:
+        return live
+    records = [r.model_copy(update={"checkins": r.checkins + counts.get(
+        (r.employee_id, r.week_start), 0)}) for r in live.records]
+    return live.model_copy(update={"records": records})
 
 
 def level_of(score: AttritionScore) -> str:

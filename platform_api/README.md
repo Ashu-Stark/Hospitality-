@@ -93,10 +93,23 @@ Indexes are created idempotently at startup. `GET /ready` pings the database.
 | Insights | `GET /platform/insights?days=30` (platform admin) |
 | Staff | `GET /me/shifts`, `PUT /dispatch/roster` (managers publish the roster employees see), `GET /me/performance?days=14` (worker: own score and reasons only) |
 | Performance | `GET /dispatch/performance?days=14` (owner, hr, dept_head: own department only; 1-90 days) |
+| Staff signals | `GET /people/signals?weeks=12&include_current=false` (owner, hr; dept_head: own department, pay and weekly answers withheld), `GET /people/hr`, `GET/PUT /people/hr/{employee_id}` (owner, hr), `GET/POST /people/leave`, `DELETE /people/leave/{employee_id}/{date}`, `GET /me/pulse`, `PUT /me/pulse/consent`, `POST /me/pulse` |
 | Inventory | `GET/POST /inventory/items\|locations\|suppliers`, `GET /inventory/stock\|moves`, `POST /inventory/receive\|issue\|waste\|transfer`, `GET/POST /inventory/requests`, `POST /inventory/requests/{id}/fulfil\|reject`, `GET/POST /inventory/pos`, `POST /inventory/pos/{id}/status\|receive`, `GET/POST /inventory/counts`, `POST /inventory/counts/{id}/post`, `GET /inventory/suggestions?rooms=&occ=`, `GET /inventory/analytics` |
 
 Dispatch ranking (returned per candidate): `100 − 25·open_jobs − 8·done_this_shift − 6·floor_distance − retention_guard (15 high / 6 watch)`.
 The weights are a starting point to tune with real operations data.
+
+## Staff signals for the staff-leaving estimate
+
+`services/staff_signals.py`. The ops API's attrition model used to read only SYNTHETIC tables; it now reads what happens in
+HOI, week by week (Monday, hotel local time), for the last 12 complete weeks: every published roster week (`roster_history`,
+written by `PUT /dispatch/roster`), dispatch jobs (finished, on time, offers declined / timed out, offer -> accept seconds,
+minutes finished after the shift end), thank-you points, plus four small inputs: the owner / HR record (`staff_hr`: joining
+date, contract end, pay band or monthly pay, last raise, left on, role code; owner / HR only, pay values never audited),
+leave / absence marks (`staff_leave`: date + leave or absent, no reason text or health information), and the staff app's
+optional weekly "How was your week?" (`pulse_answers`, 3 options, only after the worker says yes in `pulse_consent`; saying
+no deletes their answers). Roster hours are planned, not attendance. Short rest = under 10 h between shifts (ASSUMED, the
+backend roster rule). The dashboard passes the feed to `POST /attrition/score` (`live_signals`).
 
 ## Performance score (plan 4.1)
 

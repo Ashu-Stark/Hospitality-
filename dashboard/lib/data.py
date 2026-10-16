@@ -34,8 +34,9 @@ def _health(base, mocks):
 
 
 @st.cache_data(ttl=TTL, show_spinner=False)
-def _scores(base, mocks, week):
-    return api.score_attrition(week_start=week, settings=_settings(base, mocks))
+def _scores(base, mocks, week, live_json=""):
+    live = json.loads(live_json) if live_json else None
+    return api.score_attrition(week_start=week, settings=_settings(base, mocks), live_signals=live)
 
 
 @st.cache_data(ttl=TTL, show_spinner=False)
@@ -69,6 +70,38 @@ def health() -> dict:
 
 def scores(week: str | None = None) -> list[m.AttritionScore]:
     return m.parse_scores(_scores(*_k(), week))
+
+
+LIVE_ROLES = ("owner", "hr", "dept_head", "platform_admin")
+
+
+def _live_signals() -> dict | None:
+    """The hotel's weekly staff facts from the platform API (cached per session for TTL seconds); None when unavailable."""
+    from time import monotonic
+
+    from . import auth, platform
+
+    if current_settings().use_mocks or auth.role() not in LIVE_ROLES:
+        return None
+    hit = st.session_state.get("_live_signals")
+    if hit and monotonic() - hit[0] < TTL:
+        return hit[1]
+    try:
+        feed = platform.staff_signals()
+    except platform.PlatformError:
+        feed = None
+    feed = feed if isinstance(feed, dict) and feed.get("records") else None
+    st.session_state["_live_signals"] = (monotonic(), feed)
+    return feed
+
+
+def scores_live(week: str | None = None) -> list[m.AttritionScore]:
+    """Check-in list from the hotel's own records where they exist (data_source live), else the demo data."""
+    feed = _live_signals()
+    if not feed:
+        return scores(week)
+    keep = ("profiles", "records", "leave_marks_used", "festival_dates")
+    return m.parse_scores(_scores(*_k(), week, json.dumps({k: feed.get(k) for k in keep}, sort_keys=True)))
 
 
 def forecast(date_from: str, date_to: str) -> m.Forecast:

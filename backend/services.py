@@ -26,6 +26,7 @@ from backend.schemas import (
     GuardedForecast,
     GuardedRescore,
     HeroInfo,
+    LiveSignals,
     ModelVersion,
     RescoreResult,
     VoiceResult,
@@ -45,7 +46,8 @@ class Service(Protocol):
 
     def latest_week(self) -> date: ...
 
-    def score(self, week_start: date | None, employee_ids: list[str] | None
+    def score(self, week_start: date | None, employee_ids: list[str] | None,
+              live: LiveSignals | None = None, fallback_to_demo: bool = True,
               ) -> list[AttritionScore]: ...
 
     def rescore(self, employee_id: str, overrides: dict, week_start: date | None,
@@ -87,12 +89,48 @@ class ModelService:
 
         return attrition.api.latest_week(data_dir=self.hotel.data_dir)
 
-    def score(self, week_start: date | None, employee_ids: list[str] | None
+    def score(self, week_start: date | None, employee_ids: list[str] | None,
+              live: LiveSignals | None = None, fallback_to_demo: bool = True,
               ) -> list[GuardedAttritionScore]:
+        """Live records first (per person, never mixed with demo data), then the SYNTHETIC demo
+        tables for the people without a live score (fallback, labelled demo_synthetic)."""
         from ml.attrition import guarded
 
-        return guarded.score(week_start or self.latest_week(), employee_ids,
-                             data_dir=self.hotel.data_dir)
+        def demo(ids: list[str] | None, note: str | None) -> list[GuardedAttritionScore]:
+            out = guarded.score(week_start or self.latest_week(), ids,
+                                data_dir=self.hotel.data_dir)
+            if note:
+                extra = Check(name="live_data", status="warn", detail=note)
+                out = [s.model_copy(update={"checks": [*s.checks, extra]}) for s in out]
+            return out
+
+        if live is None:
+            return demo(employee_ids, None)
+        scores, skipped = guarded.score_live(live, None, employee_ids)
+        if not scores:
+            if not fallback_to_demo:
+                raise ValueError("no live records to score yet")
+            return demo(employee_ids, "no live HOI records yet for this week: scored from the "
+                                      "SYNTHETIC demo data")
+        if not fallback_to_demo:
+            return scores
+        done = {s.employee_id for s in scores}
+        rest = ([e for e in employee_ids if e not in done] if employee_ids is not None
+                else None)
+        if rest == []:
+            return scores
+        week = week_start or self.latest_week()
+        try:
+            pool = demo(None, None)
+        except ValueError:
+            return scores
+        wanted = set(rest) if rest is not None else None
+        note = Check(name="live_data", status="warn",
+                     detail="no live HOI record for this person: scored from the SYNTHETIC "
+                            f"demo data (week {week})")
+        return scores + [s.model_copy(update={"checks": [*s.checks, note]}) for s in pool
+                         if s.employee_id not in done
+                         and (wanted is None or s.employee_id in wanted)]
 
     def rescore(self, employee_id: str, overrides: dict, week_start: date | None,
                 protected_weekends_off: int | None) -> RescoreResult:
@@ -149,7 +187,8 @@ class MockService:
     def latest_week(self) -> date:
         return AttritionScore.model_validate(self._load("attrition_scores")[0]).week_start
 
-    def score(self, week_start: date | None, employee_ids: list[str] | None
+    def score(self, week_start: date | None, employee_ids: list[str] | None,
+              live: LiveSignals | None = None, fallback_to_demo: bool = True,
               ) -> list[GuardedAttritionScore]:
         scores = [GuardedAttritionScore(**AttritionScore.model_validate(x).model_dump(),
                                         confidence="low", checks=[MOCK_CHECK])

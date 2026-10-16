@@ -3,11 +3,11 @@ import streamlit as st
 
 from lib import api_client as api
 from lib import charts, data, privacy, theme, ui
-from lib.models import PLAIN_REASON
+from lib.models import PLAIN_REASON, based_on
 
 ui.setup("pages/3_Employee_Detail.py", "Employee")
 
-scores = ui.safe(data.scores, ui.week(), what="load the check-in list")
+scores = ui.safe(data.scores_live, ui.week(), what="load the check-in list")
 if not scores:
     if scores is not None:
         ui.empty("Nothing to show yet.")
@@ -70,6 +70,7 @@ with st.container(key="card_head"):
                 ]
             )
         )
+        st.caption(based_on(s))
 
 # ------------------------------------------------------------------ season-end callout (separate from resignation framing)
 if s.contract_type == "seasonal":

@@ -28,6 +28,7 @@ from ml.attrition.explain import (
     tables_with_heroes,
 )
 from ml.attrition.features import ARTIFACT_DIR, DATA_DIR, MODEL_FEATURES
+from ml.attrition.live_signals import LiveFrame, LiveSignals, live_week_frame
 from ml.generator.config import load_config
 
 SIMULATION_NOTE = ("SIMULATION, not causal proof: the same trained models re-scored with changed "
@@ -135,6 +136,30 @@ def score(week_start: date | str, employee_ids: list[str] | None = None,
     wanted = _rows(features, week_start, employee_ids)
     results = _to_results(_rows(features, week_start, None), bundle, playbook, hero_ids)
     return [results[e] for e in wanted["employee_id"]]
+
+
+@lru_cache(maxsize=2)
+def _bundle(artifact_dir: Path) -> tuple[dict, dict]:
+    return load_bundle(artifact_dir), load_playbook()
+
+
+def score_live(live: LiveSignals, week_start: date | str | None = None,
+               employee_ids: list[str] | None = None, artifact_dir: Path = ARTIFACT_DIR,
+               ) -> tuple[list[AttritionScore], LiveFrame]:
+    """Score from LIVE hotel records (ml/attrition/live_signals.py), same trained models.
+
+    The population for ranks / bands is the live staff of that week; no demo heroes and no
+    synthetic rows are mixed in. Returns the scores of the wanted people who have a live record
+    that week (others are listed in frame.skipped) and the frame (per-person data sources,
+    imputed signals, history length, context).
+    """
+    frame = live_week_frame(live, week_start, artifact_dir)
+    if frame.rows.empty:
+        return [], frame
+    bundle, playbook = _bundle(artifact_dir)
+    results = _to_results(frame.rows, bundle, playbook, frozenset())
+    wanted = list(results) if employee_ids is None else [e for e in employee_ids if e in results]
+    return [results[e] for e in wanted], frame
 
 
 def latest_week(artifact_dir: Path = ARTIFACT_DIR, data_dir: Path = DATA_DIR) -> date:

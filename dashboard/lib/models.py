@@ -101,9 +101,36 @@ class AttritionScore:
         return "seasonal" if self.segment == "contract_end" else "permanent"
 
     @property
+    def data_source(self) -> str:
+        """live = the hotel's own HOI records; demo_synthetic = the made-up demo data."""
+        return str(self.raw.get("data_source") or "demo_synthetic")
+
+    @property
+    def weeks_of_history(self) -> int | None:
+        w = self.raw.get("weeks_of_history")
+        return int(w) if isinstance(w, int | float) else None
+
+    @property
+    def data_sources(self) -> list[str]:
+        return [str(x) for x in self.raw.get("data_sources") or []]
+
+    @property
     def top_driver(self) -> Driver | None:
         pos = [d for d in self.drivers if d.contribution_logodds > 0]
         return max(pos, key=lambda d: d.contribution_logodds) if pos else None
+
+
+MIN_LIVE_WEEKS = 4  # same as ml/attrition/live_signals.yaml min_weeks_for_confidence
+
+
+def based_on(s: AttritionScore) -> str:
+    """One plain line: where this estimate's inputs come from."""
+    if s.data_source != "live":
+        return "Based on: example (made-up) data, no records from your hotel yet"
+    n = s.weeks_of_history or 0
+    src = ", ".join(x for x in s.data_sources if x != "HR record") or "your hotel's records"
+    line = f"Based on: {src} ({n} week{'s' if n != 1 else ''})"
+    return line + ("; only a few weeks so far, so a rough guess" if n < MIN_LIVE_WEEKS else "")
 
 
 # Everyday words for the reasons ("why") shown on screen; unknown categories keep the API's title.

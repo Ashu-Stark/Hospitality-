@@ -162,6 +162,11 @@ def room_qr(rid: str) -> bytes:
     return call("GET", f"/rooms/{rid}/qr.svg", raw=True)
 
 
+def staff_signals(weeks: int = 12) -> dict:
+    """The hotel's weekly staff facts for the staff-leaving estimate (owner / HR; department heads: own team, no pay)."""
+    return call("GET", "/people/signals", params={"weeks": weeks, **_pid_params()})
+
+
 def publish_roster(week_start: str | None, assignments: list[dict]) -> dict:
     return call("PUT", "/dispatch/roster", json={"week_start": week_start, "assignments": assignments})
 

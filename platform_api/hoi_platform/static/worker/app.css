@@ -104,6 +104,13 @@
 .vconfirm{border-radius:20px;border:2px solid #bcd4ff;background:linear-gradient(160deg,#fff,#eef4ff);padding:14px}
 .vconfirm b{display:block;margin-bottom:10px}
 
+/* weekly "How was your week?": three big buttons */
+.pulse .prow{display:flex;gap:8px;margin:8px 0}
+.pulse .pbtn{flex:1;flex-direction:column;gap:2px;min-height:64px}
+.pulse .pbtn span{font-size:1.5rem;line-height:1}
+.pulse .pbtn.on{border-color:var(--brand,#1f6feb);background:var(--field)}
+.pulse .small{font-size:.82rem}
+
 /* recognition card: own points only, positive only */
 .rec .recpts{display:flex;align-items:baseline;gap:10px;margin:6px 0 4px}
 .rec .recpts b{font-size:2.6rem;letter-spacing:-.04em;line-height:1;color:var(--ink)}

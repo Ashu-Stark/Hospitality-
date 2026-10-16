@@ -4,6 +4,7 @@ import streamlit as st
 from lib import api_client as api
 from lib import auth, charts, data, platform, privacy, theme, ui
 from lib.config import current_settings
+from lib.models import based_on
 
 ui.setup("pages/2_Risk_List.py", "May leave soon?")
 ui.page_head(
@@ -11,7 +12,7 @@ ui.page_head(
     "This is a list to check in with people, not a judgement.",
 )
 
-scores = ui.safe(data.scores, ui.week(), what="load the check-in list")
+scores = ui.safe(data.scores_live, ui.week(), what="load the check-in list")
 if scores is None:
     ui.footer()
     st.stop()
@@ -60,7 +61,8 @@ def _fallback_points(sc) -> list[str]:
 
 
 def _talk_block(emp: str, sc, plan: dict | None) -> None:
-    points = plan["talking_points"] if plan else _fallback_points(sc)
+    # live scores: the points come from this score's reasons (the backend plan is for the demo week)
+    points = plan["talking_points"] if plan and sc.data_source != "live" else _fallback_points(sc)
     st.markdown("**Talk to them**")
     for x in points:
         st.markdown(f"- {privacy.text(x)}")
@@ -141,7 +143,8 @@ def _cover_block(emp: str) -> None:
 
 def _next_steps(emp: str, sc) -> None:
     plan = _plan(emp)
-    level = plan["level"] if plan else {"watch": "moderate"}.get(sc.band, sc.band)
+    live = sc.data_source == "live"
+    level = plan["level"] if plan and not live else {"watch": "moderate"}.get(sc.band, sc.band)
     label = {"low": "Low", "moderate": "Moderate", "high": "High"}.get(level, "Not known")
     ui.html(f"<div style='margin:6px 0'>Chance of leaving: {theme.band_chip(LEVEL_BAND.get(level, 'unknown'), label)}</div>")
     if level == "high" and auth.role() in privacy.WHOLE_HOTEL_ROLES:  # posting a job on the portal: owner / HR
@@ -152,7 +155,7 @@ def _next_steps(emp: str, sc) -> None:
             _cover_block(emp)
     else:
         _talk_block(emp, sc, plan)
-    st.caption("Based on a model trained on SYNTHETIC (made-up) data. A prompt for a friendly chat, not a judgement.")
+    st.caption(f"{based_on(sc)}. The model was trained on SYNTHETIC (made-up) data. A prompt for a friendly chat, not a judgement.")
 
 
 # ------------------------------------------------------------------ summary first
@@ -164,6 +167,18 @@ ui.big_numbers(
         ("Doing fine", n_by["low"], "Nothing to do", "ok"),
     ]
 )
+
+SOURCES = ["shifts", "jobs", "thank-yous", "check-ins", "weekly answers", "leave marks"]
+n_live = sum(1 for x in scores if x.data_source == "live")
+if n_live:
+    weeks = max(x.weeks_of_history or 0 for x in scores if x.data_source == "live")
+    srcs = sorted({y for x in scores if x.data_source == "live" for y in x.data_sources if y != "HR record"},
+                  key=lambda y: SOURCES.index(y) if y in SOURCES else len(SOURCES))
+    rest = len(scores) - n_live
+    st.caption(f"Based on: {', '.join(srcs)} (up to {weeks} weeks) for {n_live} people"
+               + (f"; example (made-up) data for {rest} without records yet." if rest else "."))
+else:
+    st.caption("Based on: example (made-up) data, no records from your hotel yet.")
 
 # ------------------------------------------------------------------ filters
 f1, f4 = st.columns([2, 2])

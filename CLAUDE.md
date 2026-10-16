@@ -19,7 +19,9 @@ These rules apply to every folder in this repo: `ml/`, `backend/`, `platform_api
 ML-specific details (layout, commands, data files, models, status): see [ml/CLAUDE.md](ml/CLAUDE.md).
 Backend details (FastAPI + MongoDB: endpoints, roster solver, task engine, closed loop): see
 [backend/CLAUDE.md](backend/CLAUDE.md). The backend uses only the ml entry points (forecast.predict,
-attrition.score, attrition.rescore, voice.extract) loaded from ml/artifacts.
+attrition.score, attrition.score_live, attrition.rescore, voice.extract) loaded from ml/artifacts. Staff-leaving scores come
+from the hotel's own HOI activity when it exists (platform `GET /people/signals` -> `POST /attrition/score` `live_signals`;
+see "Live staff signals" in ml/CLAUDE.md), else from the SYNTHETIC demo tables, and every score says which (`data_source`).
 
 ## Repository map
 

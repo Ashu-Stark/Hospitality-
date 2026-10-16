@@ -6,8 +6,8 @@ conventions (all services): docs/MONGODB.md.
 
 ## Rules for this folder
 
-- Use ONLY the ml entry points `forecast.predict`, `attrition.score`, `attrition.rescore`,
-  `voice.extract` (plus the result types and `attrition.heroes`), loaded from `ml/artifacts`, called
+- Use ONLY the ml entry points `forecast.predict`, `attrition.score`, `attrition.score_live` (live HOI
+  records), `attrition.rescore`, `voice.extract` (plus the result types and `attrition.heroes`), loaded from `ml/artifacts`, called
   through their GUARDED wrappers (`ml/forecast/guarded.py`, `ml/attrition/guarded.py`; shared checks
   `ml/guardrails.py`), plus `ml/models/workload_api.py` (guarded workload) and
   `ml/realdata/hotel_alerts/api.py` (cancellation, trained on REAL public data).
@@ -67,7 +67,7 @@ python run.py eval-onboarding # onboarding extraction eval on SYNTHETIC utteranc
 |---|---|---|
 | GET | /health | status, MOCK flag, database (mongodb / mongomock), model name / version / dataset hash per artifact |
 | GET | /forecast?from=&to=&as_of= | guarded forecast.predict (ForecastResult + rooms, confidence, checks, fallback_days) |
-| POST | /attrition/score | guarded attrition.score (AttritionScore + source, confidence, checks per person) |
+| POST | /attrition/score | guarded attrition.score (AttritionScore + source, confidence, checks per person). Optional `live_signals` (platform `GET /people/signals`): people with live records are scored from them (`data_source` live, `weeks_of_history`, `data_sources`, `missing`, `context`; check-ins added from `intervention` kind talk); the rest fall back to the SYNTHETIC demo tables (`data_source` demo_synthetic + a `live_data` check) unless `fallback_to_demo` is false |
 | POST | /attrition/rescore | guarded attrition.rescore (RescoreResult, a SIMULATION, + confidence, checks) |
 | GET | /workload/next-week?week_start= | next week's load ratio per department (guarded; naive fallback) |
 | POST | /cancellation/score | per-booking cancel / no-show chance (REAL-data model, guarded; booking fields only) |
@@ -192,3 +192,10 @@ tests set `app.state.weather` to a fake or None and never call the network. Stoc
 platform's inventory rows (POST body); the ops API holds no inventory. Every guarded response carries
 `confidence` and `checks`; MOCK mode answers with confidence low and a `mock_mode` check. Results and
 limits: ml/realdata/hotel_alerts/RESULTS.md.
+
+## Live staff signals
+
+`POST /attrition/score` with `live_signals` calls `ml/attrition/guarded.score_live` (ml docs: "Live staff
+signals" in ml/CLAUDE.md). Live scores use the latest live week and rank against the live staff only; the
+request's `week_start` applies to the demo fallback. Never mixed for one person. Tests:
+tests/test_live_signals_api.py.

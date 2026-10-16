@@ -1,10 +1,11 @@
-"""People: recognition points (positive-only incentives) and staffing requests to the tourism portal."""
+"""People: recognition points (positive-only incentives), staffing requests to the tourism portal, and the staff signals
+behind the staff-leaving estimate (HR record, leave marks, weekly facts; services/staff_signals.py)."""
 
 from fastapi import APIRouter, Depends, HTTPException, Path, Query
 
 from ..deps import Principal, roles, tenant_of
-from ..schemas import StaffingRequestIn
-from ..services import recognition, staffing, tenants, users
+from ..schemas import HrRecordIn, LeaveMarkIn, StaffingRequestIn
+from ..services import recognition, staff_signals, staffing, tenants, users
 
 router = APIRouter(tags=["people"])
 MONTH = Query(default=None, pattern=r"^\d{4}-\d{2}$", description="YYYY-MM (default: this month, hotel local time)")
@@ -69,3 +70,69 @@ def find_cover(employee_id: str = EMP, property_id: str | None = PID, p: Princip
 def post_cover_job(employee_id: str = EMP, property_id: str | None = PID, p: Principal = Depends(roles("owner", "dept_head", "hr"))) -> dict:
     """The owner's one click when nobody fits: post one job for this role on the portal. Idempotent while that post is open."""
     return staffing.post_cover_job(_cover_scope(p, employee_id), p.username, employee_id, property_id)
+
+
+# ------------------------------------------------------------------ staff signals (staff-leaving estimate)
+DAY = r"^\d{4}-\d{2}-\d{2}$"
+
+
+def _own_department(p: Principal) -> str | None:
+    """Department heads: their own department only (403 without one). Owner / HR: the whole hotel (None)."""
+    if p.role != "dept_head":
+        return None
+    dept = users.department_of(p.user_id)
+    if not dept:
+        raise HTTPException(403, "Your account has no department.")
+    return dept
+
+
+@router.get("/people/signals")
+def staff_signals_feed(
+    weeks: int = Query(default=staff_signals.DEFAULT_WEEKS, ge=1, le=staff_signals.MAX_WEEKS),
+    include_current: bool = False,
+    property_id: str | None = PID,
+    p: Principal = Depends(roles("owner", "hr", "dept_head")),
+) -> dict:
+    """Weekly facts per person for the staff-leaving estimate (the ops API's POST /attrition/score `live_signals`).
+    Department heads: own department; pay and the weekly answers are withheld (owner / HR only)."""
+    dept = _own_department(p)
+    return staff_signals.weekly_signals(
+        tenant_of(p), weeks, include_current, department=dept, include_pay=dept is None, property_id=property_id
+    )
+
+
+@router.get("/people/hr")
+def list_hr_records(p: Principal = Depends(roles("owner", "hr"))) -> list[dict]:
+    """Owner / HR only: joining date, contract end, pay band / pay, last raise, left on, role code."""
+    return [{k: v for k, v in r.items() if k != "tenant_id"} for r in staff_signals.hr_records(tenant_of(p))]
+
+
+@router.get("/people/hr/{employee_id}")
+def get_hr_record(employee_id: str = EMP, p: Principal = Depends(roles("owner", "hr"))) -> dict:
+    return {k: v for k, v in staff_signals.hr_record(tenant_of(p), employee_id).items() if k != "tenant_id"}
+
+
+@router.put("/people/hr/{employee_id}")
+def put_hr_record(body: HrRecordIn, employee_id: str = EMP, p: Principal = Depends(roles("owner", "hr"))) -> dict:
+    """Save the fields sent (null clears one). Pay values are never written to the audit log."""
+    out = staff_signals.set_hr_record(tenant_of(p), p.username, employee_id, body.model_dump(exclude_unset=True))
+    return {k: v for k, v in out.items() if k != "tenant_id"}
+
+
+@router.get("/people/leave")
+def list_leave(
+    date_from: str = Query(pattern=DAY), date_to: str = Query(pattern=DAY), p: Principal = Depends(roles("owner", "hr", "dept_head"))
+) -> list[dict]:
+    """Leave / absence marks between two dates (no reasons). Department heads: own department."""
+    return staff_signals.leave_marks(tenant_of(p), date_from, date_to, _own_department(p))
+
+
+@router.post("/people/leave", status_code=201)
+def mark_leave(body: LeaveMarkIn, p: Principal = Depends(roles("owner", "hr", "dept_head"))) -> dict:
+    tid = _cover_scope(p, body.employee_id)
+    return staff_signals.mark_leave(tid, p.username, body.employee_id, body.date, body.kind)
+
+
+@router.delete("/people/leave/{employee_id}/{day}")
+def unmark_leave(employee_id: str = EMP, day: str = Path(pattern=DAY), p: Principal = Depends(roles("owner", "hr", "dept_head"))) -> dict:
+    return staff_signals.unmark_leave(_cover_scope(p, employee_id), p.username, employee_id, day)

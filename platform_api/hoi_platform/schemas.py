@@ -104,6 +104,42 @@ class StaffImportIn(BaseModel):
     rows: list[dict]
 
 
+# ------------------------------------------------------------------ staff-leaving signals (services/staff_signals.py)
+DATE = r"^\d{4}-\d{2}-\d{2}$"
+
+
+class HrRecordIn(BaseModel):
+    """Owner / HR only. Work facts, no personal attributes. Omitted fields stay as they are; null clears one."""
+
+    model_config = ConfigDict(extra="forbid")
+    joining_date: str | None = Field(default=None, pattern=DATE)
+    contract_end_date: str | None = Field(default=None, pattern=DATE)
+    last_raise_date: str | None = Field(default=None, pattern=DATE)
+    left_on: str | None = Field(default=None, pattern=DATE)
+    pay_band: Literal["below", "at", "above"] | None = None
+    monthly_pay: int | None = Field(default=None, ge=0, le=10_000_000)
+    role: str | None = Field(default=None, max_length=40, pattern=r"^[a-z_]*$")
+
+
+class LeaveMarkIn(BaseModel):
+    """A leave / absence mark: a date and a kind. No reason text, no health information."""
+
+    model_config = ConfigDict(extra="forbid")
+    employee_id: str = Field(min_length=1, max_length=20, pattern=r"^[A-Za-z0-9_-]+$")
+    date: str = Field(pattern=DATE)
+    kind: Literal["leave", "absent"] = "leave"
+
+
+class PulseConsentIn(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    consent: bool
+
+
+class PulseIn(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    answer: Literal["good", "ok", "hard"]
+
+
 class InviteIn(BaseModel):
     role: str
 

@@ -6,8 +6,8 @@ from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, Reques
 
 from .. import config, ratelimit
 from ..deps import HOTEL_MANAGERS, Principal, roles, tenant_of
-from ..schemas import RosterPublishIn, TtsIn, VoiceActIn, VoiceCommandIn
-from ..services import dispatch, performance, recognition, tts, voice, worklog
+from ..schemas import PulseConsentIn, PulseIn, RosterPublishIn, TtsIn, VoiceActIn, VoiceCommandIn
+from ..services import dispatch, performance, recognition, staff_signals, tts, voice, worklog
 from . import audio
 
 router = APIRouter(tags=["me"])
@@ -53,6 +53,25 @@ def my_performance(days: int = Query(default=14, ge=1, le=90), p: Principal = De
     out = performance.compute(tenant_of(p), days, worker=p.employee_id or p.username)
     me = out.pop("workers")[0]
     return {**out, **me}
+
+
+@router.get("/me/pulse")
+def my_pulse(p: Principal = Depends(roles("worker"))) -> dict:
+    """The optional weekly "How was your week?": consent given?, this week's answer."""
+    return staff_signals.pulse_status(tenant_of(p), p.employee_id or p.username)
+
+
+@router.put("/me/pulse/consent")
+def my_pulse_consent(body: PulseConsentIn, p: Principal = Depends(roles("worker"))) -> dict:
+    """Yes / no to the weekly question. No deletes the answers already given."""
+    return staff_signals.set_pulse_consent(tenant_of(p), p.employee_id or p.username, body.consent)
+
+
+@router.post("/me/pulse")
+def my_pulse_answer(body: PulseIn, p: Principal = Depends(roles("worker"))) -> dict:
+    """One tap: good / ok / hard for this week (needs consent; a second tap the same week replaces the first)."""
+    ratelimit.hit(f"pulse:{p.user_id}", 20)
+    return staff_signals.answer_pulse(tenant_of(p), p.employee_id or p.username, body.answer)
 
 
 @router.get("/me/worklog")

@@ -1,0 +1,65 @@
+# Live staff signals -> attrition model features (ml/attrition/live_signals.py).
+# Every value here is ASSUMED (a starting point, not a measured fact) and should be reviewed with
+# the HM student and real hotel data. The model itself is NOT retrained: live activity is mapped
+# onto the SAME 25 feature names the model was trained on (SYNTHETIC data).
+
+# Fewer weeks of live history than this -> confidence "low" (and a short_history check).
+min_weeks_for_confidence: 4
+
+# Weekly contract hours: planned shift hours above this count as overtime (same 48 h as
+# ml/generator/config.yaml staff.standard_weekly_hours).
+standard_weekly_hours: 48
+
+# Minimum rest between two shifts (same 10 h as the backend roster rule). Context only.
+min_rest_hours: 10
+
+# "How was your week?" (staff app, 1 tap, consented) -> pulse_score on the model's 1-5 scale.
+# Values are the 75th / 50th / 10th percentile of the SYNTHETIC weekly pulse.
+pulse_values:
+  good: 4.4
+  ok: 3.8
+  hard: 2.8
+
+# Dispatch jobs -> task_score (the model's 0-100 weekly work-quality signal).
+# quality q in 0..1 = weighted mean of the parts available that week; then
+# task_score = task_score_low + q * (task_score_high - task_score_low).
+# low / high = 5th / 95th percentile of the SYNTHETIC task score (64.2 / 93.4).
+task_score_low: 64.2
+task_score_high: 93.4
+task_parts:
+  on_time: 0.6          # finished jobs done within target time / finished jobs
+  reliability: 0.25     # 1 - (declined + timed out) / offers answered
+  responsiveness: 0.15  # median offer -> accept: <= fast_seconds full marks, 0 at slow_seconds
+response_fast_seconds: 10
+response_slow_seconds: 30
+min_jobs_for_task_score: 1   # weeks with fewer finished jobs have no task score (not imputed per week)
+
+# Pay band (owner / HR only) -> monthly pay = ratio x the role's average pay (generator roles).
+pay_band_ratio:
+  below: 0.9
+  at: 1.0
+  above: 1.1
+
+# Job title -> the model's role code, per department. First keyword found in the lower-case
+# title wins; no match -> `default`. Matches the Himsagar demo titles (ml/data/hotels/himsagar/hotel.json).
+role_keywords:
+  housekeeping:
+    rules: [[executive, head], [head, head], [manager, head], [supervisor, supervisor]]
+    default: attendant
+  front_office:
+    rules: [[manager, head], [head, head], [concierge, concierge]]
+    default: receptionist
+  fnb_service:
+    rules: [[manager, head], [head, head], [supervisor, head], [captain, captain]]
+    default: waiter
+  kitchen:
+    rules: [[head chef, head_chef], [executive chef, head_chef], [helper, helper], [cook, cook], [chef, cook]]
+    default: helper
+  maintenance:
+    rules: [[supervisor, head], [manager, head], [head, head], [helper, helper]]
+    default: technician
+  security:
+    rules: [[supervisor, head], [manager, head], [head, head]]
+    default: guard
+# Roles that make someone the department head when the HR record does not say.
+head_roles: [head, head_chef]

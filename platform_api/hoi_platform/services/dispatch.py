@@ -599,6 +599,9 @@ def publish_roster(tid: str, week_start: str | None, assignments: list[dict]) ->
     mongo.col("roster_snapshots").update_one(
         {"tenant_id": tid}, {"$set": {"week_start": week_start, "assignments": clean, "published_at": mongo.now()}}, upsert=True
     )
+    from . import staff_signals  # every published week is also kept (roster_history) for the staff-leaving signals
+
+    staff_signals.keep_roster_week(tid, week_start, clean)
     return {"week_start": week_start, "assignments": len(clean)}
 
 

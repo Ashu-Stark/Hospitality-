@@ -124,6 +124,12 @@ INDEXES: dict[str, list[tuple[list, dict]]] = {
         (_ix("tenant_id", "floor", "number"), {}),
     ],
     "roster_snapshots": [(_ix("tenant_id"), {"unique": True})],
+    # staff-leaving signals (services/staff_signals.py): one doc per roster week / person / mark / answer
+    "roster_history": [(_ix("tenant_id", "week_start"), {"unique": True})],
+    "staff_hr": [(_ix("tenant_id", "employee_id"), {"unique": True})],
+    "staff_leave": [(_ix("tenant_id", "employee_id", "date"), {"unique": True}), (_ix("tenant_id", "date"), {})],
+    "pulse_consent": [(_ix("tenant_id", "employee_id"), {"unique": True})],
+    "pulse_answers": [(_ix("tenant_id", "employee_id", "week_start"), {"unique": True}), (_ix("tenant_id", "week_start"), {})],
     # guest concierge (docs/HOSPITALITY_SUITE.md)
     "hotel_profiles": [(_ix("tenant_id", "property_id"), {"unique": True})],
     "guest_checkouts": [

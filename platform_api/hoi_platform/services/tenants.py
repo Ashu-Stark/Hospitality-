@@ -164,6 +164,11 @@ TENANT_COLLECTIONS = (
     "late_checkouts",
     "guest_feedback",
     "staffing_requests",
+    "roster_history",
+    "staff_hr",
+    "staff_leave",
+    "pulse_consent",
+    "pulse_answers",
 )
 
 

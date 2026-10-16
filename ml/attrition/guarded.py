@@ -2,6 +2,7 @@
 
     from ml.attrition import guarded
     guarded.score("2029-12-24", data_dir=...)   # -> list[GuardedAttritionScore]
+    guarded.score_live(LiveSignals(...))        # -> (list[GuardedAttritionScore], skipped)
 
 Every score keeps the model's risk, rank and band, and gains `confidence` and `checks`. A person
 whose inputs are missing, outside their allowed range or outside the training distribution
@@ -18,10 +19,12 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
+from pydantic import Field
 
 from ml import guardrails as G
 from ml.attrition import api
 from ml.attrition.features import ARTIFACT_DIR, DATA_DIR, MODEL_FEATURES
+from ml.attrition.live_signals import LiveSignals, load_live_config
 
 MODEL = "attrition/v1"
 LIMITS = {"pulse_score": (1, 5), "pulse_roll4_mean": (1, 5), "load_ratio": (0, 3),
@@ -36,10 +39,21 @@ PSI_FEATURES = ["pay_ratio", "months_since_raise", "monthly_pay", "pulse_score",
                 "pulse_roll4_mean", "task_score_roll4_mean", "weeks_since_weekend_off"]
 
 
+DEMO_SOURCES = ["synthetic demo data"]
+
+
 class GuardedAttritionScore(api.AttritionScore):
     source: str = "model"  # model / baseline (guardrail fallback)
     confidence: str
     checks: list[G.Check]
+    # where the INPUTS came from: live (the hotel's own HOI records, ml/attrition/live_signals.py)
+    # or demo_synthetic (the seeded synthetic tables in ml/data). Never mixed for one person.
+    data_source: str = "demo_synthetic"
+    weeks_of_history: int | None = None  # live weeks behind this score (None for demo data)
+    data_sources: list[str] = Field(default_factory=lambda: list(DEMO_SOURCES))  # e.g. shifts, jobs
+    missing: list[dict] = Field(default_factory=list)  # imputed live signals (signal, features,
+    #                                                    imputed_with)
+    context: dict = Field(default_factory=dict)  # live context-only signals (not model inputs)
 
 
 def _base_rates(artifact_dir: Path) -> dict[str, float]:
@@ -47,16 +61,11 @@ def _base_rates(artifact_dir: Path) -> dict[str, float]:
     return {seg: float(v["test"][v["winner"]]["base_rate"]) for seg, v in m.items()}
 
 
-def score(week_start: date | str | None = None, employee_ids: list[str] | None = None,
-          artifact_dir: Path = ARTIFACT_DIR, data_dir: Path = DATA_DIR,
-          today: date | None = None,
-          overrides: dict[str, dict[str, float]] | None = None) -> list[GuardedAttritionScore]:
-    """attrition.score with checks. overrides {employee_id: {feature: value}} replace input
-    values for the CHECKS only (tests); the model score itself is unchanged."""
-    week = week_start or api.latest_week(artifact_dir, data_dir)
-    scores = api.score(week, employee_ids, artifact_dir=artifact_dir, data_dir=data_dir)
-    _, _, features, _ = api._state(artifact_dir, data_dir)
-    rows = api._rows(features, week, None).set_index("employee_id")
+def _guard(scores: list[api.AttritionScore], rows: pd.DataFrame, artifact_dir: Path,
+           today: date | None, overrides: dict[str, dict[str, float]] | None = None,
+           ) -> list[GuardedAttritionScore]:
+    """The shared checks. rows: the week's feature rows indexed by employee_id."""
+    rows = rows.copy()
     for e, vals in (overrides or {}).items():
         for k, v in vals.items():
             rows.loc[e, k] = v
@@ -73,7 +82,7 @@ def score(week_start: date | str | None = None, employee_ids: list[str] | None =
     # drift or a fallback lowers it
     base = _base_rates(artifact_dir)
     risks = G.clip(np.array([s.risk for s in scores]), 0, 1, checks, "risk", MODEL)
-    n_fb = int(fallback.loc[[s.employee_id for s in scores]].sum())
+    n_fb = int(fallback.loc[[s.employee_id for s in scores]].sum()) if scores else 0
     if n_fb:
         G.record(checks, "fallback", "warn", f"{n_fb} of {len(scores)} person(s) got the "
                  "training base rate instead of a model score", MODEL)
@@ -93,6 +102,54 @@ def score(week_start: date | str | None = None, employee_ids: list[str] | None =
                                          source="baseline" if fb else "model",
                                          confidence=conf, checks=row_checks))
     return out
+
+
+def score(week_start: date | str | None = None, employee_ids: list[str] | None = None,
+          artifact_dir: Path = ARTIFACT_DIR, data_dir: Path = DATA_DIR,
+          today: date | None = None,
+          overrides: dict[str, dict[str, float]] | None = None) -> list[GuardedAttritionScore]:
+    """attrition.score with checks, on the SYNTHETIC demo tables (data_source demo_synthetic).
+    overrides {employee_id: {feature: value}} replace input values for the CHECKS only (tests);
+    the model score itself is unchanged."""
+    week = week_start or api.latest_week(artifact_dir, data_dir)
+    scores = api.score(week, employee_ids, artifact_dir=artifact_dir, data_dir=data_dir)
+    _, _, features, _ = api._state(artifact_dir, data_dir)
+    rows = api._rows(features, week, None).set_index("employee_id")
+    return _guard(scores, rows, artifact_dir, today, overrides)
+
+
+def score_live(live: LiveSignals, week_start: date | str | None = None,
+               employee_ids: list[str] | None = None, artifact_dir: Path = ARTIFACT_DIR,
+               today: date | None = None,
+               ) -> tuple[list[GuardedAttritionScore], dict[str, str]]:
+    """attrition.score_live with the same checks plus the live data-quality rules:
+    fewer than live_signals.yaml min_weeks_for_confidence weeks of history -> confidence low
+    (check short_history); every imputed signal is listed in `missing`.
+    Returns (scores, skipped {employee_id: why no live score})."""
+    scores, frame = api.score_live(live, week_start, employee_ids, artifact_dir)
+    if not scores:
+        return [], frame.skipped
+    guarded = _guard(scores, frame.rows.set_index("employee_id"), artifact_dir, today)
+    min_weeks = int(load_live_config()["min_weeks_for_confidence"])
+    out = []
+    for g in guarded:
+        info = frame.people[g.employee_id]
+        checks = list(g.checks)
+        conf = g.confidence
+        if info.weeks_of_history < min_weeks:
+            conf = "low"
+            checks.append(G.Check(name="short_history", status="warn",
+                                  detail=f"{info.weeks_of_history} week(s) of live records; "
+                                         f"fewer than {min_weeks} gives low confidence"))
+        if info.missing:
+            checks.append(G.Check(name="imputed_signals", status="warn",
+                                  detail="not available, training average used: " + ", ".join(
+                                      m["signal"] for m in info.missing)))
+        out.append(g.model_copy(update={
+            "confidence": conf, "checks": checks, "data_source": "live",
+            "weeks_of_history": info.weeks_of_history, "data_sources": info.data_sources,
+            "missing": info.missing, "context": info.context}))
+    return out, frame.skipped
 
 
 def high_band_count(scores: list[api.AttritionScore]) -> int:

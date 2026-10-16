@@ -129,8 +129,11 @@ def register_core_routes(app: FastAPI) -> None:
     @app.post("/attrition/score", response_model=list[GuardedAttritionScore])
     def score(body: ScoreRequest, request: Request, service: Service = Depends(get_service),
               db: Database = Depends(get_db)) -> list[GuardedAttritionScore]:
-        result = _guard(lambda: service.score(body.week_start, body.employee_ids))
-        audit(db, "attrition.score", {"week_start": body.week_start, "n": len(result)},
+        live = retention.add_checkins(db, body.live_signals) if body.live_signals else None
+        result = _guard(lambda: service.score(body.week_start, body.employee_ids, live,
+                                              body.fallback_to_demo))
+        audit(db, "attrition.score", {"week_start": body.week_start, "n": len(result),
+                                      "n_live": sum(r.data_source == "live" for r in result)},
               source_of(request))
         return result
 

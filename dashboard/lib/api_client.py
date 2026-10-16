@@ -157,9 +157,15 @@ def get_forecast(date_from: str, date_to: str, as_of: str | None = None, setting
     return _mock(mock.forecast, params, endpoint="/forecast") if s.use_mocks else _http("GET", "/forecast", s, params=params)
 
 
-def score_attrition(week_start: str | None = None, employee_ids: list[str] | None = None, settings: Settings | None = None) -> list[dict]:
+def score_attrition(
+    week_start: str | None = None,
+    employee_ids: list[str] | None = None,
+    settings: Settings | None = None,
+    live_signals: dict | None = None,
+) -> list[dict]:
+    """live_signals: the platform's weekly staff facts (GET /people/signals); people without them use the demo data."""
     s = _s(settings)
-    body = {k: v for k, v in {"week_start": week_start, "employee_ids": employee_ids}.items() if v}
+    body = {k: v for k, v in {"week_start": week_start, "employee_ids": employee_ids, "live_signals": live_signals}.items() if v}
     return _mock(mock.score, body, endpoint="/attrition/score") if s.use_mocks else _http("POST", "/attrition/score", s, json=body)
 
 

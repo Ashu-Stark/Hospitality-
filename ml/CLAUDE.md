@@ -690,3 +690,22 @@ checked against XGBoost at export) and torch logistic models keep numpy coeffici
 `predict.py` (byte-identical copy in the portal). Tests that train are marked `gpu` and are
 SKIPPED without a GPU (CI), never run on the CPU. The earlier task notes above quote LightGBM
 results: they are historical; the current numbers are in each artifact's metrics.json.
+
+## Live staff signals (where staff info comes from)
+
+`attrition.score` reads the SYNTHETIC demo tables. For a real hotel the ops API now scores from the
+hotel's own HOI activity: `ml/attrition/live_signals.py` (pure: plain weekly records in, the SAME
+feature rows out, via `build_attrition_features`; no retrain, feature names unchanged) +
+`live_signals.yaml` (every mapping ASSUMED). Entry points: `attrition.api.score_live` and
+`attrition.guarded.score_live` (returns scores + skipped ids). Inputs (platform API
+`GET /people/signals`): published roster weeks (days worked, hours, nights, short rests), dispatch
+jobs (done, on time, declines / timeouts, response time, finishes after shift end), thank-you
+points, leave / absence marks (no reasons), a consented 1-tap "How was your week?", logged
+check-ins (ops API), and an owner / HR record (joining date, pay band, last raise, contract end,
+left on). Rules: fewer than 4 weeks of history -> confidence low (`short_history` check); a
+missing signal gets the TRAINING average (reference_stats.json) and is listed in `missing`; a live
+person never gets synthetic CSV values (`data_source` live vs demo_synthetic). Night shifts, short
+rests, declines, response trend, team-load share, thank-you trend and check-ins are CONTEXT only
+(the model never saw them; adding them as features needs generator support and a GPU retrain).
+`load_ratio` is a roster-hours PROXY; task_score / pulse use linear maps onto the synthetic scale;
+none of these mappings is validated on real data. Tests: tests/test_live_signals.py.

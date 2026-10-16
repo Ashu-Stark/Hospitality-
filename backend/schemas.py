@@ -9,6 +9,7 @@ from pydantic import BaseModel, Field
 
 from ml.attrition.api import Action, AttritionScore, Driver, HeroInfo, RescoreResult
 from ml.attrition.guarded import GuardedAttritionScore, GuardedRescore
+from ml.attrition.live_signals import LiveSignals
 from ml.forecast.api import ForecastDay, ForecastResult
 from ml.forecast.guarded import GuardedForecast
 from ml.guardrails import Check
@@ -20,13 +21,18 @@ __all__ = [
     "Action", "AttritionScore", "Driver", "ForecastDay", "ForecastResult", "HeroInfo",
     "RescoreResult", "VoiceResult", "ScoreRequest", "RescoreRequest", "Health", "ModelVersion",
     "GuardedAttritionScore", "GuardedForecast", "GuardedRescore", "Check", "WorkloadForecast",
-    "BookingScores", "BookingsRequest",
+    "BookingScores", "BookingsRequest", "LiveSignals",
 ]
 
 
 class ScoreRequest(BaseModel):
-    week_start: date | None = None  # default: the latest scoring week
+    week_start: date | None = None  # default: the latest scoring week (demo data)
     employee_ids: list[str] | None = None  # default: everyone active that week
+    # The hotel's own weekly facts (platform API GET /people/signals). People with a live record
+    # are scored from it (data_source "live", the latest live week); the others fall back to the
+    # SYNTHETIC demo tables (data_source "demo_synthetic") unless fallback_to_demo is false.
+    live_signals: LiveSignals | None = None
+    fallback_to_demo: bool = True
 
 
 class RescoreRequest(BaseModel):
