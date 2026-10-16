@@ -19,6 +19,7 @@ import pandas as pd
 from ml.features.split import Splits, load_pulse_splits
 from ml.models.common import MODEL_FILE, PULSE_ARTIFACT_DIR
 from ml.models.pulse_common import naive_prediction, pulse_xy, regression_metrics
+from ml.xgb_trees import predict_gpu
 
 MODEL_NAME = "pulse_model"
 
@@ -29,7 +30,7 @@ def compare(splits: Splits, models_dir: Path = PULSE_ARTIFACT_DIR) -> pd.DataFra
     model = joblib.load(models_dir / MODEL_FILE)
     rows = [
         {"model": "naive (copy this week)", **regression_metrics(y, naive_prediction(test))},
-        {"model": MODEL_NAME, **regression_metrics(y, model.predict(x))},
+        {"model": MODEL_NAME, **regression_metrics(y, predict_gpu(model, x))},
     ]
     return pd.DataFrame(rows).drop(columns="rows")
 

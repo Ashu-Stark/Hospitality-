@@ -4,11 +4,11 @@
     "contract_type": "permanent",
     "winner": "logistic",
     "winner_rule": "highest pooled validation PR-AUC",
-    "explain_model": "lightgbm",
+    "explain_model": "xgboost",
     "validation_pr_auc": {
       "rules": 0.102,
-      "logistic": 0.221,
-      "lightgbm": 0.1567
+      "logistic": 0.2209,
+      "xgboost": 0.1641
     },
     "test": {
       "rules": {
@@ -32,33 +32,33 @@
         "rows": 6820,
         "positives": 371,
         "base_rate": 0.0544,
-        "roc_auc": 0.6908,
-        "pr_auc": 0.1186,
-        "precision": 0.1469,
-        "recall": 0.3396,
-        "flagged_share": 0.1258,
+        "roc_auc": 0.6907,
+        "pr_auc": 0.1184,
+        "precision": 0.1704,
+        "recall": 0.3261,
+        "flagged_share": 0.1041,
         "brier": 0.05085,
         "roc_auc_by_year": {
-          "2027": 0.7736,
-          "2028": 0.6857,
-          "2029": 0.7048
+          "2027": 0.7738,
+          "2028": 0.6858,
+          "2029": 0.7055
         },
         "leavers": 31
       },
-      "lightgbm": {
+      "xgboost": {
         "rows": 6820,
         "positives": 371,
         "base_rate": 0.0544,
-        "roc_auc": 0.6518,
-        "pr_auc": 0.0912,
-        "precision": 0.0868,
-        "recall": 0.4501,
-        "flagged_share": 0.2821,
-        "brier": 0.0523,
+        "roc_auc": 0.6659,
+        "pr_auc": 0.0903,
+        "precision": 0.101,
+        "recall": 0.496,
+        "flagged_share": 0.2672,
+        "brier": 0.05304,
         "roc_auc_by_year": {
-          "2027": 0.751,
-          "2028": 0.6877,
-          "2029": 0.6059
+          "2027": 0.7901,
+          "2028": 0.6894,
+          "2029": 0.6027
         },
         "leavers": 31
       }
@@ -79,25 +79,25 @@
       {
         "bin": 1,
         "rows": 1364,
-        "mean_predicted": 0.0206,
+        "mean_predicted": 0.0207,
         "observed_rate": 0.0213
       },
       {
         "bin": 2,
         "rows": 1364,
-        "mean_predicted": 0.0359,
+        "mean_predicted": 0.036,
         "observed_rate": 0.0469
       },
       {
         "bin": 3,
         "rows": 1364,
-        "mean_predicted": 0.0627,
+        "mean_predicted": 0.0628,
         "observed_rate": 0.0762
       },
       {
         "bin": 4,
         "rows": 1364,
-        "mean_predicted": 0.162,
+        "mean_predicted": 0.1617,
         "observed_rate": 0.1078
       }
     ],
@@ -118,38 +118,45 @@
       "logistic": {
         "rule": "ceil-count slots, tie groups never split",
         "base_rate": 0.0544,
-        "high_precision": 0.1317,
-        "high_lift": 2.42,
+        "high_precision": 0.1301,
+        "high_lift": 2.39,
         "leaver_weeks_in_high_or_watch": 0.5229,
         "band_share": {
-          "low": 0.7292,
-          "watch": 0.1661,
-          "high": 0.1047
+          "low": 0.7289,
+          "watch": 0.1663,
+          "high": 0.1048
         },
-        "tied_share_per_week_mean": 0.0438
+        "tied_share_per_week_mean": 0.0403
       },
-      "lightgbm": {
+      "xgboost": {
         "rule": "ceil-count slots, tie groups never split",
         "base_rate": 0.0544,
-        "high_precision": 0.1192,
-        "high_lift": 2.19,
-        "leaver_weeks_in_high_or_watch": 0.4528,
+        "high_precision": 0.1161,
+        "high_lift": 2.13,
+        "leaver_weeks_in_high_or_watch": 0.5013,
         "band_share": {
-          "low": 0.7289,
-          "watch": 0.1666,
-          "high": 0.1045
+          "low": 0.7287,
+          "watch": 0.1664,
+          "high": 0.1048
         },
-        "tied_share_per_week_mean": 0.0453
+        "tied_share_per_week_mean": 0.0463
       }
     },
     "deployed_window": {
       "train_last_week": "2028-09-25",
       "validation_weeks": "2029-01-01..2029-09-24"
     },
+    "train_device": "cuda:0 NVIDIA GeForce RTX 4050 Laptop GPU",
+    "eval_device": "cuda:0 NVIDIA GeForce RTX 4050 Laptop GPU",
+    "algorithms": {
+      "logistic": "L2 logistic regression, torch LBFGS on CUDA",
+      "xgboost": "XGBoost binary:logistic on CUDA",
+      "platt": "torch on CUDA"
+    },
     "deployed_thresholds": {
-      "rules": 0.0503,
-      "logistic": 0.0822,
-      "lightgbm": 0.0675
+      "rules": 0.0502,
+      "logistic": 0.0831,
+      "xgboost": 0.0353
     }
   },
   "contract_end": {
@@ -157,11 +164,11 @@
     "contract_type": "seasonal",
     "winner": "contract_rule",
     "winner_rule": "highest pooled validation PR-AUC",
-    "explain_model": "lightgbm",
+    "explain_model": "xgboost",
     "validation_pr_auc": {
       "rules": 0.392,
-      "logistic": 0.7208,
-      "lightgbm": 0.7482,
+      "logistic": 0.7209,
+      "xgboost": 0.7253,
       "contract_rule": 0.778
     },
     "test": {
@@ -174,7 +181,7 @@
         "precision": 0.1887,
         "recall": 0.8315,
         "flagged_share": 0.8225,
-        "brier": 0.19103,
+        "brier": 0.19102,
         "roc_auc_by_year": {
           "2027": 0.5677,
           "2028": 0.5148,
@@ -186,33 +193,33 @@
         "rows": 986,
         "positives": 184,
         "base_rate": 0.1866,
-        "roc_auc": 0.7147,
-        "pr_auc": 0.2758,
+        "roc_auc": 0.7148,
+        "pr_auc": 0.2759,
         "precision": 0.3734,
         "recall": 0.7772,
         "flagged_share": 0.3884,
-        "brier": 0.20056,
+        "brier": 0.20048,
         "roc_auc_by_year": {
-          "2027": 0.675,
-          "2028": 0.8526,
-          "2029": 0.7586
+          "2027": 0.6752,
+          "2028": 0.8525,
+          "2029": 0.759
         },
         "leavers": 16
       },
-      "lightgbm": {
+      "xgboost": {
         "rows": 986,
         "positives": 184,
         "base_rate": 0.1866,
-        "roc_auc": 0.7291,
-        "pr_auc": 0.2925,
-        "precision": 0.3584,
-        "recall": 0.5435,
-        "flagged_share": 0.283,
-        "brier": 0.20203,
+        "roc_auc": 0.761,
+        "pr_auc": 0.3274,
+        "precision": 0.3905,
+        "recall": 0.7174,
+        "flagged_share": 0.3428,
+        "brier": 0.18471,
         "roc_auc_by_year": {
-          "2027": 0.7859,
-          "2028": 0.8418,
-          "2029": 0.7812
+          "2027": 0.8377,
+          "2028": 0.8769,
+          "2029": 0.801
         },
         "leavers": 16
       },
@@ -293,24 +300,24 @@
         "high_lift": 0.86,
         "leaver_weeks_in_high_or_watch": 0.5272,
         "band_share": {
-          "low": 0.5751,
-          "watch": 0.2799,
+          "low": 0.574,
+          "watch": 0.2809,
           "high": 0.145
         },
-        "tied_share_per_week_mean": 0.006
+        "tied_share_per_week_mean": 0.004
       },
-      "lightgbm": {
+      "xgboost": {
         "rule": "ceil-count slots, tie groups never split",
         "base_rate": 0.1866,
-        "high_precision": 0.1608,
-        "high_lift": 0.86,
+        "high_precision": 0.1761,
+        "high_lift": 0.94,
         "leaver_weeks_in_high_or_watch": 0.5,
         "band_share": {
           "low": 0.5751,
-          "watch": 0.2799,
-          "high": 0.145
+          "watch": 0.2809,
+          "high": 0.144
         },
-        "tied_share_per_week_mean": 0.002
+        "tied_share_per_week_mean": 0.0048
       },
       "contract_rule": {
         "rule": "ceil-count slots, tie groups never split",
@@ -341,10 +348,17 @@
       "train_last_week": "2028-09-25",
       "validation_weeks": "2029-01-01..2029-09-24"
     },
+    "train_device": "cuda:0 NVIDIA GeForce RTX 4050 Laptop GPU",
+    "eval_device": "cuda:0 NVIDIA GeForce RTX 4050 Laptop GPU",
+    "algorithms": {
+      "logistic": "L2 logistic regression, torch LBFGS on CUDA",
+      "xgboost": "XGBoost binary:logistic on CUDA",
+      "platt": "torch on CUDA"
+    },
     "deployed_thresholds": {
-      "rules": 0.3391,
-      "logistic": 0.3093,
-      "lightgbm": 0.3143,
+      "rules": 0.339,
+      "logistic": 0.3098,
+      "xgboost": 0.3113,
       "contract_rule": 0.2207
     }
   }

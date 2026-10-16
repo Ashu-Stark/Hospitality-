@@ -223,7 +223,8 @@ def test_protected_columns_are_dropped_turnover(tmp_path: Path) -> None:
     assert set(x.columns) == {"industry", "profession", "traffic", "coach", "greywage", "way"}
 
 
-def test_rules_and_cross_validation_cpu_only() -> None:
+@pytest.mark.gpu  # trains a model: GPU only
+def test_rules_and_cross_validation_on_gpu() -> None:
     df = _ibm_like(200)
     x, _ = attr.model_table(df, attr.IBM_SPEC)
     s = attr.rule_score(x, attr.IBM_SPEC)

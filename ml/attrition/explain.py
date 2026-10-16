@@ -14,8 +14,8 @@ is a known date and ~96% of their model risks were tied; permanent staff keep th
 main() scores the last week, prints the demo checks (Sunita's top 3 include overtime overload;
 Deepak is not high), a driver report with contributions, every hero's band (and, for permanent
 staff, the rejected percentile rule), and the heroes' 12-week trajectory, and writes
-artifacts/attrition/v1/drivers.json (also LightGBM TreeSHAP importance as a comparison). Failed
-checks are REPORTED, never tuned away. Run from ml/:  python run.py train
+artifacts/attrition/v1/drivers.json (also XGBoost TreeSHAP importance, computed on the GPU, as a
+comparison). Failed checks are REPORTED, never tuned away. Run from ml/:  python run.py train
 """
 
 from __future__ import annotations
@@ -244,13 +244,13 @@ def main(data_dir: Path = DATA_DIR, artifact_dir: Path = ARTIFACT_DIR) -> int:
                         & ~features["employee_id"].isin(hero_ids)]
         model = info["model"]
         importance[seg] = global_importance(model.contributions(rows, info["winner"])).to_dict()
-        comparison[seg] = global_importance(shap_values(model.scorers.lightgbm, rows)).to_dict()
+        comparison[seg] = global_importance(shap_values(model.scorers.xgboost, rows)).to_dict()
         print(f"  mean |contribution| by driver ({seg}, {info['winner']}): {importance[seg]}")
     path = artifact_dir / "drivers.json"
     path.write_text(json.dumps({
         "explanation": "contributions of the scoring (winner) model in calibrated log-odds",
         "mean_abs_contribution_by_driver": importance,
-        "comparison_lightgbm_treeshap_by_driver": comparison,
+        "comparison_xgboost_treeshap_by_driver": comparison,
         "unsupported": [UNSUPPORTED],
         "demo_checks": [{"check": c, "passed": ok, "detail": d} for c, ok, d in checks],
         "hero_bands_last_week": hero_bands,

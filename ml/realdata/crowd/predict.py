@@ -6,9 +6,9 @@ byte-identical copy (portal/hoi_portal/services/crowd_model.py, kept in sync by
 `python -m ml.realdata.crowd.train --export-only` and checked by ml/tests/test_crowd_real.py), so
 training and serving can never compute features differently.
 
-The bundle (ml/artifacts/crowd_forecast/real_v1/bundle.json) holds the LightGBM trees as plain
-JSON, the season dates, the calendar, the recent daily counts, the training feature ranges and the
-band edges. No numpy or LightGBM is needed to predict.
+The bundle (ml/artifacts/crowd_forecast/real_v1/bundle.json) holds the XGBoost trees (trained on
+the GPU) as plain JSON, the season dates, the calendar, the recent daily counts, the training
+feature ranges and the band edges. No numpy, GPU or XGBoost is needed to predict.
 
 Guardrails, in the order `predict` applies them:
   1. input validation (known destination, real dates, horizon 1..MAX_H, numeric weather in range);
@@ -25,6 +25,7 @@ from __future__ import annotations
 
 import json
 import math
+import struct
 from datetime import date, timedelta
 from pathlib import Path
 
@@ -227,25 +228,30 @@ def seasonal_baseline(ctx: Context, dest: str, day: date) -> float | None:
 # ----------------------------------------------------------------------------- trees
 
 
+def _f32(v: float) -> float:
+    """Round to float32, as XGBoost does with its inputs (thresholds are float32 already)."""
+    try:
+        return struct.unpack("f", struct.pack("f", v))[0]
+    except OverflowError:
+        return math.copysign(math.inf, v)
+
+
 def _tree_value(node, x: list[float]) -> float:
-    """Walk one compact LightGBM tree: [feat, thr, default_left, missing, left, right] or a leaf."""
+    """Walk one compact XGBoost tree: [feat, thr, default_left, left, right] or a leaf value.
+    x < thr goes left; a missing value (NaN) goes the split's default side."""
     while isinstance(node, list):
-        feat, thr, default_left, missing, left, right = node
+        feat, thr, default_left, left, right = node
         v = x[feat]
         if math.isnan(v):
-            if missing == 2:  # NaN-aware split
-                node = left if default_left else right
-                continue
-            v = 0.0  # LightGBM treats NaN as 0 when the split has no missing handling
-        if missing == 1 and abs(v) <= 1e-35:  # zero-as-missing split
             node = left if default_left else right
-            continue
-        node = left if v <= thr else right
+        else:
+            node = left if _f32(v) < thr else right
     return float(node)
 
 
-def tree_predict(model: list, x: list[float]) -> float:
-    return sum(_tree_value(t, x) for t in model)
+def tree_predict(model: dict, x: list[float]) -> float:
+    """Base margin + the sum of the leaves (identity link: these are regression models)."""
+    return model["base"] + sum(_tree_value(t, x) for t in model["trees"])
 
 
 # ----------------------------------------------------------------------------- bundle

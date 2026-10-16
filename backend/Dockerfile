@@ -12,7 +12,8 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONPATH=/app \
     PORT=8000
 
-# LightGBM needs the OpenMP runtime on slim images.
+# OpenMP runtime (numeric libraries). The image only predicts: models are trained on a GPU
+# elsewhere and exported to numpy arrays, so neither torch nor xgboost is installed here.
 RUN apt-get update \
     && apt-get install -y --no-install-recommends libgomp1 \
     && rm -rf /var/lib/apt/lists/*

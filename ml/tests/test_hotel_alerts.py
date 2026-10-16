@@ -88,7 +88,7 @@ def test_metrics_record_real_data_split_and_baselines() -> None:
     assert m["data"]["provenance"] == "REAL" and m["data"]["licence"] == "CC BY 4.0"
     assert m["split"]["by"] == "arrival date"
     t = m["test_at_booking"]
-    assert {"base_rate", "logistic", "lightgbm"} <= set(t)
+    assert {"base_rate", "logistic", "xgboost"} <= set(t)
     assert t[m["deployed"]["model"]]["roc_auc"] > t["base_rate"]["roc_auc"]
     assert (api.ARTIFACT_DIR / "reference_stats.json").exists()
 

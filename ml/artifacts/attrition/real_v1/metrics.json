@@ -33,6 +33,9 @@
       "YearsSinceLastPromotion",
       "YearsWithCurrManager"
     ],
+    "train_device": "cuda:0 NVIDIA GeForce RTX 4050 Laptop GPU",
+    "eval_device": "cuda:0 NVIDIA GeForce RTX 4050 Laptop GPU",
+    "subsets": {},
     "dropped_protected": [
       "Age",
       "Gender",
@@ -57,7 +60,7 @@
           "mean": 0.0173,
           "sd": 0.0008
         },
-        "fit_seconds_total": 0.07,
+        "fit_seconds_total": 0.94,
         "calibration_seed42": [
           {
             "bin": 1,
@@ -89,163 +92,124 @@
             "mean_predicted": 0.2948,
             "observed_rate": 0.2857
           }
+        ],
+        "roc_auc_oof_mean_ci95": [
+          0.6149,
+          0.6864
         ]
       },
       "logistic": {
         "roc_auc": {
-          "mean": 0.8279,
-          "sd": 0.0022
+          "mean": 0.828,
+          "sd": 0.0031
         },
         "pr_auc": {
-          "mean": 0.6104,
-          "sd": 0.0047
+          "mean": 0.6089,
+          "sd": 0.0037
         },
         "brier": {
           "mean": 0.0964,
-          "sd": 0.0004
+          "sd": 0.0006
         },
         "ece": {
-          "mean": 0.0324,
-          "sd": 0.0025
+          "mean": 0.0319,
+          "sd": 0.003
         },
-        "fit_seconds_total": 3.18,
+        "fit_seconds_total": 177.93,
         "calibration_seed42": [
           {
             "bin": 1,
             "rows": 294,
-            "mean_predicted": 0.0134,
+            "mean_predicted": 0.0136,
             "observed_rate": 0.0442
           },
           {
             "bin": 2,
             "rows": 294,
-            "mean_predicted": 0.0446,
-            "observed_rate": 0.0374
+            "mean_predicted": 0.0442,
+            "observed_rate": 0.034
           },
           {
             "bin": 3,
             "rows": 294,
-            "mean_predicted": 0.0967,
-            "observed_rate": 0.085
+            "mean_predicted": 0.0941,
+            "observed_rate": 0.0884
           },
           {
             "bin": 4,
             "rows": 294,
-            "mean_predicted": 0.1943,
-            "observed_rate": 0.1497
+            "mean_predicted": 0.1896,
+            "observed_rate": 0.1463
           },
           {
             "bin": 5,
             "rows": 294,
-            "mean_predicted": 0.4678,
-            "observed_rate": 0.4898
-          }
-        ]
-      },
-      "lightgbm": {
-        "roc_auc": {
-          "mean": 0.8133,
-          "sd": 0.0053
-        },
-        "pr_auc": {
-          "mean": 0.5794,
-          "sd": 0.0109
-        },
-        "brier": {
-          "mean": 0.0991,
-          "sd": 0.0011
-        },
-        "ece": {
-          "mean": 0.0277,
-          "sd": 0.0009
-        },
-        "fit_seconds_total": 5.85,
-        "calibration_seed42": [
-          {
-            "bin": 1,
-            "rows": 294,
-            "mean_predicted": 0.0275,
-            "observed_rate": 0.0476
-          },
-          {
-            "bin": 2,
-            "rows": 294,
-            "mean_predicted": 0.058,
-            "observed_rate": 0.0374
-          },
-          {
-            "bin": 3,
-            "rows": 294,
-            "mean_predicted": 0.0987,
-            "observed_rate": 0.0748
-          },
-          {
-            "bin": 4,
-            "rows": 294,
-            "mean_predicted": 0.1824,
-            "observed_rate": 0.1531
-          },
-          {
-            "bin": 5,
-            "rows": 294,
-            "mean_predicted": 0.4537,
+            "mean_predicted": 0.4624,
             "observed_rate": 0.4932
           }
+        ],
+        "roc_auc_oof_mean_ci95": [
+          0.7969,
+          0.8605
         ]
       },
       "xgboost": {
         "roc_auc": {
-          "mean": 0.821,
-          "sd": 0.0046
+          "mean": 0.819,
+          "sd": 0.0034
         },
         "pr_auc": {
-          "mean": 0.6019,
-          "sd": 0.0087
+          "mean": 0.5975,
+          "sd": 0.0057
         },
         "brier": {
-          "mean": 0.0962,
-          "sd": 0.001
+          "mean": 0.0964,
+          "sd": 0.0007
         },
         "ece": {
-          "mean": 0.0237,
-          "sd": 0.004
+          "mean": 0.0244,
+          "sd": 0.0035
         },
-        "fit_seconds_total": 30.23,
+        "fit_seconds_total": 57.13,
         "calibration_seed42": [
           {
             "bin": 1,
             "rows": 294,
-            "mean_predicted": 0.0596,
-            "observed_rate": 0.0374
+            "mean_predicted": 0.057,
+            "observed_rate": 0.0442
           },
           {
             "bin": 2,
             "rows": 294,
-            "mean_predicted": 0.0677,
+            "mean_predicted": 0.0662,
             "observed_rate": 0.051
           },
           {
             "bin": 3,
             "rows": 294,
-            "mean_predicted": 0.0831,
-            "observed_rate": 0.0578
+            "mean_predicted": 0.0818,
+            "observed_rate": 0.0544
           },
           {
             "bin": 4,
             "rows": 294,
-            "mean_predicted": 0.1372,
-            "observed_rate": 0.1531
+            "mean_predicted": 0.1342,
+            "observed_rate": 0.1633
           },
           {
             "bin": 5,
             "rows": 294,
-            "mean_predicted": 0.467,
-            "observed_rate": 0.5068
+            "mean_predicted": 0.4699,
+            "observed_rate": 0.4932
           }
+        ],
+        "roc_auc_oof_mean_ci95": [
+          0.7906,
+          0.8563
         ]
       }
     },
-    "evaluation": "repeated stratified 5-fold CV, seeds [42, 43, 44]; Platt calibration inside each training fold",
+    "evaluation": "repeated stratified 5-fold CV, seeds [42, 43, 44]; Platt calibration inside each training fold (5 inner folds); all fits and predictions on the GPU",
     "source_url": "https://raw.githubusercontent.com/IBM/employee-attrition-aif360/master/data/emp_attrition.csv",
     "licence": "ODbL 1.0 (database) / DbCL 1.0 (contents), as stated in the IBM repo README",
     "provenance": "fictional",
@@ -264,6 +228,49 @@
       "greywage",
       "way"
     ],
+    "train_device": "cuda:0 NVIDIA GeForce RTX 4050 Laptop GPU",
+    "eval_device": "cuda:0 NVIDIA GeForce RTX 4050 Laptop GPU",
+    "subsets": {
+      "hospitality (industry == HoReCa)": {
+        "subset": "hospitality (industry == HoReCa)",
+        "rows": 10,
+        "positives": 2,
+        "base_rate": 0.2,
+        "note": "out-of-fold predictions of models trained on ALL industries (mean of the 3 repeats); tiny sample: the interval is very wide",
+        "scorers": {
+          "rules": {
+            "roc_auc": 0.0625,
+            "ci95": [
+              0.0,
+              0.3333
+            ],
+            "valid_resamples": 1781,
+            "pr_auc": 0.1625,
+            "brier": 0.1745
+          },
+          "logistic": {
+            "roc_auc": 0.125,
+            "ci95": [
+              0.0,
+              0.4762
+            ],
+            "valid_resamples": 1781,
+            "pr_auc": 0.1714,
+            "brier": 0.1708
+          },
+          "xgboost": {
+            "roc_auc": 0.1875,
+            "ci95": [
+              0.0,
+              0.5
+            ],
+            "valid_resamples": 1781,
+            "pr_auc": 0.1825,
+            "brier": 0.1773
+          }
+        }
+      }
+    },
     "dropped_protected": [
       "gender",
       "age",
@@ -293,12 +300,12 @@
           "mean": 0.0292,
           "sd": 0.0023
         },
-        "fit_seconds_total": 0.07,
+        "fit_seconds_total": 0.94,
         "calibration_seed42": [
           {
             "bin": 1,
             "rows": 197,
-            "mean_predicted": 0.1139,
+            "mean_predicted": 0.1138,
             "observed_rate": 0.1421
           },
           {
@@ -325,163 +332,124 @@
             "mean_predicted": 0.1911,
             "observed_rate": 0.1888
           }
+        ],
+        "roc_auc_oof_mean_ci95": [
+          0.4928,
+          0.5961
         ]
       },
       "logistic": {
         "roc_auc": {
-          "mean": 0.604,
-          "sd": 0.0138
+          "mean": 0.6013,
+          "sd": 0.0117
         },
         "pr_auc": {
-          "mean": 0.2123,
-          "sd": 0.0131
+          "mean": 0.2129,
+          "sd": 0.0093
         },
         "brier": {
           "mean": 0.1274,
-          "sd": 0.0005
+          "sd": 0.0007
         },
         "ece": {
-          "mean": 0.0266,
-          "sd": 0.0032
+          "mean": 0.0289,
+          "sd": 0.0078
         },
-        "fit_seconds_total": 2.3,
+        "fit_seconds_total": 59.14,
         "calibration_seed42": [
           {
             "bin": 1,
             "rows": 197,
-            "mean_predicted": 0.1134,
-            "observed_rate": 0.066
-          },
-          {
-            "bin": 2,
-            "rows": 197,
-            "mean_predicted": 0.1343,
-            "observed_rate": 0.1371
-          },
-          {
-            "bin": 3,
-            "rows": 196,
-            "mean_predicted": 0.1495,
-            "observed_rate": 0.1582
-          },
-          {
-            "bin": 4,
-            "rows": 196,
-            "mean_predicted": 0.1666,
-            "observed_rate": 0.1837
-          },
-          {
-            "bin": 5,
-            "rows": 196,
-            "mean_predicted": 0.2045,
-            "observed_rate": 0.2194
-          }
-        ]
-      },
-      "lightgbm": {
-        "roc_auc": {
-          "mean": 0.6589,
-          "sd": 0.0196
-        },
-        "pr_auc": {
-          "mean": 0.3218,
-          "sd": 0.0139
-        },
-        "brier": {
-          "mean": 0.1227,
-          "sd": 0.0008
-        },
-        "ece": {
-          "mean": 0.0402,
-          "sd": 0.0044
-        },
-        "fit_seconds_total": 3.42,
-        "calibration_seed42": [
-          {
-            "bin": 1,
-            "rows": 197,
-            "mean_predicted": 0.0942,
+            "mean_predicted": 0.0948,
             "observed_rate": 0.0812
           },
           {
             "bin": 2,
             "rows": 197,
-            "mean_predicted": 0.1227,
+            "mean_predicted": 0.1209,
+            "observed_rate": 0.1117
+          },
+          {
+            "bin": 3,
+            "rows": 196,
+            "mean_predicted": 0.1432,
+            "observed_rate": 0.1633
+          },
+          {
+            "bin": 4,
+            "rows": 196,
+            "mean_predicted": 0.1705,
+            "observed_rate": 0.1786
+          },
+          {
+            "bin": 5,
+            "rows": 196,
+            "mean_predicted": 0.2339,
+            "observed_rate": 0.2296
+          }
+        ],
+        "roc_auc_oof_mean_ci95": [
+          0.5553,
+          0.6493
+        ]
+      },
+      "xgboost": {
+        "roc_auc": {
+          "mean": 0.6548,
+          "sd": 0.0175
+        },
+        "pr_auc": {
+          "mean": 0.2916,
+          "sd": 0.0088
+        },
+        "brier": {
+          "mean": 0.1222,
+          "sd": 0.0008
+        },
+        "ece": {
+          "mean": 0.0249,
+          "sd": 0.0049
+        },
+        "fit_seconds_total": 50.6,
+        "calibration_seed42": [
+          {
+            "bin": 1,
+            "rows": 197,
+            "mean_predicted": 0.0966,
+            "observed_rate": 0.0761
+          },
+          {
+            "bin": 2,
+            "rows": 197,
+            "mean_predicted": 0.1113,
             "observed_rate": 0.1015
           },
           {
             "bin": 3,
             "rows": 196,
-            "mean_predicted": 0.1446,
-            "observed_rate": 0.102
+            "mean_predicted": 0.1276,
+            "observed_rate": 0.1071
           },
           {
             "bin": 4,
             "rows": 196,
-            "mean_predicted": 0.1721,
-            "observed_rate": 0.148
+            "mean_predicted": 0.1592,
+            "observed_rate": 0.1582
           },
           {
             "bin": 5,
             "rows": 196,
-            "mean_predicted": 0.2332,
-            "observed_rate": 0.3316
-          }
-        ]
-      },
-      "xgboost": {
-        "roc_auc": {
-          "mean": 0.6513,
-          "sd": 0.0196
-        },
-        "pr_auc": {
-          "mean": 0.2894,
-          "sd": 0.0132
-        },
-        "brier": {
-          "mean": 0.1234,
-          "sd": 0.0007
-        },
-        "ece": {
-          "mean": 0.0338,
-          "sd": 0.0076
-        },
-        "fit_seconds_total": 30.39,
-        "calibration_seed42": [
-          {
-            "bin": 1,
-            "rows": 197,
-            "mean_predicted": 0.115,
-            "observed_rate": 0.0863
-          },
-          {
-            "bin": 2,
-            "rows": 197,
-            "mean_predicted": 0.1254,
-            "observed_rate": 0.1066
-          },
-          {
-            "bin": 3,
-            "rows": 196,
-            "mean_predicted": 0.1382,
-            "observed_rate": 0.102
-          },
-          {
-            "bin": 4,
-            "rows": 196,
-            "mean_predicted": 0.1594,
-            "observed_rate": 0.148
-          },
-          {
-            "bin": 5,
-            "rows": 196,
-            "mean_predicted": 0.2335,
+            "mean_predicted": 0.2725,
             "observed_rate": 0.3214
           }
+        ],
+        "roc_auc_oof_mean_ci95": [
+          0.6089,
+          0.7084
         ]
       }
     },
-    "evaluation": "repeated stratified 5-fold CV, seeds [42, 43, 44]; Platt calibration inside each training fold",
+    "evaluation": "repeated stratified 5-fold CV, seeds [42, 43, 44]; Platt calibration inside each training fold (5 inner folds); all fits and predictions on the GPU",
     "source_url": "https://www.kaggle.com/api/v1/datasets/download/davinwijaya/employee-turnover",
     "licence": "CC BY-NC-SA 4.0 (Kaggle listing; NON-COMMERCIAL, evaluation only)",
     "provenance": "real (unverified provenance)",

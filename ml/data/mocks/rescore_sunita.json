@@ -21,7 +21,7 @@
     "week_start": "2029-12-24",
     "segment": "resignation",
     "model": "logistic",
-    "risk": 0.0905,
+    "risk": 0.0911,
     "rank": 5,
     "group_size": 48,
     "band": "high",
@@ -33,21 +33,21 @@
         "category": "overtime_overload",
         "title": "Overtime overload",
         "reason": "Overtime overload: averaging 13.1 h overtime a week recently, 5 week(s) since a weekend off",
-        "contribution_logodds": 0.6187,
+        "contribution_logodds": 0.6269,
         "support_level": "supported"
       },
       {
         "category": "pay_gap",
         "title": "Pay gap",
         "reason": "Pay gap: paid 97% of the role average",
-        "contribution_logodds": 0.464,
+        "contribution_logodds": 0.4671,
         "support_level": "supported"
       },
       {
         "category": "low_engagement",
         "title": "Low engagement",
         "reason": "Low engagement: pulse 2.8/5 over 4 weeks (change -0.5), task score trend -3.3",
-        "contribution_logodds": 0.2795,
+        "contribution_logodds": 0.2803,
         "support_level": "supported"
       }
     ],
@@ -74,8 +74,8 @@
     "week_start": "2029-12-24",
     "segment": "resignation",
     "model": "logistic",
-    "risk": 0.075,
-    "rank": 7,
+    "risk": 0.0753,
+    "rank": 8,
     "group_size": 48,
     "band": "watch",
     "band_basis": "model_rank",
@@ -86,21 +86,21 @@
         "category": "pay_gap",
         "title": "Pay gap",
         "reason": "Pay gap: paid 97% of the role average",
-        "contribution_logodds": 0.464,
+        "contribution_logodds": 0.4671,
         "support_level": "supported"
       },
       {
         "category": "overtime_overload",
         "title": "Overtime overload",
         "reason": "Overtime overload: averaging 13.1 h overtime a week recently, 0 week(s) since a weekend off",
-        "contribution_logodds": 0.4129,
+        "contribution_logodds": 0.4192,
         "support_level": "supported"
       },
       {
         "category": "low_engagement",
         "title": "Low engagement",
         "reason": "Low engagement: pulse 2.8/5 over 4 weeks (change -0.5), task score trend -3.3",
-        "contribution_logodds": 0.2795,
+        "contribution_logodds": 0.2803,
         "support_level": "supported"
       }
     ],
@@ -122,6 +122,6 @@
     ],
     "synthetic": true
   },
-  "risk_change": -0.0155,
+  "risk_change": -0.0158,
   "note": "SIMULATION, not causal proof: the same trained models re-scored with changed feature values on SYNTHETIC data."
 }

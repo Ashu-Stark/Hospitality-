@@ -4,7 +4,7 @@
     "week_start": "2029-12-24",
     "segment": "resignation",
     "model": "logistic",
-    "risk": 0.0177,
+    "risk": 0.0175,
     "rank": 35,
     "group_size": 48,
     "band": "low",
@@ -16,7 +16,7 @@
         "category": "overtime_overload",
         "title": "Overtime overload",
         "reason": "Overtime overload: averaging 3.0 h overtime a week recently, 3 week(s) since a weekend off",
-        "contribution_logodds": 0.3549,
+        "contribution_logodds": 0.3563,
         "support_level": "supported"
       }
     ],
@@ -43,7 +43,7 @@
     "week_start": "2029-12-24",
     "segment": "resignation",
     "model": "logistic",
-    "risk": 0.0314,
+    "risk": 0.0312,
     "rank": 24,
     "group_size": 48,
     "band": "low",
@@ -55,14 +55,14 @@
         "category": "overtime_overload",
         "title": "Overtime overload",
         "reason": "Overtime overload: averaging 4.7 h overtime a week recently, 1 week(s) since a weekend off",
-        "contribution_logodds": 0.3911,
+        "contribution_logodds": 0.3945,
         "support_level": "supported"
       },
       {
         "category": "low_engagement",
         "title": "Low engagement",
         "reason": "Low engagement: pulse 3.3/5 over 4 weeks (change -1.1), task score trend +0.0",
-        "contribution_logodds": 0.2145,
+        "contribution_logodds": 0.2155,
         "support_level": "supported"
       }
     ],
@@ -101,21 +101,21 @@
         "category": "overtime_overload",
         "title": "Overtime overload",
         "reason": "Overtime overload: averaging 2.9 h overtime a week recently, 9 week(s) since a weekend off",
-        "contribution_logodds": 0.407,
+        "contribution_logodds": 0.4088,
         "support_level": "supported"
       },
       {
         "category": "stalled_progression",
         "title": "Stalled progression",
         "reason": "Stalled progression: 20 months since the last raise",
-        "contribution_logodds": 0.4033,
+        "contribution_logodds": 0.4055,
         "support_level": "supported"
       },
       {
         "category": "clustered_leave_burnout",
         "title": "Clustered-leave burnout",
         "reason": "Clustered-leave burnout: 9 week(s) without leave; 1 leave day(s) bunched before a festival",
-        "contribution_logodds": 0.1722,
+        "contribution_logodds": 0.1729,
         "support_level": "weakly_supported"
       }
     ],
@@ -142,7 +142,7 @@
     "week_start": "2029-12-24",
     "segment": "resignation",
     "model": "logistic",
-    "risk": 0.0062,
+    "risk": 0.0061,
     "rank": 44,
     "group_size": 48,
     "band": "low",
@@ -154,7 +154,7 @@
         "category": "overtime_overload",
         "title": "Overtime overload",
         "reason": "Overtime overload: averaging 2.1 h overtime a week recently, 0 week(s) since a weekend off",
-        "contribution_logodds": 0.2109,
+        "contribution_logodds": 0.2127,
         "support_level": "supported"
       }
     ],
@@ -181,7 +181,7 @@
     "week_start": "2029-12-24",
     "segment": "resignation",
     "model": "logistic",
-    "risk": 0.0065,
+    "risk": 0.0064,
     "rank": 43,
     "group_size": 48,
     "band": "low",
@@ -193,7 +193,7 @@
         "category": "overtime_overload",
         "title": "Overtime overload",
         "reason": "Overtime overload: averaging 1.3 h overtime a week recently, 0 week(s) since a weekend off",
-        "contribution_logodds": 0.1395,
+        "contribution_logodds": 0.141,
         "support_level": "supported"
       }
     ],
@@ -220,7 +220,7 @@
     "week_start": "2029-12-24",
     "segment": "resignation",
     "model": "logistic",
-    "risk": 0.003,
+    "risk": 0.0031,
     "rank": 45,
     "group_size": 48,
     "band": "low",
@@ -264,7 +264,7 @@
         "category": "low_engagement",
         "title": "Low engagement",
         "reason": "Low engagement: pulse 3.0/5 over 4 weeks (change -0.9), task score trend -1.0",
-        "contribution_logodds": 0.1441,
+        "contribution_logodds": 0.148,
         "support_level": "supported"
       }
     ],
@@ -307,7 +307,7 @@
     "week_start": "2029-12-24",
     "segment": "resignation",
     "model": "logistic",
-    "risk": 0.019,
+    "risk": 0.0183,
     "rank": 33,
     "group_size": 48,
     "band": "low",
@@ -319,14 +319,14 @@
         "category": "stalled_progression",
         "title": "Stalled progression",
         "reason": "Stalled progression: 22 months since the last raise",
-        "contribution_logodds": 0.4706,
+        "contribution_logodds": 0.4731,
         "support_level": "supported"
       },
       {
         "category": "overtime_overload",
         "title": "Overtime overload",
         "reason": "Overtime overload: averaging 1.7 h overtime a week recently, 6 week(s) since a weekend off",
-        "contribution_logodds": 0.2358,
+        "contribution_logodds": 0.237,
         "support_level": "supported"
       }
     ],
@@ -353,7 +353,7 @@
     "week_start": "2029-12-24",
     "segment": "resignation",
     "model": "logistic",
-    "risk": 0.0093,
+    "risk": 0.0092,
     "rank": 40,
     "group_size": 48,
     "band": "low",
@@ -365,7 +365,7 @@
         "category": "overtime_overload",
         "title": "Overtime overload",
         "reason": "Overtime overload: averaging 1.2 h overtime a week recently, 2 week(s) since a weekend off",
-        "contribution_logodds": 0.1608,
+        "contribution_logodds": 0.1622,
         "support_level": "supported"
       }
     ],
@@ -392,7 +392,7 @@
     "week_start": "2029-12-24",
     "segment": "resignation",
     "model": "logistic",
-    "risk": 0.0082,
+    "risk": 0.0081,
     "rank": 41,
     "group_size": 48,
     "band": "low",
@@ -404,7 +404,7 @@
         "category": "overtime_overload",
         "title": "Overtime overload",
         "reason": "Overtime overload: averaging 1.0 h overtime a week recently, 2 week(s) since a weekend off",
-        "contribution_logodds": 0.1685,
+        "contribution_logodds": 0.1693,
         "support_level": "supported"
       }
     ],
@@ -443,21 +443,21 @@
         "category": "pay_gap",
         "title": "Pay gap",
         "reason": "Pay gap: paid 109% of the role average",
-        "contribution_logodds": 0.2831,
+        "contribution_logodds": 0.2837,
         "support_level": "supported"
       },
       {
         "category": "overtime_overload",
         "title": "Overtime overload",
         "reason": "Overtime overload: averaging 2.8 h overtime a week recently, 5 week(s) since a weekend off",
-        "contribution_logodds": 0.2758,
+        "contribution_logodds": 0.2785,
         "support_level": "supported"
       },
       {
         "category": "stalled_progression",
         "title": "Stalled progression",
         "reason": "Stalled progression: 12 months since the last raise",
-        "contribution_logodds": 0.1174,
+        "contribution_logodds": 0.118,
         "support_level": "supported"
       }
     ],
@@ -484,8 +484,8 @@
     "week_start": "2029-12-24",
     "segment": "resignation",
     "model": "logistic",
-    "risk": 0.0332,
-    "rank": 20,
+    "risk": 0.0334,
+    "rank": 21,
     "group_size": 48,
     "band": "low",
     "band_basis": "model_rank",
@@ -496,14 +496,14 @@
         "category": "clustered_leave_burnout",
         "title": "Clustered-leave burnout",
         "reason": "Clustered-leave burnout: 26 week(s) without leave; 0 leave day(s) bunched before a festival",
-        "contribution_logodds": 1.0428,
+        "contribution_logodds": 1.0482,
         "support_level": "weakly_supported"
       },
       {
         "category": "overtime_overload",
         "title": "Overtime overload",
         "reason": "Overtime overload: averaging 1.3 h overtime a week recently, 0 week(s) since a weekend off",
-        "contribution_logodds": 0.1554,
+        "contribution_logodds": 0.1568,
         "support_level": "supported"
       }
     ],
@@ -530,8 +530,8 @@
     "week_start": "2029-12-24",
     "segment": "resignation",
     "model": "logistic",
-    "risk": 0.0169,
-    "rank": 37,
+    "risk": 0.0167,
+    "rank": 38,
     "group_size": 48,
     "band": "low",
     "band_basis": "model_rank",
@@ -542,14 +542,14 @@
         "category": "stalled_progression",
         "title": "Stalled progression",
         "reason": "Stalled progression: 16 months since the last raise",
-        "contribution_logodds": 0.2519,
+        "contribution_logodds": 0.2533,
         "support_level": "supported"
       },
       {
         "category": "overtime_overload",
         "title": "Overtime overload",
         "reason": "Overtime overload: averaging 2.3 h overtime a week recently, 4 week(s) since a weekend off",
-        "contribution_logodds": 0.2267,
+        "contribution_logodds": 0.2289,
         "support_level": "supported"
       }
     ],
@@ -576,7 +576,7 @@
     "week_start": "2029-12-24",
     "segment": "resignation",
     "model": "logistic",
-    "risk": 0.0481,
+    "risk": 0.0484,
     "rank": 14,
     "group_size": 48,
     "band": "low",
@@ -588,14 +588,14 @@
         "category": "low_engagement",
         "title": "Low engagement",
         "reason": "Low engagement: pulse 2.9/5 over 4 weeks (change -0.5), task score trend +0.0",
-        "contribution_logodds": 0.3403,
+        "contribution_logodds": 0.3411,
         "support_level": "supported"
       },
       {
         "category": "overtime_overload",
         "title": "Overtime overload",
         "reason": "Overtime overload: averaging 1.8 h overtime a week recently, 1 week(s) since a weekend off",
-        "contribution_logodds": 0.2036,
+        "contribution_logodds": 0.205,
         "support_level": "supported"
       }
     ],
@@ -622,33 +622,33 @@
     "week_start": "2029-12-24",
     "segment": "resignation",
     "model": "logistic",
-    "risk": 0.0357,
+    "risk": 0.0354,
     "rank": 18,
     "group_size": 48,
     "band": "low",
     "band_basis": "model_rank",
-    "rank_is_tied": false,
+    "rank_is_tied": true,
     "is_demo_hero": false,
     "drivers": [
       {
         "category": "clustered_leave_burnout",
         "title": "Clustered-leave burnout",
         "reason": "Clustered-leave burnout: 11 week(s) without leave; 1 leave day(s) bunched before a festival",
-        "contribution_logodds": 0.2624,
+        "contribution_logodds": 0.2635,
         "support_level": "weakly_supported"
       },
       {
         "category": "overtime_overload",
         "title": "Overtime overload",
         "reason": "Overtime overload: averaging 2.3 h overtime a week recently, 6 week(s) since a weekend off",
-        "contribution_logodds": 0.2473,
+        "contribution_logodds": 0.2497,
         "support_level": "supported"
       },
       {
         "category": "stalled_progression",
         "title": "Stalled progression",
         "reason": "Stalled progression: 16 months since the last raise",
-        "contribution_logodds": 0.2435,
+        "contribution_logodds": 0.2448,
         "support_level": "supported"
       }
     ],
@@ -675,7 +675,7 @@
     "week_start": "2029-12-24",
     "segment": "resignation",
     "model": "logistic",
-    "risk": 0.03,
+    "risk": 0.0298,
     "rank": 25,
     "group_size": 48,
     "band": "low",
@@ -687,14 +687,14 @@
         "category": "low_engagement",
         "title": "Low engagement",
         "reason": "Low engagement: pulse 2.5/5 over 4 weeks (change -1.0), task score trend -3.7",
-        "contribution_logodds": 0.2616,
+        "contribution_logodds": 0.2612,
         "support_level": "supported"
       },
       {
         "category": "overtime_overload",
         "title": "Overtime overload",
         "reason": "Overtime overload: averaging 2.0 h overtime a week recently, 0 week(s) since a weekend off",
-        "contribution_logodds": 0.205,
+        "contribution_logodds": 0.2072,
         "support_level": "supported"
       }
     ],
@@ -721,7 +721,7 @@
     "week_start": "2029-12-24",
     "segment": "resignation",
     "model": "logistic",
-    "risk": 0.0104,
+    "risk": 0.0102,
     "rank": 39,
     "group_size": 48,
     "band": "low",
@@ -733,14 +733,14 @@
         "category": "overtime_overload",
         "title": "Overtime overload",
         "reason": "Overtime overload: averaging 3.4 h overtime a week recently, 0 week(s) since a weekend off",
-        "contribution_logodds": 0.232,
+        "contribution_logodds": 0.2355,
         "support_level": "supported"
       },
       {
         "category": "stalled_progression",
         "title": "Stalled progression",
         "reason": "Stalled progression: 12 months since the last raise",
-        "contribution_logodds": 0.1089,
+        "contribution_logodds": 0.1095,
         "support_level": "supported"
       }
     ],
@@ -767,7 +767,7 @@
     "week_start": "2029-12-24",
     "segment": "resignation",
     "model": "logistic",
-    "risk": 0.0201,
+    "risk": 0.02,
     "rank": 32,
     "group_size": 48,
     "band": "low",
@@ -779,14 +779,14 @@
         "category": "overtime_overload",
         "title": "Overtime overload",
         "reason": "Overtime overload: averaging 3.8 h overtime a week recently, 3 week(s) since a weekend off",
-        "contribution_logodds": 0.3041,
+        "contribution_logodds": 0.3065,
         "support_level": "supported"
       },
       {
         "category": "low_engagement",
         "title": "Low engagement",
         "reason": "Low engagement: pulse 3.0/5 over 4 weeks (change -0.6), task score trend +3.4",
-        "contribution_logodds": 0.1858,
+        "contribution_logodds": 0.1833,
         "support_level": "supported"
       }
     ],
@@ -813,7 +813,7 @@
     "week_start": "2029-12-24",
     "segment": "resignation",
     "model": "logistic",
-    "risk": 0.0328,
+    "risk": 0.0325,
     "rank": 22,
     "group_size": 48,
     "band": "low",
@@ -825,14 +825,14 @@
         "category": "clustered_leave_burnout",
         "title": "Clustered-leave burnout",
         "reason": "Clustered-leave burnout: 12 week(s) without leave; 0 leave day(s) bunched before a festival",
-        "contribution_logodds": 0.4114,
+        "contribution_logodds": 0.4139,
         "support_level": "weakly_supported"
       },
       {
         "category": "overtime_overload",
         "title": "Overtime overload",
         "reason": "Overtime overload: averaging 3.2 h overtime a week recently, 0 week(s) since a weekend off",
-        "contribution_logodds": 0.2785,
+        "contribution_logodds": 0.2803,
         "support_level": "supported"
       }
     ],
@@ -859,26 +859,26 @@
     "week_start": "2029-12-24",
     "segment": "resignation",
     "model": "logistic",
-    "risk": 0.035,
-    "rank": 19,
+    "risk": 0.0354,
+    "rank": 18,
     "group_size": 48,
     "band": "low",
     "band_basis": "model_rank",
-    "rank_is_tied": false,
+    "rank_is_tied": true,
     "is_demo_hero": false,
     "drivers": [
       {
         "category": "stalled_progression",
         "title": "Stalled progression",
         "reason": "Stalled progression: 28 months since the last raise",
-        "contribution_logodds": 0.6893,
+        "contribution_logodds": 0.6929,
         "support_level": "supported"
       },
       {
         "category": "overtime_overload",
         "title": "Overtime overload",
         "reason": "Overtime overload: averaging 1.5 h overtime a week recently, 12 week(s) since a weekend off",
-        "contribution_logodds": 0.2454,
+        "contribution_logodds": 0.2467,
         "support_level": "supported"
       }
     ],
@@ -905,7 +905,7 @@
     "week_start": "2029-12-24",
     "segment": "resignation",
     "model": "logistic",
-    "risk": 0.0272,
+    "risk": 0.027,
     "rank": 26,
     "group_size": 48,
     "band": "low",
@@ -917,14 +917,14 @@
         "category": "overtime_overload",
         "title": "Overtime overload",
         "reason": "Overtime overload: averaging 1.7 h overtime a week recently, 2 week(s) since a weekend off",
-        "contribution_logodds": 0.2939,
+        "contribution_logodds": 0.2959,
         "support_level": "supported"
       },
       {
         "category": "clustered_leave_burnout",
         "title": "Clustered-leave burnout",
         "reason": "Clustered-leave burnout: 8 week(s) without leave; 1 leave day(s) bunched before a festival",
-        "contribution_logodds": 0.1271,
+        "contribution_logodds": 0.1276,
         "support_level": "weakly_supported"
       }
     ],
@@ -951,7 +951,7 @@
     "week_start": "2029-12-24",
     "segment": "resignation",
     "model": "logistic",
-    "risk": 0.0242,
+    "risk": 0.024,
     "rank": 30,
     "group_size": 48,
     "band": "low",
@@ -963,14 +963,14 @@
         "category": "overtime_overload",
         "title": "Overtime overload",
         "reason": "Overtime overload: averaging 5.8 h overtime a week recently, 0 week(s) since a weekend off",
-        "contribution_logodds": 0.4261,
+        "contribution_logodds": 0.4303,
         "support_level": "supported"
       },
       {
         "category": "pay_gap",
         "title": "Pay gap",
         "reason": "Pay gap: paid 115% of the role average",
-        "contribution_logodds": 0.1223,
+        "contribution_logodds": 0.1216,
         "support_level": "supported"
       }
     ],
@@ -997,33 +997,33 @@
     "week_start": "2029-12-24",
     "segment": "resignation",
     "model": "logistic",
-    "risk": 0.1006,
-    "rank": 2,
+    "risk": 0.1007,
+    "rank": 3,
     "group_size": 48,
     "band": "high",
     "band_basis": "model_rank",
-    "rank_is_tied": true,
+    "rank_is_tied": false,
     "is_demo_hero": false,
     "drivers": [
       {
         "category": "clustered_leave_burnout",
         "title": "Clustered-leave burnout",
         "reason": "Clustered-leave burnout: 19 week(s) without leave; 0 leave day(s) bunched before a festival",
-        "contribution_logodds": 0.7271,
+        "contribution_logodds": 0.7311,
         "support_level": "weakly_supported"
       },
       {
         "category": "overtime_overload",
         "title": "Overtime overload",
         "reason": "Overtime overload: averaging 4.0 h overtime a week recently, 2 week(s) since a weekend off",
-        "contribution_logodds": 0.3526,
+        "contribution_logodds": 0.3555,
         "support_level": "supported"
       },
       {
         "category": "pay_gap",
         "title": "Pay gap",
         "reason": "Pay gap: paid 109% of the role average",
-        "contribution_logodds": 0.2338,
+        "contribution_logodds": 0.2343,
         "support_level": "supported"
       }
     ],
@@ -1062,14 +1062,14 @@
         "category": "overtime_overload",
         "title": "Overtime overload",
         "reason": "Overtime overload: averaging 1.1 h overtime a week recently, 0 week(s) since a weekend off",
-        "contribution_logodds": 0.149,
+        "contribution_logodds": 0.1505,
         "support_level": "supported"
       },
       {
         "category": "stalled_progression",
         "title": "Stalled progression",
         "reason": "Stalled progression: 12 months since the last raise",
-        "contribution_logodds": 0.1174,
+        "contribution_logodds": 0.118,
         "support_level": "supported"
       }
     ],
@@ -1096,8 +1096,8 @@
     "week_start": "2029-12-24",
     "segment": "resignation",
     "model": "logistic",
-    "risk": 0.0167,
-    "rank": 38,
+    "risk": 0.0168,
+    "rank": 37,
     "group_size": 48,
     "band": "low",
     "band_basis": "model_rank",
@@ -1108,7 +1108,7 @@
         "category": "overtime_overload",
         "title": "Overtime overload",
         "reason": "Overtime overload: averaging 3.0 h overtime a week recently, 0 week(s) since a weekend off",
-        "contribution_logodds": 0.2561,
+        "contribution_logodds": 0.258,
         "support_level": "supported"
       }
     ],
@@ -1147,21 +1147,21 @@
         "category": "stalled_progression",
         "title": "Stalled progression",
         "reason": "Stalled progression: 27 months since the last raise",
-        "contribution_logodds": 0.6472,
+        "contribution_logodds": 0.6507,
         "support_level": "supported"
       },
       {
         "category": "pay_gap",
         "title": "Pay gap",
         "reason": "Pay gap: paid 103% of the role average",
-        "contribution_logodds": 0.3557,
+        "contribution_logodds": 0.3576,
         "support_level": "supported"
       },
       {
         "category": "overtime_overload",
         "title": "Overtime overload",
         "reason": "Overtime overload: averaging 1.6 h overtime a week recently, 8 week(s) since a weekend off",
-        "contribution_logodds": 0.2386,
+        "contribution_logodds": 0.2403,
         "support_level": "supported"
       }
     ],
@@ -1188,7 +1188,7 @@
     "week_start": "2029-12-24",
     "segment": "resignation",
     "model": "logistic",
-    "risk": 0.0239,
+    "risk": 0.0238,
     "rank": 31,
     "group_size": 48,
     "band": "low",
@@ -1200,14 +1200,14 @@
         "category": "clustered_leave_burnout",
         "title": "Clustered-leave burnout",
         "reason": "Clustered-leave burnout: 11 week(s) without leave; 1 leave day(s) bunched before a festival",
-        "contribution_logodds": 0.2624,
+        "contribution_logodds": 0.2635,
         "support_level": "weakly_supported"
       },
       {
         "category": "overtime_overload",
         "title": "Overtime overload",
         "reason": "Overtime overload: averaging 1.8 h overtime a week recently, 1 week(s) since a weekend off",
-        "contribution_logodds": 0.1722,
+        "contribution_logodds": 0.1738,
         "support_level": "supported"
       }
     ],
@@ -1234,7 +1234,7 @@
     "week_start": "2029-12-24",
     "segment": "resignation",
     "model": "logistic",
-    "risk": 0.0646,
+    "risk": 0.0652,
     "rank": 8,
     "group_size": 48,
     "band": "watch",
@@ -1246,21 +1246,21 @@
         "category": "pay_gap",
         "title": "Pay gap",
         "reason": "Pay gap: paid 96% of the role average",
-        "contribution_logodds": 0.5312,
+        "contribution_logodds": 0.5347,
         "support_level": "supported"
       },
       {
         "category": "clustered_leave_burnout",
         "title": "Clustered-leave burnout",
         "reason": "Clustered-leave burnout: 12 week(s) without leave; 0 leave day(s) bunched before a festival",
-        "contribution_logodds": 0.4114,
+        "contribution_logodds": 0.4139,
         "support_level": "weakly_supported"
       },
       {
         "category": "overtime_overload",
         "title": "Overtime overload",
         "reason": "Overtime overload: averaging 2.0 h overtime a week recently, 6 week(s) since a weekend off",
-        "contribution_logodds": 0.2897,
+        "contribution_logodds": 0.2901,
         "support_level": "supported"
       }
     ],
@@ -1287,7 +1287,7 @@
     "week_start": "2029-12-24",
     "segment": "resignation",
     "model": "logistic",
-    "risk": 0.0389,
+    "risk": 0.0388,
     "rank": 17,
     "group_size": 48,
     "band": "low",
@@ -1299,21 +1299,21 @@
         "category": "low_engagement",
         "title": "Low engagement",
         "reason": "Low engagement: pulse 3.0/5 over 4 weeks (change +0.2), task score trend -2.0",
-        "contribution_logodds": 0.1912,
+        "contribution_logodds": 0.1904,
         "support_level": "supported"
       },
       {
         "category": "overtime_overload",
         "title": "Overtime overload",
         "reason": "Overtime overload: averaging 1.7 h overtime a week recently, 2 week(s) since a weekend off",
-        "contribution_logodds": 0.1717,
+        "contribution_logodds": 0.1736,
         "support_level": "supported"
       },
       {
         "category": "stalled_progression",
         "title": "Stalled progression",
         "reason": "Stalled progression: 13 months since the last raise",
-        "contribution_logodds": 0.1426,
+        "contribution_logodds": 0.1433,
         "support_level": "supported"
       }
     ],
@@ -1340,7 +1340,7 @@
     "week_start": "2029-12-24",
     "segment": "resignation",
     "model": "logistic",
-    "risk": 0.0463,
+    "risk": 0.0464,
     "rank": 15,
     "group_size": 48,
     "band": "low",
@@ -1352,21 +1352,21 @@
         "category": "overtime_overload",
         "title": "Overtime overload",
         "reason": "Overtime overload: averaging 2.8 h overtime a week recently, 0 week(s) since a weekend off",
-        "contribution_logodds": 0.2408,
+        "contribution_logodds": 0.2424,
         "support_level": "supported"
       },
       {
         "category": "low_engagement",
         "title": "Low engagement",
         "reason": "Low engagement: pulse 2.9/5 over 4 weeks (change -0.6), task score trend +0.8",
-        "contribution_logodds": 0.2305,
+        "contribution_logodds": 0.2268,
         "support_level": "supported"
       },
       {
         "category": "stalled_progression",
         "title": "Stalled progression",
         "reason": "Stalled progression: 15 months since the last raise",
-        "contribution_logodds": 0.2099,
+        "contribution_logodds": 0.211,
         "support_level": "supported"
       }
     ],
@@ -1393,7 +1393,7 @@
     "week_start": "2029-12-24",
     "segment": "resignation",
     "model": "logistic",
-    "risk": 0.0323,
+    "risk": 0.0322,
     "rank": 23,
     "group_size": 48,
     "band": "low",
@@ -1405,14 +1405,14 @@
         "category": "overtime_overload",
         "title": "Overtime overload",
         "reason": "Overtime overload: averaging 2.3 h overtime a week recently, 7 week(s) since a weekend off",
-        "contribution_logodds": 0.2532,
+        "contribution_logodds": 0.2557,
         "support_level": "supported"
       },
       {
         "category": "pay_gap",
         "title": "Pay gap",
         "reason": "Pay gap: paid 111% of the role average",
-        "contribution_logodds": 0.1999,
+        "contribution_logodds": 0.2001,
         "support_level": "supported"
       }
     ],
@@ -1439,7 +1439,7 @@
     "week_start": "2029-12-24",
     "segment": "resignation",
     "model": "logistic",
-    "risk": 0.0947,
+    "risk": 0.0946,
     "rank": 4,
     "group_size": 48,
     "band": "high",
@@ -1451,21 +1451,21 @@
         "category": "stalled_progression",
         "title": "Stalled progression",
         "reason": "Stalled progression: 21 months since the last raise",
-        "contribution_logodds": 0.4476,
+        "contribution_logodds": 0.4499,
         "support_level": "supported"
       },
       {
         "category": "pay_gap",
         "title": "Pay gap",
         "reason": "Pay gap: paid 98% of the role average",
-        "contribution_logodds": 0.4449,
+        "contribution_logodds": 0.4479,
         "support_level": "supported"
       },
       {
         "category": "overtime_overload",
         "title": "Overtime overload",
         "reason": "Overtime overload: averaging 2.5 h overtime a week recently, 0 week(s) since a weekend off",
-        "contribution_logodds": 0.2486,
+        "contribution_logodds": 0.25,
         "support_level": "supported"
       }
     ],
@@ -1492,7 +1492,7 @@
     "week_start": "2029-12-24",
     "segment": "resignation",
     "model": "logistic",
-    "risk": 0.0482,
+    "risk": 0.0487,
     "rank": 13,
     "group_size": 48,
     "band": "watch",
@@ -1504,21 +1504,21 @@
         "category": "stalled_progression",
         "title": "Stalled progression",
         "reason": "Stalled progression: 18 months since the last raise",
-        "contribution_logodds": 0.3335,
+        "contribution_logodds": 0.3352,
         "support_level": "supported"
       },
       {
         "category": "overtime_overload",
         "title": "Overtime overload",
         "reason": "Overtime overload: averaging 4.3 h overtime a week recently, 1 week(s) since a weekend off",
-        "contribution_logodds": 0.3072,
+        "contribution_logodds": 0.3113,
         "support_level": "supported"
       },
       {
         "category": "pay_gap",
         "title": "Pay gap",
         "reason": "Pay gap: paid 103% of the role average",
-        "contribution_logodds": 0.1188,
+        "contribution_logodds": 0.12,
         "support_level": "supported"
       }
     ],
@@ -1545,7 +1545,7 @@
     "week_start": "2029-12-24",
     "segment": "resignation",
     "model": "logistic",
-    "risk": 0.0266,
+    "risk": 0.0265,
     "rank": 27,
     "group_size": 48,
     "band": "low",
@@ -1557,14 +1557,14 @@
         "category": "stalled_progression",
         "title": "Stalled progression",
         "reason": "Stalled progression: 17 months since the last raise",
-        "contribution_logodds": 0.2976,
+        "contribution_logodds": 0.2992,
         "support_level": "supported"
       },
       {
         "category": "overtime_overload",
         "title": "Overtime overload",
         "reason": "Overtime overload: averaging 1.4 h overtime a week recently, 1 week(s) since a weekend off",
-        "contribution_logodds": 0.1491,
+        "contribution_logodds": 0.1509,
         "support_level": "supported"
       }
     ],
@@ -1591,7 +1591,7 @@
     "week_start": "2029-12-24",
     "segment": "resignation",
     "model": "logistic",
-    "risk": 0.0618,
+    "risk": 0.0619,
     "rank": 9,
     "group_size": 48,
     "band": "watch",
@@ -1603,14 +1603,14 @@
         "category": "overtime_overload",
         "title": "Overtime overload",
         "reason": "Overtime overload: averaging 1.4 h overtime a week recently, 9 week(s) since a weekend off",
-        "contribution_logodds": 0.2345,
+        "contribution_logodds": 0.2355,
         "support_level": "supported"
       },
       {
         "category": "clustered_leave_burnout",
         "title": "Clustered-leave burnout",
         "reason": "Clustered-leave burnout: 8 week(s) without leave; 1 leave day(s) bunched before a festival",
-        "contribution_logodds": 0.1271,
+        "contribution_logodds": 0.1276,
         "support_level": "weakly_supported"
       }
     ],
@@ -1637,7 +1637,7 @@
     "week_start": "2029-12-24",
     "segment": "resignation",
     "model": "logistic",
-    "risk": 0.1823,
+    "risk": 0.1849,
     "rank": 1,
     "group_size": 48,
     "band": "high",
@@ -1649,21 +1649,21 @@
         "category": "low_engagement",
         "title": "Low engagement",
         "reason": "Low engagement: pulse 2.5/5 over 4 weeks (change -0.4), task score trend -1.4",
-        "contribution_logodds": 0.4447,
+        "contribution_logodds": 0.4465,
         "support_level": "supported"
       },
       {
         "category": "overtime_overload",
         "title": "Overtime overload",
         "reason": "Overtime overload: averaging 3.1 h overtime a week recently, 3 week(s) since a weekend off",
-        "contribution_logodds": 0.3213,
+        "contribution_logodds": 0.3234,
         "support_level": "supported"
       },
       {
         "category": "stalled_progression",
         "title": "Stalled progression",
         "reason": "Stalled progression: 18 months since the last raise",
-        "contribution_logodds": 0.3035,
+        "contribution_logodds": 0.3051,
         "support_level": "supported"
       }
     ],
@@ -1690,7 +1690,7 @@
     "week_start": "2029-12-24",
     "segment": "resignation",
     "model": "logistic",
-    "risk": 0.0521,
+    "risk": 0.0508,
     "rank": 12,
     "group_size": 48,
     "band": "watch",
@@ -1702,14 +1702,14 @@
         "category": "overtime_overload",
         "title": "Overtime overload",
         "reason": "Overtime overload: averaging 2.3 h overtime a week recently, 1 week(s) since a weekend off",
-        "contribution_logodds": 0.3004,
+        "contribution_logodds": 0.3018,
         "support_level": "supported"
       },
       {
         "category": "stalled_progression",
         "title": "Stalled progression",
         "reason": "Stalled progression: 17 months since the last raise",
-        "contribution_logodds": 0.2783,
+        "contribution_logodds": 0.2797,
         "support_level": "supported"
       }
     ],
@@ -1736,7 +1736,7 @@
     "week_start": "2029-12-24",
     "segment": "resignation",
     "model": "logistic",
-    "risk": 0.0572,
+    "risk": 0.0574,
     "rank": 10,
     "group_size": 48,
     "band": "watch",
@@ -1748,21 +1748,21 @@
         "category": "pay_gap",
         "title": "Pay gap",
         "reason": "Pay gap: paid 87% of the role average",
-        "contribution_logodds": 0.3749,
+        "contribution_logodds": 0.3795,
         "support_level": "supported"
       },
       {
         "category": "stalled_progression",
         "title": "Stalled progression",
         "reason": "Stalled progression: 16 months since the last raise",
-        "contribution_logodds": 0.2494,
+        "contribution_logodds": 0.2507,
         "support_level": "supported"
       },
       {
         "category": "overtime_overload",
         "title": "Overtime overload",
         "reason": "Overtime overload: averaging 1.7 h overtime a week recently, 5 week(s) since a weekend off",
-        "contribution_logodds": 0.2087,
+        "contribution_logodds": 0.2103,
         "support_level": "supported"
       }
     ],
@@ -1789,7 +1789,7 @@
     "week_start": "2029-12-24",
     "segment": "resignation",
     "model": "logistic",
-    "risk": 0.056,
+    "risk": 0.0564,
     "rank": 11,
     "group_size": 48,
     "band": "watch",
@@ -1801,21 +1801,21 @@
         "category": "overtime_overload",
         "title": "Overtime overload",
         "reason": "Overtime overload: averaging 3.5 h overtime a week recently, 6 week(s) since a weekend off",
-        "contribution_logodds": 0.3025,
+        "contribution_logodds": 0.3062,
         "support_level": "supported"
       },
       {
         "category": "pay_gap",
         "title": "Pay gap",
         "reason": "Pay gap: paid 98% of the role average",
-        "contribution_logodds": 0.2354,
+        "contribution_logodds": 0.2378,
         "support_level": "supported"
       },
       {
         "category": "stalled_progression",
         "title": "Stalled progression",
         "reason": "Stalled progression: 13 months since the last raise",
-        "contribution_logodds": 0.1473,
+        "contribution_logodds": 0.1481,
         "support_level": "supported"
       }
     ],
@@ -1842,7 +1842,7 @@
     "week_start": "2029-12-24",
     "segment": "resignation",
     "model": "logistic",
-    "risk": 0.0745,
+    "risk": 0.0754,
     "rank": 7,
     "group_size": 48,
     "band": "watch",
@@ -1854,21 +1854,21 @@
         "category": "pay_gap",
         "title": "Pay gap",
         "reason": "Pay gap: paid 91% of the role average",
-        "contribution_logodds": 0.6211,
+        "contribution_logodds": 0.6256,
         "support_level": "supported"
       },
       {
         "category": "clustered_leave_burnout",
         "title": "Clustered-leave burnout",
         "reason": "Clustered-leave burnout: 13 week(s) without leave; 0 leave day(s) bunched before a festival",
-        "contribution_logodds": 0.4565,
+        "contribution_logodds": 0.4592,
         "support_level": "weakly_supported"
       },
       {
         "category": "overtime_overload",
         "title": "Overtime overload",
         "reason": "Overtime overload: averaging 2.1 h overtime a week recently, 3 week(s) since a weekend off",
-        "contribution_logodds": 0.2607,
+        "contribution_logodds": 0.2624,
         "support_level": "supported"
       }
     ],
@@ -1895,7 +1895,7 @@
     "week_start": "2029-12-24",
     "segment": "resignation",
     "model": "logistic",
-    "risk": 0.007,
+    "risk": 0.0069,
     "rank": 42,
     "group_size": 48,
     "band": "low",
@@ -1907,14 +1907,14 @@
         "category": "pay_gap",
         "title": "Pay gap",
         "reason": "Pay gap: paid 108% of the role average",
-        "contribution_logodds": 0.3128,
+        "contribution_logodds": 0.3137,
         "support_level": "supported"
       },
       {
         "category": "stalled_progression",
         "title": "Stalled progression",
         "reason": "Stalled progression: 12 months since the last raise",
-        "contribution_logodds": 0.1078,
+        "contribution_logodds": 0.1084,
         "support_level": "supported"
       }
     ],
@@ -1941,33 +1941,33 @@
     "week_start": "2029-12-24",
     "segment": "resignation",
     "model": "logistic",
-    "risk": 0.1006,
+    "risk": 0.1008,
     "rank": 2,
     "group_size": 48,
     "band": "high",
     "band_basis": "model_rank",
-    "rank_is_tied": true,
+    "rank_is_tied": false,
     "is_demo_hero": false,
     "drivers": [
       {
         "category": "pay_gap",
         "title": "Pay gap",
         "reason": "Pay gap: paid 84% of the role average",
-        "contribution_logodds": 0.7251,
+        "contribution_logodds": 0.7312,
         "support_level": "supported"
       },
       {
         "category": "low_engagement",
         "title": "Low engagement",
         "reason": "Low engagement: pulse 2.6/5 over 4 weeks (change -0.4), task score trend +0.5",
-        "contribution_logodds": 0.2974,
+        "contribution_logodds": 0.2931,
         "support_level": "supported"
       },
       {
         "category": "overtime_overload",
         "title": "Overtime overload",
         "reason": "Overtime overload: averaging 2.9 h overtime a week recently, 2 week(s) since a weekend off",
-        "contribution_logodds": 0.241,
+        "contribution_logodds": 0.2438,
         "support_level": "supported"
       }
     ],
@@ -2006,7 +2006,7 @@
         "category": "overtime_overload",
         "title": "Overtime overload",
         "reason": "Overtime overload: averaging 1.7 h overtime a week recently, 6 week(s) since a weekend off",
-        "contribution_logodds": 0.2122,
+        "contribution_logodds": 0.2131,
         "support_level": "supported"
       }
     ],
@@ -2033,7 +2033,7 @@
     "week_start": "2029-12-24",
     "segment": "resignation",
     "model": "logistic",
-    "risk": 0.087,
+    "risk": 0.0866,
     "rank": 5,
     "group_size": 48,
     "band": "high",
@@ -2045,21 +2045,21 @@
         "category": "overtime_overload",
         "title": "Overtime overload",
         "reason": "Overtime overload: averaging 5.8 h overtime a week recently, 1 week(s) since a weekend off",
-        "contribution_logodds": 0.5484,
+        "contribution_logodds": 0.5513,
         "support_level": "supported"
       },
       {
         "category": "low_engagement",
         "title": "Low engagement",
         "reason": "Low engagement: pulse 2.9/5 over 4 weeks (change -0.3), task score trend +2.8",
-        "contribution_logodds": 0.243,
+        "contribution_logodds": 0.2413,
         "support_level": "supported"
       },
       {
         "category": "pay_gap",
         "title": "Pay gap",
         "reason": "Pay gap: paid 96% of the role average",
-        "contribution_logodds": 0.1647,
+        "contribution_logodds": 0.1672,
         "support_level": "supported"
       }
     ],
@@ -2102,8 +2102,8 @@
     "week_start": "2029-12-24",
     "segment": "resignation",
     "model": "logistic",
-    "risk": 0.0329,
-    "rank": 21,
+    "risk": 0.0335,
+    "rank": 20,
     "group_size": 48,
     "band": "low",
     "band_basis": "model_rank",
@@ -2114,14 +2114,14 @@
         "category": "low_engagement",
         "title": "Low engagement",
         "reason": "Low engagement: pulse 2.2/5 over 4 weeks (change -1.2), task score trend -2.0",
-        "contribution_logodds": 0.418,
+        "contribution_logodds": 0.4158,
         "support_level": "supported"
       },
       {
         "category": "overtime_overload",
         "title": "Overtime overload",
         "reason": "Overtime overload: averaging 3.8 h overtime a week recently, 0 week(s) since a weekend off",
-        "contribution_logodds": 0.2817,
+        "contribution_logodds": 0.2849,
         "support_level": "supported"
       }
     ],
@@ -2244,7 +2244,7 @@
     "week_start": "2029-12-24",
     "segment": "resignation",
     "model": "logistic",
-    "risk": 0.026,
+    "risk": 0.0259,
     "rank": 28,
     "group_size": 48,
     "band": "low",
@@ -2256,14 +2256,14 @@
         "category": "pay_gap",
         "title": "Pay gap",
         "reason": "Pay gap: paid 100% of the role average",
-        "contribution_logodds": 0.4018,
+        "contribution_logodds": 0.4042,
         "support_level": "supported"
       },
       {
         "category": "overtime_overload",
         "title": "Overtime overload",
         "reason": "Overtime overload: averaging 4.0 h overtime a week recently, 1 week(s) since a weekend off",
-        "contribution_logodds": 0.1452,
+        "contribution_logodds": 0.1475,
         "support_level": "supported"
       }
     ],
@@ -2290,7 +2290,7 @@
     "week_start": "2029-12-24",
     "segment": "resignation",
     "model": "logistic",
-    "risk": 0.0905,
+    "risk": 0.0911,
     "rank": 5,
     "group_size": 48,
     "band": "high",
@@ -2302,21 +2302,21 @@
         "category": "overtime_overload",
         "title": "Overtime overload",
         "reason": "Overtime overload: averaging 13.1 h overtime a week recently, 5 week(s) since a weekend off",
-        "contribution_logodds": 0.6187,
+        "contribution_logodds": 0.6269,
         "support_level": "supported"
       },
       {
         "category": "pay_gap",
         "title": "Pay gap",
         "reason": "Pay gap: paid 97% of the role average",
-        "contribution_logodds": 0.464,
+        "contribution_logodds": 0.4671,
         "support_level": "supported"
       },
       {
         "category": "low_engagement",
         "title": "Low engagement",
         "reason": "Low engagement: pulse 2.8/5 over 4 weeks (change -0.5), task score trend -3.3",
-        "contribution_logodds": 0.2795,
+        "contribution_logodds": 0.2803,
         "support_level": "supported"
       }
     ],
@@ -2343,7 +2343,7 @@
     "week_start": "2029-12-24",
     "segment": "resignation",
     "model": "logistic",
-    "risk": 0.0402,
+    "risk": 0.0404,
     "rank": 17,
     "group_size": 48,
     "band": "low",
@@ -2355,21 +2355,21 @@
         "category": "stalled_progression",
         "title": "Stalled progression",
         "reason": "Stalled progression: 20 months since the last raise",
-        "contribution_logodds": 0.3949,
+        "contribution_logodds": 0.397,
         "support_level": "supported"
       },
       {
         "category": "low_engagement",
         "title": "Low engagement",
         "reason": "Low engagement: pulse 3.6/5 over 4 weeks (change -0.0), task score trend +0.4",
-        "contribution_logodds": 0.1223,
+        "contribution_logodds": 0.1294,
         "support_level": "supported"
       },
       {
         "category": "overtime_overload",
         "title": "Overtime overload",
         "reason": "Overtime overload: averaging 2.0 h overtime a week recently, 1 week(s) since a weekend off",
-        "contribution_logodds": 0.1175,
+        "contribution_logodds": 0.1191,
         "support_level": "supported"
       }
     ],
@@ -2396,7 +2396,7 @@
     "week_start": "2029-12-24",
     "segment": "resignation",
     "model": "logistic",
-    "risk": 0.0396,
+    "risk": 0.04,
     "rank": 17,
     "group_size": 48,
     "band": "low",
@@ -2408,14 +2408,14 @@
         "category": "pay_gap",
         "title": "Pay gap",
         "reason": "Pay gap: paid 82% of the role average",
-        "contribution_logodds": 0.5801,
+        "contribution_logodds": 0.5861,
         "support_level": "supported"
       },
       {
         "category": "overtime_overload",
         "title": "Overtime overload",
         "reason": "Overtime overload: averaging 1.0 h overtime a week recently, 1 week(s) since a weekend off",
-        "contribution_logodds": 0.1031,
+        "contribution_logodds": 0.1041,
         "support_level": "supported"
       }
     ],
@@ -2481,7 +2481,7 @@
     "week_start": "2029-12-24",
     "segment": "resignation",
     "model": "logistic",
-    "risk": 0.0234,
+    "risk": 0.0233,
     "rank": 32,
     "group_size": 48,
     "band": "low",

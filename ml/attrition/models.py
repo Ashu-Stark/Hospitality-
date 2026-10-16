@@ -4,22 +4,25 @@ Scorers:
   rules     count (0-3) of: sustained overtime (overtime_window_mean >= rule hours), no weekend
             off for >= rule weeks, pulse fell by >= rule drop over 4 weeks. Thresholds are
             ASSUMED values in config.yaml attrition_model.
-  logistic  standardised numerics + one-hot categoricals, L2 logistic regression
-  lightgbm  small, heavily regularised gradient-boosted trees (fixed settings, not tuned)
+  logistic  standardised numerics + one-hot categoricals, L2 logistic regression (C = 1, no
+            class weights), trained with torch on the GPU (ml/torch_logistic.py)
+  xgboost   small, heavily regularised gradient-boosted trees (fixed settings, not tuned),
+            trained with XGBoost on the GPU; replaces the earlier LightGBM comparison
 Every scorer is calibrated with Platt scaling (a 1-D logistic fit of the label on the raw score,
-on the VALIDATION year) because a validation year holds only ~5-15 leavers, too few for
-isotonic regression. The flag threshold maximises F1 on the validation year.
+on the VALIDATION year, also on the GPU) because a validation year holds only ~5-15 leavers, too
+few for isotonic regression. The flag threshold maximises F1 on the validation year.
+Training refuses to run without CUDA (ml/gpu.py). For evaluation the fitted models predict on
+the GPU; the saved bundle is switched to CPU inference (numpy coefficients and an exported
+TreeEnsemble), so the servers need neither torch nor xgboost.
 """
 
 from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-import lightgbm as lgb
 import numpy as np
 import pandas as pd
 from sklearn.compose import ColumnTransformer
-from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import (
     average_precision_score,
     brier_score_loss,
@@ -29,17 +32,23 @@ from sklearn.metrics import (
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
 
+from ml import gpu
 from ml.attrition.features import MODEL_FEATURES, MODEL_NUMERIC
 from ml.features.build_features import CATEGORICAL_FEATURES, CONTRACT_END_CAP_DAYS
 from ml.generator.config import AttritionModelConfig
+from ml.torch_logistic import TorchLogisticRegression, platt_fit
+from ml.xgb_trees import TreeEnsemble
 
-RULES, LOGISTIC, LIGHTGBM = "rules", "logistic", "lightgbm"
-SCORERS = (RULES, LOGISTIC, LIGHTGBM)
+RULES, LOGISTIC, XGBOOST = "rules", "logistic", "xgboost"
+SCORERS = (RULES, LOGISTIC, XGBOOST)
 CONTRACT_RULE = "contract_rule"  # contract_end only: fewer days to the contract end = higher risk
 LOGISTIC_MAX_ITER = 2000
-LGBM_PARAMS = dict(n_estimators=200, learning_rate=0.05, num_leaves=8, min_child_samples=50,
-                   colsample_bytree=0.8, n_jobs=1, deterministic=True, force_row_wise=True,
-                   verbose=-1)
+# The earlier LightGBM settings mapped to XGBoost: 200 rounds, rate 0.05, leaf-wise with at most
+# 8 leaves, 0.8 column subsampling. LightGBM's "at least 50 rows per leaf" has no XGBoost
+# equivalent (min_child_weight is a hessian sum, p(1-p) per row for a rare label), so the
+# XGBoost default min_child_weight 1 and L2 lambda 1 are kept.
+XGB_PARAMS = dict(n_estimators=200, learning_rate=0.05, grow_policy="lossguide", max_leaves=8,
+                  max_depth=0, colsample_bytree=0.8, **gpu.XGB_DEVICE)
 LOGIT_CLIP = 1e-6
 CALIBRATION_BINS = 5
 
@@ -56,25 +65,52 @@ def rule_score(df: pd.DataFrame, cfg: AttritionModelConfig) -> np.ndarray:
     return rule_conditions(df, cfg).sum(axis=1).to_numpy(dtype=float)
 
 
-class LightGBMScorer:
-    """LightGBM on one-hot categoricals; keeps the design columns for scoring and SHAP."""
+class XGBoostScorer:
+    """XGBoost (GPU) on one-hot categoricals; keeps the design columns for scoring and SHAP.
+
+    After fit, `model` is the exported TreeEnsemble (numpy, CPU inference); while `on_gpu` is
+    True (training / evaluation) predictions and TreeSHAP run on the GPU."""
 
     def __init__(self, seed: int) -> None:
-        self.model = lgb.LGBMClassifier(random_state=seed, **LGBM_PARAMS)
+        self.seed = seed
+        self.model: TreeEnsemble | None = None
         self.columns: list[str] = []
+        self.on_gpu = False
 
     def design(self, df: pd.DataFrame) -> pd.DataFrame:
         x = pd.get_dummies(df[MODEL_FEATURES], columns=CATEGORICAL_FEATURES, dtype=float)
         return x.reindex(columns=self.columns, fill_value=0.0) if self.columns else x
 
-    def fit(self, df: pd.DataFrame, y: np.ndarray) -> LightGBMScorer:
+    def fit(self, df: pd.DataFrame, y: np.ndarray) -> XGBoostScorer:
+        import xgboost as xgb
+
+        gpu.require_cuda()
         x = self.design(df)
         self.columns = list(x.columns)
-        self.model.fit(x, y)
+        clf = xgb.XGBClassifier(random_state=self.seed, **XGB_PARAMS).fit(x, y)
+        gpu.assert_xgb_on_cuda(clf)
+        self.model = TreeEnsemble.from_xgb(clf, x)
+        self.on_gpu = True
+        return self
+
+    def to_cpu(self) -> XGBoostScorer:
+        self.on_gpu = False
         return self
 
     def predict_proba(self, df: pd.DataFrame) -> np.ndarray:
+        if self.on_gpu:
+            from ml.xgb_trees import predict_gpu
+
+            return predict_gpu(self.model, self.design(df), proba=True)
         return self.model.predict_proba(self.design(df))[:, 1]
+
+    def shap(self, df: pd.DataFrame) -> np.ndarray:
+        """TreeSHAP (log-odds) per design column, bias column dropped; XGBoost on the GPU."""
+        import xgboost as xgb
+
+        x = self.design(df)
+        dm = xgb.DMatrix(x.to_numpy(dtype=np.float32), feature_names=self.columns)
+        return self.model.gpu_booster().predict(dm, pred_contribs=True)[:, :-1]
 
 
 def fit_logistic(df: pd.DataFrame, y: np.ndarray, seed: int) -> Pipeline:
@@ -82,26 +118,26 @@ def fit_logistic(df: pd.DataFrame, y: np.ndarray, seed: int) -> Pipeline:
         ("num", StandardScaler(), MODEL_NUMERIC),
         ("cat", OneHotEncoder(handle_unknown="ignore"), CATEGORICAL_FEATURES),
     ])
-    model = Pipeline([("prep", prep), ("clf", LogisticRegression(
-        max_iter=LOGISTIC_MAX_ITER, random_state=seed))])
+    model = Pipeline([("prep", prep), ("clf", TorchLogisticRegression(
+        C=1.0, max_iter=LOGISTIC_MAX_ITER, random_state=seed))])
     return model.fit(df[MODEL_FEATURES], y)
 
 
 @dataclass
 class FittedScorers:
     logistic: Pipeline
-    lightgbm: LightGBMScorer
+    xgboost: XGBoostScorer
     rule_cfg: AttritionModelConfig
 
     def raw(self, df: pd.DataFrame) -> dict[str, np.ndarray]:
         return {RULES: rule_score(df, self.rule_cfg),
                 LOGISTIC: self.logistic.predict_proba(df[MODEL_FEATURES])[:, 1],
-                LIGHTGBM: self.lightgbm.predict_proba(df)}
+                XGBOOST: self.xgboost.predict_proba(df)}
 
 
 def fit_scorers(df: pd.DataFrame, y: np.ndarray, cfg: AttritionModelConfig,
                 seed: int) -> FittedScorers:
-    return FittedScorers(fit_logistic(df, y, seed), LightGBMScorer(seed).fit(df, y), cfg)
+    return FittedScorers(fit_logistic(df, y, seed), XGBoostScorer(seed).fit(df, y), cfg)
 
 
 def _logit(p: np.ndarray) -> np.ndarray:
@@ -121,8 +157,7 @@ class PlattCalibrator:
         return _logit(raw) if self.on_logit else np.asarray(raw, dtype=float)
 
     def fit(self, raw: np.ndarray, y: np.ndarray) -> PlattCalibrator:
-        lr = LogisticRegression(C=np.inf).fit(self._x(raw).reshape(-1, 1), y)
-        self.a, self.b = float(lr.coef_[0, 0]), float(lr.intercept_[0])
+        self.a, self.b = platt_fit(self._x(raw), y)
         return self
 
     def transform(self, raw: np.ndarray) -> np.ndarray:
@@ -191,7 +226,7 @@ class FoldModel:
       logistic       a * coef_j * (x_j - mean_j) on the standardised / one-hot inputs
       rules          a * (condition_j - mean_j)
       contract_rule  a * -(days_until_contract_end - mean)   (fewer days = higher risk)
-      lightgbm       a * TreeSHAP_j (already relative to the expected value)
+      xgboost        a * TreeSHAP_j (already relative to the expected value; GPU, needs xgboost)
     Columns are feature names (one-hot columns as 'feature_value').
     """
 
@@ -214,9 +249,8 @@ class FoldModel:
             col = "days_until_contract_end"
             return pd.DataFrame({col: -a * (df[col] - self.means[CONTRACT_RULE][col])},
                                 index=df.index)
-        lgbm = self.scorers.lightgbm
-        contrib = lgbm.model.booster_.predict(lgbm.design(df), pred_contrib=True)[:, :-1]
-        return pd.DataFrame(a * contrib, columns=lgbm.columns, index=df.index)
+        tree = self.scorers.xgboost
+        return pd.DataFrame(a * tree.shap(df), columns=tree.columns, index=df.index)
 
     def raw(self, df: pd.DataFrame) -> dict[str, np.ndarray]:
         raw = self.scorers.raw(df)

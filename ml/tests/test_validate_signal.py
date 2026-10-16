@@ -51,6 +51,7 @@ def test_expanding_window_with_90_day_gap(feats) -> None:
     assert sizes == sorted(sizes)  # the training set only grows
 
 
+@pytest.mark.gpu  # trains a model: GPU only
 def test_predictions_have_every_scorer(numbers) -> None:
     preds = numbers.predictions
     assert set(SCORERS) <= set(preds.columns)
@@ -66,7 +67,7 @@ def _toy(seed: int) -> pd.DataFrame:
         good = label + rng.normal(0, 0.8, 300)
         rows.append(pd.DataFrame({
             "test_year": year, "employee_id": [f"E{i}" for i in range(300)], "label": label,
-            RULE: good * 0.3 + rng.normal(size=300), "lightgbm": good * scale,
+            RULE: good * 0.3 + rng.normal(size=300), "xgboost": good * scale,
             "logistic": good * scale * 0.5,
         }))
     return pd.concat(rows, ignore_index=True)
@@ -75,14 +76,15 @@ def _toy(seed: int) -> pd.DataFrame:
 def test_ranked_pooling_removes_scale_differences() -> None:
     preds = _toy(0)
     s = summarise_probes(preds, ["test_year"])
-    per_year = [roc_auc_score(g["label"], g["lightgbm"]) for _, g in preds.groupby("test_year")]
-    assert s.scorers["lightgbm"].auc_mean_years == pytest.approx(np.mean(per_year))
-    raw_pooled = roc_auc_score(preds["label"], preds["lightgbm"])
-    assert s.scorers["lightgbm"].auc_rank_pooled > raw_pooled  # raw pooling is penalised
+    per_year = [roc_auc_score(g["label"], g["xgboost"]) for _, g in preds.groupby("test_year")]
+    assert s.scorers["xgboost"].auc_mean_years == pytest.approx(np.mean(per_year))
+    raw_pooled = roc_auc_score(preds["label"], preds["xgboost"])
+    assert s.scorers["xgboost"].auc_rank_pooled > raw_pooled  # raw pooling is penalised
     assert s.best_model in MODELS
     assert s.gap == pytest.approx(s.best.auc_rank_pooled - s.rule.auc_rank_pooled)
 
 
+@pytest.mark.gpu  # trains a model: GPU only
 def test_probe_table_traceable(numbers) -> None:
     t = probe_table(numbers.predictions, numbers.probes)
     assert list(t["test_year"])[-2:] == ["(a) mean of years", "(b) ranked pooled"]
@@ -97,6 +99,7 @@ def test_probe_checks_bands_and_gap() -> None:
     assert len(names) == 3 and any("beats the rule" in n for n in names)
 
 
+@pytest.mark.gpu  # trains a model: GPU only
 def test_no_driver_gate_and_info(numbers) -> None:
     assert no_driver_check(0.10, "pool").passed
     assert not no_driver_check(0.04, "pool").passed and not no_driver_check(0.25, "pool").passed
@@ -117,6 +120,7 @@ def test_driver_frame_matches_scalar_formula(cfg, feats) -> None:
         assert frame.iloc[123][drv] == pytest.approx(float(scalar[drv]))
 
 
+@pytest.mark.gpu  # trains a model: GPU only
 def test_signal_checks_exclude_single_seed_no_driver(cfg, attrition_result, numbers) -> None:
     checks = signal_checks(attrition_result, cfg, numbers)
     assert len(checks) == 6

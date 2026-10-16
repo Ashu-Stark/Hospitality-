@@ -143,7 +143,7 @@ Following the technical plan (Section 0), we declare what existed before the bui
 |---|---|---|
 | Telegram bot for staff (Tier 1) | **Dropped.** Staff phone app (installable web app at `/worker/`): shifts, live job pings, accept/done, live-camera photo proof, supplies, Hindi/English | No bot token or public webhook needed, works on any phone browser, and adds photo proof the bot could not |
 | SQLite, zero network | MongoDB Atlas, one database per service; in-memory fallback (`MONGODB_URI=mongomock://`) for an offline demo | Multi-hotel SaaS and the portal need a shared hosted database |
-| Attrition: LightGBM + SHAP | Logistic regression with per-feature contributions (LightGBM kept as the comparison) | Better on our data: ROC-AUC 0.691 vs 0.652 |
+| Attrition: LightGBM + SHAP | Logistic regression with per-feature contributions (XGBoost kept as the comparison; all training on the GPU) | Better on our data: ROC-AUC 0.691 vs 0.666 |
 | Cut list: inventory, guest checklists, full auth | Built: inventory with GST, guest QR requests, accounts with roles | Requested for the SaaS version; shown as extensions, not core |
 | `make demo` | `scripts\hoi.ps1 start` (one command, all services) | Team rule: Windows, no Makefiles |
 

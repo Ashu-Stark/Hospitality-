@@ -19,18 +19,22 @@
   "model": {
     "model": "pulse_model",
     "seed": 42,
-    "best_iteration": 299,
+    "best_iteration": 507,
+    "trees": 508,
+    "algorithm": "XGBoost reg:absoluteerror (GPU)",
+    "train_device": "cuda:0 NVIDIA GeForce RTX 4050 Laptop GPU",
+    "eval_device": "cuda:0 NVIDIA GeForce RTX 4050 Laptop GPU",
     "val": {
       "rows": 3073,
-      "mae": 0.2455,
-      "rmse": 0.3091,
-      "r2": 0.824
+      "mae": 0.2447,
+      "rmse": 0.3074,
+      "r2": 0.8259
     },
     "test": {
       "rows": 3826,
-      "mae": 0.2498,
-      "rmse": 0.3143,
-      "r2": 0.8064
+      "mae": 0.249,
+      "rmse": 0.3127,
+      "r2": 0.8084
     }
   }
 }

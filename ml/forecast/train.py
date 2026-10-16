@@ -1,7 +1,9 @@
 """Train and evaluate the occupancy forecast (Task T6) on SYNTHETIC data.
 
-For each horizon in config forecast.horizons_days: a LightGBM mean model plus two quantile
-models (the 80% band), compared with the seasonal-naive baseline on the 2025 test year. Where
+For each horizon in config forecast.horizons_days: an XGBoost mean model plus two quantile
+models (the 80% band), trained AND evaluated on the GPU (ml/gpu.py refuses to run without CUDA;
+the saved model is a numpy TreeEnsemble for CPU inference), compared with the seasonal-naive
+baseline on the 2025 test year. Where
 the model's test MAPE is not lower than the baseline's, that horizon USES THE BASELINE.
 Band (T12): split-conformal. A twin of the chosen forecaster, trained only on targets before
 forecast.conformal_calibration_start, is scored on the calibration window up to train_end; the
@@ -18,7 +20,6 @@ import json
 from pathlib import Path
 
 import joblib
-import lightgbm as lgb
 import matplotlib
 
 matplotlib.use("Agg")
@@ -26,6 +27,7 @@ import matplotlib.pyplot as plt  # noqa: E402
 import numpy as np  # noqa: E402
 import pandas as pd  # noqa: E402
 
+from ml import gpu  # noqa: E402
 from ml.forecast.core import (  # noqa: E402
     ARTIFACT_DIR,
     BASELINE,
@@ -46,6 +48,7 @@ from ml.generator.validate_occupancy import (  # noqa: E402
     SURFACE,
     style_axes,
 )
+from ml.xgb_trees import TreeEnsemble  # noqa: E402
 
 ML_ROOT = Path(__file__).resolve().parents[1]
 DATA_DIR = ML_ROOT / "data"
@@ -53,10 +56,12 @@ PLOT_PATH = ML_ROOT / "docs" / "plots" / "occupancy_forecast.png"
 ORANGE = "#eb6834"
 PLOT_HORIZON = 7
 
-# Fixed model settings (not tuned).
-MEAN_PARAMS = dict(n_estimators=400, learning_rate=0.03, num_leaves=15, min_child_samples=20,
-                   subsample=0.8, subsample_freq=1, colsample_bytree=0.8, n_jobs=1,
-                   deterministic=True, force_row_wise=True, verbose=-1)
+# Fixed model settings (not tuned): the earlier LightGBM settings mapped to XGBoost (leaf-wise,
+# 15 leaves, min 20 rows per leaf, no L2 penalty, 0.8 row / column subsampling).
+MEAN_PARAMS = dict(n_estimators=400, learning_rate=0.03, grow_policy="lossguide", max_leaves=15,
+                   max_depth=0, min_child_weight=20, reg_lambda=0.0, subsample=0.8,
+                   colsample_bytree=0.8, **gpu.XGB_DEVICE)
+OBJECTIVES = {"regression": "reg:squarederror", "quantile": "reg:quantileerror"}
 
 
 def load_daily(data_dir: Path = DATA_DIR) -> pd.DataFrame:
@@ -66,9 +71,15 @@ def load_daily(data_dir: Path = DATA_DIR) -> pd.DataFrame:
 
 
 def _fit(x: pd.DataFrame, y: pd.Series, seed: int, objective: str, alpha: float | None = None):
-    extra = {"alpha": alpha} if alpha is not None else {}
-    model = lgb.LGBMRegressor(objective=objective, random_state=seed, **MEAN_PARAMS, **extra)
-    return model.fit(x, y)
+    """XGBoost on CUDA (refuses without a GPU); predict() on it also runs on the GPU."""
+    import xgboost as xgb
+
+    gpu.require_cuda()
+    extra = {"quantile_alpha": alpha} if alpha is not None else {}
+    model = xgb.XGBRegressor(objective=OBJECTIVES[objective], random_state=seed, **MEAN_PARAMS,
+                             **extra).fit(x, y)
+    gpu.assert_xgb_on_cuda(model)
+    return model
 
 
 def conformal_quantiles(residuals: np.ndarray, q_lo: float, q_hi: float) -> tuple[float, float]:
@@ -130,8 +141,11 @@ def train_horizon(daily: pd.DataFrame, horizon: int, cfg: GeneratorConfig) -> di
         "high_alert_recall": round(float(high[actual_high].mean()), 3) if actual_high.any()
         else None,
         "uses_booking_pace": "booking_pace_7d" in feats,
+        "algorithm": "XGBoost (GPU), exported to a numpy TreeEnsemble",
+        "train_device": gpu.require_cuda(), "eval_device": gpu.require_cuda(),
     }
-    bundle = {"use": use, "features": feats, "mean": mean_model, "band": "split_conformal",
+    exported = TreeEnsemble.from_xgb(mean_model, train[feats])
+    bundle = {"use": use, "features": feats, "mean": exported, "band": "split_conformal",
               "residual_quantiles": [r_lo, r_hi]}
     curve = pd.DataFrame({"actual": y, "forecast": chosen, "low": lo, "high": hi},
                          index=test.index)

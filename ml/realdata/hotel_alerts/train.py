@@ -1,7 +1,6 @@
 """Train and evaluate the booking cancellation model on REAL data.
 
-    cd ml; python run.py train-cancellation            # ~2-4 min; XGBoost on the GPU if present
-    cd ml; python run.py train-cancellation --cpu      # no GPU
+    cd ml; python run.py train-cancellation            # ~1-2 min; GPU only (refuses without CUDA)
 
 Data: Hotel Booking Demand (Antonio, Almeida & Nunes 2019, CC BY 4.0), the same SHA-256
 checked file as ml/realdata (sources.HOTELS). Split by ARRIVAL date, never random, the same
@@ -9,9 +8,11 @@ windows as the real-data forecast (forecast.Split): train arrivals <= 2016-10-31
 validation 2016-12-01..2017-01-31 | gap | TEST 2017-03-01..2017-08-31.
 
 Scorers: base rate (training cancellation rate of the hotel for bookings the same number of
-days from arrival), logistic regression, LightGBM (CPU), XGBoost (GPU; comparison only: it is
-an optional dependency, so it is never deployed). The deployed model is chosen BEFORE the test
-is read: the better of logistic / LightGBM on validation log loss. No recalibration.
+days from arrival), logistic regression (torch on the GPU) and XGBoost (GPU; replaced the
+earlier LightGBM). Every fit and every evaluation prediction runs on the GPU (ml/gpu.py refuses
+to train without CUDA). The deployed model is chosen BEFORE the test is read: the better of
+logistic / XGBoost on validation log loss. No recalibration. The saved model is CPU-only (numpy
+coefficients or an exported TreeEnsemble): the API servers need neither torch nor xgboost.
 
 Uses of the probabilities, both evaluated on the test window:
   1. expected occupancy: rooms on the books for a night minus the expected cancellations, with
@@ -38,15 +39,16 @@ from pathlib import Path
 import joblib
 import numpy as np
 import pandas as pd
-from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import average_precision_score, brier_score_loss, log_loss, roc_auc_score
 from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import StandardScaler
 
-from ml import guardrails
+from ml import gpu, guardrails
 from ml.realdata import hotels, sources
 from ml.realdata.forecast import SPLIT, Split, capacities
 from ml.realdata.hotel_alerts import features as F
+from ml.torch_logistic import TorchLogisticRegression
+from ml.xgb_trees import TreeEnsemble
 
 ML_ROOT = Path(__file__).resolve().parents[2]
 OUT_DIR = ML_ROOT / "artifacts" / "cancellation" / "real_v1"
@@ -56,12 +58,10 @@ OCC_HORIZONS = (1, 7, 14, 30)
 ALERT_SHARE = 0.05  # alert when expected cancellations >= 5% of the rooms (ASSUMED)
 BAND = (0.10, 0.90)
 Z80 = 1.2816
-LGBM = dict(n_estimators=3000, learning_rate=0.03, num_leaves=63, min_child_samples=50,
-            subsample=0.8, subsample_freq=1, colsample_bytree=0.8, reg_lambda=1.0,
-            random_state=SEED, verbose=-1)
 XGB = dict(n_estimators=3000, learning_rate=0.03, max_depth=8, min_child_weight=5,
-           subsample=0.8, colsample_bytree=0.8, reg_lambda=1.0, tree_method="hist",
-           eval_metric="logloss", early_stopping_rounds=100, random_state=SEED)
+           subsample=0.8, colsample_bytree=0.8, reg_lambda=1.0, eval_metric="logloss",
+           early_stopping_rounds=100, random_state=SEED, **gpu.XGB_DEVICE)
+EXPORT_CHECK_ROWS = 20_000  # training rows the exported trees must reproduce XGBoost on
 
 
 # ------------------------------------------------------------------ split
@@ -124,23 +124,18 @@ def base_rate_predict(table: dict, rows: pd.DataFrame) -> np.ndarray:
 
 
 def fit_logistic(x: pd.DataFrame, y: np.ndarray):
-    return make_pipeline(StandardScaler(), LogisticRegression(C=1.0, max_iter=3000)).fit(x, y)
+    """Standardise + L2 logistic regression (C = 1), torch on the GPU."""
+    return make_pipeline(StandardScaler(), TorchLogisticRegression(C=1.0, max_iter=3000)).fit(x, y)
 
 
-def fit_lgbm(x, y, xv, yv):
-    import lightgbm as lgb
-
-    m = lgb.LGBMClassifier(**LGBM)
-    m.fit(x, y, eval_set=[(xv, yv)], eval_metric="binary_logloss",
-          callbacks=[lgb.early_stopping(100, verbose=False)])
-    return m
-
-
-def fit_xgb(x, y, xv, yv, device: str):
+def fit_xgb(x, y, xv, yv):
+    """XGBoost on the GPU, early stopping on validation log loss."""
     import xgboost as xgb
 
-    m = xgb.XGBClassifier(**XGB, device=device)
+    gpu.require_cuda()
+    m = xgb.XGBClassifier(**XGB)
     m.fit(x, y, eval_set=[(xv, yv)], verbose=False)
+    gpu.assert_xgb_on_cuda(m)
     return m
 
 
@@ -297,16 +292,13 @@ def save_plot(test_scores: dict[str, dict], path: Path = PLOT) -> Path | None:
 
 
 # ------------------------------------------------------------------ main
-def gpu_device(force_cpu: bool) -> str:
-    if force_cpu:
-        return "cpu"
-    try:
-        import xgboost as xgb
-
-        xgb.XGBClassifier(n_estimators=1, device="cuda").fit(np.zeros((4, 1)), [0, 1, 0, 1])
-        return "cuda"
-    except Exception:  # noqa: BLE001 - no GPU / no CUDA build: fall back to CPU
-        return "cpu"
+def deployable(model, kind: str, x: pd.DataFrame):
+    """The CPU-inference copy that is saved: numpy logistic or an exported TreeEnsemble."""
+    if kind == "logistic":
+        model[-1].to_cpu()
+        return model
+    return TreeEnsemble.from_xgb(model, x.sample(min(len(x), EXPORT_CHECK_ROWS),
+                                                 random_state=SEED))
 
 
 def model_card(m: dict) -> str:
@@ -355,8 +347,8 @@ def model_card(m: dict) -> str:
 
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    ap.add_argument("--cpu", action="store_true", help="do not use the GPU for XGBoost")
-    args = ap.parse_args(argv)
+    ap.parse_args(argv)
+    device = gpu.require_cuda()  # refuses without CUDA: no CPU fallback
     t0 = time.time()
     path = sources.fetch(sources.HOTELS)
     b = hotels.load_bookings(path)
@@ -369,22 +361,21 @@ def main(argv: list[str] | None = None) -> int:
     ytr, yva, yte = (p[F.LABEL].to_numpy() for p in (tr, va, te))
     table = base_rate_table(tr)
 
-    models = {"logistic": fit_logistic(xtr, ytr), "lightgbm": fit_lgbm(xtr, ytr, xva, yva)}
-    device = gpu_device(args.cpu)
-    xgb_info = {"device": device}
-    try:
-        t1 = time.time()
-        models["xgboost"] = fit_xgb(xtr, ytr, xva, yva, device)
-        xgb_info["fit_seconds"] = round(time.time() - t1, 1)
-    except ImportError:
-        xgb_info["skipped"] = "xgboost not installed (optional dependency)"
+    t1 = time.time()
+    models = {"logistic": fit_logistic(xtr, ytr)}
+    fit_seconds = {"logistic": round(time.time() - t1, 1)}
+    t1 = time.time()
+    models["xgboost"] = fit_xgb(xtr, ytr, xva, yva)
+    fit_seconds["xgboost"] = round(time.time() - t1, 1)
+    xgb_info = {"device": device, "fit_seconds": fit_seconds,
+                "best_iteration": int(models["xgboost"].best_iteration)}
     preds = {"base_rate": {"val": base_rate_predict(table, va),
                            "test": base_rate_predict(table, te)}}
     for name, mdl in models.items():
         preds[name] = {"val": proba(mdl, xva), "test": proba(mdl, xte)}
 
     val_scores = {n: scores(yva, p["val"]) for n, p in preds.items()}
-    winner = min(("logistic", "lightgbm"), key=lambda n: val_scores[n]["log_loss"])
+    winner = min(("logistic", "xgboost"), key=lambda n: val_scores[n]["log_loss"])
     print("validation log loss: " + ", ".join(f"{n} {s['log_loss']}"
                                                  for n, s in val_scores.items())
           + f" -> deployed: {winner}")
@@ -404,7 +395,7 @@ def main(argv: list[str] | None = None) -> int:
     # ablation: drop the two final-value columns that may change after booking
     acols = list(F.encode(tr, drop=F.ABLATION_DROP).columns)
     abl = (fit_logistic if winner == "logistic" else
-           lambda x, y: fit_lgbm(x, y, F.encode(va, acols, F.ABLATION_DROP), yva))(
+           lambda x, y: fit_xgb(x, y, F.encode(va, acols, F.ABLATION_DROP), yva))(
         F.encode(tr, acols, F.ABLATION_DROP), ytr)
     pa = proba(abl, F.encode(te, acols, F.ABLATION_DROP))
     ablation = {k: v for k, v in scores(yte[snap == "booking"], pa[snap == "booking"]).items()
@@ -434,8 +425,9 @@ def main(argv: list[str] | None = None) -> int:
                   "snapshots": ["booking", *(f"{h}d" for h in F.SNAPSHOT_DAYS)]},
         "features": F.FEATURES, "excluded": F.EXCLUDED,
         "deployed": {"model": winner, "rule": "lower validation log loss of logistic / "
-                     "LightGBM, decided before the test was read; no recalibration",
-                     "lightgbm_best_iteration": int(models["lightgbm"].best_iteration_ or 0)},
+                     "XGBoost, decided before the test was read; no recalibration",
+                     "xgboost_best_iteration": int(models["xgboost"].best_iteration)},
+        "train_device": device, "eval_device": device,
         "validation": {n: {k: v for k, v in s.items() if k != "calibration"}
                        for n, s in val_scores.items()},
         "test_all_snapshots": {n: {k: v for k, v in s.items() if k != "calibration"}
@@ -449,7 +441,8 @@ def main(argv: list[str] | None = None) -> int:
         "seconds": round(time.time() - t0, 1),
     }
     OUT_DIR.mkdir(parents=True, exist_ok=True)
-    joblib.dump({"model": models[winner], "kind": winner, "columns": cols, "table": table,
+    joblib.dump({"model": deployable(models[winner], winner, xtr), "kind": winner,
+                 "columns": cols, "table": table,
                  "range_q": occupancy["range_q"],
                  "occ_source": occupancy["source"], "buckets": list(F.BUCKETS),
                  "features": F.FEATURES}, OUT_DIR / "model.joblib")
@@ -462,8 +455,8 @@ def main(argv: list[str] | None = None) -> int:
         {"synthetic": False, "provenance": "REAL", "files": {"hotels.csv": sources.HOTELS.sha256},
          "combined_sha256": sources.HOTELS.sha256}, indent=2) + "\n", "utf-8")
     (OUT_DIR / "model_card.md").write_text(model_card(metrics), "utf-8")
-    plot = save_plot({n: at_booking[n] for n in ("base_rate", "logistic", "lightgbm",
-                                                  "xgboost") if n in at_booking})
+    plot = save_plot({n: at_booking[n] for n in ("base_rate", "logistic", "xgboost")
+                      if n in at_booking})
     print(json.dumps({"test_at_booking": {n: {k: s[k] for k in ("roc_auc", "pr_auc", "brier",
                                                                  "ece")}
                                           for n, s in at_booking.items()},

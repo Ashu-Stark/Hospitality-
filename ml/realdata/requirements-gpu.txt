@@ -1,5 +1,7 @@
-# OPTIONAL dependencies for ml/realdata (python run.py realdata). Installed 2026-10-13 into the
-# repo-root .venv (Python 3.12, Windows, RTX 4050 6 GB). Tests do NOT need any of these.
+# GPU dependencies for ALL model training in ml/ (every trainer refuses to run without CUDA, see
+# ml/gpu.py) and for python run.py realdata. Installed 2026-10-13 into the repo-root .venv
+# (Python 3.12, Windows, RTX 4050 6 GB). The API servers and the inference tests do NOT need
+# them; tests that train a model are skipped without a GPU.
 #
 # 1) PyTorch with its own bundled CUDA 12.8 runtime (no separate CUDA toolkit / cuBLAS DLLs):
 #    pip install torch==2.11.0 --index-url https://download.pytorch.org/whl/cu128

@@ -74,7 +74,7 @@ PMS (e.g. eZee) and runs the day-to-day of the staff:
                         ▼
  ┌─────────────────────────────────────────────┐
  │ ML layer (team ML repo): synthetic generator│
- │ LightGBM, scikit-learn, joblib artifacts    │
+ │ XGBoost + torch (GPU training), joblib      │
  └─────────────────────────────────────────────┘
 ```
 
@@ -95,12 +95,12 @@ Data rules: the manager dashboard is the only client of the ML API; the platform
 | Component | Technology | Notes / results on synthetic data |
 |---|---|---|
 | Synthetic data generator | numpy (seeded `Generator`, `rng.spawn`), pandas, PyYAML config | 45-room hill property, ~55 staff, Char Dham peak, festivals, weather, 5 scripted demo employees kept out of training; byte-identical regeneration |
-| Occupancy forecast | **LightGBM** + seasonal-naive ensemble; split-conformal interval | MAPE 6.7 / 7.2 / 10.3 % (1/7/30 d) vs seasonal-naive ~13.7 %; the 80 % band covered ~70 / 68 / 56 % |
-| Attrition (permanent staff) | **scikit-learn logistic regression**, Platt calibration; LightGBM compared | ROC-AUC 0.691 / PR-AUC 0.119 vs rules 0.542; LightGBM 0.652 |
+| Occupancy forecast | **XGBoost** (trained on the GPU) + seasonal-naive ensemble; split-conformal interval | MAPE 6.7 / 7.2 / 10.3 % (1/7/30 d) vs seasonal-naive ~13.7 %; the 80 % band covered ~87 / 85 / 83 % |
+| Attrition (permanent staff) | **L2 logistic regression trained with torch on the GPU**, Platt calibration; XGBoost compared | ROC-AUC 0.691 / PR-AUC 0.118 vs rules 0.542; XGBoost 0.666 |
 | Attrition (seasonal staff) | Contract-date rule | ROC-AUC 0.736 / PR-AUC 0.316 |
 | Drivers / explanations | Logistic contributions (log-odds) grouped into 7 driver categories, each tagged with its support level | Same model for score and explanation |
-| Workload, pulse | LightGBM / HistGradientBoosting regressors | Workload MAE 0.053 vs naive 0.073; pulse 0.250 vs 0.257 (marginal) |
-| Packaging | joblib artifacts + metrics.json, model_card.md, feature_list.json, dataset hash | Shown on the Admin page (`/health`) |
+| Workload, pulse | XGBoost L1 regressors (trained on the GPU) | Workload MAE 0.053 vs naive 0.073; pulse 0.249 vs 0.257 (marginal) |
+| Packaging | joblib artifacts + metrics.json (with train_device / eval_device), model_card.md, feature_list.json, dataset hash | Training and evaluation on the GPU only (`ml/gpu.py`); the artifacts predict on the CPU with numpy (no GPU on the servers). Shown on the Admin page (`/health`) |
 | Evaluation | Time-based splits with a 90-day gap, oracle ceiling, multi-seed checks, 58 validation checks, 330+ pytest tests | |
 | Challenger (assessed) | **Google TimesFM 2.5** (Apache-2.0) | CPU test: 5.8 % vs 11.0 % MAPE on our own synthetic series; ~1.1 GB RAM, so a batch job, not in the API. TimesFM 3.0 is non-commercial. See `docs/TIMESFM.md` |
 
@@ -189,7 +189,7 @@ Design references `Train.png` / `Train (1).png` (pill nav, outline status cards,
 | SQLite | Zero setup, one file, instant reset for demos | One server only; move to Postgres (schema is plain SQL) |
 | In-process rate limiter | No extra service | Needs Redis with more than one API instance |
 | Embedded platform API | `streamlit run` alone works for demos | Staff app and QR pages need the API running as a service |
-| Logistic regression over LightGBM for attrition | Better on our data, calibrated, explainable | Our synthetic hazard is logistic; re-check on real data |
+| Logistic regression over gradient-boosted trees for attrition | Better on our data, calibrated, explainable | Our synthetic hazard is logistic; re-check on real data |
 | Custom JWT auth | Full control, no vendor | Production should add SSO/OIDC |
 
 ## 7. Verified vs not verified

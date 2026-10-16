@@ -10,16 +10,20 @@ SYNTHETIC employee-weeks 2023-2029. Separate evaluations: resignation (permanent
 
 Dataset hash (combined SHA-256 of 6 input files, seed 42): `41163b06e51f2408...` (dataset_hash.json).
 
+## Training and serving
+
+Trained and evaluated on the GPU only (cuda:0 NVIDIA GeForce RTX 4050 Laptop GPU): XGBoost with device=cuda and torch on CUDA for the logistic models (ml/gpu.py refuses to train without CUDA; there is no CPU fallback). The saved model.joblib is CPU-only inference (numpy tree arrays / coefficients), so the servers need no GPU, torch or xgboost.
+
 ## Metrics vs baseline (test)
 
 | segment | scorer | ROC-AUC | PR-AUC | precision | recall | base rate |
 |---|---|---|---|---|---|---|
 | resignation | rules | 0.542 | 0.071 | 0.058 | 0.270 | 0.054 |
-| resignation | logistic (winner) | 0.691 | 0.119 | 0.147 | 0.340 | 0.054 |
-| resignation | lightgbm | 0.652 | 0.091 | 0.087 | 0.450 | 0.054 |
+| resignation | logistic (winner) | 0.691 | 0.118 | 0.170 | 0.326 | 0.054 |
+| resignation | xgboost | 0.666 | 0.090 | 0.101 | 0.496 | 0.054 |
 | contract_end | rules | 0.423 | 0.160 | 0.189 | 0.832 | 0.187 |
 | contract_end | logistic | 0.715 | 0.276 | 0.373 | 0.777 | 0.187 |
-| contract_end | lightgbm | 0.729 | 0.292 | 0.358 | 0.543 | 0.187 |
+| contract_end | xgboost | 0.761 | 0.327 | 0.391 | 0.717 | 0.187 |
 | contract_end | contract_rule (winner) | 0.736 | 0.316 | 0.459 | 0.696 | 0.187 |
 
 ## Risk bands (T12, seasonal rule since T12b)
@@ -32,22 +36,22 @@ Why ceil-count for permanent staff: ceil-count was first chosen because the seas
 
 | hero | group | risk | model rank | band (used) | basis | percentile-rule band |
 |---|---|---|---|---|---|---|
-| Sunita | resignation | 0.0905 | 5 / 48 | high | model_rank | watch |
-| Rajesh | resignation | 0.0402 | 17 / 48 | low | model_rank | low |
-| Meena | resignation | 0.0396 | 17 / 48 | low | model_rank | low |
+| Sunita | resignation | 0.0911 | 5 / 48 | high | model_rank | watch |
+| Rajesh | resignation | 0.0404 | 17 / 48 | low | model_rank | low |
+| Meena | resignation | 0.0400 | 17 / 48 | low | model_rank | low |
 | Arun | contract_end | 0.7749 | 1 / 7 | high | contract_date_rule | n/a |
-| Deepak | resignation | 0.0234 | 32 / 48 | low | model_rank | low |
+| Deepak | resignation | 0.0233 | 32 / 48 | low | model_rank | low |
 
 Backtest (pooled test weeks 2027-2029), bands recomputed every week:
 
 | segment | scorer | precision in high | lift over base rate | leaver-weeks in high + watch | tied share per week |
 |---|---|---|---|---|---|
 | resignation | rules | 0.066 | 1.22x (base 0.054) | 10.2% | 1.00 |
-| resignation | logistic (winner) | 0.132 | 2.42x (base 0.054) | 52.3% | 0.04 |
-| resignation | lightgbm | 0.119 | 2.19x (base 0.054) | 45.3% | 0.05 |
+| resignation | logistic (winner) | 0.130 | 2.39x (base 0.054) | 52.3% | 0.04 |
+| resignation | xgboost | 0.116 | 2.13x (base 0.054) | 50.1% | 0.05 |
 | contract_end | rules | 0.185 | 0.99x (base 0.187) | 16.3% | 0.91 |
-| contract_end | logistic | 0.161 | 0.86x (base 0.187) | 52.7% | 0.01 |
-| contract_end | lightgbm | 0.161 | 0.86x (base 0.187) | 50.0% | 0.00 |
+| contract_end | logistic | 0.161 | 0.86x (base 0.187) | 52.7% | 0.00 |
+| contract_end | xgboost | 0.176 | 0.94x (base 0.187) | 50.0% | 0.00 |
 | contract_end | contract_rule (winner) | 0.000 | 0.0x (base 0.187) | 0.0% | 0.96 |
 | contract_end | contract-date RULE band (used since T12b) | 0.368 | 1.97x (base 0.187) | 54.9% | n/a |
 
@@ -55,14 +59,14 @@ Under model ranks, the big seasonal tie group overflowed the high and watch slot
 
 ## Explanation method (T12)
 
-Drivers come from the SAME model that produces the risk (the segment's calibrated winner): contributions in calibrated log-odds relative to the training mean. For the logistic winner that is Platt slope x coefficient x (standardised value - training mean), summed per driver category; for the contract-date rule it is the days-to-contract-end term. LightGBM TreeSHAP is kept only as a comparison (drivers.json).
+Drivers come from the SAME model that produces the risk (the segment's calibrated winner): contributions in calibrated log-odds relative to the training mean. For the logistic winner that is Platt slope x coefficient x (standardised value - training mean), summed per driver category; for the contract-date rule it is the days-to-contract-end term. XGBoost TreeSHAP is kept only as a comparison (drivers.json).
 
 Driver support in the SYNTHETIC generator: overtime overload, stalled progression, low engagement, season-end exit and pay gap are planted. Clustered-leave burnout is WEAKLY SUPPORTED: the hazard has a weeks-without-leave term but no pre-festival leave term. Manager relationship is UNSUPPORTED (no signal at all).
 
 Demo checks (T12b): the earlier check "Sunita has overtime overload AND clustered-leave burnout" was REMOVED. It came from the hero script, written before we knew the generator never creates a pre-festival leave driver. It is replaced by two checks:
 
-- PASS: Sunita's top 3 drivers include overtime overload: ['overtime_overload', 'pay_gap', 'low_engagement'] (risk 0.0905, rank 5/48, high)
-- PASS: Deepak is not high risk: risk 0.0234, rank 32/48, band low
+- PASS: Sunita's top 3 drivers include overtime overload: ['overtime_overload', 'pay_gap', 'low_engagement'] (risk 0.0911, rank 5/48, high)
+- PASS: Deepak is not high risk: risk 0.0233, rank 32/48, band low
 
 ## Limitations
 

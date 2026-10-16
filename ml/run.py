@@ -17,7 +17,7 @@ Usage:
     python run.py smoke     # fresh process: forecast week, scores, Sunita rescore (exit 1 on error)
     python run.py mocks     # write data/mocks/*.json for the frontend from the real model outputs
     python run.py realdata [--no-timesfm] [--cpu]  # REAL public data benchmarks (GPU), ml/realdata
-    python run.py train-cancellation [--cpu]  # REAL data booking cancellation model (hotel alerts)
+    python run.py train-cancellation  # REAL data booking cancellation model (hotel alerts)
     python run.py guard-reference  # training reference stats for the guardrail drift checks
     python run.py backtest-monitor [--hotel himsagar] [--strict]  # rolling error vs baselines
 

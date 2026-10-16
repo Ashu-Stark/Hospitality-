@@ -14,11 +14,11 @@ from ml.attrition.drivers import (
     top_categories,
 )
 from ml.attrition.features import MODEL_FEATURES, MODEL_NUMERIC
-from ml.attrition.models import LightGBMScorer
+from ml.attrition.models import XGBoostScorer
 
 
 @pytest.fixture(scope="module")
-def tiny() -> tuple[LightGBMScorer, pd.DataFrame]:
+def tiny(require_gpu) -> tuple[XGBoostScorer, pd.DataFrame]:
     rng = np.random.default_rng(1)
     n = 600
     df = pd.DataFrame({c: rng.normal(size=n) for c in MODEL_NUMERIC})
@@ -26,7 +26,7 @@ def tiny() -> tuple[LightGBMScorer, pd.DataFrame]:
     df["role"] = rng.choice(["cook", "attendant"], n)
     df["contract_type"] = rng.choice(["permanent", "seasonal"], n)
     y = (df["overtime_window_mean"] + rng.normal(scale=0.5, size=n) > 1).astype(int).to_numpy()
-    return LightGBMScorer(seed=0).fit(df[MODEL_FEATURES], y), df
+    return XGBoostScorer(seed=0).fit(df[MODEL_FEATURES], y), df
 
 
 def test_every_feature_has_a_group_or_context(tiny) -> None:
@@ -39,9 +39,12 @@ def test_every_feature_has_a_group_or_context(tiny) -> None:
 def test_shap_sums_to_log_odds(tiny) -> None:
     scorer, df = tiny
     shap = shap_values(scorer, df)
-    raw = scorer.model.predict_proba(scorer.design(df))[:, 1]
-    bias = scorer.model.booster_.predict(scorer.design(df), pred_contrib=True)[:, -1]
-    np.testing.assert_allclose(shap.sum(axis=1) + bias, np.log(raw / (1 - raw)), atol=1e-6)
+    import xgboost as xgb
+
+    raw = scorer.model.predict_proba(scorer.design(df))[:, 1]  # exported trees, numpy
+    dm = xgb.DMatrix(scorer.design(df).to_numpy(dtype=np.float32), feature_names=scorer.columns)
+    bias = scorer.model.gpu_booster().predict(dm, pred_contribs=True)[:, -1]
+    np.testing.assert_allclose(shap.sum(axis=1) + bias, np.log(raw / (1 - raw)), atol=1e-4)
     contrib = category_contributions(shap)
     assert contrib["overtime_overload"].abs().mean() == contrib.abs().mean().max()
 

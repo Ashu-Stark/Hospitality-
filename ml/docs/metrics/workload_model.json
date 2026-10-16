@@ -1,34 +1,38 @@
 {
   "model": "workload_model",
   "seed": 42,
-  "best_iteration": 611,
+  "best_iteration": 1237,
+  "trees": 1238,
+  "algorithm": "XGBoost reg:absoluteerror (GPU)",
+  "train_device": "cuda:0 NVIDIA GeForce RTX 4050 Laptop GPU",
+  "eval_device": "cuda:0 NVIDIA GeForce RTX 4050 Laptop GPU",
   "val": {
     "rows": 342,
-    "mae": 0.0611,
-    "rmse": 0.0822,
-    "r2": 0.8416
+    "mae": 0.0604,
+    "rmse": 0.0823,
+    "r2": 0.8411
   },
   "test": {
     "rows": 426,
-    "mae": 0.053,
-    "rmse": 0.0763,
-    "r2": 0.8456
+    "mae": 0.0534,
+    "rmse": 0.0752,
+    "r2": 0.85
   },
   "feature_importance_gain": {
-    "load_ratio": 13450.45,
-    "week_of_year": 7902.36,
-    "load_trend_4w": 7714.35,
-    "load_roll4_mean": 6774.78,
-    "room_nights_roll4_mean": 5905.49,
-    "occupied_room_nights": 5628.75,
-    "is_festival_week": 787.2,
-    "headcount": 717.89,
-    "next_week_is_festival": 346.84,
-    "department_security": 107.37,
-    "department_kitchen": 27.07,
-    "department_maintenance": 22.27,
-    "department_fnb_service": 14.54,
-    "department_front_office": 3.06,
+    "load_ratio": 93.75,
+    "week_of_year": 31.35,
+    "occupied_room_nights": 24.45,
+    "load_trend_4w": 22.26,
+    "load_roll4_mean": 19.77,
+    "room_nights_roll4_mean": 10.93,
+    "next_week_is_festival": 4.34,
+    "is_festival_week": 3.09,
+    "headcount": 1.05,
+    "department_security": 0.79,
+    "department_fnb_service": 0.01,
+    "department_kitchen": 0.0,
+    "department_maintenance": 0.0,
+    "department_front_office": 0.0,
     "department_housekeeping": 0.0
   }
 }

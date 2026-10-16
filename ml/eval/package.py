@@ -152,7 +152,7 @@ def _attrition_extra(m: dict, artifact: Path) -> list[str]:
               "winner): contributions in calibrated log-odds relative to the training mean. For "
               "the logistic winner that is Platt slope x coefficient x (standardised value - "
               "training mean), summed per driver category; for the contract-date rule it is the "
-              "days-to-contract-end term. LightGBM TreeSHAP is kept only as a comparison "
+              "days-to-contract-end term. XGBoost TreeSHAP is kept only as a comparison "
               "(drivers.json).", "",
               "Driver support in the SYNTHETIC generator: overtime overload, stalled progression, "
               "low engagement, season-end exit and pay gap are planted. Clustered-leave burnout is "
@@ -186,7 +186,7 @@ SPECS = (
         "Daily occupancy forecast 1, 7 and 30 days ahead with an 80% band and high / low demand "
         "alerts, for roster planning in a small hill hotel. Interface: forecast.predict.",
         "Daily SYNTHETIC occupancy, calendar and weather; train targets 2023-2024, test 2025 "
-        "(split by time). One direct LightGBM model per horizon plus two quantile models.",
+        "(split by time). One direct XGBoost model per horizon plus two quantile models.",
         ("The band is calibrated on one year (2024) of residuals; coverage can drift in a year "
          "unlike the calibration year.",
          "High-demand alerts (>= 0.90 forecast) are weak: low precision and recall in 2025.",
@@ -243,12 +243,35 @@ def regression_metrics(name: str, metrics_dir: Path = METRICS_DIR) -> dict:
     return {"synthetic": True, "baseline": read(f"{name}_naive.json"), "model": model}
 
 
+def train_device(metrics: object) -> str | None:
+    """The first train_device recorded anywhere in a metrics.json (None if absent)."""
+    if isinstance(metrics, dict):
+        if isinstance(metrics.get("train_device"), str):
+            return metrics["train_device"]
+        for v in metrics.values():
+            found = train_device(v)
+            if found:
+                return found
+    return None
+
+
+def training_lines(metrics: dict) -> list[str]:
+    dev = train_device(metrics)
+    return ["## Training and serving", "",
+            f"Trained and evaluated on the GPU only ({dev or 'device not recorded'}): XGBoost "
+            "with device=cuda and torch on CUDA for the logistic models (ml/gpu.py refuses to "
+            "train without CUDA; there is no CPU fallback). The saved model.joblib is CPU-only "
+            "inference (numpy tree arrays / coefficients), so the servers need no GPU, torch or "
+            "xgboost.", ""]
+
+
 def model_card(spec: ModelSpec, metrics: dict, hashes: dict) -> str:
     extra = EXTRA_SECTIONS.get(spec.name)
     lines = [f"# Model card: {spec.name} {spec.version} (SYNTHETIC data)", "",
              "## Intended use", "", spec.intended_use, "", "## Data", "", spec.data, "",
              f"Dataset hash (combined SHA-256 of {len(hashes['files'])} input files, seed "
              f"{hashes['seed']}): `{hashes['combined_sha256'][:16]}...` (dataset_hash.json).", "",
+             *training_lines(metrics),
              "## Metrics vs baseline (test)", "", *spec.metrics_table(metrics), "",
              *(extra(metrics, spec.directory) if extra else []),
              "## Limitations", "", *[f"- {x}" for x in spec.limitations], "", HONESTY, ""]

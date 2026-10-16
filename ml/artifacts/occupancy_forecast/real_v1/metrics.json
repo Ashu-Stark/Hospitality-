@@ -30,8 +30,8 @@
     },
     {
       "horizon": 30,
-      "model": "lgbm_pace_cpu",
-      "val_mae_room_nights": 13.91
+      "model": "xgb_pace_gpu",
+      "val_mae_room_nights": 14.27
     }
   ],
   "rows": [
@@ -121,59 +121,31 @@
     },
     {
       "horizon": 1,
-      "model": "lgbm_calendar_cpu",
+      "model": "xgb_calendar_gpu",
       "group": "model",
-      "val_mae_room_nights": 19.81,
+      "val_mae_room_nights": 19.54,
       "hotel": "City Hotel",
       "days": 184,
-      "mape": 0.0408,
-      "mae_room_nights": 8.54,
-      "median_abs_error_room_nights": 6.32,
-      "mae_pct_of_capacity": 0.0378,
-      "coverage_80": 0.9293,
-      "band_width_room_nights": 55.42
+      "mape": 0.0382,
+      "mae_room_nights": 7.98,
+      "median_abs_error_room_nights": 6.03,
+      "mae_pct_of_capacity": 0.0353,
+      "coverage_80": 0.9348,
+      "band_width_room_nights": 53.1
     },
     {
       "horizon": 1,
-      "model": "lgbm_calendar_cpu",
+      "model": "xgb_calendar_gpu",
       "group": "model",
-      "val_mae_room_nights": 19.81,
+      "val_mae_room_nights": 19.54,
       "hotel": "Resort Hotel",
       "days": 184,
-      "mape": 0.0431,
-      "mae_room_nights": 7.16,
-      "median_abs_error_room_nights": 4.45,
-      "mae_pct_of_capacity": 0.0383,
-      "coverage_80": 0.8804,
-      "band_width_room_nights": 45.86
-    },
-    {
-      "horizon": 1,
-      "model": "lgbm_pace_cpu",
-      "group": "model",
-      "val_mae_room_nights": 3.07,
-      "hotel": "City Hotel",
-      "days": 184,
-      "mape": 0.0093,
-      "mae_room_nights": 1.93,
-      "median_abs_error_room_nights": 1.44,
-      "mae_pct_of_capacity": 0.0085,
-      "coverage_80": 0.962,
-      "band_width_room_nights": 11.67
-    },
-    {
-      "horizon": 1,
-      "model": "lgbm_pace_cpu",
-      "group": "model",
-      "val_mae_room_nights": 3.07,
-      "hotel": "Resort Hotel",
-      "days": 184,
-      "mape": 0.0112,
-      "mae_room_nights": 1.86,
-      "median_abs_error_room_nights": 1.27,
-      "mae_pct_of_capacity": 0.0099,
-      "coverage_80": 0.9185,
-      "band_width_room_nights": 9.66
+      "mape": 0.0429,
+      "mae_room_nights": 7.05,
+      "median_abs_error_room_nights": 4.58,
+      "mae_pct_of_capacity": 0.0377,
+      "coverage_80": 0.9076,
+      "band_width_room_nights": 43.93
     },
     {
       "horizon": 1,
@@ -289,59 +261,31 @@
     },
     {
       "horizon": 7,
-      "model": "lgbm_calendar_cpu",
+      "model": "xgb_calendar_gpu",
       "group": "model",
-      "val_mae_room_nights": 34.26,
+      "val_mae_room_nights": 31.65,
       "hotel": "City Hotel",
       "days": 184,
-      "mape": 0.0415,
-      "mae_room_nights": 8.71,
-      "median_abs_error_room_nights": 6.36,
-      "mae_pct_of_capacity": 0.0386,
+      "mape": 0.0453,
+      "mae_room_nights": 9.58,
+      "median_abs_error_room_nights": 7.56,
+      "mae_pct_of_capacity": 0.0424,
       "coverage_80": 0.9946,
-      "band_width_room_nights": 122.82
+      "band_width_room_nights": 100.14
     },
     {
       "horizon": 7,
-      "model": "lgbm_calendar_cpu",
+      "model": "xgb_calendar_gpu",
       "group": "model",
-      "val_mae_room_nights": 34.26,
+      "val_mae_room_nights": 31.65,
       "hotel": "Resort Hotel",
       "days": 184,
-      "mape": 0.0504,
-      "mae_room_nights": 8.27,
-      "median_abs_error_room_nights": 5.53,
-      "mae_pct_of_capacity": 0.0443,
-      "coverage_80": 0.9674,
-      "band_width_room_nights": 101.62
-    },
-    {
-      "horizon": 7,
-      "model": "lgbm_pace_cpu",
-      "group": "model",
-      "val_mae_room_nights": 9.58,
-      "hotel": "City Hotel",
-      "days": 184,
-      "mape": 0.0261,
-      "mae_room_nights": 5.5,
-      "median_abs_error_room_nights": 4.59,
-      "mae_pct_of_capacity": 0.0243,
-      "coverage_80": 0.962,
-      "band_width_room_nights": 32.04
-    },
-    {
-      "horizon": 7,
-      "model": "lgbm_pace_cpu",
-      "group": "model",
-      "val_mae_room_nights": 9.58,
-      "hotel": "Resort Hotel",
-      "days": 184,
-      "mape": 0.0227,
-      "mae_room_nights": 3.78,
-      "median_abs_error_room_nights": 2.55,
-      "mae_pct_of_capacity": 0.0202,
-      "coverage_80": 0.913,
-      "band_width_room_nights": 26.51
+      "mape": 0.0493,
+      "mae_room_nights": 8.07,
+      "median_abs_error_room_nights": 5.35,
+      "mae_pct_of_capacity": 0.0432,
+      "coverage_80": 0.9511,
+      "band_width_room_nights": 82.86
     },
     {
       "horizon": 7,
@@ -457,59 +401,31 @@
     },
     {
       "horizon": 30,
-      "model": "lgbm_calendar_cpu",
+      "model": "xgb_calendar_gpu",
       "group": "model",
-      "val_mae_room_nights": 35.41,
+      "val_mae_room_nights": 32.61,
       "hotel": "City Hotel",
       "days": 184,
-      "mape": 0.0523,
-      "mae_room_nights": 11.13,
-      "median_abs_error_room_nights": 9.39,
-      "mae_pct_of_capacity": 0.0492,
-      "coverage_80": 0.9457,
-      "band_width_room_nights": 106.01
+      "mape": 0.0505,
+      "mae_room_nights": 10.73,
+      "median_abs_error_room_nights": 8.3,
+      "mae_pct_of_capacity": 0.0475,
+      "coverage_80": 0.9837,
+      "band_width_room_nights": 99.42
     },
     {
       "horizon": 30,
-      "model": "lgbm_calendar_cpu",
+      "model": "xgb_calendar_gpu",
       "group": "model",
-      "val_mae_room_nights": 35.41,
+      "val_mae_room_nights": 32.61,
       "hotel": "Resort Hotel",
       "days": 184,
-      "mape": 0.0499,
-      "mae_room_nights": 8.27,
-      "median_abs_error_room_nights": 5.05,
-      "mae_pct_of_capacity": 0.0442,
-      "coverage_80": 0.8696,
-      "band_width_room_nights": 87.71
-    },
-    {
-      "horizon": 30,
-      "model": "lgbm_pace_cpu",
-      "group": "model",
-      "val_mae_room_nights": 13.91,
-      "hotel": "City Hotel",
-      "days": 184,
-      "mape": 0.0341,
-      "mae_room_nights": 7.16,
-      "median_abs_error_room_nights": 4.51,
-      "mae_pct_of_capacity": 0.0317,
-      "coverage_80": 0.9076,
-      "band_width_room_nights": 38.94
-    },
-    {
-      "horizon": 30,
-      "model": "lgbm_pace_cpu",
-      "group": "model",
-      "val_mae_room_nights": 13.91,
-      "hotel": "Resort Hotel",
-      "days": 184,
-      "mape": 0.0408,
-      "mae_room_nights": 6.79,
-      "median_abs_error_room_nights": 4.36,
-      "mae_pct_of_capacity": 0.0363,
-      "coverage_80": 0.8859,
-      "band_width_room_nights": 32.22
+      "mape": 0.0513,
+      "mae_room_nights": 8.47,
+      "median_abs_error_room_nights": 5.21,
+      "mae_pct_of_capacity": 0.0453,
+      "coverage_80": 0.9565,
+      "band_width_room_nights": 82.26
     },
     {
       "horizon": 30,
@@ -717,7 +633,7 @@
         "30": 37.73
       }
     },
-    "zero_shot_seconds": 14.0,
+    "zero_shot_seconds": 13.1,
     "fine_tune": {
       "best_epoch": 4,
       "best_val_mae": 35.317,
@@ -770,7 +686,7 @@
       ],
       "trainable_params": 72111040,
       "total_params": 231289280,
-      "seconds": 155.5,
+      "seconds": 133.2,
       "device": "cuda:0",
       "peak_gpu_memory_gb": 2.49,
       "config": {
@@ -785,9 +701,9 @@
         "seed": 42
       },
       "nvidia_smi_during_fine_tune": {
-        "samples": 76,
-        "peak_memory_used_mib": 3021,
-        "peak_utilization_pct": 90
+        "samples": 65,
+        "peak_memory_used_mib": 3234,
+        "peak_utilization_pct": 97
       }
     },
     "timesfm_fine_tuned": {
@@ -803,10 +719,10 @@
       "note": "only the fine-tuned layers; gitignored, re-created by python run.py realdata"
     },
     "timings": {
-      "inference_64_contexts_cuda_s": 0.5,
-      "fine_tune_3_steps_batch8_cuda_s": 0.525,
-      "inference_64_contexts_cpu_s": 5.765,
-      "fine_tune_3_steps_batch8_cpu_s": 2.583
+      "inference_64_contexts_cuda_s": 0.475,
+      "fine_tune_3_steps_batch8_cuda_s": 0.591
     }
-  }
+  },
+  "train_device": "cuda:0 NVIDIA GeForce RTX 4050 Laptop GPU",
+  "eval_device": "cuda:0 NVIDIA GeForce RTX 4050 Laptop GPU"
 }

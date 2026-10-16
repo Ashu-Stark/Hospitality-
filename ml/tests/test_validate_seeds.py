@@ -23,7 +23,7 @@ def _preds(seed: int) -> pd.DataFrame:
     label = (rng.random(300) < 0.2).astype(float)
     return pd.DataFrame({
         "test_year": 2025, "employee_id": [f"E{i}" for i in range(300)], "label": label,
-        RULE: label * 0.5 + rng.normal(size=300), "lightgbm": label * 2 + rng.normal(size=300),
+        RULE: label * 0.5 + rng.normal(size=300), "xgboost": label * 2 + rng.normal(size=300),
         "logistic": label * 1.5 + rng.normal(size=300),
     })
 
@@ -57,8 +57,8 @@ def test_pooled_no_driver_share_is_exit_weighted() -> None:
 
 def test_scorer_result_types() -> None:
     s = ScorerResult(0.7, 0.2, 0.69)
-    p = ProbeSummary({RULE: ScorerResult(0.6, 0.1, 0.6), "lightgbm": s, "logistic": s},
-                     "lightgbm", 10, 100, 0.1)
+    p = ProbeSummary({RULE: ScorerResult(0.6, 0.1, 0.6), "xgboost": s, "logistic": s},
+                     "xgboost", 10, 100, 0.1)
     assert p.gap == pytest.approx(0.1)
 
 

@@ -11,9 +11,11 @@ Difficulty probes (PERMANENT staff only; seasonal contract ends are a separate e
 - Expanding window: for every test year Y from the third calendar year of data to the last year
   with uncensored rows, train on ALL usable rows whose 90-day label window ends before
   1 January of Y (a 90-day gap, so no training label looks into the test year), test on Y.
-- Three scorers: the overtime-only rule (4-week overtime average), a regularised LightGBM and a
-  standardised logistic regression on the attrition features. The pass/fail model is the better
-  of LightGBM and logistic, and the report names it.
+- Three scorers: the overtime-only rule (4-week overtime average), a regularised XGBoost and a
+  standardised logistic regression on the attrition features, both trained AND scored on the GPU
+  (XGBoost on CUDA, torch logistic regression; ml/gpu.py refuses without CUDA). The pass/fail
+  model is the better of XGBoost and logistic, and the report names it. (XGBoost replaced the
+  earlier LightGBM probe when all model training moved to the GPU.)
 - Two numbers per scorer: (a) the mean of the per-year ROC-AUCs and (b) the ROC-AUC after
   converting each year's scores to within-year percentile ranks and pooling. (b) is pass/fail.
   Ranking within each year matters because every year has its own model, whose raw scores are
@@ -37,15 +39,14 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-import lightgbm as lgb
 import numpy as np
 import pandas as pd
 from sklearn.compose import ColumnTransformer
-from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import average_precision_score, roc_auc_score
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
 
+from ml import gpu
 from ml.features.build_features import (
     CATEGORICAL_FEATURES,
     CENSORED,
@@ -59,6 +60,7 @@ from ml.generator.attrition import SEASONAL_END, AttritionResult, annual_attriti
 from ml.generator.behaviour import DRIVERS, DriverInputs, driver_contributions
 from ml.generator.config import GeneratorConfig
 from ml.generator.validate_occupancy import Check
+from ml.torch_logistic import TorchLogisticRegression
 
 # Acceptance targets for Task T4 (generator-difficulty targets, not real-world benchmarks).
 ATTRITION_TOLERANCE = 0.05
@@ -71,12 +73,12 @@ DAYS_PER_YEAR = 365.25
 
 # Probe models: fixed and regularised for tiny data (not tuned; the real model is T7).
 MIN_TRAIN_YEARS = 2  # first test year = first data year + this
-LGBM_PARAMS = dict(n_estimators=200, learning_rate=0.05, num_leaves=8, min_child_samples=50,
-                   colsample_bytree=0.8, n_jobs=1, deterministic=True, force_row_wise=True,
-                   verbose=-1)
+# Same settings as ml/attrition's XGBoost scorer (the earlier LightGBM ones mapped to XGBoost).
+XGB_PARAMS = dict(n_estimators=200, learning_rate=0.05, grow_policy="lossguide", max_leaves=8,
+                  max_depth=0, colsample_bytree=0.8, **gpu.XGB_DEVICE)
 LOGISTIC_MAX_ITER = 2000
 RULE = "overtime_rule"
-MODELS = ("lightgbm", "logistic")
+MODELS = ("xgboost", "logistic")
 SCORERS = (RULE, *MODELS)
 
 
@@ -161,15 +163,19 @@ def expanding_probe_splits(
     return splits
 
 
-def _lightgbm_scores(train: pd.DataFrame, test: pd.DataFrame, seed: int) -> np.ndarray:
+def _xgboost_scores(train: pd.DataFrame, test: pd.DataFrame, seed: int) -> np.ndarray:
+    import xgboost as xgb
+
     def design(df: pd.DataFrame) -> pd.DataFrame:
         return pd.get_dummies(df[FEATURES], columns=CATEGORICAL_FEATURES, dtype=float)
 
     x_train = design(train)
     x_test = design(test).reindex(columns=x_train.columns, fill_value=0.0)
-    model = lgb.LGBMClassifier(random_state=seed, **LGBM_PARAMS)
+    gpu.require_cuda()
+    model = xgb.XGBClassifier(random_state=seed, **XGB_PARAMS)
     model.fit(x_train, train[LABEL])
-    return model.predict_proba(x_test)[:, 1]
+    gpu.assert_xgb_on_cuda(model)
+    return model.predict_proba(x_test)[:, 1]  # on the GPU
 
 
 def _logistic_scores(train: pd.DataFrame, test: pd.DataFrame, seed: int) -> np.ndarray:
@@ -177,8 +183,8 @@ def _logistic_scores(train: pd.DataFrame, test: pd.DataFrame, seed: int) -> np.n
         ("num", StandardScaler(), NUMERIC_FEATURES),
         ("cat", OneHotEncoder(handle_unknown="ignore"), CATEGORICAL_FEATURES),
     ])
-    model = Pipeline([("prep", prep), ("clf", LogisticRegression(
-        max_iter=LOGISTIC_MAX_ITER, random_state=seed))])
+    model = Pipeline([("prep", prep), ("clf", TorchLogisticRegression(
+        C=1.0, max_iter=LOGISTIC_MAX_ITER, random_state=seed))])
     model.fit(train[FEATURES], train[LABEL])
     return model.predict_proba(test[FEATURES])[:, 1]
 
@@ -192,7 +198,7 @@ def probe_predictions(features: pd.DataFrame, seed: int) -> pd.DataFrame:
             "employee_id": test["employee_id"].to_numpy(),
             "label": test[LABEL].to_numpy(),
             RULE: test["overtime_roll4_mean"].to_numpy(),
-            "lightgbm": _lightgbm_scores(train, test, seed),
+            "xgboost": _xgboost_scores(train, test, seed),
             "logistic": _logistic_scores(train, test, seed),
         }))
     columns = ["test_year", "employee_id", "label", *SCORERS]

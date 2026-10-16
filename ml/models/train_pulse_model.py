@@ -1,11 +1,12 @@
-"""LightGBM regressor for next week's pulse_score (SYNTHETIC data).
+"""XGBoost regressor (trained on the GPU) for next week's pulse_score (SYNTHETIC data).
 
 Objective: L1 (absolute error), early stopping on validation L1. The comparison metric is MAE,
 which an L1 objective targets directly (the conditional median). An L2 objective was tried
 first: validation MAE 0.2461 vs L1's 0.2447, and on test it only tied naive (0.2456 vs 0.2453).
-L1 was chosen on validation, not test. Deterministic: fixed seed, single thread.
-Same regularisation style as the Task 5 tree: small leaves and large minimum leaf size, so
-the model learns population patterns rather than memorising individuals.
+L1 was chosen on validation, not test (that comparison was made with the earlier LightGBM
+model). Fixed seed. Trained and evaluated on the GPU (ml/gpu.py refuses to run without CUDA);
+saved as a numpy TreeEnsemble for CPU inference. Small trees (8 leaves); the minimum leaf size
+was chosen on the VALIDATION split only (ml/models/gpu_trees.py).
 """
 
 from __future__ import annotations
@@ -13,15 +14,14 @@ from __future__ import annotations
 from pathlib import Path
 
 import joblib
-import lightgbm as lgb
 import matplotlib
 
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt  # noqa: E402
 import numpy as np  # noqa: E402
-import pandas as pd  # noqa: E402
 from sklearn.pipeline import Pipeline  # noqa: E402
 
+from ml import gpu  # noqa: E402
 from ml.features.split import Splits, load_pulse_splits  # noqa: E402
 from ml.generator.validate_occupancy import (  # noqa: E402
     AXIS,
@@ -30,6 +30,7 @@ from ml.generator.validate_occupancy import (  # noqa: E402
     style_axes,
 )
 from ml.models.common import MODEL_FILE, PULSE_ARTIFACT_DIR  # noqa: E402
+from ml.models.gpu_trees import MIN_LEAF, fit_l1  # noqa: E402
 from ml.models.pulse_common import (  # noqa: E402
     PLOTS_DIR,
     make_pulse_preprocessor,
@@ -39,9 +40,9 @@ from ml.models.pulse_common import (  # noqa: E402
     save_metrics,
     seed,
 )
+from ml.xgb_trees import predict_gpu  # noqa: E402
 
 NAME = "pulse_model"
-EARLY_STOPPING_ROUNDS = 50
 TOP_N = 10
 
 
@@ -51,43 +52,18 @@ def train_pulse_model(splits: Splits, random_state: int) -> tuple[Pipeline, dict
     x_val, y_val = pulse_xy(splits.val)
     xt_train = prep.fit_transform(x_train)
     xt_val = prep.transform(x_val)
-    reg = lgb.LGBMRegressor(
-        objective="regression_l1",
-        n_estimators=3000,
-        learning_rate=0.03,
-        num_leaves=8,
-        min_child_samples=100,
-        reg_lambda=5.0,
-        subsample=0.8,
-        subsample_freq=1,
-        colsample_bytree=0.8,
-        random_state=random_state,
-        n_jobs=1,
-        deterministic=True,
-        force_row_wise=True,
-        verbose=-1,
-    )
-    reg.fit(
-        xt_train, y_train,
-        eval_X=(xt_val,),
-        eval_y=(y_val,),
-        eval_metric="l1",
-        callbacks=[lgb.early_stopping(EARLY_STOPPING_ROUNDS, verbose=False)],
-    )
-    model = Pipeline([("prep", prep), ("reg", reg)])
-    metrics: dict = {"model": NAME, "seed": random_state, "best_iteration": reg.best_iteration_}
+    _reg, ens, gain = fit_l1(xt_train, y_train, xt_val, y_val, random_state, min_leaf=MIN_LEAF)
+    model = Pipeline([("prep", prep), ("reg", ens)])
+    device = gpu.require_cuda()
+    metrics: dict = {"model": NAME, "seed": random_state,
+                     "best_iteration": int(_reg.best_iteration),
+                     "trees": ens.n_trees, "algorithm": "XGBoost reg:absoluteerror (GPU)",
+                     "train_device": device, "eval_device": device}
     for name, part in (("val", splits.val), ("test", splits.test)):
         x, y = pulse_xy(part)
-        metrics[name] = regression_metrics(y, model.predict(x))
-    metrics["feature_importance_gain"] = feature_importance(model).round(2).to_dict()
+        metrics[name] = regression_metrics(y, predict_gpu(model, x))  # evaluated on the GPU
+    metrics["feature_importance_gain"] = gain.round(2).to_dict()
     return model, metrics
-
-
-def feature_importance(model: Pipeline) -> pd.Series:
-    reg = model.named_steps["reg"]
-    names = model.named_steps["prep"].get_feature_names_out()
-    gain = reg.booster_.feature_importance(importance_type="gain")
-    return pd.Series(gain, index=names).sort_values(ascending=False)
 
 
 def save_pred_vs_actual(y: np.ndarray, pred: np.ndarray, out_dir: Path = PLOTS_DIR) -> Path:
@@ -118,7 +94,8 @@ def main(splits: Splits | None = None, models_dir: Path = PULSE_ARTIFACT_DIR,
     joblib.dump(model, models_dir / MODEL_FILE)
     path = save_metrics(metrics, NAME) if metrics_dir is None else save_metrics(
         metrics, NAME, metrics_dir)
-    print(f"LightGBM pulse regressor (SYNTHETIC data) -> {models_dir / MODEL_FILE}, "
+    print(f"XGBoost pulse regressor on {metrics['train_device']} (SYNTHETIC data) -> "
+          f"{models_dir / MODEL_FILE}, "
           f"early-stopped at {metrics['best_iteration']} trees")
     print_regression(NAME, metrics)
     print(f"  top {TOP_N} feature importances (gain):")
@@ -126,7 +103,7 @@ def main(splits: Splits | None = None, models_dir: Path = PULSE_ARTIFACT_DIR,
         print(f"    {feat:28s} {gain:12.1f}")
     print(f"  metrics saved: {path}")
     x_test, y_test = pulse_xy(splits.test)
-    print(f"  plot saved: {save_pred_vs_actual(y_test, model.predict(x_test), plots_dir)}")
+    print(f"  plot saved: {save_pred_vs_actual(y_test, predict_gpu(model, x_test), plots_dir)}")
     return metrics
 
 

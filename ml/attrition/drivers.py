@@ -3,8 +3,8 @@ driver categories, with plain-language reasons, on SYNTHETIC data.
 
 Contributions come from the SAME model that produces the risk (the segment's calibrated winner;
 see FoldModel.contributions), in calibrated log-odds relative to the training mean: for the
-logistic winner coefficient x (standardised value - training mean). LightGBM TreeSHAP
-(shap_values, pred_contrib=True) is kept only as a COMPARISON view in drivers.json.
+logistic winner coefficient x (standardised value - training mean). XGBoost TreeSHAP
+(shap_values, pred_contribs=True, on the GPU) is kept only as a COMPARISON view in drivers.json.
 
 A driver category's contribution = the sum of its features' contributions. Only categories
 pushing risk UP by at least attrition_model.driver_min_logodds (config, ASSUMED) are reported,
@@ -24,7 +24,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-from ml.attrition.models import LightGBMScorer
+from ml.attrition.models import XGBoostScorer
 
 PLAYBOOK_PATH = Path(__file__).resolve().parent / "playbook.json"
 TOP_DRIVERS = 3
@@ -79,10 +79,9 @@ def category_of(feature: str) -> str | None:
     return next((c for c, feats in DRIVER_GROUPS.items() if feature in feats), None)
 
 
-def shap_values(scorer: LightGBMScorer, df: pd.DataFrame) -> pd.DataFrame:
+def shap_values(scorer: XGBoostScorer, df: pd.DataFrame) -> pd.DataFrame:
     """Per-row SHAP value (log-odds) of every design column; the bias column is dropped."""
-    contrib = scorer.model.booster_.predict(scorer.design(df), pred_contrib=True)
-    return pd.DataFrame(contrib[:, :-1], columns=scorer.columns, index=df.index)
+    return pd.DataFrame(scorer.shap(df), columns=scorer.columns, index=df.index)
 
 
 def category_contributions(shap: pd.DataFrame) -> pd.DataFrame:

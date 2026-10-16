@@ -3,22 +3,22 @@
   "selection": {
     "validation_season": 2024,
     "validation_mae": {
-      "regression leaves=7 min_leaf=20 rounds=200": 2849.5,
-      "regression leaves=7 min_leaf=20 rounds=600": 2556.5,
-      "regression leaves=7 min_leaf=60 rounds=200": 3072.1,
-      "regression leaves=7 min_leaf=60 rounds=600": 2649.0,
-      "regression leaves=15 min_leaf=20 rounds=200": 2587.9,
-      "regression leaves=15 min_leaf=20 rounds=600": 2503.3,
-      "regression leaves=15 min_leaf=60 rounds=200": 2795.9,
-      "regression leaves=15 min_leaf=60 rounds=600": 2645.3,
-      "regression_l1 leaves=7 min_leaf=20 rounds=200": 2910.3,
-      "regression_l1 leaves=7 min_leaf=20 rounds=600": 2520.8,
-      "regression_l1 leaves=7 min_leaf=60 rounds=200": 3225.2,
-      "regression_l1 leaves=7 min_leaf=60 rounds=600": 2888.3,
-      "regression_l1 leaves=15 min_leaf=20 rounds=200": 2584.0,
-      "regression_l1 leaves=15 min_leaf=20 rounds=600": 2478.2,
-      "regression_l1 leaves=15 min_leaf=60 rounds=200": 2815.6,
-      "regression_l1 leaves=15 min_leaf=60 rounds=600": 2685.1
+      "regression leaves=7 min_leaf=20 rounds=200": 3015.1,
+      "regression leaves=7 min_leaf=20 rounds=600": 2731.5,
+      "regression leaves=7 min_leaf=60 rounds=200": 3423.5,
+      "regression leaves=7 min_leaf=60 rounds=600": 3105.2,
+      "regression leaves=15 min_leaf=20 rounds=200": 2573.6,
+      "regression leaves=15 min_leaf=20 rounds=600": 2499.4,
+      "regression leaves=15 min_leaf=60 rounds=200": 3124.0,
+      "regression leaves=15 min_leaf=60 rounds=600": 2877.5,
+      "regression_l1 leaves=7 min_leaf=20 rounds=200": 3204.1,
+      "regression_l1 leaves=7 min_leaf=20 rounds=600": 2674.8,
+      "regression_l1 leaves=7 min_leaf=60 rounds=200": 3696.2,
+      "regression_l1 leaves=7 min_leaf=60 rounds=600": 3322.6,
+      "regression_l1 leaves=15 min_leaf=20 rounds=200": 2885.8,
+      "regression_l1 leaves=15 min_leaf=20 rounds=600": 2486.8,
+      "regression_l1 leaves=15 min_leaf=60 rounds=200": 3696.2,
+      "regression_l1 leaves=15 min_leaf=60 rounds=600": 3322.6
     },
     "chosen": "regression_l1 leaves=15 min_leaf=20 rounds=600"
   },
@@ -303,33 +303,28 @@
         },
         "model": {
           "n": 595,
-          "mae": 3140.331872461063,
-          "mape_pct": 81.11203242851101
-        },
-        "xgb_gpu": {
-          "n": 595,
-          "mae": 3127.051255940425,
-          "mape_pct": 87.47864582772546
+          "mae": 3293.6757707460156,
+          "mape_pct": 97.87179651901349
         },
         "model_no_weather": {
           "n": 595,
-          "mae": 3065.631992081742,
-          "mape_pct": 84.69093994059186
+          "mae": 3371.810512416255,
+          "mape_pct": 100.7673560064137
         },
         "model_no_school": {
           "n": 595,
-          "mae": 3138.0962659643446,
-          "mape_pct": 82.34501680779128
+          "mae": 3367.2376247605303,
+          "mape_pct": 96.4184855431368
         },
         "model_no_holidays": {
           "n": 595,
-          "mae": 3063.6427202685877,
-          "mape_pct": 80.68601782400401
+          "mae": 3327.5614642825817,
+          "mape_pct": 96.35601751693899
         },
         "model_no_lags": {
           "n": 595,
-          "mae": 3053.197546525711,
-          "mape_pct": 72.78995013060567
+          "mae": 3069.6210718459342,
+          "mape_pct": 73.15790058909182
         }
       },
       "by_horizon": {
@@ -346,8 +341,8 @@
           },
           "model": {
             "n": 135,
-            "mae": 3056.188810739535,
-            "mape_pct": 75.16370802511575
+            "mae": 3239.635345133141,
+            "mape_pct": 87.3541065115686
           }
         },
         "4-7": {
@@ -363,8 +358,8 @@
           },
           "model": {
             "n": 176,
-            "mae": 3078.2750757927106,
-            "mape_pct": 83.91243242436855
+            "mae": 3267.3012928178923,
+            "mape_pct": 99.50275749072875
           }
         },
         "8-14": {
@@ -380,8 +375,8 @@
           },
           "model": {
             "n": 284,
-            "mae": 3218.7871877640086,
-            "mape_pct": 82.20412184818508
+            "mae": 3335.708748116044,
+            "mape_pct": 101.86066630768667
           }
         }
       },
@@ -399,8 +394,8 @@
           },
           "model": {
             "n": 49,
-            "mae": 3743.6681327762512,
-            "mape_pct": 29.249276036797806
+            "mae": 3682.0011237023364,
+            "mape_pct": 30.863704468448848
           }
         },
         "spread": {
@@ -416,8 +411,8 @@
           },
           "model": {
             "n": 546,
-            "mae": 3086.186310637905,
-            "mape_pct": 85.76638236110067
+            "mae": 3258.8260595832694,
+            "mape_pct": 103.88534324150005
           }
         }
       },
@@ -434,53 +429,53 @@
         },
         "model": {
           "n": 38,
-          "mae": 17404.238457673775,
-          "mape_pct": 66.47146979104826
+          "mae": 17557.151179815537,
+          "mape_pct": 76.73882343698246
         }
       },
       "band_accuracy": {
         "snaive": 0.5428571428571428,
         "ma7": 0.4789915966386555,
-        "model": 0.42016806722689076
+        "model": 0.40672268907563025
       },
       "range80": {
-        "coverage": 0.7563025210084033,
-        "mean_width": 8547.375618069575
+        "coverage": 0.6957983193277311,
+        "mean_width": 8013.768439222586
       },
       "failure_analysis": {
         "opening week (day 0-6)": {
           "n": 28,
-          "model_mae": 2008.2476148727906,
+          "model_mae": 2183.69236415788,
           "snaive_mae": 3348.9369820655547,
           "mean_actual": 13814.44601113173
         },
         "days 7-29": {
           "n": 158,
-          "model_mae": 3241.2118926145677,
+          "model_mae": 3067.4084002460286,
           "snaive_mae": 3469.811549491297,
           "mean_actual": 16588.870467788194
         },
         "days 30-89": {
           "n": 220,
-          "model_mae": 3208.8528211771877,
+          "model_mae": 3340.8865987425406,
           "snaive_mae": 3415.0135957305974,
           "mean_actual": 10586.268049944632
         },
         "day 90+": {
           "n": 189,
-          "model_mae": 3143.9546624646114,
+          "model_mae": 3592.318086958876,
           "snaive_mae": 2873.3386185921804,
           "mean_actual": 4464.569909103242
         },
         "last 14 days before closing": {
           "n": 105,
-          "model_mae": 3263.9168560831667,
+          "model_mae": 3724.2648518472283,
           "snaive_mae": 3308.2895579784426,
           "mean_actual": 3442.493015873016
         },
         "heavy-rain days (>= 35 mm, day or day before)": {
           "n": 3,
-          "model_mae": 2500.9040043855925,
+          "model_mae": 2648.313119263593,
           "snaive_mae": 2500.3317460317458,
           "mean_actual": 6583.077777777778
         },
@@ -496,7 +491,7 @@
             "date": "2025-05-04",
             "h": 1,
             "actual": 23000,
-            "model": 11430,
+            "model": 10133,
             "snaive": 11574,
             "basis": "reported",
             "day_of_season": 0,
@@ -505,9 +500,9 @@
           {
             "dest": "kedarnath",
             "date": "2025-06-06",
-            "h": 8,
+            "h": 13,
             "actual": 25452,
-            "model": 14588,
+            "model": 14574,
             "snaive": 14353,
             "basis": "spread",
             "day_of_season": 35,
@@ -518,7 +513,7 @@
             "date": "2025-05-24",
             "h": 10,
             "actual": 25340,
-            "model": 14952,
+            "model": 15773,
             "snaive": 20033,
             "basis": "reported",
             "day_of_season": 22,
@@ -526,10 +521,32 @@
           },
           {
             "dest": "kedarnath",
+            "date": "2025-06-07",
+            "h": 14,
+            "actual": 23532,
+            "model": 14748,
+            "snaive": 14353,
+            "basis": "reported",
+            "day_of_season": 36,
+            "heavy_rain": false
+          },
+          {
+            "dest": "kedarnath",
+            "date": "2025-06-05",
+            "h": 12,
+            "actual": 25452,
+            "model": 17013,
+            "snaive": 18398,
+            "basis": "spread",
+            "day_of_season": 34,
+            "heavy_rain": false
+          },
+          {
+            "dest": "kedarnath",
             "date": "2025-05-25",
             "h": 11,
             "actual": 24342,
-            "model": 15006,
+            "model": 15919,
             "snaive": 20033,
             "basis": "spread",
             "day_of_season": 23,
@@ -540,7 +557,7 @@
             "date": "2025-05-02",
             "h": 1,
             "actual": 30154,
-            "model": 20906,
+            "model": 21818,
             "snaive": 26240,
             "basis": "reported",
             "day_of_season": 0,
@@ -548,32 +565,10 @@
           },
           {
             "dest": "kedarnath",
-            "date": "2025-05-23",
-            "h": 9,
-            "actual": 23450,
-            "model": 14732,
-            "snaive": 20033,
-            "basis": "spread",
-            "day_of_season": 21,
-            "heavy_rain": false
-          },
-          {
-            "dest": "kedarnath",
-            "date": "2025-06-07",
-            "h": 9,
-            "actual": 23532,
-            "model": 14834,
-            "snaive": 14353,
-            "basis": "reported",
-            "day_of_season": 36,
-            "heavy_rain": false
-          },
-          {
-            "dest": "kedarnath",
             "date": "2025-05-22",
             "h": 8,
             "actual": 23450,
-            "model": 14763,
+            "model": 15632,
             "snaive": 20889,
             "basis": "spread",
             "day_of_season": 20,
@@ -581,30 +576,31 @@
           },
           {
             "dest": "kedarnath",
-            "date": "2025-06-05",
-            "h": 12,
-            "actual": 25452,
-            "model": 16985,
-            "snaive": 18398,
+            "date": "2025-05-23",
+            "h": 9,
+            "actual": 23450,
+            "model": 15667,
+            "snaive": 20033,
             "basis": "spread",
-            "day_of_season": 34,
+            "day_of_season": 21,
             "heavy_rain": false
           },
           {
             "dest": "kedarnath",
-            "date": "2025-05-26",
-            "h": 12,
-            "actual": 24342,
-            "model": 16231,
-            "snaive": 20033,
+            "date": "2025-05-21",
+            "h": 7,
+            "actual": 23450,
+            "model": 16104,
+            "snaive": 20889,
             "basis": "spread",
-            "day_of_season": 24,
+            "day_of_season": 19,
             "heavy_rain": false
           }
         ]
       },
-      "conformal_q_scaled": 0.37929012454445615,
-      "xgb_device": "cuda",
+      "conformal_q_scaled": 0.36467698216438293,
+      "train_device": "cuda:0 NVIDIA GeForce RTX 4050 Laptop GPU",
+      "eval_device": "cuda:0 NVIDIA GeForce RTX 4050 Laptop GPU",
       "train_seasons": [
         2022,
         2023,
@@ -627,33 +623,28 @@
         },
         "model": {
           "n": 560,
-          "mae": 2684.7356179746635,
-          "mape_pct": 43.370506721419204
-        },
-        "xgb_gpu": {
-          "n": 560,
-          "mae": 2656.1602648396683,
-          "mape_pct": 33.532878978177266
+          "mae": 2594.4650683726823,
+          "mape_pct": 38.45091099167621
         },
         "model_no_weather": {
           "n": 560,
-          "mae": 2916.0840516510157,
-          "mape_pct": 50.66137644044231
+          "mae": 2618.608857489616,
+          "mape_pct": 40.10951160511492
         },
         "model_no_school": {
           "n": 560,
-          "mae": 2830.4317798364527,
-          "mape_pct": 44.76453281032386
+          "mae": 2660.500582078076,
+          "mape_pct": 38.44228200566261
         },
         "model_no_holidays": {
           "n": 560,
-          "mae": 2688.1697053058506,
-          "mape_pct": 44.286850552172
+          "mae": 2661.9329044085825,
+          "mape_pct": 41.418914017007715
         },
         "model_no_lags": {
           "n": 560,
-          "mae": 2919.204768850878,
-          "mape_pct": 44.82824304429992
+          "mae": 3085.9016563769806,
+          "mape_pct": 46.58135392644762
         }
       },
       "by_horizon": {
@@ -670,8 +661,8 @@
           },
           "model": {
             "n": 120,
-            "mae": 3017.3247624455503,
-            "mape_pct": 39.9508685239555
+            "mae": 2964.9097171323674,
+            "mape_pct": 36.18883620219553
           }
         },
         "4-7": {
@@ -687,8 +678,8 @@
           },
           "model": {
             "n": 160,
-            "mae": 2710.6413048654786,
-            "mape_pct": 42.77904273323362
+            "mae": 2639.464293534145,
+            "mape_pct": 38.555895226287845
           }
         },
         "8-14": {
@@ -704,8 +695,8 @@
           },
           "model": {
             "n": 280,
-            "mae": 2527.394163549531,
-            "mape_pct": 45.174045370723995
+            "mae": 2409.989233097695,
+            "mape_pct": 39.360380624532716
           }
         }
       },
@@ -723,8 +714,8 @@
           },
           "model": {
             "n": 18,
-            "mae": 3741.16355564735,
-            "mape_pct": 21.688112023314105
+            "mae": 3779.3886541270695,
+            "mape_pct": 22.324832426082132
           }
         },
         "spread": {
@@ -740,8 +731,8 @@
           },
           "model": {
             "n": 542,
-            "mae": 2649.651295321327,
-            "mape_pct": 44.09058625013856
+            "mae": 2555.113362572721,
+            "mape_pct": 38.98646341636384
           }
         }
       },
@@ -758,41 +749,41 @@
         },
         "model": {
           "n": 20,
-          "mae": 24701.62843842812,
-          "mape_pct": 23.338981728264457
+          "mae": 26465.823108749533,
+          "mape_pct": 25.708557290526617
         }
       },
       "band_accuracy": {
         "snaive": 0.5767857142857142,
         "ma7": 0.3821428571428571,
-        "model": 0.6410714285714286
+        "model": 0.625
       },
       "range80": {
-        "coverage": 0.8214285714285714,
-        "mean_width": 9026.699028197367
+        "coverage": 0.8446428571428571,
+        "mean_width": 9997.349279055798
       },
       "failure_analysis": {
         "opening week (day 0-6)": {
           "n": 29,
-          "model_mae": 4503.4397538480325,
+          "model_mae": 4506.567004628039,
           "snaive_mae": 3210.6624720107484,
           "mean_actual": 13784.027899686524
         },
         "days 7-29": {
           "n": 164,
-          "model_mae": 3476.2849235049302,
+          "model_mae": 3507.7569852484003,
           "snaive_mae": 3258.1395882891225,
           "mean_actual": 17035.299140254774
         },
         "days 30-89": {
           "n": 185,
-          "model_mae": 2825.352965372827,
+          "model_mae": 2579.653400074559,
           "snaive_mae": 3898.738346507512,
           "mean_actual": 11617.64897716942
         },
         "day 90+": {
           "n": 182,
-          "model_mae": 1538.7426766782248,
+          "model_mae": 1481.8789591206469,
           "snaive_mae": 1454.2446657583434,
           "mean_actual": 3572.0857261165343
         },
@@ -804,7 +795,7 @@
         },
         "heavy-rain days (>= 35 mm, day or day before)": {
           "n": 9,
-          "model_mae": 1104.6947681352804,
+          "model_mae": 1053.0516185947135,
           "snaive_mae": 1645.3643430737736,
           "mean_actual": 5185.293221239309
         },
@@ -820,7 +811,7 @@
             "date": "2026-04-27",
             "h": 6,
             "actual": 29636,
-            "model": 11954,
+            "model": 12455,
             "snaive": 22543,
             "basis": "spread",
             "day_of_season": 5,
@@ -828,13 +819,13 @@
           },
           {
             "dest": "kedarnath",
-            "date": "2026-04-28",
-            "h": 7,
+            "date": "2026-04-26",
+            "h": 5,
             "actual": 29636,
-            "model": 12742,
+            "model": 12775,
             "snaive": 22543,
             "basis": "spread",
-            "day_of_season": 6,
+            "day_of_season": 4,
             "heavy_rain": false
           },
           {
@@ -842,7 +833,7 @@
             "date": "2026-04-22",
             "h": 1,
             "actual": 29636,
-            "model": 12888,
+            "model": 13039,
             "snaive": 30154,
             "basis": "spread",
             "day_of_season": 0,
@@ -853,7 +844,7 @@
             "date": "2026-04-23",
             "h": 2,
             "actual": 29636,
-            "model": 13133,
+            "model": 13174,
             "snaive": 22543,
             "basis": "spread",
             "day_of_season": 1,
@@ -861,32 +852,10 @@
           },
           {
             "dest": "kedarnath",
-            "date": "2026-04-26",
-            "h": 5,
-            "actual": 29636,
-            "model": 13188,
-            "snaive": 22543,
-            "basis": "spread",
-            "day_of_season": 4,
-            "heavy_rain": false
-          },
-          {
-            "dest": "kedarnath",
-            "date": "2026-04-24",
-            "h": 3,
-            "actual": 29636,
-            "model": 13800,
-            "snaive": 22543,
-            "basis": "spread",
-            "day_of_season": 2,
-            "heavy_rain": false
-          },
-          {
-            "dest": "kedarnath",
             "date": "2026-04-25",
             "h": 4,
             "actual": 29636,
-            "model": 14047,
+            "model": 13912,
             "snaive": 22543,
             "basis": "spread",
             "day_of_season": 3,
@@ -894,10 +863,32 @@
           },
           {
             "dest": "kedarnath",
+            "date": "2026-04-24",
+            "h": 3,
+            "actual": 29636,
+            "model": 13978,
+            "snaive": 22543,
+            "basis": "spread",
+            "day_of_season": 2,
+            "heavy_rain": false
+          },
+          {
+            "dest": "kedarnath",
+            "date": "2026-04-28",
+            "h": 7,
+            "actual": 29636,
+            "model": 13989,
+            "snaive": 22543,
+            "basis": "spread",
+            "day_of_season": 6,
+            "heavy_rain": false
+          },
+          {
+            "dest": "kedarnath",
             "date": "2026-05-10",
             "h": 1,
             "actual": 32002,
-            "model": 19471,
+            "model": 19874,
             "snaive": 23450,
             "basis": "spread",
             "day_of_season": 18,
@@ -908,7 +899,7 @@
             "date": "2026-05-11",
             "h": 2,
             "actual": 32002,
-            "model": 20315,
+            "model": 20764,
             "snaive": 23450,
             "basis": "spread",
             "day_of_season": 19,
@@ -919,7 +910,7 @@
             "date": "2026-05-13",
             "h": 4,
             "actual": 32423,
-            "model": 20869,
+            "model": 21316,
             "snaive": 23450,
             "basis": "reported",
             "day_of_season": 21,
@@ -927,8 +918,9 @@
           }
         ]
       },
-      "conformal_q_scaled": 0.4177370101379856,
-      "xgb_device": "cuda",
+      "conformal_q_scaled": 0.4844546248922452,
+      "train_device": "cuda:0 NVIDIA GeForce RTX 4050 Laptop GPU",
+      "eval_device": "cuda:0 NVIDIA GeForce RTX 4050 Laptop GPU",
       "train_seasons": [
         2022,
         2023,
@@ -945,7 +937,7 @@
       2025
     ],
     "objective": "regression_l1",
-    "conformal_q_scaled": 0.4177370101379856,
+    "conformal_q_scaled": 0.4844546248922452,
     "caps": {
       "kedarnath": 48400.0,
       "badrinath": 35100.0,
@@ -986,18 +978,20 @@
     },
     "params": {
       "learning_rate": 0.05,
-      "num_leaves": 15,
-      "min_data_in_leaf": 20,
-      "feature_fraction": 0.8,
-      "bagging_fraction": 0.8,
-      "bagging_freq": 1,
-      "lambda_l2": 1.0,
-      "seed": 42,
-      "deterministic": true,
-      "force_row_wise": true,
-      "verbose": -1,
-      "num_threads": 4,
+      "grow_policy": "lossguide",
+      "max_depth": 0,
+      "max_leaves": 15,
+      "min_child_weight": 20,
+      "colsample_bytree": 0.8,
+      "subsample": 0.8,
+      "reg_lambda": 1.0,
+      "random_state": 42,
+      "device": "cuda",
+      "tree_method": "hist",
       "rounds": 600
-    }
+    },
+    "algorithm": "XGBoost (point: chosen objective; q10 / q90: reg:quantileerror)",
+    "train_device": "cuda:0 NVIDIA GeForce RTX 4050 Laptop GPU",
+    "eval_device": "cuda:0 NVIDIA GeForce RTX 4050 Laptop GPU"
   }
 }

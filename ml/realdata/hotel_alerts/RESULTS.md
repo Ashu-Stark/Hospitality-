@@ -37,13 +37,17 @@ at the moment of booking).
 | Method | ROC-AUC | PR-AUC | Brier (lower is better) | Calibration error (ECE) |
 |---|---|---|---|---|
 | Base rate: the hotel's past cancel rate for that lead time | 0.638 | 0.494 | 0.234 | 0.086 |
-| Logistic regression | 0.795 | 0.769 | 0.173 | 0.043 |
-| **LightGBM (deployed; chosen on validation)** | **0.820** | **0.786** | **0.168** | 0.057 |
-| XGBoost on the GPU (comparison only) | 0.820 | 0.786 | 0.168 | 0.062 |
+| Logistic regression (torch on the GPU) | 0.795 | 0.769 | 0.173 | 0.043 |
+| **XGBoost on the GPU (deployed; chosen on validation)** | **0.820** | **0.786** | **0.168** | 0.062 |
+
+Training and evaluation run on the GPU only (cuda:0 NVIDIA GeForce RTX 4050 Laptop GPU;
+`ml/gpu.py` refuses to train without CUDA). XGBoost replaced the earlier LightGBM model; the
+deployed copy is an exported tree ensemble evaluated with numpy, so the API servers need no GPU,
+torch or xgboost.
 
 In plain words, given one booking that will be cancelled and one that will not, the model
 ranks the cancelling one higher 82% of the time. The base rate does this 64% of the time. By
-hotel: city 0.826, resort 0.806 (base rate 0.621 and 0.641).
+hotel: city 0.827, resort 0.805 (base rate 0.621 and 0.641).
 
 **Compared with other honest work.** Public work that also splits by date and drops the
 post-booking columns reports ROC-AUC of about 0.81 to 0.84. We were pointed to two examples and
@@ -53,26 +57,27 @@ GitHub LightGBM project with a temporal split (0.84). Our 0.82 sits inside that 
 room, country or reservation status. We checked that none of those columns can reach our model.
 A test confirms that changing them leaves the model input unchanged.
 
-**Calibration (test, at booking, LightGBM).** Predicted vs actual share cancelled, per bin
+**Calibration (test, at booking, XGBoost).** Predicted vs actual share cancelled, per bin
 (number of bookings):
 
-| Predicted | 0.0-0.1 | 0.1-0.2 | 0.2-0.3 | 0.3-0.4 | 0.4-0.5 | 0.5-0.6 | 0.6-0.7 | 0.7-0.8 | 0.9-1.0 |
-|---|---|---|---|---|---|---|---|---|---|
-| Mean predicted | 0.065 | 0.148 | 0.243 | 0.331 | 0.445 | 0.555 | 0.669 | 0.715 | 0.988 |
-| Actually cancelled | 0.074 | 0.199 | 0.356 | 0.453 | 0.505 | 0.532 | 0.642 | 0.677 | 1.000 |
-| Bookings | 5,858 | 6,560 | 8,524 | 2,051 | 636 | 725 | 2,697 | 2,399 | 3,376 |
+| Predicted | 0.0-0.1 | 0.1-0.2 | 0.2-0.3 | 0.3-0.4 | 0.4-0.5 | 0.5-0.6 | 0.6-0.7 | 0.7-0.8 | 0.8-0.9 | 0.9-1.0 |
+|---|---|---|---|---|---|---|---|---|---|---|
+| Mean predicted | 0.055 | 0.148 | 0.245 | 0.337 | 0.446 | 0.550 | 0.658 | 0.745 | 0.820 | 0.998 |
+| Actually cancelled | 0.070 | 0.215 | 0.359 | 0.445 | 0.392 | 0.555 | 0.611 | 0.678 | 0.648 | 1.000 |
+| Bookings | 6,171 | 6,648 | 7,838 | 2,108 | 622 | 806 | 1,476 | 3,584 | 196 | 3,380 |
 
-From 0.1 to 0.4 the model **under-predicts by 5 to 12 points**: more bookings were cancelled in
+From 0.1 to 0.4 the model **under-predicts by 7 to 11 points**: more bookings were cancelled in
 spring and summer 2017 than in the training period. The AAUBS model card reports the same 2017
 rise. Plot: `ml/docs/plots/realdata_cancellation_calibration.png`.
 
-**Closer to arrival** (test, LightGBM vs base rate, ROC-AUC): 30 days 0.723 vs 0.528; 7 days
-0.677 vs 0.510; 1 day 0.660 vs 0.494. Few bookings cancel this late: 12.6%, 4.0% and 1.9%. The
-model still ranks them better than the base rate. Its Brier score is close to the base rate's
-at 7 days (0.039 vs 0.039), so the gain there is in ranking, not in the probability values.
+**Closer to arrival** (test, XGBoost vs base rate, ROC-AUC): 30 days 0.734 vs 0.528; 7 days
+0.674 vs 0.510; 1 day 0.660 vs 0.494. Few bookings cancel this late: 12.6%, 4.0% and 1.9%. The
+model still ranks them better than the base rate. Its Brier score is no better than the base
+rate's at 7 days (0.040 vs 0.039), so the gain there is in ranking, not in the probability
+values.
 
 **Ablation.** Without average daily rate and special requests (both may hold their final value,
-not the value at booking), ROC-AUC is 0.797 instead of 0.820 and Brier 0.175 instead of 0.168.
+not the value at booking), ROC-AUC is 0.795 instead of 0.820 and Brier 0.175 instead of 0.168.
 Most of the signal does not depend on them.
 
 ### Use 1: expected occupancy (rooms on the books that will really stay)
@@ -83,18 +88,18 @@ per night, both hotels (about 175 to 190 rooms on the books):
 
 | Days ahead | Rooms that later cancelled | No adjustment | Base-rate table | Model | Deployed (chosen on validation) | 80% range held the actual |
 |---|---|---|---|---|---|---|
-| 1 | 1.0 | **0.97** | 1.20 | 1.09 | base-rate table | 72% |
-| 7 | 5.3 | 5.25 | **4.49** | 5.24 | base-rate table | 54% |
-| 14 | 10.9 | 10.94 | 7.95 | **5.10** | base-rate table | 48% |
-| 30 | 18.7 | 18.67 | 10.56 | **5.33** | base-rate table | 48% |
+| 1 | 1.0 | **0.97** | 1.20 | **0.97** | base-rate table | 72% |
+| 7 | 5.3 | 5.25 | **4.49** | 5.52 | base-rate table | 54% |
+| 14 | 10.9 | 10.94 | 7.95 | **5.43** | base-rate table | 48% |
+| 30 | 18.7 | 18.67 | 10.56 | **5.44** | base-rate table | 48% |
 
-Resort hotel only (the closer match to a hill resort), model vs base-rate table: 7 days 1.99 vs
-2.25, 14 days 2.64 vs 3.92, 30 days 3.56 vs 6.34.
+Resort hotel only (the closer match to a hill resort), model vs base-rate table: 7 days 1.94 vs
+2.25, 14 days 2.60 vs 3.92, 30 days 3.47 vs 6.34.
 
 What this means:
 
 - Subtracting expected cancellations helps a lot from 2 weeks out: the error falls from 18.7
-  to 5.3 rooms at 30 days. One day out, nothing beats "assume they all come": only about 1 room
+  to 5.4 rooms at 30 days. One day out, nothing beats "assume they all come": only about 1 room
   cancels.
 - **The deployed rule picked the base-rate table at every horizon**, because it was better on
   the winter validation window. On the summer test the model was better at 14 and 30 days, and
@@ -115,7 +120,7 @@ What this means:
 An alert fires when expected cancellations are at least 5% of the rooms (12 city, 10 resort),
 7 days ahead. In the test:
 
-- City: 15 such nights. The model flags 160 of 184 nights (precision 9%) and the base-rate
+- City: 15 such nights. The model flags 161 of 184 nights (precision 9%) and the base-rate
   table 155 (precision 7%). **Not useful:** both over-flag.
 - Resort: 7 such nights. The model flags 2, both right (precision 100%, recall 29%). The
   base-rate table flags none.
@@ -213,8 +218,7 @@ Two real findings:
 
 ```powershell
 cd ml
-python run.py train-cancellation            # REAL data; downloads + hash-checks the file if missing
-python run.py train-cancellation --cpu      # without the GPU (XGBoost comparison on the CPU)
+python run.py train-cancellation            # REAL data, GPU only; downloads + hash-checks the file if missing
 python run.py guard-reference               # after retraining any synthetic v1 model
 python run.py backtest-monitor --hotel himsagar --strict   # exit 1 if a model is worse than its baseline
 python -m pytest -q tests/test_guardrails.py tests/test_hotel_alerts.py

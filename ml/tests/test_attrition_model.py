@@ -76,6 +76,7 @@ def test_rule_score_counts_conditions(cfg) -> None:
     assert rule_score(df, m).tolist() == [0.0, 3.0]
 
 
+@pytest.mark.gpu  # trains a model: GPU only
 def test_platt_threshold_and_metrics() -> None:
     rng = np.random.default_rng(0)
     raw = rng.uniform(0.01, 0.99, 2000)
@@ -90,12 +91,13 @@ def test_platt_threshold_and_metrics() -> None:
     assert table["observed_rate"].is_monotonic_increasing
 
 
+@pytest.mark.gpu  # trains a model: GPU only
 def test_run_segment_end_to_end(cfg, features) -> None:
     small = cfg.model_copy(update={"attrition_model": cfg.attrition_model.model_copy(
         update={"test_years": [2028]})})
     r = run_segment(features, "resignation", small)
     assert r.winner in r.deployed.names
-    assert set(r.metrics["test"]) == {"rules", "logistic", "lightgbm"}
+    assert set(r.metrics["test"]) == {"rules", "logistic", "xgboost"}
     assert r.test_preds["year"].eq(2028).all()
     assert not r.test_preds["employee_id"].str.startswith("H").any()
 

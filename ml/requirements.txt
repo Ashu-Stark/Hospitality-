@@ -1,17 +1,16 @@
 # Direct dependencies (unpinned). Exact versions: requirements-lock.txt.
-# scipy is not listed: nothing imports it directly; scikit-learn and LightGBM pull it in.
-# shap is not used: LightGBM's built-in TreeSHAP (pred_contrib=True) gives identical values
-# (checked in T8: max difference 0.0), so the shap package and its numba/llvmlite stack were
-# dropped in T10.
+# scipy is not listed: nothing imports it directly; scikit-learn pulls it in.
+# shap is not used: XGBoost's built-in TreeSHAP (pred_contribs=True) is used for the comparison.
+# LightGBM was removed: every model is now trained on the GPU with XGBoost / torch.
 numpy
 pandas
 pyyaml
 pydantic
 matplotlib
 scikit-learn
-lightgbm
 joblib
 pytest
 ruff
-# OPTIONAL, only for `python run.py realdata` (GPU benchmarks on public data): see
-# realdata/requirements-gpu.txt. Not needed by the synthetic pipeline, the tests or the API.
+# TRAINING needs the GPU stack (torch CUDA build + xgboost): see realdata/requirements-gpu.txt.
+# Every training entry point refuses to run without CUDA (ml/gpu.py). The API servers and the
+# inference tests need neither: deployed models predict with numpy on the CPU.

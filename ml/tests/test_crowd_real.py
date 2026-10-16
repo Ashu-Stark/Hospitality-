@@ -1,7 +1,9 @@
 """ml/realdata/crowd: target construction, tree export, guardrails, train/serve parity.
 
-Tiny in-memory fixtures (no download, no GPU). The bundle tests use the committed artifact
-(ml/artifacts/crowd_forecast/real_v1/bundle.json) and are skipped if it has not been built.
+Tiny in-memory fixtures (no download). The tree-export test trains a tiny XGBoost model on the
+GPU and is skipped without CUDA (training never runs on the CPU). The bundle tests use the
+committed artifact (ml/artifacts/crowd_forecast/real_v1/bundle.json) and are skipped if it has
+not been built.
 """
 
 from __future__ import annotations
@@ -10,11 +12,11 @@ import math
 from datetime import date, timedelta
 from pathlib import Path
 
-import lightgbm as lgb
 import numpy as np
 import pandas as pd
 import pytest
 
+from ml import gpu
 from ml.realdata.crowd import predict as P
 from ml.realdata.crowd import target
 from ml.realdata.crowd import train as T
@@ -131,20 +133,30 @@ def test_target_drops_non_monotonic_and_unverified(tmp_path: Path) -> None:
 # ---- tree export ----------------------------------------------------------------------
 
 
-def test_compact_trees_match_lightgbm_including_missing_values() -> None:
+def _cuda() -> bool:
+    try:
+        gpu.require_cuda()
+        return True
+    except gpu.GPURequiredError:
+        return False
+
+
+@pytest.mark.skipif(not _cuda(), reason="training a test model needs the GPU")
+def test_compact_trees_match_xgboost_including_missing_values() -> None:
+    import xgboost as xgb
+
     rng = np.random.default_rng(42)
     X = rng.normal(size=(400, len(P.FEATURES)))
     X[rng.random(X.shape) < 0.2] = np.nan
     y = np.nan_to_num(X[:, 0]) * 2 + np.nan_to_num(X[:, 5]) + rng.normal(size=400) * 0.1
-    for obj, extra in (("regression", {}), ("quantile", {"alpha": 0.9})):
-        b = lgb.train(
-            {"objective": obj, "verbose": -1, "num_leaves": 7, "seed": 1, **extra},
-            lgb.Dataset(X, y),
-            num_boost_round=30,
-        )
-        trees = T.compact(b)
-        ours = [P.tree_predict(trees, list(r)) for r in X[:60]]
-        assert np.allclose(ours, b.predict(X[:60]), atol=1e-6)
+    df = pd.DataFrame(X, columns=list(P.FEATURES))
+    for obj, extra in (("reg:squarederror", {}), ("reg:quantileerror", {"quantile_alpha": 0.9})):
+        m = xgb.XGBRegressor(objective=obj, n_estimators=30, grow_policy="lossguide",
+                             max_leaves=7, max_depth=0, random_state=1, **extra,
+                             **gpu.XGB_DEVICE).fit(df, y)
+        model = T.compact(m, df)
+        ours = [P.tree_predict(model, list(r)) for r in X[:60]]
+        assert np.allclose(ours, m.predict(df.iloc[:60]), atol=1e-5)
 
 
 # ---- the real bundle ------------------------------------------------------------------
@@ -262,8 +274,11 @@ def test_abstains_when_range_too_wide(bundle: P.Bundle) -> None:
 
 @needs_bundle
 def test_train_serve_parity_on_saved_predictions() -> None:
-    """The bundle (pure Python) reproduces the LightGBM booster on real feature rows."""
-    b = lgb.Booster(model_file=str(ARTIFACT_DIR / "lgbm_point.txt"))
+    """The bundle (pure Python) reproduces the saved XGBoost model on random feature rows
+    (XGBoost only predicts here)."""
+    import xgboost as xgb
+
+    b = xgb.Booster(model_file=str(ARTIFACT_DIR / "xgb_point.json"))
     bundle = P.Bundle.load(BUNDLE)
     rng = np.random.default_rng(0)
     rows = [
@@ -272,6 +287,6 @@ def test_train_serve_parity_on_saved_predictions() -> None:
     ]
     assert np.allclose(
         [P.tree_predict(bundle.models["point"], r) for r in rows],
-        b.predict(np.array(rows)),
-        atol=1e-6,
+        b.predict(xgb.DMatrix(np.array(rows), feature_names=list(P.FEATURES))),
+        atol=1e-5,
     )

@@ -6,23 +6,27 @@ Daily occupancy forecast 1, 7 and 30 days ahead with an 80% band and high / low 
 
 ## Data
 
-Daily SYNTHETIC occupancy, calendar and weather; train targets 2023-2024, test 2025 (split by time). One direct LightGBM model per horizon plus two quantile models.
+Daily SYNTHETIC occupancy, calendar and weather; train targets 2023-2024, test 2025 (split by time). One direct XGBoost model per horizon plus two quantile models.
 
 Dataset hash (combined SHA-256 of 3 input files, seed 42): `c26733fd4a45e143...` (dataset_hash.json).
+
+## Training and serving
+
+Trained and evaluated on the GPU only (cuda:0 NVIDIA GeForce RTX 4050 Laptop GPU): XGBoost with device=cuda and torch on CUDA for the logistic models (ml/gpu.py refuses to train without CUDA; there is no CPU fallback). The saved model.joblib is CPU-only inference (numpy tree arrays / coefficients), so the servers need no GPU, torch or xgboost.
 
 ## Metrics vs baseline (test)
 
 | horizon | model MAPE | seasonal-naive MAPE | used | 80% band coverage (split-conformal) | T6 quantile-band coverage |
 |---|---|---|---|---|---|
-| 1 d | 6.7% | 13.7% | model | 84.7% | 70.1% |
-| 7 d | 7.2% | 13.7% | model | 85.8% | 68.5% |
-| 30 d | 10.3% | 13.7% | model | 83.3% | 56.4% |
+| 1 d | 6.7% | 13.7% | model | 86.6% | 78.6% |
+| 7 d | 7.2% | 13.7% | model | 85.5% | 76.4% |
+| 30 d | 10.3% | 13.7% | model | 82.7% | 68.5% |
 
 ## Uncertainty band
 
 Split-conformal (T12): a twin of the forecaster trained only on targets before the calibration window (2024) is scored on that window; the (n + 1)-corrected 10th / 90th percentiles of its residuals are added to the point forecast. The point forecast itself is unchanged from T6. The twin has less history than the deployed model, so the band is likely a little conservative.
 
-Outside the 75%-85% target: 7 d (85.8%); reported as is, not tuned.
+Outside the 75%-85% target: 1 d (86.6%), 7 d (85.5%); reported as is, not tuned.
 
 ## Limitations
 

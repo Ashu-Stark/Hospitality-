@@ -14,11 +14,16 @@ them: age, gender, marital status, the supervisor's gender, and (turnover) the f
 personality-test scores (psychometric data a hotel would not and should not hold).
 Neither dataset has dates, so a time split is impossible: evaluation is repeated stratified
 5-fold cross-validation (3 repeats, seeds 42-44), with calibration fitted INSIDE each
-training fold (Platt / sigmoid, 5 inner folds) so no test-fold row touches any fitted part.
+training fold (Platt / sigmoid, 5 inner folds, the 5 calibrated inner models averaged) so no
+test-fold row touches any fitted part.
 
 Scorers: rules baseline (count of ASSUMED warning conditions fixed before seeing results),
-logistic regression (standardised numerics + one-hot, L2), LightGBM (CPU, as in
-ml/attrition) and XGBoost (GPU when available).
+logistic regression (standardised numerics + one-hot, L2, C = 1: the same model as the
+deployed ml/attrition logistic, trained with torch on the GPU) and XGBoost (GPU; it replaced
+the earlier LightGBM comparison). GPU ONLY: every fit, every Platt fit and every evaluation
+prediction runs on CUDA (ml/gpu.py refuses without it). Only pandas feature preparation, the
+fold splitting and sklearn.metrics on the final prediction arrays run on the CPU.
+Plain-language rating and limits: ml/realdata/attrition/VALIDATION.md.
 """
 
 from __future__ import annotations
@@ -29,13 +34,15 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
-from sklearn.calibration import CalibratedClassifierCV
+from sklearn.base import clone
 from sklearn.compose import ColumnTransformer
-from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import average_precision_score, brier_score_loss, roc_auc_score
 from sklearn.model_selection import StratifiedKFold
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OneHotEncoder, OrdinalEncoder, StandardScaler
+
+from ml import gpu
+from ml.torch_logistic import TorchLogisticRegression, platt_fit
 
 LABEL = "label"
 QUIT_WINDOW_MONTHS = 12.0
@@ -109,29 +116,49 @@ def _prep(x: pd.DataFrame, spec: Spec, ordinal: bool) -> ColumnTransformer:
     return ColumnTransformer([("num", StandardScaler(), num), ("cat", enc, cat)])
 
 
-def make_estimator(kind: str, x: pd.DataFrame, spec: Spec, seed: int, device: str = "cuda"):
+def make_estimator(kind: str, x: pd.DataFrame, spec: Spec, seed: int):
+    """Unfitted GPU estimator: torch logistic regression or XGBoost on CUDA."""
     if kind == "logistic":
-        clf = LogisticRegression(max_iter=5000, C=1.0, random_state=seed)
-        return Pipeline([("prep", _prep(x, spec, False)), ("clf", clf)])
-    if kind == "lightgbm":
-        import lightgbm as lgb
-        clf = lgb.LGBMClassifier(n_estimators=200, learning_rate=0.05, num_leaves=8,
-                                 min_child_samples=30, colsample_bytree=0.8, n_jobs=1,
-                                 deterministic=True, force_row_wise=True, verbose=-1,
-                                 random_state=seed)
+        clf = TorchLogisticRegression(C=1.0, max_iter=5000, random_state=seed)
         return Pipeline([("prep", _prep(x, spec, False)), ("clf", clf)])
     if kind == "xgboost":
         import xgboost as xgb
         clf = xgb.XGBClassifier(n_estimators=300, learning_rate=0.05, max_depth=3,
                                 min_child_weight=3, subsample=0.8, colsample_bytree=0.8,
-                                tree_method="hist", device=device, random_state=seed)
+                                random_state=seed, **gpu.XGB_DEVICE)
         return Pipeline([("prep", _prep(x, spec, False)), ("clf", clf)])
     raise ValueError(kind)
 
 
+def _raw(est: Pipeline, x: pd.DataFrame) -> np.ndarray:
+    """Score that Platt scaling calibrates: log-odds (logistic) or P(leave) (XGBoost); both are
+    computed on the GPU."""
+    if hasattr(est[-1], "decision_function"):
+        return est[-1].decision_function(est[:-1].transform(x))
+    return est.predict_proba(x)[:, 1]
+
+
+def _sigmoid(z: np.ndarray) -> np.ndarray:
+    return 1.0 / (1.0 + np.exp(-np.clip(z, -500, 500)))
+
+
+def calibrated_fit_predict(est: Pipeline, xtr: pd.DataFrame, ytr: np.ndarray,
+                           xte: pd.DataFrame, seed: int) -> np.ndarray:
+    """Platt-calibrated P(leave) for xte, as scikit-learn's CalibratedClassifierCV(sigmoid, cv=5)
+    does it but on the GPU: per inner fold, fit on 4/5, Platt-fit on the held-out 1/5, predict
+    xte; average the 5 calibrated predictions."""
+    out = np.zeros(len(xte))
+    inner = StratifiedKFold(n_splits=N_FOLDS, shuffle=True, random_state=seed)
+    for a, b in inner.split(xtr, ytr):
+        m = clone(est).fit(xtr.iloc[a], ytr[a])
+        slope, icpt = platt_fit(_raw(m, xtr.iloc[b]), ytr[b])
+        out += _sigmoid(slope * _raw(m, xte) + icpt)
+    return out / N_FOLDS
+
+
 def _platt_rules(train_score: np.ndarray, y: np.ndarray, test_score: np.ndarray) -> np.ndarray:
-    lr = LogisticRegression(C=1e6, max_iter=1000).fit(train_score.reshape(-1, 1), y)
-    return lr.predict_proba(test_score.reshape(-1, 1))[:, 1]
+    slope, icpt = platt_fit(train_score, y)
+    return _sigmoid(slope * test_score + icpt)
 
 
 def ece(y: np.ndarray, p: np.ndarray, bins: int = 10) -> float:
@@ -151,13 +178,51 @@ def calibration_table(y: np.ndarray, p: np.ndarray, bins: int = 5) -> list[dict]
             for i, c in enumerate(np.array_split(order, bins))]
 
 
-KINDS = ("rules", "logistic", "lightgbm", "xgboost")
+KINDS = ("rules", "logistic", "xgboost")
+BOOTSTRAP = 2000  # resamples for the subset ROC-AUC confidence interval
+
+
+def bootstrap_auc_ci(y: np.ndarray, p: np.ndarray, seed: int = 42,
+                     n: int = BOOTSTRAP) -> dict:
+    """ROC-AUC with a percentile bootstrap 95% CI (resamples with one class only are skipped)."""
+    rng = np.random.default_rng(seed)
+    vals = []
+    for _ in range(n):
+        i = rng.integers(0, len(y), len(y))
+        if 0 < y[i].sum() < len(i):
+            vals.append(roc_auc_score(y[i], p[i]))
+    point = roc_auc_score(y, p) if 0 < y.sum() < len(y) else float("nan")
+    lo, hi = (np.percentile(vals, [2.5, 97.5]) if vals else (np.nan, np.nan))
+    return {"roc_auc": round(float(point), 4), "ci95": [round(float(lo), 4), round(float(hi), 4)],
+            "valid_resamples": len(vals)}
+
+
+def subset_report(y: np.ndarray, oof_mean: dict[str, np.ndarray], mask: np.ndarray,
+                  name: str) -> dict:
+    """Metrics of the full-data models on one subset (e.g. the hospitality industry)."""
+    ys = y[mask]
+    out = {"subset": name, "rows": int(mask.sum()), "positives": int(ys.sum()),
+           "base_rate": round(float(ys.mean()), 4) if mask.any() else None,
+           "note": "out-of-fold predictions of models trained on ALL industries (mean of the 3 "
+                   "repeats); tiny sample: the interval is very wide", "scorers": {}}
+    for k, p in oof_mean.items():
+        ps = p[mask]
+        r = bootstrap_auc_ci(ys, ps)
+        r["pr_auc"] = (round(float(average_precision_score(ys, ps)), 4)
+                       if 0 < ys.sum() < len(ys) else None)
+        r["brier"] = round(float(brier_score_loss(ys, ps)), 4)
+        out["scorers"][k] = r
+    return out
 
 
 def cross_validate(df: pd.DataFrame, spec: Spec, seeds: tuple[int, ...] = SEEDS,
-                   device: str = "cuda", kinds: tuple[str, ...] = KINDS) -> dict:
-    """Out-of-fold calibrated probabilities per repeat; metrics per repeat and mean / sd."""
+                   kinds: tuple[str, ...] = KINDS,
+                   subsets: dict[str, np.ndarray] | None = None) -> dict:
+    """Out-of-fold calibrated probabilities per repeat; metrics per repeat and mean / sd.
+    GPU only (refuses without CUDA). subsets: {name: boolean row mask} reported separately."""
+    device = gpu.require_cuda()
     x, y = model_table(df, spec)
+    oof_sum = {k: np.zeros(len(y)) for k in kinds}
     per_repeat: dict[str, list[dict]] = {k: [] for k in kinds}
     oof_first: dict[str, np.ndarray] = {}
     fit_seconds = {k: 0.0 for k in kinds}
@@ -171,12 +236,12 @@ def cross_validate(df: pd.DataFrame, spec: Spec, seeds: tuple[int, ...] = SEEDS,
                 if k == "rules":
                     oof[k][te] = _platt_rules(rule_score(xtr, spec), ytr, rule_score(xte, spec))
                 else:
-                    est = make_estimator(k, xtr, spec, seed, device)
-                    cal = CalibratedClassifierCV(est, method="sigmoid", cv=N_FOLDS)
-                    oof[k][te] = cal.fit(xtr, ytr).predict_proba(xte)[:, 1]
+                    est = make_estimator(k, xtr, spec, seed)
+                    oof[k][te] = calibrated_fit_predict(est, xtr, ytr, xte, seed)
                 fit_seconds[k] += time.perf_counter() - t0
         for k in kinds:
             p = oof[k]
+            oof_sum[k] += p
             per_repeat[k].append({"seed": seed, "roc_auc": roc_auc_score(y, p),
                                   "pr_auc": average_precision_score(y, p),
                                   "brier": brier_score_loss(y, p), "ece": ece(y, p)})
@@ -190,9 +255,16 @@ def cross_validate(df: pd.DataFrame, spec: Spec, seeds: tuple[int, ...] = SEEDS,
                       for m in ("roc_auc", "pr_auc", "brier", "ece")}
         summary[k]["fit_seconds_total"] = round(fit_seconds[k], 2)
         summary[k]["calibration_seed42"] = calibration_table(y, oof_first[k])
+    oof_mean = {k: v / len(seeds) for k, v in oof_sum.items()}
+    for k, p in oof_mean.items():  # pooled over repeats: point ROC-AUC with a bootstrap CI
+        summary[k]["roc_auc_oof_mean_ci95"] = bootstrap_auc_ci(y, p)["ci95"]
+    subs = {name: subset_report(y, oof_mean, np.asarray(m, bool), name)
+            for name, m in (subsets or {}).items()}
     return {"dataset": spec.name, "rows": int(len(y)), "positives": int(y.sum()),
             "base_rate": round(float(y.mean()), 4), "features": list(x.columns),
+            "train_device": device, "eval_device": device, "subsets": subs,
             "dropped_protected": [c for c in spec.protected if c in df.columns],
             "rules_baseline": spec.rules, "scorers": summary,
             "evaluation": f"repeated stratified {N_FOLDS}-fold CV, seeds {list(seeds)}; "
-                          "Platt calibration inside each training fold"}
+                          "Platt calibration inside each training fold (5 inner folds); "
+                          "all fits and predictions on the GPU"}

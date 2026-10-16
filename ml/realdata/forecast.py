@@ -1,5 +1,6 @@
 """Daily room-night forecasting on the REAL Hotel Booking Demand data: splits, features,
-baselines, tree models (LightGBM CPU, XGBoost GPU), split-conformal bands and metrics.
+baselines, tree models (XGBoost, trained and evaluated on the GPU only), split-conformal
+bands and metrics.
 
 Direct model per horizon h (like ml/forecast): one row per (hotel, target night d), origin
 t = d - h; features use only what is known at the end of day t. One model is fitted on both
@@ -163,21 +164,19 @@ def score_rows(test: pd.DataFrame, pred: np.ndarray, lo: np.ndarray | None,
 
 # ---- tree models -----------------------------------------------------------------------
 
-LGBM_PARAMS = dict(n_estimators=400, learning_rate=0.03, num_leaves=15, min_child_samples=20,
-                   subsample=0.8, subsample_freq=1, colsample_bytree=0.8, n_jobs=1,
-                   deterministic=True, force_row_wise=True, verbose=-1)
 XGB_PARAMS = dict(n_estimators=400, learning_rate=0.03, max_depth=4, min_child_weight=5,
-                  subsample=0.8, colsample_bytree=0.8, tree_method="hist")
+                  subsample=0.8, colsample_bytree=0.8)
 
 
-def fit_lgbm(x: pd.DataFrame, y: pd.Series, seed: int):
-    import lightgbm as lgb
-    return lgb.LGBMRegressor(objective="regression", random_state=seed, **LGBM_PARAMS).fit(x, y)
-
-
-def fit_xgb(x: pd.DataFrame, y: pd.Series, seed: int, device: str = "cuda"):
+def fit_xgb(x: pd.DataFrame, y: pd.Series, seed: int):
+    """XGBoost on the GPU only (ml/gpu.py refuses without CUDA); predict() also runs there."""
     import xgboost as xgb
-    return xgb.XGBRegressor(random_state=seed, device=device, **XGB_PARAMS).fit(x, y)
+
+    from ml import gpu
+    gpu.require_cuda()
+    m = xgb.XGBRegressor(random_state=seed, **gpu.XGB_DEVICE, **XGB_PARAMS).fit(x, y)
+    gpu.assert_xgb_on_cuda(m)
+    return m
 
 
 def evaluate_point_model(parts: dict[str, pd.DataFrame], val_pred: np.ndarray,

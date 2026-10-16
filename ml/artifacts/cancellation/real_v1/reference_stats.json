@@ -1,6 +1,6 @@
 {
   "model": "cancellation/real_v1",
-  "trained_on": "2026-10-15",
+  "trained_on": "2026-10-16",
   "training_window": "arrivals ..2016-10-31 (REAL data)",
   "rows": 479722,
   "features": {

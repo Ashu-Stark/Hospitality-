@@ -2,11 +2,11 @@
   "explanation": "contributions of the scoring (winner) model in calibrated log-odds",
   "mean_abs_contribution_by_driver": {
     "resignation": {
-      "pay_gap": 0.3575,
-      "stalled_progression": 0.1964,
-      "low_engagement": 0.1548,
-      "overtime_overload": 0.1501,
-      "clustered_leave_burnout": 0.1469,
+      "pay_gap": 0.3598,
+      "stalled_progression": 0.1974,
+      "low_engagement": 0.1552,
+      "overtime_overload": 0.1513,
+      "clustered_leave_burnout": 0.1481,
       "season_end_exit": 0.0,
       "manager_relationship": 0.0
     },
@@ -20,23 +20,23 @@
       "manager_relationship": 0.0
     }
   },
-  "comparison_lightgbm_treeshap_by_driver": {
+  "comparison_xgboost_treeshap_by_driver": {
     "resignation": {
-      "pay_gap": 0.5016,
-      "overtime_overload": 0.2875,
-      "stalled_progression": 0.284,
-      "low_engagement": 0.2244,
-      "clustered_leave_burnout": 0.1926,
+      "pay_gap": 0.5956,
+      "stalled_progression": 0.3564,
+      "overtime_overload": 0.3174,
+      "low_engagement": 0.2482,
+      "clustered_leave_burnout": 0.2073,
       "season_end_exit": 0.0,
       "manager_relationship": 0.0
     },
     "contract_end": {
-      "season_end_exit": 2.1532,
-      "pay_gap": 0.8027,
-      "overtime_overload": 0.6948,
-      "low_engagement": 0.4789,
-      "stalled_progression": 0.2355,
-      "clustered_leave_burnout": 0.0194,
+      "season_end_exit": 2.3607,
+      "pay_gap": 0.7634,
+      "overtime_overload": 0.4963,
+      "low_engagement": 0.4764,
+      "stalled_progression": 0.2799,
+      "clustered_leave_burnout": 0.0362,
       "manager_relationship": 0.0
     }
   },
@@ -47,19 +47,19 @@
     {
       "check": "Sunita's top 3 drivers include overtime overload",
       "passed": true,
-      "detail": "['overtime_overload', 'pay_gap', 'low_engagement'] (risk 0.0905, rank 5/48, high)"
+      "detail": "['overtime_overload', 'pay_gap', 'low_engagement'] (risk 0.0911, rank 5/48, high)"
     },
     {
       "check": "Deepak is not high risk",
       "passed": true,
-      "detail": "risk 0.0234, rank 32/48, band low"
+      "detail": "risk 0.0233, rank 32/48, band low"
     }
   ],
   "hero_bands_last_week": {
     "H901": {
       "name": "Sunita",
       "segment": "resignation",
-      "risk": 0.0905,
+      "risk": 0.0911,
       "rank": 5,
       "group_size": 48,
       "band_used": "high",
@@ -67,15 +67,15 @@
       "band_percentile_rule": "watch",
       "rank_is_tied": false,
       "drivers": {
-        "overtime_overload": 0.6187,
-        "pay_gap": 0.464,
-        "low_engagement": 0.2795
+        "overtime_overload": 0.6269,
+        "pay_gap": 0.4671,
+        "low_engagement": 0.2803
       }
     },
     "H902": {
       "name": "Rajesh",
       "segment": "resignation",
-      "risk": 0.0402,
+      "risk": 0.0404,
       "rank": 17,
       "group_size": 48,
       "band_used": "low",
@@ -83,15 +83,15 @@
       "band_percentile_rule": "low",
       "rank_is_tied": false,
       "drivers": {
-        "stalled_progression": 0.3949,
-        "low_engagement": 0.1223,
-        "overtime_overload": 0.1175
+        "stalled_progression": 0.397,
+        "low_engagement": 0.1294,
+        "overtime_overload": 0.1191
       }
     },
     "H903": {
       "name": "Meena",
       "segment": "resignation",
-      "risk": 0.0396,
+      "risk": 0.04,
       "rank": 17,
       "group_size": 48,
       "band_used": "low",
@@ -99,8 +99,8 @@
       "band_percentile_rule": "low",
       "rank_is_tied": false,
       "drivers": {
-        "pay_gap": 0.5801,
-        "overtime_overload": 0.1031
+        "pay_gap": 0.5861,
+        "overtime_overload": 0.1041
       }
     },
     "H904": {
@@ -120,7 +120,7 @@
     "H905": {
       "name": "Deepak",
       "segment": "resignation",
-      "risk": 0.0234,
+      "risk": 0.0233,
       "rank": 32,
       "group_size": 48,
       "band_used": "low",
@@ -139,7 +139,7 @@
     {
       "employee_id": "H901",
       "week_start": "2029-10-08",
-      "risk": 0.0384,
+      "risk": 0.0387,
       "rank": 15,
       "group_size": 48,
       "band": "low"
@@ -147,7 +147,7 @@
     {
       "employee_id": "H902",
       "week_start": "2029-10-08",
-      "risk": 0.0407,
+      "risk": 0.041,
       "rank": 13,
       "group_size": 48,
       "band": "watch"
@@ -155,7 +155,7 @@
     {
       "employee_id": "H903",
       "week_start": "2029-10-08",
-      "risk": 0.04,
+      "risk": 0.0405,
       "rank": 13,
       "group_size": 48,
       "band": "watch"
@@ -179,7 +179,7 @@
     {
       "employee_id": "H901",
       "week_start": "2029-10-15",
-      "risk": 0.0437,
+      "risk": 0.044,
       "rank": 14,
       "group_size": 48,
       "band": "low"
@@ -187,15 +187,15 @@
     {
       "employee_id": "H902",
       "week_start": "2029-10-15",
-      "risk": 0.0443,
-      "rank": 12,
+      "risk": 0.0446,
+      "rank": 14,
       "group_size": 48,
-      "band": "watch"
+      "band": "low"
     },
     {
       "employee_id": "H903",
       "week_start": "2029-10-15",
-      "risk": 0.039,
+      "risk": 0.0394,
       "rank": 15,
       "group_size": 48,
       "band": "low"
@@ -211,7 +211,7 @@
     {
       "employee_id": "H905",
       "week_start": "2029-10-15",
-      "risk": 0.0218,
+      "risk": 0.0217,
       "rank": 27,
       "group_size": 48,
       "band": "low"
@@ -219,7 +219,7 @@
     {
       "employee_id": "H901",
       "week_start": "2029-10-22",
-      "risk": 0.0459,
+      "risk": 0.0463,
       "rank": 9,
       "group_size": 48,
       "band": "watch"
@@ -227,7 +227,7 @@
     {
       "employee_id": "H902",
       "week_start": "2029-10-22",
-      "risk": 0.0384,
+      "risk": 0.0386,
       "rank": 13,
       "group_size": 48,
       "band": "watch"
@@ -235,7 +235,7 @@
     {
       "employee_id": "H903",
       "week_start": "2029-10-22",
-      "risk": 0.0363,
+      "risk": 0.0366,
       "rank": 15,
       "group_size": 48,
       "band": "low"
@@ -259,15 +259,15 @@
     {
       "employee_id": "H901",
       "week_start": "2029-10-29",
-      "risk": 0.0412,
-      "rank": 12,
+      "risk": 0.0413,
+      "rank": 11,
       "group_size": 48,
       "band": "watch"
     },
     {
       "employee_id": "H902",
       "week_start": "2029-10-29",
-      "risk": 0.0378,
+      "risk": 0.038,
       "rank": 14,
       "group_size": 48,
       "band": "low"
@@ -275,10 +275,10 @@
     {
       "employee_id": "H903",
       "week_start": "2029-10-29",
-      "risk": 0.0385,
-      "rank": 13,
+      "risk": 0.0389,
+      "rank": 14,
       "group_size": 48,
-      "band": "watch"
+      "band": "low"
     },
     {
       "employee_id": "H904",
@@ -291,7 +291,7 @@
     {
       "employee_id": "H905",
       "week_start": "2029-10-29",
-      "risk": 0.0233,
+      "risk": 0.0232,
       "rank": 25,
       "group_size": 48,
       "band": "low"
@@ -299,15 +299,15 @@
     {
       "employee_id": "H901",
       "week_start": "2029-11-05",
-      "risk": 0.0319,
-      "rank": 18,
+      "risk": 0.0321,
+      "rank": 17,
       "group_size": 48,
       "band": "low"
     },
     {
       "employee_id": "H902",
       "week_start": "2029-11-05",
-      "risk": 0.0367,
+      "risk": 0.0369,
       "rank": 8,
       "group_size": 48,
       "band": "watch"
@@ -315,7 +315,7 @@
     {
       "employee_id": "H903",
       "week_start": "2029-11-05",
-      "risk": 0.0374,
+      "risk": 0.0378,
       "rank": 8,
       "group_size": 48,
       "band": "watch"
@@ -331,7 +331,7 @@
     {
       "employee_id": "H905",
       "week_start": "2029-11-05",
-      "risk": 0.0199,
+      "risk": 0.0198,
       "rank": 25,
       "group_size": 48,
       "band": "low"
@@ -339,7 +339,7 @@
     {
       "employee_id": "H901",
       "week_start": "2029-11-12",
-      "risk": 0.0338,
+      "risk": 0.034,
       "rank": 12,
       "group_size": 48,
       "band": "watch"
@@ -347,7 +347,7 @@
     {
       "employee_id": "H902",
       "week_start": "2029-11-12",
-      "risk": 0.0381,
+      "risk": 0.0382,
       "rank": 8,
       "group_size": 48,
       "band": "watch"
@@ -355,8 +355,8 @@
     {
       "employee_id": "H903",
       "week_start": "2029-11-12",
-      "risk": 0.0345,
-      "rank": 12,
+      "risk": 0.0348,
+      "rank": 11,
       "group_size": 48,
       "band": "watch"
     },
@@ -371,7 +371,7 @@
     {
       "employee_id": "H905",
       "week_start": "2029-11-12",
-      "risk": 0.017,
+      "risk": 0.0169,
       "rank": 28,
       "group_size": 48,
       "band": "low"
@@ -379,7 +379,7 @@
     {
       "employee_id": "H901",
       "week_start": "2029-11-19",
-      "risk": 0.0386,
+      "risk": 0.0388,
       "rank": 8,
       "group_size": 48,
       "band": "watch"
@@ -387,7 +387,7 @@
     {
       "employee_id": "H902",
       "week_start": "2029-11-19",
-      "risk": 0.0374,
+      "risk": 0.0375,
       "rank": 11,
       "group_size": 48,
       "band": "watch"
@@ -395,7 +395,7 @@
     {
       "employee_id": "H903",
       "week_start": "2029-11-19",
-      "risk": 0.0344,
+      "risk": 0.0348,
       "rank": 14,
       "group_size": 48,
       "band": "low"
@@ -411,7 +411,7 @@
     {
       "employee_id": "H905",
       "week_start": "2029-11-19",
-      "risk": 0.0184,
+      "risk": 0.0183,
       "rank": 27,
       "group_size": 48,
       "band": "low"
@@ -419,7 +419,7 @@
     {
       "employee_id": "H901",
       "week_start": "2029-11-26",
-      "risk": 0.0477,
+      "risk": 0.0479,
       "rank": 7,
       "group_size": 48,
       "band": "watch"
@@ -427,16 +427,16 @@
     {
       "employee_id": "H902",
       "week_start": "2029-11-26",
-      "risk": 0.0389,
-      "rank": 13,
+      "risk": 0.0392,
+      "rank": 12,
       "group_size": 48,
       "band": "watch"
     },
     {
       "employee_id": "H903",
       "week_start": "2029-11-26",
-      "risk": 0.0387,
-      "rank": 13,
+      "risk": 0.0391,
+      "rank": 12,
       "group_size": 48,
       "band": "watch"
     },
@@ -451,7 +451,7 @@
     {
       "employee_id": "H905",
       "week_start": "2029-11-26",
-      "risk": 0.0207,
+      "risk": 0.0206,
       "rank": 26,
       "group_size": 48,
       "band": "low"
@@ -459,7 +459,7 @@
     {
       "employee_id": "H901",
       "week_start": "2029-12-03",
-      "risk": 0.0607,
+      "risk": 0.061,
       "rank": 7,
       "group_size": 48,
       "band": "watch"
@@ -467,15 +467,15 @@
     {
       "employee_id": "H902",
       "week_start": "2029-12-03",
-      "risk": 0.0445,
-      "rank": 15,
+      "risk": 0.0448,
+      "rank": 14,
       "group_size": 48,
       "band": "low"
     },
     {
       "employee_id": "H903",
       "week_start": "2029-12-03",
-      "risk": 0.0441,
+      "risk": 0.0446,
       "rank": 15,
       "group_size": 48,
       "band": "low"
@@ -491,7 +491,7 @@
     {
       "employee_id": "H905",
       "week_start": "2029-12-03",
-      "risk": 0.0215,
+      "risk": 0.0214,
       "rank": 28,
       "group_size": 48,
       "band": "low"
@@ -499,15 +499,15 @@
     {
       "employee_id": "H901",
       "week_start": "2029-12-10",
-      "risk": 0.0716,
-      "rank": 6,
+      "risk": 0.0721,
+      "rank": 5,
       "group_size": 47,
-      "band": "watch"
+      "band": "high"
     },
     {
       "employee_id": "H902",
       "week_start": "2029-12-10",
-      "risk": 0.048,
+      "risk": 0.0484,
       "rank": 12,
       "group_size": 47,
       "band": "watch"
@@ -515,7 +515,7 @@
     {
       "employee_id": "H903",
       "week_start": "2029-12-10",
-      "risk": 0.0391,
+      "risk": 0.0395,
       "rank": 17,
       "group_size": 47,
       "band": "low"
@@ -531,7 +531,7 @@
     {
       "employee_id": "H905",
       "week_start": "2029-12-10",
-      "risk": 0.0214,
+      "risk": 0.0213,
       "rank": 30,
       "group_size": 47,
       "band": "low"
@@ -539,7 +539,7 @@
     {
       "employee_id": "H901",
       "week_start": "2029-12-17",
-      "risk": 0.0818,
+      "risk": 0.0823,
       "rank": 5,
       "group_size": 48,
       "band": "high"
@@ -547,15 +547,15 @@
     {
       "employee_id": "H902",
       "week_start": "2029-12-17",
-      "risk": 0.0416,
-      "rank": 16,
+      "risk": 0.0418,
+      "rank": 15,
       "group_size": 48,
       "band": "low"
     },
     {
       "employee_id": "H903",
       "week_start": "2029-12-17",
-      "risk": 0.0379,
+      "risk": 0.0384,
       "rank": 17,
       "group_size": 48,
       "band": "low"
@@ -579,7 +579,7 @@
     {
       "employee_id": "H901",
       "week_start": "2029-12-24",
-      "risk": 0.0905,
+      "risk": 0.0911,
       "rank": 5,
       "group_size": 48,
       "band": "high"
@@ -587,7 +587,7 @@
     {
       "employee_id": "H902",
       "week_start": "2029-12-24",
-      "risk": 0.0402,
+      "risk": 0.0404,
       "rank": 17,
       "group_size": 48,
       "band": "low"
@@ -595,7 +595,7 @@
     {
       "employee_id": "H903",
       "week_start": "2029-12-24",
-      "risk": 0.0396,
+      "risk": 0.04,
       "rank": 17,
       "group_size": 48,
       "band": "low"
@@ -611,7 +611,7 @@
     {
       "employee_id": "H905",
       "week_start": "2029-12-24",
-      "risk": 0.0234,
+      "risk": 0.0233,
       "rank": 32,
       "group_size": 48,
       "band": "low"

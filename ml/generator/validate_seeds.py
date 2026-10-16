@@ -73,7 +73,7 @@ def seed_table(runs: list[SeedRun]) -> pd.DataFrame:
             "leavers": p.leavers,
             "rule_b": round(p.rule.auc_rank_pooled, 3),
             "rule_a": round(p.rule.auc_mean_years, 3),
-            "lightgbm_b": round(p.scorers["lightgbm"].auc_rank_pooled, 3),
+            "xgboost_b": round(p.scorers["xgboost"].auc_rank_pooled, 3),
             "logistic_b": round(p.scorers["logistic"].auc_rank_pooled, 3),
             "best": p.best_model,
             "best_a": round(p.best.auc_mean_years, 3),

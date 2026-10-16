@@ -11,23 +11,27 @@ Plain-language results for judges: [docs/REAL_DATA_RESULTS.md](../../docs/REAL_D
 
 ```powershell
 cd ml
-python run.py realdata              # ~5 min on an RTX 4050 laptop GPU (TimesFM included)
-python run.py realdata --no-timesfm # ~2 min, no torch / TimesFM needed
-python run.py realdata --cpu        # force CPU (no fine-tune, no GPU evidence)
-python -m pytest tests/test_realdata.py -q   # 20 tests, no download, no GPU
+python run.py realdata              # ~10 min on an RTX 4050 laptop GPU (TimesFM included)
+python run.py realdata --no-timesfm # ~6 min, no TimesFM
+python -m pytest tests/test_realdata.py -q   # no download; the CV test needs the GPU (skipped without)
 ```
 
-The command downloads each dataset (no Kaggle key), checks its SHA-256, and writes:
+GPU ONLY: every fit, every Platt calibration and every evaluation prediction runs on CUDA
+(XGBoost with device=cuda, torch for logistic regression and TimesFM); `ml/gpu.py` refuses to
+run without a GPU and there is no CPU mode any more (the earlier `--cpu` flag, the LightGBM
+CPU models and the CPU-vs-GPU timing runs were removed). The command downloads each dataset (no
+Kaggle key), checks its SHA-256, and writes:
 
 | Output | What |
 |---|---|
 | `ml/artifacts/occupancy_forecast/real_v1/` | `metrics.json` (every model x hotel x horizon, split, TimesFM fine-tune history), `results_table.md`, `test_predictions.csv`, `tree_models.joblib`, `feature_list.json`, `daily_room_nights.csv` |
 | `ml/artifacts/attrition/real_v1/` | `metrics.json` (per dataset, per scorer: ROC-AUC, PR-AUC, Brier, ECE, calibration bins), `dataset_hash.json` |
-| `ml/artifacts/realdata_gpu/real_v1/` | `gpu_evidence.json` (device, nvidia-smi before / after, CPU vs GPU timings), `run_log.txt` |
+| `ml/artifacts/realdata_gpu/real_v1/` | `gpu_evidence.json` (device, nvidia-smi before / after, GPU timings), `run_log.txt` |
 | `ml/docs/plots/realdata_forecast.png` | test period, 7 days ahead, both hotels |
 | `ml/data/realdata/raw/`, `ml/data/realdata/timesfm_finetuned/` | downloads and the fine-tuned TimesFM layers (276 MB); both gitignored and rebuilt by the command |
 
-Optional dependencies (torch CUDA, xgboost, timesfm): [requirements-gpu.txt](requirements-gpu.txt).
+GPU dependencies (torch CUDA, xgboost, timesfm): [requirements-gpu.txt](requirements-gpu.txt);
+they are required for every model training in `ml/` and never needed by the API servers.
 Seeded (42; attrition CV seeds 42-44). Re-running gives the same tree-model and baseline
 numbers; GPU floating point can move TimesFM numbers in the last digit.
 
@@ -97,27 +101,32 @@ attrition dataset is from a hotel (the turnover data has 11 HoReCa rows out of 1
 
 MAE in room-nights; "typical" = median absolute error. Full table: `results_table.md`.
 
-| Horizon | Hotel | Same weekday last week | Calendar LightGBM (our approach) | TimesFM zero-shot | TimesFM fine-tuned | **Best (chosen on validation)** |
+| Horizon | Hotel | Same weekday last week | Calendar XGBoost (our approach) | TimesFM zero-shot | TimesFM fine-tuned | **Best (chosen on validation)** |
 |---|---|---|---|---|---|---|
-| 1 day | City | 10.9 (5.3%) | 8.5 (4.1%) | 7.3 (3.6%) | 7.2 (3.6%) | **1.9 (0.9%)** XGBoost GPU + pace |
-| 1 day | Resort | 10.4 (6.4%) | 7.2 (4.3%) | 7.1 (4.3%) | 7.3 (4.4%) | **1.9 (1.1%)** XGBoost GPU + pace |
-| 7 days | City | 10.9 (5.3%) | 8.7 (4.2%) | 7.9 (3.9%) | 8.2 (4.0%) | **5.3 (2.5%)** XGBoost GPU + pace |
-| 7 days | Resort | 10.4 (6.4%) | 8.3 (5.0%) | 8.7 (5.3%) | 9.2 (5.6%) | **3.9 (2.4%)** XGBoost GPU + pace |
-| 30 days | City | 18.5 (8.9%) | 11.1 (5.2%) | 9.1 (4.5%) | 9.9 (4.8%) | **7.2 (3.4%)** LightGBM + pace |
-| 30 days | Resort | 16.1 (9.6%) | 8.3 (5.0%) | 9.3 (5.6%) | 9.6 (5.8%) | **6.8 (4.1%)** LightGBM + pace |
+| 1 day | City | 10.9 (5.3%) | 8.0 (3.8%) | 7.3 (3.6%) | 7.2 (3.6%) | **1.9 (0.9%)** XGBoost + pace |
+| 1 day | Resort | 10.4 (6.4%) | 7.0 (4.3%) | 7.1 (4.3%) | 7.3 (4.4%) | **1.9 (1.1%)** XGBoost + pace |
+| 7 days | City | 10.9 (5.3%) | 9.6 (4.5%) | 7.9 (3.9%) | 8.2 (4.0%) | **5.3 (2.5%)** XGBoost + pace |
+| 7 days | Resort | 10.4 (6.4%) | 8.1 (4.9%) | 8.7 (5.3%) | 9.2 (5.6%) | **3.9 (2.4%)** XGBoost + pace |
+| 30 days | City | 18.5 (8.9%) | 10.7 (5.1%) | 9.1 (4.5%) | 9.9 (4.8%) | **7.4 (3.5%)** XGBoost + pace |
+| 30 days | Resort | 16.1 (9.6%) | 8.5 (5.1%) | 9.3 (5.6%) | 9.6 (5.8%) | **6.8 (4.1%)** XGBoost + pace |
+
+All tree models are XGBoost trained and evaluated on the GPU (the calendar and pace models
+replaced the earlier CPU LightGBM ones; at 30 days the pace model is now the chosen one).
 
 (MAE, with MAPE in brackets.) Same weekday last year: City 15.4 (7.3%), Resort 11.3 (6.8%) at
-every horizon. 80% band coverage of the chosen models: 89-96%, so the bands are too wide.
+every horizon. 80% band coverage of the chosen models: 91-96%, so the bands are too wide.
 They were calibrated on December-January, a more volatile period than the summer test.
 
 ## Attrition results (repeated 5-fold CV, out-of-fold, mean of 3 seeds)
 
-| Dataset | Rows / leavers | Rules | Logistic | LightGBM (CPU) | XGBoost (GPU) |
-|---|---|---|---|---|---|
-| IBM HR (FICTIONAL) | 1,470 / 237 (16.1%) | ROC 0.653, PR 0.247 | **ROC 0.828, PR 0.610** | 0.813 / 0.579 | 0.821 / 0.602 |
-| Babushkin turnover (real, unverified origin), quit within 12 months | 982 / 150 (15.3%) | ROC 0.552, PR 0.174 | 0.604 / 0.212 | **ROC 0.659, PR 0.322** | 0.651 / 0.289 |
+| Dataset | Rows / leavers | Rules | Logistic (torch, GPU) | XGBoost (GPU) |
+|---|---|---|---|---|
+| IBM HR (FICTIONAL) | 1,470 / 237 (16.1%) | ROC 0.653, PR 0.247 | **ROC 0.828, PR 0.609** | 0.819 / 0.598 |
+| Babushkin turnover (real, unverified origin), quit within 12 months | 982 / 150 (15.3%) | ROC 0.552, PR 0.174 | 0.601 / 0.213 | **ROC 0.655, PR 0.292** |
 
-Calibration (Platt inside each training fold): ECE 0.02-0.04 for every model. Rules are fixed,
+Calibration (Platt inside each training fold, on the GPU): ECE 0.02-0.03 for every model.
+Plain-language rating, the hospitality subset and limits:
+[attrition/VALIDATION.md](attrition/VALIDATION.md). Rules are fixed,
 ASSUMED conditions chosen before seeing results: IBM, the count of OverTime = Yes,
 JobSatisfaction <= 2 and WorkLifeBalance <= 2; turnover, the count of grey (unofficial) wage
 and no probation coach. Neither dataset has dates, so cross-validation replaces our usual time

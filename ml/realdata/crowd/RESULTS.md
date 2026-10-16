@@ -5,7 +5,8 @@ the next 14 days, and is that quiet, normal, busy or very busy?
 
 **Data:** real official figures (UTDB, SEOC via SDC Foundation, news reports of official
 counts) and real weather (Open-Meteo, CC BY 4.0). Sources, licences and cleaning rules are in
-[DATA_CARD.md](DATA_CARD.md). Run on 2026-10-15.
+[DATA_CARD.md](DATA_CARD.md). Run on 2026-10-15; retrained on 2026-10-16 with XGBoost on
+the GPU (training and evaluation on CUDA only, NVIDIA RTX 4050; serving stays pure Python).
 
 ## Where the target is real and where it is estimated
 
@@ -29,13 +30,17 @@ counts) and real weather (Open-Meteo, CC BY 4.0). Sources, licences and cleaning
 - **Models compared:**
   - seasonal-naive: last season, same day of the season;
   - moving average: mean of the last 7 days;
-  - LightGBM (point forecast plus 10% and 90% quantiles);
-  - XGBoost on the GPU (RTX 4050), for comparison only.
+  - XGBoost (point forecast plus 10% and 90% quantile models, `reg:quantileerror`), trained
+    and evaluated on the GPU (RTX 4050). It replaced the earlier LightGBM models when all model
+    training moved to the GPU.
 - **How the 80% range is set.** The quantile range is widened by split conformal prediction:
   a twin model trained on seasons up to T-2 is scored on season T-1.
 - **Splits are by season only, never random.**
-  - Hyperparameters and objective: a 16-setting grid with L1 or L2 loss, chosen on 2024 only.
-    The chosen setting is L1, 15 leaves, 20 rows per leaf, 600 rounds.
+  - Hyperparameters and objective: a 16-setting grid with L1 or L2 loss, chosen on 2024 only
+    (the same grid as before). The chosen setting is L1, 15 leaves, minimum leaf weight 20,
+    600 rounds. A wider grid was tried once (31 leaves, leaf weight 5, 1,000 rounds); it won on
+    2024 but was not kept, because it was added after the test results had been seen; the
+    original pre-set grid is the protocol.
   - Test 1: trained on 2022-2024, tested on **2025**, the latest complete season.
   - Test 2: trained on 2022-2025, tested on **2026 to date** (19 Apr - 7 Oct). This is the
     model the portal uses.
@@ -49,61 +54,59 @@ pilgrims. Test 1 is 2025; test 2 is 2026 to 7 Oct.
 |---|---|---|---|---|
 | Seasonal-naive (last season, same day of season) | 3,254 | 70% | 2,881 | 42% |
 | Moving average (last 7 days) | 3,902 | 113% | 4,867 | 76% |
-| **LightGBM (deployed type)** | **3,140** | 81% | **2,685** | 43% |
-| XGBoost on GPU (comparison) | 3,127 | 88% | 2,656 | 34% |
+| **XGBoost on the GPU (deployed)** | 3,294 | 98% | **2,594** | 38% |
 
 | Other checks | 2025 | 2026 |
 |---|---|---|
-| Band accuracy, model against seasonal-naive (4 bands) | 42% against 54% | 64% against 58% |
-| 80% range coverage (target 80%) | 76% | 82% |
-| Mean width of the 80% range | 8,547 | 9,027 |
-| Error on REAL interval totals (forecast made at a report, summed to the next report, intervals of 14 days or less): model / seasonal-naive / moving average | 66% / 58% / 39% (38 intervals) | 23% / 32% / 38% (20 intervals) |
+| Band accuracy, model against seasonal-naive (4 bands) | 41% against 54% | 63% against 58% |
+| 80% range coverage (target 80%) | 70% | 84% |
+| Mean width of the 80% range | 8,014 | 9,997 |
+| Error on REAL interval totals (forecast made at a report, summed to the next report, intervals of 14 days or less): model / seasonal-naive / moving average | 77% / 58% / 39% (38 intervals) | 26% / 31% / 38% (20 intervals) |
 
 **In plain words**
 
-1. **Against seasonal-naive the model wins 3.5% (2025) and 7% (2026) on daily error.** That is
-   a small gain. "Same day as last season" is a strong rule for a pilgrimage that follows the
-   same calendar every year. The model clearly beats the moving average, by 20% in 2025 and
-   45% in 2026.
+1. **Against seasonal-naive the model loses 1% in 2025 and wins 10% in 2026 on daily error.**
+   "Same day as last season" is a strong rule for a pilgrimage that follows the same calendar
+   every year. The model clearly beats the moving average, by 16% in 2025 and 47% in 2026.
 2. **Not consistently better.** On the real interval totals the model was worse than both
    baselines in 2025 and the best in 2026. Its band was right less often than seasonal-naive in
    2025 and more often in 2026. With 3-4 training seasons, one season's luck moves the ranking.
-   Treat the model as being about as good as last season's pattern, plus a calibrated range.
-3. **The 80% range is roughly honest:** it held the actual value 76% of the time in 2025 and
-   82% in 2026.
+   Treat the model as being about as good as last season's pattern, plus a range.
+3. **The 80% range is only roughly honest:** it held the actual value 70% of the time in 2025
+   (too narrow) and 84% in 2026.
 4. **Feature groups (ablations: drop one group and retrain):**
 
    | Group dropped | MAE 2025 | MAE 2026 |
    |---|---|---|
-   | none (full model) | 3,140 | 2,685 |
-   | weather | 3,066 | 2,916 |
-   | school vacations | 3,138 | 2,830 |
-   | holidays and festivals | 3,064 | 2,688 |
-   | lagged counts | 3,053 | 2,919 |
+   | none (full model) | 3,294 | 2,594 |
+   | weather | 3,372 | 2,619 |
+   | school vacations | 3,367 | 2,661 |
+   | holidays and festivals | 3,328 | 2,662 |
+   | lagged counts | 3,070 | 3,086 |
 
-   No feature group helps in both seasons. Lags and weather help in 2026 but not in 2025.
-   School vacations add 0-5%. Holidays make no difference, which is expected: day values inside
+   Weather, school vacations and holidays each help a little in both seasons (1-3%). Lagged
+   counts help a lot in 2026 but hurt in 2025. Holidays make no difference, which is expected: day values inside
    an interval are spread evenly, so a holiday's own effect cannot show in the target. Weather
    was a *perfect* forecast in this test, because the archive was used; live forecasts will do
    worse.
-5. **GPU.** XGBoost on the GPU is level with LightGBM. The data is a few thousand rows, so the
-   GPU brings no gain. LightGBM is deployed because its trees export to plain JSON for the
-   portal.
+5. **GPU.** Training and evaluation now run only on the GPU (ml/gpu.py refuses without
+   CUDA). The data is a few thousand rows, so the GPU brings no speed gain here. The XGBoost
+   trees are exported to plain JSON, so the portal still predicts in pure Python.
 
 ## Where the model is worst (failure analysis)
 
 | Period | Model MAE 2025 | Seasonal-naive MAE 2025 | Model MAE 2026 | Seasonal-naive MAE 2026 |
 |---|---|---|---|---|
-| Opening week (days 0-6) | 2,008 | 3,349 | **4,503** | 3,211 |
-| Days 7-29 | 3,241 | 3,470 | 3,476 | 3,258 |
-| Days 30-89 | 3,209 | 3,415 | 2,825 | 3,899 |
-| Day 90 onward | 3,144 | 2,873 | 1,539 | 1,454 |
-| Heavy-rain days (35 mm or more, day or day before) | 2,501 (n = 3) | 2,500 | 1,105 (n = 9) | 1,645 |
+| Opening week (days 0-6) | 2,184 | 3,349 | **4,507** | 3,211 |
+| Days 7-29 | 3,067 | 3,470 | 3,508 | 3,258 |
+| Days 30-89 | 3,341 | 3,415 | 2,580 | 3,899 |
+| Day 90 onward | 3,592 | 2,873 | 1,482 | 1,454 |
+| Heavy-rain days (35 mm or more, day or day before) | 2,648 (n = 3) | 2,500 | 1,053 (n = 9) | 1,645 |
 
 - **Opening days are the biggest misses.** The 2026 opening at Kedarnath averaged about 29,600
-  a day for the first week; the model said about 12,000-13,000. A forecast made before opening
+  a day for the first week; the model said about 12,500-13,000. A forecast made before opening
   has no lags, and 2026 opened earlier (22 April) and bigger than any training season. The
-  Badrinath opening day in 2025 (23,000 reported; model 11,430) is the same failure. The
+  Badrinath opening day in 2025 (23,000 reported; model 10,133) is the same failure. The
   opening-week rush needs registration counts, which are published before the season, as an
   input.
 - **Landslide and closure days:**
@@ -113,7 +116,8 @@ pilgrims. Test 1 is 2025; test 2 is 2026 to 7 Oct.
     intervals without reports, so the target cannot show them.
   - The model cannot predict a closure; the guardrails and the weather warning on the page
     must cover that.
-- **The days just before closing** (2025) were close to the baselines. The 2026 closing period
+- **The days just before closing** (2025) were worse than seasonal-naive (3,724 against
+  3,308), as were days 90 onward. The 2026 closing period
   is not in the test yet.
 
 ## Guardrails (built into `predict.predict`; tested in `ml/tests/test_crowd_real.py` and `portal/tests/test_crowd_model.py`)
@@ -164,7 +168,7 @@ safety limit.
 
 The shrine pages and the officials' "How busy" tab now use this model for the four shrines.
 The model's predict code is copied byte-for-byte into the portal, so the portal needs no
-numpy or LightGBM. Each day carries:
+numpy, XGBoost or GPU. Each day carries:
 - the expected pilgrims;
 - the 80% range;
 - a confidence label;
@@ -191,8 +195,8 @@ destination keeps the old estimate, labelled "low" confidence and sample data.
   - an exact multiple of 1,000 at or above 100,000 is treated as rounded;
   - a cumulative figure within 3 days of the previous one is dropped.
 
-  Both are motivated by data quality; with them, the 2025 model error moved from 3,360 to
-  3,140. The hyperparameter grid was always chosen on 2024 only.
+  Both are motivated by data quality; with them, the 2025 model error (earlier LightGBM model)
+  moved from 3,360 to 3,140. The hyperparameter grid was always chosen on 2024 only.
 - **Stale data.** The bundle's last official count is 7 Oct 2026. From about 22 Oct the portal
   falls back to last season's level until new counts are added.
 
@@ -203,7 +207,7 @@ destination keeps the old estimate, labelled "low" confidence and sample data.
 .venv\Scripts\python.exe -m ml.realdata.crowd.fetch            # raw PDFs + weather archive (gitignored)
 # add new official figures to ml\data\real\crowd\checkpoints.csv (source URL per row, use=1)
 # and announced dates to season_dates.csv
-.venv\Scripts\python.exe -m ml.realdata.crowd.train            # about 1 minute; writes ml\artifacts\crowd_forecast\real_v1
+.venv\Scripts\python.exe -m ml.realdata.crowd.train            # GPU only, ~2 minutes; writes ml\artifacts\crowd_forecast\real_v1
                                                                 # and copies bundle + predict code to the portal
 .venv\Scripts\python.exe -m pytest -q ml\tests\test_crowd_real.py
 ```

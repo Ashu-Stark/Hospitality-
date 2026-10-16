@@ -2,7 +2,8 @@
 # This folder IS the `ml` package, so its parent (the repo root) must be importable.
 pythonpath = [".."]
 testpaths = ["tests"]
-markers = ["slow: calibration searches and full-pipeline runs (python run.py test --all)"]
+markers = ["slow: calibration searches and full-pipeline runs (python run.py test --all)",
+           "gpu: trains a model, so it needs CUDA (skipped without a GPU, never run on the CPU)"]
 
 [tool.ruff]
 target-version = "py313"

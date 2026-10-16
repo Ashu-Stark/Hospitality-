@@ -11,10 +11,12 @@ Expanding-window backtest per test year Y (config attrition_model.test_years):
 The test metrics pool the calibrated test predictions of all folds. The DEPLOYED model repeats
 the protocol with the last data year as validation (train window ends <= 1 Jan of that year).
 
-Scorers: rules baseline, logistic regression, LightGBM (+ for contract_end, the contract-date
-rule: fewer days to the contract end = higher risk). LightGBM is always kept for SHAP (T8) even
-when it does not win. NOTE: logistic can win because the generator's planted hazard IS a
-logistic function of these drivers; that is a property of the synthetic data, not evidence that
+Scorers: rules baseline, logistic regression (torch, GPU), XGBoost (GPU; replaced LightGBM) (+
+for contract_end, the contract-date rule: fewer days to the contract end = higher risk). XGBoost
+is always kept for SHAP (T8) even when it does not win. Every fit and every evaluation prediction
+runs on the GPU (ml/gpu.py refuses to train without CUDA); the saved bundle is switched to CPU
+inference (numpy) for the servers. NOTE: logistic can win because the generator's planted hazard
+IS a logistic function of these drivers; that is a property of the synthetic data, not evidence that
 logistic regression is better on real hotel data.
 
 Heroes (data/demo/) are never read here. Run from ml/:  python run.py train
@@ -34,6 +36,7 @@ import matplotlib.pyplot as plt  # noqa: E402
 import numpy as np  # noqa: E402
 import pandas as pd  # noqa: E402
 
+from ml import gpu  # noqa: E402
 from ml.attrition.bands import band_metrics, rule_band_metrics  # noqa: E402
 from ml.attrition.features import (  # noqa: E402
     ARTIFACT_DIR,
@@ -45,10 +48,10 @@ from ml.attrition.features import (  # noqa: E402
 )
 from ml.attrition.models import (  # noqa: E402
     CONTRACT_RULE,
-    LIGHTGBM,
     LOGISTIC,
     RULES,
     SCORERS,
+    XGBOOST,
     FoldModel,
     PlattCalibrator,
     best_f1_threshold,
@@ -64,11 +67,12 @@ from ml.generator.config import (  # noqa: E402
     load_config,
 )
 from ml.generator.validate_occupancy import BLUE, INK_2, SURFACE, style_axes  # noqa: E402
+from ml.torch_logistic import to_cpu_all  # noqa: E402
 
 ML_ROOT = Path(__file__).resolve().parents[1]
 PLOT_PATH = ML_ROOT / "docs" / "plots" / "attrition_calibration.png"
-EXPLAIN_MODEL = LIGHTGBM
-LINE_COLORS = {RULES: "#eb6834", LOGISTIC: BLUE, LIGHTGBM: "#2e9e6b", CONTRACT_RULE: "#8a63d2"}
+EXPLAIN_MODEL = XGBOOST
+LINE_COLORS = {RULES: "#eb6834", LOGISTIC: BLUE, XGBOOST: "#2e9e6b", CONTRACT_RULE: "#8a63d2"}
 
 
 @dataclass(frozen=True)
@@ -113,7 +117,7 @@ def fit_fold(fold: Fold, segment: str, cfg: GeneratorConfig) -> FoldModel:
                       training_means(scorers, fold.train))
     y_val = fold.val["label"].to_numpy()
     for name, raw in model.raw(fold.val).items():
-        cal = PlattCalibrator(on_logit=name in (LOGISTIC, LIGHTGBM)).fit(raw, y_val)
+        cal = PlattCalibrator(on_logit=name in (LOGISTIC, XGBOOST)).fit(raw, y_val)
         model.calibrators[name] = cal
         model.thresholds[name] = best_f1_threshold(y_val, cal.transform(raw))
     return model
@@ -196,6 +200,10 @@ def summarise(r: SegmentResult, cfg: AttritionModelConfig) -> tuple[str, dict]:
                **({"contract_date_rule_bands_test": rule_band_metrics(r.test_preds, cfg)}
                   if r.segment == "contract_end" else {}),
                "deployed_window": r.deployed_window,
+               "train_device": gpu.require_cuda(), "eval_device": gpu.require_cuda(),
+               "algorithms": {LOGISTIC: "L2 logistic regression, torch LBFGS on CUDA",
+                              XGBOOST: "XGBoost binary:logistic on CUDA",
+                              "platt": "torch on CUDA"},
                "deployed_thresholds": {n: round(t, 4) for n, t in r.deployed.thresholds.items()}}
     return winner, metrics
 
@@ -240,7 +248,9 @@ def save(results: dict[str, SegmentResult], cfg: GeneratorConfig,
          out_dir: Path = ARTIFACT_DIR) -> list[Path]:
     out_dir.mkdir(parents=True, exist_ok=True)
     model_path = out_dir / "model.joblib"
-    joblib.dump(bundle(results, cfg), model_path)
+    deployed = bundle(results, cfg)
+    to_cpu_all(deployed)  # the servers predict with numpy only (no torch / xgboost / GPU)
+    joblib.dump(deployed, model_path)
     metrics_path = out_dir / "metrics.json"
     metrics_path.write_text(json.dumps({s: r.metrics for s, r in results.items()}, indent=2)
                             + "\n", encoding="utf-8")

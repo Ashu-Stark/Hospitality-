@@ -1,10 +1,14 @@
-"""Reproduce every REAL-data result: python run.py realdata [--no-timesfm] [--cpu]
+"""Reproduce every REAL-data result: python run.py realdata [--no-timesfm]
 
+GPU ONLY: ml/gpu.py refuses to run without CUDA; every fit and every evaluation prediction runs
+on the GPU (there is no CPU mode and no CPU timing comparison any more).
 1. downloads (or re-verifies by SHA-256) the public datasets in sources.py
-2. occupancy: seasonal-naive / pickup baselines, LightGBM (CPU), XGBoost (GPU), TimesFM 2.5
-   zero-shot and fine-tuned (GPU) at horizons 1 / 7 / 30, time split in forecast.Split
-3. attrition: rules vs logistic vs LightGBM vs XGBoost (GPU) on two public datasets
-4. GPU evidence: device, nvidia-smi before / during / after, CPU vs GPU timings
+2. occupancy: seasonal-naive / pickup baselines, XGBoost (calendar and pace features, GPU),
+   TimesFM 2.5 zero-shot and fine-tuned (GPU) at horizons 1 / 7 / 30, time split in
+   forecast.Split
+3. attrition: rules vs logistic (torch, GPU) vs XGBoost (GPU) on public datasets
+   (ml/realdata/attrition.py; the rating is in ml/realdata/attrition/VALIDATION.md)
+4. GPU evidence: device, nvidia-smi before / during / after, GPU timings
 Writes ml/artifacts/{occupancy_forecast,attrition,realdata_gpu}/real_v1/ and the
 test-period plot ml/docs/plots/realdata_forecast.png. Seeded (42); the model choice per
 horizon is made on the VALIDATION window, never on the test window.
@@ -24,6 +28,7 @@ import joblib
 import numpy as np
 import pandas as pd
 
+from ml.gpu import require_cuda
 from ml.realdata import attrition as attr
 from ml.realdata import forecast as fc
 from ml.realdata import gpu, hotels, sources
@@ -51,7 +56,7 @@ def _write_json(path: Path, obj) -> None:
 
 # ---- occupancy ---------------------------------------------------------------------------
 
-def tree_and_baselines(daily, otbs, caps, device: str) -> tuple[list[dict], dict, dict]:
+def tree_and_baselines(daily, otbs, caps) -> tuple[list[dict], dict, dict]:
     rows, preds, models = [], {}, {}
     for h in fc.HORIZONS:
         parts = fc.split_frame(fc.build_frame(daily, otbs[h], h, caps))
@@ -62,10 +67,8 @@ def tree_and_baselines(daily, otbs, caps, device: str) -> tuple[list[dict], dict
         for name in ("snaive_week", "snaive_year", "pickup_naive"):
             cands[name] = (va[name].to_numpy(float), te[name].to_numpy(float), "baseline")
         for kind, feats_kind, fit in (
-                ("lgbm_calendar_cpu", "calendar", lambda x, y: fc.fit_lgbm(x, y, SEED)),
-                ("lgbm_pace_cpu", "pace", lambda x, y: fc.fit_lgbm(x, y, SEED)),
-                ("xgb_pace_" + ("gpu" if device == "cuda" else "cpu"), "pace",
-                 lambda x, y: fc.fit_xgb(x, y, SEED, device))):
+                ("xgb_calendar_gpu", "calendar", lambda x, y: fc.fit_xgb(x, y, SEED)),
+                ("xgb_pace_gpu", "pace", lambda x, y: fc.fit_xgb(x, y, SEED))):
             feats = fc.features(feats_kind)
             t0 = time.perf_counter()
             m = fit(tr[feats], tr[fc.TARGET])
@@ -84,7 +87,7 @@ def tree_and_baselines(daily, otbs, caps, device: str) -> tuple[list[dict], dict
     return rows, preds, models
 
 
-def timesfm_block(daily, out_rows, preds, evidence, cpu_only: bool) -> dict:
+def timesfm_block(daily, out_rows, preds, evidence) -> dict:
     import torch
 
     from ml.realdata import tfm
@@ -92,8 +95,8 @@ def timesfm_block(daily, out_rows, preds, evidence, cpu_only: bool) -> dict:
     t0 = time.perf_counter()
     model = tfm.load_model()
     log(f"  TimesFM 2.5 loaded in {time.perf_counter() - t0:.1f}s on {model.model.device}")
-    if cpu_only:
-        _to_cpu(model)
+    if not str(model.model.device).startswith("cuda"):
+        raise RuntimeError(f"TimesFM loaded on {model.model.device}, not on the GPU")
     evidence["timesfm_device"] = str(model.model.device)
     err = tfm.check_forward_matches(model, daily["City Hotel"], pd.Timestamp("2017-02-28"),
                                     30, 512)
@@ -132,9 +135,6 @@ def timesfm_block(daily, out_rows, preds, evidence, cpu_only: bool) -> dict:
     out["zero_shot_seconds"] = round(time.perf_counter() - t0, 1)
     log(f"  zero-shot: {out['zero_shot_seconds']}s for val + test, 3 horizons, 2 hotels")
 
-    if cpu_only:
-        log("  fine-tune skipped: no CUDA device (it is only run on the GPU)")
-        return out
     cfg = tfm.FineTuneConfig(seed=SEED)
     series = {h: daily[h] for h in hotels.HOTELS}
     train_w = tfm.make_windows(series, None, pd.Timestamp(s.train_end), cfg)
@@ -154,14 +154,8 @@ def timesfm_block(daily, out_rows, preds, evidence, cpu_only: bool) -> dict:
     else:
         log("  fine-tune never beat zero-shot on validation: zero-shot weights kept, "
             "no fine-tuned rows reported")
-    out["timings"] = timesfm_timings(model, daily, cfg, train_w) if not cpu_only else {}
+    out["timings"] = timesfm_timings(model, daily, cfg, train_w)
     return out
-
-
-def _to_cpu(model) -> None:
-    import torch
-    model.model.to("cpu")
-    model.model.device = torch.device("cpu")
 
 
 def _save_ft(model, cfg, out) -> None:
@@ -179,62 +173,48 @@ def _save_ft(model, cfg, out) -> None:
 
 
 def timesfm_timings(model, daily, cfg, train_w) -> dict:
-    """Same TimesFM work on GPU and CPU: inference of 64 contexts, and 3 fine-tune steps."""
+    """TimesFM on the GPU: inference of 64 contexts, and 3 fine-tune steps (timing only)."""
     import torch
 
     from ml.realdata import tfm
     origins = pd.date_range("2017-01-01", periods=64)
     res = {}
-    for dev in ("cuda", "cpu"):
-        model.model.to(dev)
-        model.model.device = torch.device(dev)
-        tfm.compile_model(model)
-        if dev == "cuda":
-            torch.cuda.synchronize()
-        res[f"inference_64_contexts_{dev}_s"] = gpu.timed(
-            lambda: tfm.forecast_origins(model, daily["City Hotel"], origins, 30), repeats=2)
-        v, m, y = (torch.tensor(a[:8], device=dev) for a in train_w)
-        params = [p for p in model.model.parameters() if p.requires_grad] or list(
-            model.model.output_projection_point.parameters())
-        for p in params:
-            p.requires_grad_(True)
-        opt = torch.optim.SGD(params, lr=0.0)  # lr 0: timing only, weights unchanged
+    tfm.compile_model(model)
+    torch.cuda.synchronize()
+    res["inference_64_contexts_cuda_s"] = gpu.timed(
+        lambda: tfm.forecast_origins(model, daily["City Hotel"], origins, 30), repeats=2)
+    v, m, y = (torch.tensor(a[:8], device="cuda") for a in train_w)
+    params = [p for p in model.model.parameters() if p.requires_grad] or list(
+        model.model.output_projection_point.parameters())
+    for p in params:
+        p.requires_grad_(True)
+    opt = torch.optim.SGD(params, lr=0.0)  # lr 0: timing only, weights unchanged
 
-        def steps(v=v, m=m, y=y, opt=opt, dev=dev):
-            for _ in range(3):
-                out, _, _ = tfm.train_forward(model.model, v, m, cfg.horizon)
-                loss = tfm.pinball(out, y)
-                opt.zero_grad()
-                loss.backward()
-                opt.step()
-            if dev == "cuda":
-                torch.cuda.synchronize()
-        res[f"fine_tune_3_steps_batch8_{dev}_s"] = gpu.timed(steps)
-    model.model.to("cuda")
-    model.model.device = torch.device("cuda")
-    log(f"  TimesFM timings: {res}")
+    def steps():
+        for _ in range(3):
+            out, _, _ = tfm.train_forward(model.model, v, m, cfg.horizon)
+            loss = tfm.pinball(out, y)
+            opt.zero_grad()
+            loss.backward()
+            opt.step()
+        torch.cuda.synchronize()
+    res["fine_tune_3_steps_batch8_cuda_s"] = gpu.timed(steps)
+    log(f"  TimesFM timings (GPU): {res}")
     return res
 
 
 def xgb_timings(daily, otbs, caps) -> dict:
-    """XGBoost fit on the h=7 frame (small) and on a 100x row-replicated copy, GPU vs CPU."""
+    """XGBoost GPU fit time on the h=7 frame (small) and on a 100x row-replicated copy."""
     parts = fc.split_frame(fc.build_frame(daily, otbs[7], 7, caps))
     tr = parts["train"]
     feats = fc.features("pace")
     big = pd.concat([tr] * 100)
     res = {"rows_small": len(tr), "rows_large": len(big)}
-    for dev in ("cuda", "cpu"):
-        fc.fit_xgb(tr[feats], tr[fc.TARGET], SEED, dev)  # warm-up
-        res[f"xgb_fit_small_{dev}_s"] = gpu.timed(
-            lambda d=dev: fc.fit_xgb(tr[feats], tr[fc.TARGET], SEED, d), repeats=3)
-        res[f"xgb_fit_large_{dev}_s"] = gpu.timed(
-            lambda d=dev: fc.fit_xgb(big[feats], big[fc.TARGET], SEED, d))
-    gpu_m = fc.fit_xgb(tr[feats], tr[fc.TARGET], SEED, "cuda")
-    cpu_m = fc.fit_xgb(tr[feats], tr[fc.TARGET], SEED, "cpu")
-    te = parts["test"]
-    res["xgb_gpu_vs_cpu_max_pred_diff"] = float(np.max(np.abs(
-        gpu_m.predict(te[feats]) - cpu_m.predict(te[feats]))))
-    log(f"  XGBoost timings: {res}")
+    fc.fit_xgb(tr[feats], tr[fc.TARGET], SEED)  # warm-up
+    res["xgb_fit_small_cuda_s"] = gpu.timed(
+        lambda: fc.fit_xgb(tr[feats], tr[fc.TARGET], SEED), repeats=3)
+    res["xgb_fit_large_cuda_s"] = gpu.timed(lambda: fc.fit_xgb(big[feats], big[fc.TARGET], SEED))
+    log(f"  XGBoost timings (GPU): {res}")
     return res
 
 
@@ -294,12 +274,11 @@ def occupancy(evidence: dict, use_timesfm: bool, device: str) -> dict:
     otbs = {h: hotels.on_the_books(bookings, h) for h in fc.HORIZONS}
     caps = fc.capacities(daily)
     log(f"  capacity proxy (max nightly room-nights in train window): {caps}")
-    rows, preds, models = tree_and_baselines(daily, otbs, caps, device)
+    rows, preds, models = tree_and_baselines(daily, otbs, caps)
     tfm_info = {}
     if use_timesfm:
-        tfm_info = timesfm_block(daily, rows, preds, evidence, cpu_only=device != "cuda")
-    if device == "cuda":
-        evidence["xgboost_timings"] = xgb_timings(daily, otbs, caps)
+        tfm_info = timesfm_block(daily, rows, preds, evidence)
+    evidence["xgboost_timings"] = xgb_timings(daily, otbs, caps)
     table = pd.DataFrame(rows)
     best = choose_best(table)
     OCC_DIR.mkdir(parents=True, exist_ok=True)
@@ -316,6 +295,7 @@ def occupancy(evidence: dict, use_timesfm: bool, device: str) -> dict:
         "horizons": list(fc.HORIZONS), "capacity_proxy": caps,
         "chosen_on_validation": best.to_dict(orient="records"),
         "rows": table.to_dict(orient="records"), "timesfm": tfm_info,
+        "train_device": device, "eval_device": device,
     }
     _write_json(OCC_DIR / "metrics.json", metrics)
     log(f"  plot: {save_plot(preds, best)}")
@@ -323,13 +303,15 @@ def occupancy(evidence: dict, use_timesfm: bool, device: str) -> dict:
     return metrics
 
 
-def attrition_block(device: str) -> dict:
+def attrition_block() -> dict:
     log("== Attrition on PUBLIC datasets (protected attributes dropped) ==")
     out = {}
     for spec, loader, ds in ((attr.IBM_SPEC, attr.load_ibm, sources.IBM_HR),
                              (attr.TURNOVER_SPEC, attr.load_turnover, sources.TURNOVER)):
         df = loader(sources.fetch(ds))
-        res = attr.cross_validate(df, spec, device=device)
+        subsets = ({"hospitality (industry == HoReCa)": (df["industry"] == "HoReCa").to_numpy()}
+                   if spec is attr.TURNOVER_SPEC else None)
+        res = attr.cross_validate(df, spec, subsets=subsets)
         res.update({"source_url": ds.url, "licence": ds.licence, "provenance": ds.provenance,
                     "sha256": ds.sha256})
         out[spec.name] = res
@@ -339,6 +321,10 @@ def attrition_block(device: str) -> dict:
             log(f"    {k:9s} ROC-AUC {v['roc_auc']['mean']:.3f}+/-{v['roc_auc']['sd']:.3f}  "
                 f"PR-AUC {v['pr_auc']['mean']:.3f}  Brier {v['brier']['mean']:.4f}  "
                 f"ECE {v['ece']['mean']:.4f}  fit {v['fit_seconds_total']}s")
+        for name, sub in res["subsets"].items():
+            log(f"  subset {name}: {sub['rows']} rows, {sub['positives']} leavers")
+            for k, v in sub["scorers"].items():
+                log(f"    {k:9s} ROC-AUC {v['roc_auc']} (95% CI {v['ci95']}), Brier {v['brier']}")
     _write_json(ATTR_DIR / "metrics.json", out)
     _write_json(ATTR_DIR / "dataset_hash.json",
                 {ds.name: {"sha256": ds.sha256, "url": ds.url}
@@ -349,22 +335,20 @@ def attrition_block(device: str) -> dict:
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--no-timesfm", action="store_true")
-    ap.add_argument("--cpu", action="store_true", help="force CPU (no GPU evidence)")
     a = ap.parse_args(argv)
     warnings.filterwarnings("ignore", message=".*Falling back to prediction using DMatrix.*")
     warnings.filterwarnings("ignore", category=FutureWarning)
     np.random.default_rng(SEED)  # no global state used; every model takes SEED explicitly
-    device = "cpu" if a.cpu or not gpu.cuda_available() else "cuda"
+    device = require_cuda()  # refuses without CUDA: no CPU fallback
     evidence = {"python": platform.python_version(), "platform": platform.platform(),
                 **gpu.torch_info(), "device_used": device,
                 "nvidia_smi_before": gpu.nvidia_smi()}
     log(f"== Device: {device} | {evidence} ==")
     t0 = time.perf_counter()
     occupancy(evidence, not a.no_timesfm, device)
-    attrition_block(device)
-    if device == "cuda":
-        import xgboost as xgb
-        evidence["xgboost"] = xgb.__version__
+    attrition_block()
+    import xgboost as xgb
+    evidence["xgboost"] = xgb.__version__
     evidence["nvidia_smi_after"] = gpu.nvidia_smi()
     evidence["total_seconds"] = round(time.perf_counter() - t0, 1)
     _write_json(GPU_DIR / "gpu_evidence.json", evidence)

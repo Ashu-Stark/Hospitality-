@@ -73,6 +73,7 @@ def test_metrics_and_alerts(cfg) -> None:
     assert high.tolist() == [True, False, False] and low.tolist() == [False, False, True]
 
 
+@pytest.mark.gpu  # trains a model: GPU only
 def test_train_horizon_reports_model_and_baseline(cfg, daily) -> None:
     r = train_horizon(daily, 7, cfg)
     m = r["metrics"]

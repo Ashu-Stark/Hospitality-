@@ -29,35 +29,37 @@ never random, with gaps between the periods.
 | 1 day ahead | Algarve resort (187 rooms seen) | off by 10.4 rooms | **off by 1.9 rooms** | -82% |
 | 7 days ahead | Lisbon city | off by 10.9 rooms | **off by 5.3 rooms** | -51% |
 | 7 days ahead | Algarve resort | off by 10.4 rooms | **off by 3.9 rooms** | -63% |
-| 30 days ahead | Lisbon city | off by 18.5 rooms | **off by 7.2 rooms** | -61% |
+| 30 days ahead | Lisbon city | off by 18.5 rooms | **off by 7.4 rooms** | -60% |
 | 30 days ahead | Algarve resort | off by 16.1 rooms | **off by 6.8 rooms** | -58% |
 
 In percent (MAPE), the best models were wrong by 0.9-1.1% at 1 day, 2.4-2.5% at 7 days and
-3.4-4.1% at 30 days. The simple rule was wrong by 5.3-9.6%. On a typical day (the median), the
+3.5-4.1% at 30 days. The simple rule was wrong by 5.3-9.6%. On a typical day (the median), the
 7-day forecast was off by 4 rooms in the city hotel and 2-3 rooms in the resort.
 
 **What we learned**
 
 1. **Our approach works on real data, and works better with booking data.** Our existing
-   method (LightGBM with calendar, holiday and recent-occupancy features) beat both simple
-   rules at every horizon in both hotels: 7.2-11.1 rooms of error against 10.4-18.5 rooms.
+   method (gradient-boosted trees, now XGBoost trained on the GPU, with calendar, holiday and
+   recent-occupancy features) beat both simple rules at every horizon in both hotels: 7.0-10.7
+   rooms of error against 10.4-18.5 rooms.
    The biggest gain came from one extra input, **rooms already booked for that night
    ("on the books")**. Adding it cut the remaining error by a further 18% (resort, 30 days) to 78%
    (city, 1 day). **Product decision:** HOI must
    record when each booking was made, not only the night it is for.
-2. **The GPU model and the CPU model are equally good.** XGBoost on the GPU and LightGBM on the
-   CPU were within 0.2 rooms of each other. The GPU helps speed only on large data (below).
+2. **All model training now runs on the GPU only.** The earlier CPU LightGBM models were
+   replaced by XGBoost on the GPU (within about 0.5 rooms of them); the booking-aware XGBoost
+   model is now the one chosen on validation at every horizon.
 3. **Google's TimesFM 2.5 is a strong "no training" model, but not the best.** Without any
-   training on these hotels it beat our calendar-only model in the city hotel (7.3 vs 8.5 rooms
-   at 1 day; 9.1 vs 11.1 at 30 days). It did about the same or worse in the resort. It cannot
+   training on these hotels it beat our calendar-only model in the city hotel (7.3 vs 8.0 rooms
+   at 1 day; 9.1 vs 10.7 at 30 days). It did about the same or worse in the resort. It cannot
    see the booking book, so the booking-aware models beat it clearly.
 4. **Fine-tuning TimesFM on the GPU did not help.** We trained its last 4 layers (72 million
-   parameters) on the GPU for 2.6 minutes, using 3 GB of the 6 GB card. It improved the
+   parameters) on the GPU for about 2.2 minutes, using 3.2 GB of the 6 GB card. It improved the
    validation error only slightly (36.4 to 35.3 rooms, averaged over 1-30 days). On the test
    it was slightly worse in 5 of 6 cases (by 0.2 to 0.8 rooms; better by 0.1 in one). Two years of two hotels is too
    little data to fine-tune a 200-million-parameter model. We report this and do not use the
    fine-tuned version.
-5. **Our uncertainty bands are too cautious.** The "80% range" contained the real value 89-96%
+5. **Our uncertainty bands are too cautious.** The "80% range" contained the real value 91-96%
    of the time, because it was calibrated on a volatile winter period. The ranges are safe but
    wider than they need to be.
 
@@ -87,29 +89,33 @@ work-life balance for IBM, and unofficial pay and no probation coach for Babushk
 | Dataset | Simple checklist (ROC-AUC) | Best model (ROC-AUC) | Leavers found in the top-ranked group (PR-AUC; random = base rate) |
 |---|---|---|---|
 | IBM (fictional) | 0.65 | **0.83** (logistic regression) | 0.61 vs 0.25 checklist (base 0.16) |
-| Babushkin (real, unverified) | 0.55 | **0.66** (LightGBM) | 0.32 vs 0.17 checklist (base 0.15) |
+| Babushkin (real, unverified) | 0.55 | **0.65** (XGBoost) | 0.29 vs 0.17 checklist (base 0.15) |
 
 ROC-AUC is the chance that the model ranks a random leaver above a random stayer: 0.5 is a coin
 flip and 1.0 is perfect. The models' risk percentages were well calibrated: on average they were
 2-4 percentage points away from what actually happened. **Lesson:** in both datasets the models
 beat a fixed checklist by a clear margin, as in our synthetic tests (0.69 vs 0.54). With only
-job and pay information on the real dataset the ranking is modest (0.66). Attrition prediction
-should support a manager's judgement, not replace it.
+job and pay information on the real dataset the ranking is modest (0.65). Attrition prediction
+should support a manager's judgement, not replace it. The plain-language rating, the tiny
+hospitality subset (10 people) and why the US OPM federal data could not be used are in
+[ml/realdata/attrition/VALIDATION.md](../ml/realdata/attrition/VALIDATION.md).
 
 ## 3. Proof that training used the GPU
 
 | | |
 |---|---|
 | Device | NVIDIA GeForce RTX 4050 Laptop GPU, 6 GB; PyTorch 2.11.0 with bundled CUDA 12.8 |
-| `nvidia-smi` before / during fine-tune (peak) / after | 0 MiB / **3,021 MiB, 90% busy** / 3,101 MiB |
-| TimesFM: forecast 64 series | GPU **0.50 s** vs CPU 5.77 s (11.5x faster) |
-| TimesFM: 3 fine-tune steps | GPU **0.53 s** vs CPU 2.58 s (4.9x faster) |
-| XGBoost: 87,100 rows | GPU 0.61 s vs CPU 0.87 s (1.4x faster) |
-| XGBoost: 871 rows (the real forecast data) | GPU 0.49 s vs CPU 0.17 s (**GPU slower**: too little data) |
+| `nvidia-smi` before / during fine-tune (peak) / after | 77 MiB / **3,234 MiB, 97% busy** / 3,174 MiB |
+| TimesFM: forecast 64 series (GPU) | 0.48 s |
+| TimesFM: 3 fine-tune steps (GPU) | 0.59 s |
+| XGBoost fit, 87,100 rows (GPU) | 0.63 s |
+| XGBoost fit, 871 rows, the real forecast data (GPU) | 0.50 s |
 
-Honest reading: the GPU matters for the foundation model (TimesFM). For our tabular models on
-hotel-sized data, the CPU is as good or faster, and that is what the deployed API uses. Full log:
-`ml/artifacts/realdata_gpu/real_v1/`.
+Every model fit and evaluation in `ml/` now runs on the GPU only (`ml/gpu.py` refuses without
+CUDA); the earlier CPU timing comparison was dropped with the CPU mode. Earlier measurements
+showed the GPU matters most for TimesFM; on hotel-sized tabular data it brings no speed gain.
+The deployed API still predicts on the CPU (Render has no GPU), from exported model arrays.
+Full log: `ml/artifacts/realdata_gpu/real_v1/`.
 
 ## Limits
 

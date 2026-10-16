@@ -1,6 +1,6 @@
 """Train and evaluate the Char Dham crowd model on REAL public data; write artifacts and the bundle.
 
-    python -m ml.realdata.crowd.train                 # from the repo root (about a minute, CPU)
+    python -m ml.realdata.crowd.train                 # from the repo root (GPU only, ~1-2 min)
     python -m ml.realdata.crowd.train --export-only   # re-copy bundle + predict code to the portal
 
 Forecast set-up. A forecast is made on an ORIGIN day t when a real figure has just been published
@@ -16,6 +16,11 @@ Splits, by season only (never random):
               trained <= T-1; scored on season T
 Evaluated twice: T = 2025 (latest complete season) and T = 2026 (season to date; this final model
 is the deployed one).
+
+Models: XGBoost (point + q10 / q90 quantile models via reg:quantileerror) trained AND evaluated on
+the GPU (ml/gpu.py refuses to train without CUDA); they replaced the earlier LightGBM models.
+The deployed trees are exported to plain JSON in the bundle and evaluated by predict.py in pure
+Python on the CPU (the portal has no GPU, numpy or xgboost).
 """
 
 from __future__ import annotations
@@ -26,10 +31,10 @@ import math
 import shutil
 from datetime import date, timedelta
 
-import lightgbm as lgb
 import numpy as np
 import pandas as pd
 
+from ml import gpu
 from ml.realdata.crowd import calendar_data, target
 from ml.realdata.crowd import predict as P
 from ml.realdata.crowd.sources import (
@@ -39,28 +44,36 @@ from ml.realdata.crowd.sources import (
     RAW_DIR,
     SOURCES,
 )
+from ml.xgb_trees import TreeEnsemble
 
 SEED = 42
 MIN_ANCHORS = 4  # real anchors a season needs to be trained on (ASSUMED)
 DENSE_ANCHORS = 8  # real anchors a season needs to be scored / calibrated on (ASSUMED)
+# The earlier LightGBM settings mapped to XGBoost: leaf-wise growth (num_leaves -> max_leaves),
+# minimum leaf weight (min_data_in_leaf -> min_child_weight: the hessian of these objectives is
+# the row weight), 0.8 row / column subsampling, L2 lambda 1.
 PARAMS = {
     "learning_rate": 0.05,
-    "num_leaves": 15,
-    "min_data_in_leaf": 40,
-    "feature_fraction": 0.8,
-    "bagging_fraction": 0.8,
-    "bagging_freq": 1,
-    "lambda_l2": 1.0,
-    "seed": SEED,
-    "deterministic": True,
-    "force_row_wise": True,
-    "verbose": -1,
-    "num_threads": 4,
+    "grow_policy": "lossguide",
+    "max_depth": 0,
+    "max_leaves": 15,
+    "min_child_weight": 40,
+    "colsample_bytree": 0.8,
+    "subsample": 0.8,
+    "reg_lambda": 1.0,
+    "random_state": SEED,
+    **gpu.XGB_DEVICE,
 }
 ROUNDS = 400
-# Small grid, chosen on the VALIDATION season only (never on a test season).
+OBJECTIVES = {
+    "regression": "reg:squarederror",
+    "regression_l1": "reg:absoluteerror",
+    "quantile": "reg:quantileerror",
+}
+# Small grid, chosen on the VALIDATION season only (never on a test season). The same grid as
+# the earlier LightGBM model (the protocol is unchanged).
 GRID = [
-    {"num_leaves": nl, "min_data_in_leaf": md, "rounds": r}
+    {"max_leaves": nl, "min_child_weight": md, "rounds": r}
     for nl in (7, 15)
     for md in (20, 60)
     for r in (200, 600)
@@ -189,27 +202,28 @@ def _heavy(ctx, dest, d) -> bool:
 # ----------------------------------------------------------------------------- models
 
 
-def fit(
-    df: pd.DataFrame, objective: str, alpha: float | None = None, features=P.FEATURES
-) -> lgb.Booster:
+def fit(df: pd.DataFrame, objective: str, alpha: float | None = None, features=P.FEATURES):
+    """XGBoost on the GPU (refuses without CUDA); predict() on it runs on the GPU too."""
+    import xgboost as xgb
+
+    gpu.require_cuda()
     y = df["_y"] / df["_scale"]
     params = {
         **PARAMS,
         **{k: v for k, v in CHOSEN.items() if k != "rounds"},
-        "objective": objective,
+        "objective": OBJECTIVES[objective],
+        "n_estimators": CHOSEN.get("rounds", ROUNDS),
     }
     if alpha is not None:
-        params["alpha"] = alpha
+        params["quantile_alpha"] = alpha
     # A day inside a long reporting interval is an even share, not a real day value: weight it down.
     w = np.minimum(1.0, 7.0 / df["_iv_days"].to_numpy())
-    return lgb.train(
-        params,
-        lgb.Dataset(df[list(features)], y, weight=w),
-        num_boost_round=CHOSEN.get("rounds", ROUNDS),
-    )
+    m = xgb.XGBRegressor(**params).fit(df[list(features)], y, sample_weight=w)
+    gpu.assert_xgb_on_cuda(m)
+    return m
 
 
-def fit_set(df: pd.DataFrame, objective: str) -> dict[str, lgb.Booster]:
+def fit_set(df: pd.DataFrame, objective: str) -> dict:
     return {
         "point": fit(df, objective),
         "q10": fit(df, "quantile", 0.1),
@@ -267,31 +281,6 @@ def apply(models: dict, df: pd.DataFrame, cq: float, caps: dict) -> pd.DataFrame
     return out
 
 
-def xgb_point(train: pd.DataFrame, test: pd.DataFrame) -> tuple[np.ndarray, str]:
-    """XGBoost on the GPU when available (comparison only; LightGBM is deployed)."""
-    import xgboost as xgb
-
-    y = train["_y"] / train["_scale"]
-    for device in ("cuda", "cpu"):
-        try:
-            m = xgb.XGBRegressor(
-                n_estimators=ROUNDS,
-                learning_rate=0.05,
-                max_depth=4,
-                subsample=0.8,
-                colsample_bytree=0.8,
-                random_state=SEED,
-                tree_method="hist",
-                device=device,
-            )
-            m.fit(train[list(P.FEATURES)], y)
-            m.set_params(device="cpu")  # predict on CPU: the test frame lives in host memory
-            return m.predict(test[list(P.FEATURES)]) * test["_scale"].to_numpy(), device
-        except Exception:  # noqa: BLE001  (no CUDA build / no GPU: fall back to CPU)
-            continue
-    raise RuntimeError("xgboost failed on cuda and cpu")
-
-
 # ----------------------------------------------------------------------------- metrics
 
 
@@ -327,7 +316,7 @@ def evaluate(res: pd.DataFrame, edges: dict) -> dict:
         "by_basis": {},
         "intervals": {},
     }
-    for k in ("snaive", "ma7", "model", "xgb_gpu", "model_no_weather", *ABLATIONS):
+    for k in ("snaive", "ma7", "model", "model_no_weather", *ABLATIONS):
         if k in common:
             out["daily"][k] = point_metrics(y, common[k].to_numpy())
     actual_b = band_series(common["_dest"], y, edges)
@@ -415,23 +404,26 @@ def failure_analysis(res: pd.DataFrame) -> dict:
 # ----------------------------------------------------------------------------- export
 
 
-def compact(booster: lgb.Booster) -> list:
-    def node(n):
-        if "leaf_value" in n:
-            return round(float(n["leaf_value"]), 10)
-        if n.get("decision_type", "<=") != "<=":
-            raise ValueError("only numerical <= splits are exported")
-        miss = {"None": 0, "Zero": 1, "NaN": 2}[n.get("missing_type", "None")]
+def compact(model, x: pd.DataFrame) -> dict:
+    """XGBoost model -> {"base": margin, "trees": nested lists} for predict.py (pure Python).
+
+    A split node is [feature, threshold, default_left, left, right] (x < threshold goes left,
+    compared in float32 as XGBoost does; NaN goes the default side); a leaf is its value. The
+    export is checked against XGBoost on the training rows `x` (TreeEnsemble.from_xgb)."""
+    ens = TreeEnsemble.from_xgb(model, x[list(P.FEATURES)])
+
+    def node(t: dict, i: int):
+        if t["left"][i] == -1:
+            return float(t["leaf"][i])
         return [
-            int(n["split_feature"]),
-            float(n["threshold"]),
-            bool(n["default_left"]),
-            miss,
-            node(n["left_child"]),
-            node(n["right_child"]),
+            int(t["feature"][i]),
+            float(t["threshold"][i]),
+            bool(t["default_left"][i]),
+            node(t, int(t["left"][i])),
+            node(t, int(t["right"][i])),
         ]
 
-    return [node(t["tree_structure"]) for t in booster.dump_model()["tree_info"]]
+    return {"base": ens.base_margin_, "trees": [node(t, 0) for t in ens.trees_]}
 
 
 def feature_ranges(df: pd.DataFrame) -> dict:
@@ -466,7 +458,8 @@ def build_bundle(models, cq, ctx, series, ok, train_rows, edges, caps, metrics_s
         "feature_names": list(P.FEATURES),
         "conformal_q": cq,
         "guard": GUARD,
-        "models": {k: compact(m) for k, m in models.items()},
+        "model_format": "xgboost",
+        "models": {k: compact(m, train_rows) for k, m in models.items()},
         "destinations": dests,
         "feature_ranges": feature_ranges(train_rows),
         "calendar": {
@@ -507,7 +500,7 @@ def run_test(ctx_for, series, ok, test_year: int, objective: str, edges, caps) -
     cq = conformal_q(fit_set(twin, objective), cal)
     models = fit_set(train, objective)
     res = apply(models, test, cq, caps)
-    res["xgb_gpu"], device = xgb_point(train, test)
+    device = gpu.require_cuda()
     nw_train = rows(ctx, series, keys({y for y in years if y < test_year}), use_weather=False)
     nw_test = rows(ctx, series, dense_keys({test_year}), use_weather=False)
     res["model_no_weather"] = np.clip(
@@ -575,7 +568,7 @@ def main() -> int:
             CHOSEN.update(g)
             p = fit(tr, obj).predict(va[list(P.FEATURES)]) * va["_scale"].to_numpy()
             key = (
-                f"{obj} leaves={g['num_leaves']} min_leaf={g['min_data_in_leaf']} "
+                f"{obj} leaves={g['max_leaves']} min_leaf={g['min_child_weight']} "
                 f"rounds={g['rounds']}"
             )
             sel[key] = (float(np.mean(np.abs(va["_y"].to_numpy() - p))), obj, g)
@@ -610,7 +603,8 @@ def main() -> int:
         m = evaluate(res, edges)
         m["failure_analysis"] = failure_analysis(res)
         m["conformal_q_scaled"] = cq
-        m["xgb_device"] = device
+        m["train_device"] = device
+        m["eval_device"] = device
         m["train_seasons"] = sorted({int(y) for y in train["_season"].unique()})
         metrics["tests"][str(T)] = m
         res.to_csv(
@@ -630,8 +624,10 @@ def main() -> int:
     # Deployed model = the final model of the last test (trained on every season before T).
     ARTIFACT_DIR.mkdir(parents=True, exist_ok=True)
     res.to_csv(ARTIFACT_DIR / f"test_predictions_{T}.csv", index=False)
+    for old in ARTIFACT_DIR.glob("lgbm_*.txt"):  # the earlier LightGBM models
+        old.unlink()
     for k, b in models.items():
-        b.save_model(str(ARTIFACT_DIR / f"lgbm_{k}.txt"))
+        b.save_model(str(ARTIFACT_DIR / f"xgb_{k}.json"))
     deploy_edges = edges_for(set(years))  # bands for display use every real season
     ctx_dep = make_context(seasons, gaz, fest, school, series, ctx.scale, weather)
     summary = {
@@ -653,6 +649,9 @@ def main() -> int:
         "band_edges": deploy_edges,
         "guard": GUARD,
         "params": {**PARAMS, **CHOSEN},
+        "algorithm": "XGBoost (point: chosen objective; q10 / q90: reg:quantileerror)",
+        "train_device": gpu.require_cuda(),
+        "eval_device": gpu.require_cuda(),
     }
     (ARTIFACT_DIR / "metrics.json").write_text(
         json.dumps(metrics, indent=2, default=str), encoding="utf-8", newline="\n"

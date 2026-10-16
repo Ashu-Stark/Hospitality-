@@ -15,6 +15,7 @@ import pandas as pd
 from ml.features.split import Splits, load_workload_splits
 from ml.models.common import MODEL_FILE, WORKLOAD_ARTIFACT_DIR
 from ml.models.workload_common import naive_workload, regression_metrics, workload_xy
+from ml.xgb_trees import predict_gpu
 
 MODEL_NAME = "workload_model"
 
@@ -25,7 +26,7 @@ def compare(splits: Splits, models_dir: Path = WORKLOAD_ARTIFACT_DIR) -> pd.Data
     model = joblib.load(models_dir / MODEL_FILE)
     rows = [
         {"model": "naive (copy this week)", **regression_metrics(y, naive_workload(test))},
-        {"model": MODEL_NAME, **regression_metrics(y, model.predict(x))},
+        {"model": MODEL_NAME, **regression_metrics(y, predict_gpu(model, x))},
     ]
     return pd.DataFrame(rows).drop(columns="rows")
 

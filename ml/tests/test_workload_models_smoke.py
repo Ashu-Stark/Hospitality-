@@ -29,6 +29,7 @@ def tiny_splits():
     return time_split(pd.DataFrame(rows), embargo_weeks=1)
 
 
+@pytest.mark.gpu  # trains a model: GPU only
 def test_workload_pipeline_runs(tiny_splits, tmp_path: Path) -> None:
     models, metrics, plots = tmp_path / "models", tmp_path / "metrics", tmp_path / "plots"
     naive = train_workload_baseline.main(tiny_splits, metrics)

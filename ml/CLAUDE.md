@@ -84,8 +84,8 @@ python run.py validate  # occupancy + staff + attrition PASS/FAIL checks, plots 
 python run.py validate-seeds [seed ...]  # pooled multi-seed difficulty checks (default 42 43 44)
 python run.py train     # attrition: backtest, calibration, drivers (artifacts/attrition/v1)
 python run.py train-forecast  # occupancy forecast (artifacts/occupancy_forecast/v1)
-python run.py train-pulse  # pulse features -> split -> naive + LightGBM -> compare (exit 1 if not better)
-python run.py train-workload  # dept load features -> split -> naive + LightGBM -> compare (exit 1 if not better)
+python run.py train-pulse  # pulse features -> split -> naive + XGBoost (GPU) -> compare (exit 1 if not better)
+python run.py train-workload  # dept load features -> split -> naive + XGBoost (GPU) -> compare (exit 1 if not better)
 python run.py eval      # retrain every model, rewrite metrics + plots, package, check
 python run.py check-artifacts  # load every artifact + run the interfaces, no retraining
 python run.py eval-voice  # voice: WER + extraction accuracy per provider, demo cache
@@ -644,10 +644,13 @@ takes a cfg. The default ml/data dataset is byte-identical. Tests: tests/test_ho
 unverified origin, CC BY-NC-SA = evaluation only). Outputs go ONLY to
 `artifacts/{occupancy_forecast,attrition,realdata_gpu}/real_v1/`; the synthetic `v1` artifacts,
 the API and the product never read them. Raw downloads (`data/realdata/raw/`, SHA-256 checked)
-and fine-tuned TimesFM layers are gitignored. Optional deps (torch cu128, xgboost, timesfm):
+and fine-tuned TimesFM layers are gitignored. GPU deps (torch cu128, xgboost, timesfm):
 `realdata/requirements-gpu.txt`. Protected columns are dropped in `realdata/attrition.py`.
-Tests: `tests/test_realdata.py` (no download, no GPU). Results: `docs/REAL_DATA_RESULTS.md`
-(repo root) and `realdata/README.md`.
+Tests: `tests/test_realdata.py` (no download; the CV test needs the GPU). Results:
+`docs/REAL_DATA_RESULTS.md` (repo root), `realdata/README.md`, and the plain-language
+attrition rating `realdata/attrition/VALIDATION.md` (Babushkin HoReCa subset: 10 people;
+US OPM federal data NOT used: no person id to link a snapshot to later separations; see
+`realdata/attrition/DATA_CARD_OPM.md`).
 
 ## Hotel alerts: cancellation model (REAL data) and prediction checks for every model
 
@@ -655,8 +658,9 @@ Tests: `tests/test_realdata.py` (no download, no GPU). Results: `docs/REAL_DATA_
   booking cancellation / no-show risk on Hotel Booking Demand (REAL, CC BY 4.0), booking-time
   features only (leaky columns excluded and tested), snapshots at booking and 1-90 days before
   arrival, split by arrival date (train <= 2016-10-31, val Dec-Jan, test Mar-Aug 2017).
-  `python run.py train-cancellation [--cpu]` -> `artifacts/cancellation/real_v1/`. Test at booking:
-  LightGBM ROC 0.820 / PR 0.786 / Brier 0.168 vs base rate 0.638 / 0.494 / 0.234 (logistic 0.795).
+  `python run.py train-cancellation` (GPU only) -> `artifacts/cancellation/real_v1/`. Test at
+  booking: XGBoost ROC 0.820 / PR 0.786 / Brier 0.168 vs base rate 0.638 / 0.494 / 0.234
+  (logistic 0.795).
   Night-level source (model vs base-rate table) chosen per horizon on validation: base-rate table at
   every horizon (the model was better on the test at 14 / 30 days; reported, not switched).
 - `ml/guardrails.py`: schema / range checks, output clipping, drift (row z-score + range; PSI for
@@ -667,3 +671,22 @@ Tests: `tests/test_realdata.py` (no download, no GPU). Results: `docs/REAL_DATA_
   (models unchanged). `python run.py backtest-monitor [--hotel himsagar] [--strict]`: rolling error
   vs baselines (finds: default-hotel workload worse than naive over the last 12 weeks; Himsagar
   forecast band covers ~67% instead of 80%). Tests: tests/test_guardrails.py, tests/test_hotel_alerts.py.
+
+## GPU-only training (all models)
+
+Every model fit, hyperparameter search, cross-validation and evaluation prediction in `ml/` runs
+on the GPU: XGBoost with `device="cuda"` (it replaced LightGBM everywhere) and torch on CUDA for
+logistic regression and Platt scaling (`ml/torch_logistic.py`, same L2 objective as
+scikit-learn's default, C = 1). No scikit-learn estimator is trained any more (scalers / one-hot
+encoders and sklearn.metrics remain). One shared check, `ml/gpu.py` `require_cuda()`, runs before
+any training: torch.cuda.is_available() AND an XGBoost CUDA test fit; otherwise
+GPURequiredError, never a CPU fallback. Every metrics.json records `train_device` and
+`eval_device` ("cuda:0 NVIDIA GeForce RTX 4050 Laptop GPU").
+
+Serving stays on the CPU (Render has no GPU, and the servers install neither torch nor xgboost):
+trained XGBoost models are exported to numpy tree arrays (`ml/xgb_trees.py` TreeEnsemble,
+checked against XGBoost at export) and torch logistic models keep numpy coefficients
+(`to_cpu()` before saving). The crowd model's trees go to plain JSON for the pure-Python
+`predict.py` (byte-identical copy in the portal). Tests that train are marked `gpu` and are
+SKIPPED without a GPU (CI), never run on the CPU. The earlier task notes above quote LightGBM
+results: they are historical; the current numbers are in each artifact's metrics.json.
