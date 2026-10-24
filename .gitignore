@@ -55,3 +55,7 @@ credentials.local.md
 # fine-tuned TimesFM layers (~330 MB, re-created by the same command)
 ml/data/realdata/raw/
 ml/data/realdata/timesfm_finetuned/
+
+# local AI-assistant notes (kept on disk, not in the repo)
+CLAUDE.md
+**/CLAUDE.md

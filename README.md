@@ -37,8 +37,6 @@ Demo accounts (all passwords `123456`, demo data only) are listed in `credential
 | `docs/` | Full project context, pitch script and deck, real-data results, market and competitors, portal API, MongoDB conventions, usability test kit | | |
 | `scripts/` | One-command runner, demo wake-up, scenario simulator, demo model run, Mongo tools | | |
 
-Flow diagrams: https://claude.ai/artifact/JHsoddyLwTtaLm3ktCohgK (private until shared).
-
 ## Setup (Windows PowerShell, once)
 
 ```powershell
