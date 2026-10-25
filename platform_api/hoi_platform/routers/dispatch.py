@@ -2,6 +2,7 @@
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, Response, UploadFile
 
+from .. import idempotency
 from ..deps import HOTEL_MANAGERS, Principal, acting_employee, principal, roles, tenant_of
 from ..schemas import ActAs, ContextIn, JobIn, LinkTaskIn
 from ..services import dispatch, performance, photos, tenants, users, worklog
@@ -14,6 +15,11 @@ def _act(p: Principal, tid: str, body_emp: str | None, action: str, jid: str) ->
     if p.role != "worker":
         tenants.audit(tid, p.username, f"job.{action}.as_worker", f"{jid} as {emp}")
     return emp
+
+
+def _once(p: Principal, jid: str, action: str, idem: str | None, body: ActAs, response: Response, run) -> dict:
+    """A retried job action with the same Idempotency-Key replays the first answer instead of failing with 409."""
+    return idempotency.run(f"user:{p.user_id}:job:{jid}:{action}", idem, body, response, run)
 
 
 @router.put("/context")
@@ -75,27 +81,55 @@ def list_jobs(
 
 
 @router.post("/jobs/{jid}/accept")
-def accept(jid: str, body: ActAs, p: Principal = Depends(roles(*HOTEL_MANAGERS, "worker"))) -> dict:
+def accept(
+    jid: str,
+    body: ActAs,
+    response: Response,
+    idem: str | None = idempotency.KeyHeader,
+    p: Principal = Depends(roles(*HOTEL_MANAGERS, "worker")),
+) -> dict:
     tid = tenant_of(p)
-    return dispatch.accept(tid, jid, _act(p, tid, body.employee_id, "accept", jid))
+    return _once(p, jid, "accept", idem, body, response, lambda: dispatch.accept(tid, jid, _act(p, tid, body.employee_id, "accept", jid)))
 
 
 @router.post("/jobs/{jid}/decline")
-def decline(jid: str, body: ActAs, p: Principal = Depends(roles(*HOTEL_MANAGERS, "worker"))) -> dict:
+def decline(
+    jid: str,
+    body: ActAs,
+    response: Response,
+    idem: str | None = idempotency.KeyHeader,
+    p: Principal = Depends(roles(*HOTEL_MANAGERS, "worker")),
+) -> dict:
     tid = tenant_of(p)
-    return dispatch.decline(tid, jid, _act(p, tid, body.employee_id, "decline", jid))
+    return _once(
+        p, jid, "decline", idem, body, response, lambda: dispatch.decline(tid, jid, _act(p, tid, body.employee_id, "decline", jid))
+    )
 
 
 @router.post("/jobs/{jid}/start")
-def start(jid: str, body: ActAs, p: Principal = Depends(roles(*HOTEL_MANAGERS, "worker"))) -> dict:
+def start(
+    jid: str,
+    body: ActAs,
+    response: Response,
+    idem: str | None = idempotency.KeyHeader,
+    p: Principal = Depends(roles(*HOTEL_MANAGERS, "worker")),
+) -> dict:
     tid = tenant_of(p)
-    return dispatch.start(tid, jid, _act(p, tid, body.employee_id, "start", jid))
+    return _once(p, jid, "start", idem, body, response, lambda: dispatch.start(tid, jid, _act(p, tid, body.employee_id, "start", jid)))
 
 
 @router.post("/jobs/{jid}/complete")
-def complete(jid: str, body: ActAs, p: Principal = Depends(roles(*HOTEL_MANAGERS, "worker"))) -> dict:
+def complete(
+    jid: str,
+    body: ActAs,
+    response: Response,
+    idem: str | None = idempotency.KeyHeader,
+    p: Principal = Depends(roles(*HOTEL_MANAGERS, "worker")),
+) -> dict:
     tid = tenant_of(p)
-    return dispatch.complete(tid, jid, _act(p, tid, body.employee_id, "complete", jid))
+    return _once(
+        p, jid, "complete", idem, body, response, lambda: dispatch.complete(tid, jid, _act(p, tid, body.employee_id, "complete", jid))
+    )
 
 
 @router.post("/jobs/{jid}/offer")

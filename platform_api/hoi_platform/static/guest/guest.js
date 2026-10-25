@@ -151,12 +151,17 @@
   function coNotice(msg) { const el = $("#coNotice"); el.textContent = msg || ""; el.classList.toggle("hidden", !msg); }
 
   // ---------------------------------------------------------------- api
+  // POSTs that must never run twice (a second job for the same towels): requests and confirmed chat actions, sent with an Idempotency-Key, one per attempt
+  const ONCE = /^\/(requests|actions)$/;
   async function api(method, path, body, isForm) {
     const opts = { method, headers: {} };
     if (body !== undefined) { if (isForm) opts.body = body; else { opts.headers["Content-Type"] = "application/json"; opts.body = JSON.stringify(body); } }
+    const sig = method === "POST" && ONCE.test(path) ? `${method} ${path} ${opts.body}` : null;
+    if (sig) opts.headers["Idempotency-Key"] = window.HOINet.key(sig);
     let r;
-    // /shared/net.js: "waking up the server" pill after ~4 s on a sleeping server, and one retry (network error / 502 / 503)
-    try { r = await window.HOINet.fetch(base + path, opts); } catch (e) { const err = new Error(tr("net")); err.status = 0; throw err; }
+    // /shared/net.js: "waking up the server" pill after ~4 s on a sleeping server, and one retry (network error / 502 / 503 / 504)
+    try { r = await window.HOINet.fetch(base + path, opts); } catch (e) { const err = new Error(tr("net")); err.status = 0; throw err; }  // key kept: a re-tap is a retry
+    if (sig && !KEEP_KEY.includes(r.status)) window.HOINet.settled(sig);
     let j = null;
     try { j = await r.json(); } catch (e) { /* empty */ }
     if (!r.ok) {
@@ -166,6 +171,7 @@
     }
     return j;
   }
+  const KEEP_KEY = [409, 502, 503, 504];  // 409 here = "still being processed": keep the key so the next tap replays
   function fail(msg) { $("#err").textContent = msg; $("#err").classList.remove("hidden"); setTimeout(() => $("#err").classList.add("hidden"), 6000); }
   function toast(msg) { const el = document.createElement("div"); el.className = "toast"; el.textContent = msg; document.body.appendChild(el); setTimeout(() => el.remove(), 2800); }
 

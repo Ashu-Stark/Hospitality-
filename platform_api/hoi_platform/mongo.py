@@ -149,6 +149,8 @@ INDEXES: dict[str, list[tuple[list, dict]]] = {
     # concierge places looked up from the tourism portal (services/places.py): freshness is checked in code (24 h);
     # documents are removed 7 days after the last good fetch
     "places_cache": [(_ix("key"), {"unique": True}), (_ix("fetched_at"), {"expireAfterSeconds": 7 * 86400})],
+    # retry-safe POSTs (idempotency.py): one record per scoped Idempotency-Key, removed 24 h after the first attempt
+    "idempotency_keys": [(_ix("key"), {"unique": True}), (_ix("created_at"), {"expireAfterSeconds": 86400})],
     "guest_feedback": [
         (_ix("id"), {"unique": True}),
         (_ix("tenant_id", "room_id", "stay"), {"unique": True}),  # one feedback per stay
