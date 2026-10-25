@@ -8,7 +8,9 @@ FORBIDDEN = ("display_name", "headline", "bio", "phone", "email", "user_id", "co
 def _hotel_key(client, owner) -> tuple[dict, str]:
     items = client.get("/api/v1/business/businesses", headers=owner).json()["items"]
     hotel = next(b for b in items if b["type"] == "hotel" and b["status"] == "active")
-    raw = client.post(f"/api/v1/business/businesses/{hotel['id']}/api-keys", json={"label": "HOI retention"}, headers=owner).json()["api_key"]
+    raw = client.post(f"/api/v1/business/businesses/{hotel['id']}/api-keys", json={"label": "HOI retention"}, headers=owner).json()[
+        "api_key"
+    ]
     return hotel, raw
 
 
@@ -33,7 +35,17 @@ def test_candidate_matches_count_and_anonymised_previews(client, owner):
     assert j["total"] == _expected("housekeeping", hotel["district"])
     assert len(j["items"]) == min(5, j["total"])
     for it in j["items"]:
-        assert set(it) == {"code", "skills", "districts", "availability", "available_from", "available_to", "match", "synthetic", "open_path"}
+        assert set(it) == {
+            "code",
+            "skills",
+            "districts",
+            "availability",
+            "available_from",
+            "available_to",
+            "match",
+            "synthetic",
+            "open_path",
+        }
         assert it["open_path"].endswith(it["code"])
     text = str(j)
     for p in mongo.db().seeker_profiles.find({"code": {"$in": [i["code"] for i in j["items"]]}}):

@@ -233,8 +233,13 @@ def _homestay(client, owner):
 
 
 D0 = date.today() + timedelta(days=5)  # relative: the portal (and now the platform) refuse windows already over
-REQ = {"department": "housekeeping", "skill": "room_cleaning", "date_from": D0.isoformat(),
-       "date_to": (D0 + timedelta(days=2)).isoformat(), "openings": 2}
+REQ = {
+    "department": "housekeeping",
+    "skill": "room_cleaning",
+    "date_from": D0.isoformat(),
+    "date_to": (D0 + timedelta(days=2)).isoformat(),
+    "openings": 2,
+}
 
 
 def test_staffing_request_forwarded_with_the_property_key(client, owner, monkeypatch):

@@ -9,14 +9,27 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from lib import models  # noqa: E402
 
-BASE = {"employee_id": "HS05", "week_start": "2026-09-07", "segment": "resignation", "model": "logistic", "risk": 0.1,
-        "rank": 1, "group_size": 15, "band": "high", "band_basis": "model_rank", "rank_is_tied": False,
-        "is_demo_hero": False, "drivers": [], "actions": []}
+BASE = {
+    "employee_id": "HS05",
+    "week_start": "2026-09-07",
+    "segment": "resignation",
+    "model": "logistic",
+    "risk": 0.1,
+    "rank": 1,
+    "group_size": 15,
+    "band": "high",
+    "band_basis": "model_rank",
+    "rank_is_tied": False,
+    "is_demo_hero": False,
+    "drivers": [],
+    "actions": [],
+}
 
 
 def test_live_score_names_its_sources_and_weeks():
-    s = models.parse_score({**BASE, "data_source": "live", "weeks_of_history": 6,
-                            "data_sources": ["shifts", "jobs", "thank-yous", "check-ins", "HR record"]})
+    s = models.parse_score(
+        {**BASE, "data_source": "live", "weeks_of_history": 6, "data_sources": ["shifts", "jobs", "thank-yous", "check-ins", "HR record"]}
+    )
     assert s.data_source == "live" and s.weeks_of_history == 6
     assert models.based_on(s) == "Based on: shifts, jobs, thank-yous, check-ins (6 weeks)"
 

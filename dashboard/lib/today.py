@@ -267,6 +267,7 @@ def names_sentence(names: list[str]) -> str:
     """['HS05'] -> 'HS05', ['HS05', 'HS12'] -> 'HS05 and HS12', 3+ -> 'HS05, HS12 and HS14'."""
     return names[0] if len(names) == 1 else ", ".join(names[:-1]) + " and " + names[-1]
 
+
 def action_result(out) -> tuple[str, bool]:
     """(toast text, ok) for a Today action's answer. A staffing request that is still "pending_send" did NOT reach the
     tourism portal: say so with the reason, instead of a bare "Done"."""

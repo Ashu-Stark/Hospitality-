@@ -67,7 +67,9 @@ def find_cover(employee_id: str = EMP, property_id: str | None = PID, p: Princip
 
 
 @router.post("/staffing/cover/{employee_id}/post")
-def post_cover_job(employee_id: str = EMP, property_id: str | None = PID, p: Principal = Depends(roles("owner", "dept_head", "hr"))) -> dict:
+def post_cover_job(
+    employee_id: str = EMP, property_id: str | None = PID, p: Principal = Depends(roles("owner", "dept_head", "hr"))
+) -> dict:
     """The owner's one click when nobody fits: post one job for this role on the portal. Idempotent while that post is open."""
     return staffing.post_cover_job(_cover_scope(p, employee_id), p.username, employee_id, property_id)
 

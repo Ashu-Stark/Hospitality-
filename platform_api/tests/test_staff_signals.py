@@ -32,22 +32,51 @@ def week():
     ws = _last_week()
     snap = mongo.col("roster_snapshots").find_one({"tenant_id": TID}, {"_id": 0})
     days = [ws + timedelta(days=i) for i in range(7)]
-    dispatch.publish_roster(TID, ws.isoformat(), [{"employee_id": EMP, "date": d.isoformat(), "shift": "morning", "hours": 9} for d in days])
+    dispatch.publish_roster(
+        TID, ws.isoformat(), [{"employee_id": EMP, "date": d.isoformat(), "shift": "morning", "hours": 9} for d in days]
+    )
     d1 = days[1]
     jobs = [
         {  # accepted after 6 s, done within target, but 30 min after the morning shift ended (15:00)
-            "id": "sigtest_1", "tenant_id": TID, "title": "Clean room 104", "department": "housekeeping", "status": "done",
-            "urgency": "medium", "assigned_to": EMP, "created_at": _local(d1, 14, 50), "accepted_at": _local(d1, 14, 51),
+            "id": "sigtest_1",
+            "tenant_id": TID,
+            "title": "Clean room 104",
+            "department": "housekeeping",
+            "status": "done",
+            "urgency": "medium",
+            "assigned_to": EMP,
+            "created_at": _local(d1, 14, 50),
+            "accepted_at": _local(d1, 14, 51),
             "done_at": _local(d1, 15, 30),
-            "attempts": [{"employee_id": EMP, "offered_at": _local(d1, 14, 50), "at": _local(d1, 14, 50, ) + timedelta(seconds=6),
-                          "outcome": "accepted"}],
+            "attempts": [
+                {
+                    "employee_id": EMP,
+                    "offered_at": _local(d1, 14, 50),
+                    "at": _local(
+                        d1,
+                        14,
+                        50,
+                    )
+                    + timedelta(seconds=6),
+                    "outcome": "accepted",
+                }
+            ],
         },
         {  # declined by HS05
-            "id": "sigtest_2", "tenant_id": TID, "title": "Towels 202", "department": "housekeeping", "status": "done",
-            "urgency": "low", "assigned_to": "HS04", "created_at": _local(d1, 10), "accepted_at": _local(d1, 10, 1),
+            "id": "sigtest_2",
+            "tenant_id": TID,
+            "title": "Towels 202",
+            "department": "housekeeping",
+            "status": "done",
+            "urgency": "low",
+            "assigned_to": "HS04",
+            "created_at": _local(d1, 10),
+            "accepted_at": _local(d1, 10, 1),
             "done_at": _local(d1, 10, 20),
-            "attempts": [{"employee_id": EMP, "offered_at": _local(d1, 10), "at": _local(d1, 10) + timedelta(seconds=9), "outcome": "declined"},
-                         {"employee_id": "HS04", "offered_at": _local(d1, 10), "at": _local(d1, 10, 1), "outcome": "accepted"}],
+            "attempts": [
+                {"employee_id": EMP, "offered_at": _local(d1, 10), "at": _local(d1, 10) + timedelta(seconds=9), "outcome": "declined"},
+                {"employee_id": "HS04", "offered_at": _local(d1, 10), "at": _local(d1, 10, 1), "outcome": "accepted"},
+            ],
         },
     ]
     mongo.col("jobs").insert_many([dict(j) for j in jobs])
@@ -151,8 +180,10 @@ def test_feed_is_what_the_model_reads(client, owner, week):
 
 def test_short_rest_is_counted(week):
     ws = week
-    rows = [{"employee_id": "HS04", "date": ws.isoformat(), "shift": "evening", "hours": 9},
-            {"employee_id": "HS04", "date": (ws + timedelta(days=1)).isoformat(), "shift": "morning", "hours": 9}]
+    rows = [
+        {"employee_id": "HS04", "date": ws.isoformat(), "shift": "evening", "hours": 9},
+        {"employee_id": "HS04", "date": (ws + timedelta(days=1)).isoformat(), "shift": "morning", "hours": 9},
+    ]
     staff_signals.keep_roster_week(TID, ws.isoformat(), rows)  # evening ends 23:00, morning starts 06:00: 7 h rest
     feed = staff_signals.weekly_signals(TID, weeks=1)
     assert _rec(feed, "HS04", ws)["short_rest"] == 1

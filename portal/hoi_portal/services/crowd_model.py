@@ -141,9 +141,7 @@ def _window(series: dict, days: list[date], need: int) -> float | None:
     return sum(vals) / len(vals) if len(vals) >= need else None
 
 
-def feature_row(
-    ctx: Context, dest: str, day: date, as_of: date, weather: dict | None = None
-) -> dict:
+def feature_row(ctx: Context, dest: str, day: date, as_of: date, weather: dict | None = None) -> dict:
     """Features for pilgrims at `dest` on `day`, using only counts up to `as_of` (inclusive).
 
     `weather` maps date -> (precip_mm, snow_cm, tmax_c) for the days a forecast exists; when it is
@@ -191,9 +189,7 @@ def feature_row(
     lag_prev = _window(s, prev7d, 3)
     row["lag1"] = lag1 / scale if lag1 is not None else nan
     row["lag7"] = lag7 / scale if lag7 is not None else nan
-    row["lag_trend"] = (
-        (lag7 + 1.0) / (lag_prev + 1.0) if lag7 is not None and lag_prev is not None else nan
-    )
+    row["lag_trend"] = (lag7 + 1.0) / (lag_prev + 1.0) if lag7 is not None and lag_prev is not None else nan
     # Previous season, aligned by day of season.
     prev = ctx.seasons.get(dest, {}).get(day.year - 1)
     p7 = py = None
@@ -270,13 +266,8 @@ class Bundle:
         self.guard = raw["guard"]
         self.ranges = raw["feature_ranges"]
         cal = raw["calendar"]
-        seasons = {
-            k: {int(y): (_d(v[0]), _d(v[1])) for y, v in d["seasons"].items()}
-            for k, d in self.dests.items()
-        }
-        series = {
-            k: {_d(dt): float(c) for dt, c in d["series"].items()} for k, d in self.dests.items()
-        }
+        seasons = {k: {int(y): (_d(v[0]), _d(v[1])) for y, v in d["seasons"].items()} for k, d in self.dests.items()}
+        series = {k: {_d(dt): float(c) for dt, c in d["series"].items()} for k, d in self.dests.items()}
         self.ctx = Context(
             seasons,
             series,
@@ -333,10 +324,7 @@ def _clean_weather(weather: dict | None) -> tuple[dict | None, list[str]]:
             notes.append(f"weather for {k} ignored (not three numbers)")
             continue
         names = ("precip", "snow", "tmax")
-        if all(
-            WEATHER_RANGES[n][0] <= x <= WEATHER_RANGES[n][1]
-            for n, x in zip(names, vals, strict=True)
-        ):
+        if all(WEATHER_RANGES[n][0] <= x <= WEATHER_RANGES[n][1] for n, x in zip(names, vals, strict=True)):
             out[day] = vals
         else:
             notes.append(f"weather for {k} ignored (outside physical range)")
@@ -457,11 +445,7 @@ def predict(
             }
         p = min(max(base, 0.0), cap)
         lo, hi = p * b.guard["fallback_low"], min(p * b.guard["fallback_high"], cap)
-        why = (
-            "recent counts missing"
-            if missing_lags
-            else "inputs outside training range: " + ", ".join(drift)
-        )
+        why = "recent counts missing" if missing_lags else "inputs outside training range: " + ", ".join(drift)
         key, idx = band_of(b, dest, p)
         return {
             **out,
@@ -494,13 +478,7 @@ def predict(
             "basis": "model",
             "notes": out["notes"] + ["range too wide to call"],
         }
-    conf = (
-        "high"
-        if width <= b.guard["high_width"]
-        else "medium"
-        if width <= b.guard["low_width"]
-        else "low"
-    )
+    conf = "high" if width <= b.guard["high_width"] else "medium" if width <= b.guard["low_width"] else "low"
     key, idx = band_of(b, dest, p)
     return {
         **out,
