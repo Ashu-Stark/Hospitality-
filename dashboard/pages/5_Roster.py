@@ -82,7 +82,9 @@ if gen:
         made = models.parse_roster(raw)
         if made is not None and made.status != "infeasible":  # publishing happens here, when the plan is made
             err = data.publish_plan(made)
-            ui.flash("Shift plan made and sent to staff phones." if err is None else f"Shift plan made. Not sent to staff: {err}", ok=err is None)
+            ui.flash(
+                "Shift plan made and sent to staff phones." if err is None else f"Shift plan made. Not sent to staff: {err}", ok=err is None
+            )
 
 raw = st.session_state.get("roster_raw")
 ro: models.Roster | None = models.parse_roster(raw) if raw else None

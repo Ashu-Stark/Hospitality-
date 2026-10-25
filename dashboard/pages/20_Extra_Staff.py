@@ -69,7 +69,11 @@ with st.expander("Request staff", expanded=bool(pre) or not rows):
         gap = pre.get("gap_day") or pre["date_from"]
         st.caption(
             f"Filled in from the shift plan: {theme.dept_label(pre['department'])} is short on {gap}."
-            + (" The tourism portal takes requests up to 180 days ahead, so the dates are in the coming week." if gap != pre["date_from"] else "")
+            + (
+                " The tourism portal takes requests up to 180 days ahead, so the dates are in the coming week."
+                if gap != pre["date_from"]
+                else ""
+            )
         )
     request_form(pre)
 

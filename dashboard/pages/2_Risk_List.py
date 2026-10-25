@@ -125,9 +125,7 @@ def _cover_block(emp: str) -> None:
         st.caption("Posts one opening for this role for the next 30 days. The post does not name anyone or say why.")
         if st.button("Post the job on the Uttarakhand Travel Guide", key=f"post_{emp}", type="primary", icon=":material/campaign:"):
             try:
-                out = platform.call(
-                    "POST", f"/staffing/cover/{emp}/post", params=platform._pid_params(), timeout=platform.SLOW_S
-                )
+                out = platform.call("POST", f"/staffing/cover/{emp}/post", params=platform._pid_params(), timeout=platform.SLOW_S)
                 st.session_state[key] = {**res, "job": out["job"]}
                 st.toast(out["message"])
                 st.rerun()
@@ -172,11 +170,15 @@ SOURCES = ["shifts", "jobs", "thank-yous", "check-ins", "weekly answers", "leave
 n_live = sum(1 for x in scores if x.data_source == "live")
 if n_live:
     weeks = max(x.weeks_of_history or 0 for x in scores if x.data_source == "live")
-    srcs = sorted({y for x in scores if x.data_source == "live" for y in x.data_sources if y != "HR record"},
-                  key=lambda y: SOURCES.index(y) if y in SOURCES else len(SOURCES))
+    srcs = sorted(
+        {y for x in scores if x.data_source == "live" for y in x.data_sources if y != "HR record"},
+        key=lambda y: SOURCES.index(y) if y in SOURCES else len(SOURCES),
+    )
     rest = len(scores) - n_live
-    st.caption(f"Based on: {', '.join(srcs)} (up to {weeks} weeks) for {n_live} people"
-               + (f"; example (made-up) data for {rest} without records yet." if rest else "."))
+    st.caption(
+        f"Based on: {', '.join(srcs)} (up to {weeks} weeks) for {n_live} people"
+        + (f"; example (made-up) data for {rest} without records yet." if rest else ".")
+    )
 else:
     st.caption("Based on: example (made-up) data, no records from your hotel yet.")
 

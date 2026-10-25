@@ -344,9 +344,7 @@ def weekly_signals(
         if m["employee_id"] in dept:
             d = date.fromisoformat(m["date"])
             _rec(out, m["employee_id"], _monday(d))["leave_days"].add(d.weekday())
-    consented = {
-        c["employee_id"] for c in mongo.col("pulse_consent").find({"tenant_id": tid, "consent": True}, {"employee_id": 1})
-    }
+    consented = {c["employee_id"] for c in mongo.col("pulse_consent").find({"tenant_id": tid, "consent": True}, {"employee_id": 1})}
     for a in mongo.col("pulse_answers").find(
         {"tenant_id": tid, "week_start": {"$gte": first.isoformat(), "$lte": last.isoformat()}}, {"_id": 0}
     ):

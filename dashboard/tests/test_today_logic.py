@@ -25,7 +25,9 @@ def test_uncovered_flags_waiting_jobs_with_nobody_of_that_team_on_shift():
 
 
 def test_action_result_says_when_a_staffing_request_is_still_not_sent():
-    msg, ok = today.action_result({"status": "pending_send", "openings": 1, "last_error": "The tourism portal could not be reached (ReadTimeout)."})
+    msg, ok = today.action_result(
+        {"status": "pending_send", "openings": 1, "last_error": "The tourism portal could not be reached (ReadTimeout)."}
+    )
     assert not ok and msg.startswith("Still not sent: ") and "ReadTimeout" in msg
     assert today.action_result({"status": "sent", "openings": 1}) == ("Sent to the tourism portal.", True)
     assert today.action_result(None) == ("Done", True)

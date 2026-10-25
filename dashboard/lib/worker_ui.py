@@ -98,10 +98,17 @@ def phone(me: str, dept: str | None, shift: str, seconds: int, allow_upload: boo
                             api.done_task(j["backend_task_id"])
                         except ApiError:
                             pass
-                    st.toast(f"{kind.capitalize()} photo saved at {timefmt.hhmm(info['server_ts'], seconds=True)}", icon=":material/photo_camera:")
+                    st.toast(
+                        f"{kind.capitalize()} photo saved at {timefmt.hhmm(info['server_ts'], seconds=True)}",
+                        icon=":material/photo_camera:",
+                    )
                     st.rerun()
             if "before" in ph:
-                st.image(platform.photo_bytes(ph["before"]["id"]), caption=f"before · {timefmt.hhmm(ph['before']['server_ts'], seconds=True)}", width="stretch")
+                st.image(
+                    platform.photo_bytes(ph["before"]["id"]),
+                    caption=f"before · {timefmt.hhmm(ph['before']['server_ts'], seconds=True)}",
+                    width="stretch",
+                )
 
 
 def completed(me: str, limit: int = 5) -> None:
