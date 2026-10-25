@@ -14,7 +14,7 @@ body{padding-bottom:84px}
 .ghero h1{font-size:1.75rem;margin:10px 0 4px}
 .welcome{color:rgba(255,255,255,.93);font-size:.95rem;max-width:46ch}
 .langs{display:flex;gap:6px;flex:0 0 auto}
-.langs button{border:1px solid rgba(255,255,255,.55);background:rgba(255,255,255,.14);color:#fff;border-radius:999px;padding:0 14px;min-height:40px;cursor:pointer;font-size:.9rem}
+.langs button{border:1px solid rgba(255,255,255,.55);background:rgba(255,255,255,.14);color:#fff;border-radius:999px;padding:0 14px;min-height:44px;cursor:pointer;font-size:.9rem}
 .langs button.on{background:#fff;color:#0b0b0b}
 
 h2{font-size:1.2rem;margin:18px 0 8px}
@@ -128,7 +128,8 @@ select.field{min-height:52px;appearance:auto}
 /* property photo header + credit; HOI platform mark in the footer */
 .ghero.photo{background-size:cover;background-position:center}
 .ghero{position:relative}
-.photoinfo{position:absolute;right:12px;bottom:12px;width:22px;height:22px;min-height:0;padding:0;border:0;border-radius:50%;background:rgba(255,255,255,.8);color:#0b0b0b;font:600 12px/22px Georgia,serif;text-align:center;cursor:help}
+/* a 22 px dot on screen, a 44 px tap area (the circle is drawn by the background) */
+.photoinfo{position:absolute;right:1px;bottom:1px;width:44px;height:44px;min-height:0;padding:0;border:0;border-radius:50%;background:radial-gradient(circle,rgba(255,255,255,.8) 10.5px,transparent 11px);color:#0b0b0b;font:600 12px/44px Georgia,serif;text-align:center;cursor:help}
 .photoinfo.hidden{display:none}
 .poweredby{display:flex;align-items:center;justify-content:center;gap:8px;color:var(--muted);font-size:.78rem;margin:6px 0 90px}
 .poweredby img{border-radius:6px}

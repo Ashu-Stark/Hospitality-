@@ -42,14 +42,19 @@
   function saveRefresh(tok) { S.refresh = tok; localStorage.removeItem("hoi.rt"); sessionStorage.removeItem("hoi.rt"); if (tok) store().setItem("hoi.rt", tok); }
 
   // ---------------------------------------------------------------- api
+  // job actions and supply requests must not run twice when an answer is lost: one Idempotency-Key per attempt
+  const ONCE = /^\/dispatch\/jobs\/[^/]+\/(accept|decline|start|complete)$|^\/inventory\/requests$/;
   async function api(method, path, body, isForm) {
     const opts = { method, headers: {} };
     if (S.access) opts.headers.Authorization = "Bearer " + S.access;
     if (body !== undefined) {
       if (isForm) opts.body = body; else { opts.headers["Content-Type"] = "application/json"; opts.body = JSON.stringify(body); }
     }
+    const sig = method === "POST" && ONCE.test(path) ? `${method} ${path} ${opts.body}` : null;
+    if (sig) opts.headers["Idempotency-Key"] = window.HOINet.key(sig);
     let r;
-    try { r = await window.HOINet.fetch(path, opts); } catch (e) { throw new Error(t("offline")); }  // /shared/net.js: waking pill + one retry
+    try { r = await window.HOINet.fetch(path, opts); } catch (e) { throw new Error(t("offline")); }  // /shared/net.js: waking pill + one retry; key kept
+    if (sig && ![401, 409, 502, 503, 504].includes(r.status)) window.HOINet.settled(sig);  // answered: the next tap is a new attempt
     if (r.status === 401 && S.refresh && path !== "/auth/refresh") {
       if (await refresh()) return api(method, path, body, isForm);
       signOut(true); throw new Error(t("session_expired"));
@@ -75,8 +80,10 @@
   }
 
   function toast(msg) {
-    const el = document.createElement("div"); el.className = "toast"; el.textContent = msg; document.body.appendChild(el);
+    const el = document.createElement("div"); el.className = "toast"; el.setAttribute("aria-hidden", "true"); el.textContent = msg; document.body.appendChild(el);
     setTimeout(() => el.remove(), 2600);
+    // screen readers: the text goes to #live (role=status), cleared first so a repeated message is read again
+    const live = $("#live"); if (live) { live.textContent = ""; setTimeout(() => { live.textContent = msg; }, 60); }
   }
 
   // ---------------------------------------------------------------- i18n

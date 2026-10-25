@@ -4,8 +4,11 @@
 //   1. "Waking up the server…": when a request has waited WAIT_MS and the server may be asleep (no answer yet on this page,
 //      or none for SLEEP_MS), a small pill fades in at the top of the screen. It is fixed-position (no layout shift),
 //      follows the page language (<html lang>), and goes away when the slow requests finish.
-//   2. One retry: on a network error (GET / HEAD only, so an order is never sent twice) or a 502 / 503 / 504 from the
-//      gateway (any method: the app never saw the request), it waits RETRY_MS and tries once more.
+//   2. One retry: on a network error or a 502 / 503 / 504 from the gateway, it waits RETRY_MS and tries once more, but a
+//      POST only when it carries an Idempotency-Key: a 504 or a lost answer can come AFTER the app did the work, and only
+//      the key lets the server recognise the retry and answer it without doing the work twice (platform_api/idempotency.py).
+//   3. HOINet.key(sig) / HOINet.settled(sig): one key per user attempt. The same signature (method + path + body) gets the
+//      same key until that attempt has an answer, so tapping again after "no connection" is a retry, not a new request.
 (() => {
   "use strict";
   const WAIT_MS = 4000, RETRY_MS = 1500, SLEEP_MS = 14 * 60 * 1000;  // ASSUMED: Render free sleeps after ~15 min idle
@@ -42,8 +45,16 @@
     return r;
   }
 
+  // pending attempts: signature -> key; cleared once the server has answered (success or a real error)
+  const KEYS = new Map();
+  const newKey = () => (window.crypto && crypto.randomUUID ? crypto.randomUUID() : `k-${Date.now()}-${Math.random().toString(36).slice(2)}`);
+  function key(sig) { if (!KEYS.has(sig)) KEYS.set(sig, newKey()); return KEYS.get(sig); }
+  function settled(sig) { KEYS.delete(sig); }
+
   async function wakeFetch(input, init) {
     const method = String((init && init.method) || "GET").toUpperCase();
+    const keyed = !!(init && init.headers && init.headers["Idempotency-Key"]);
+    const retrySafe = method === "GET" || method === "HEAD" || keyed;
     const asleep = maybeAsleep();
     let shown = false;
     const timer = asleep ? setTimeout(() => { shown = true; S.slow++; paint(); }, WAIT_MS) : null;
@@ -51,11 +62,11 @@
       let r;
       try { r = await once(input, init); }
       catch (e) {
-        if (method !== "GET" && method !== "HEAD") throw e;
+        if (!retrySafe) throw e;
         await new Promise((res) => setTimeout(res, RETRY_MS));
         return await once(input, init);
       }
-      if (GATEWAY.includes(r.status)) {
+      if (GATEWAY.includes(r.status) && retrySafe) {
         await new Promise((res) => setTimeout(res, RETRY_MS));
         r = await once(input, init);
       }
@@ -66,5 +77,5 @@
     }
   }
 
-  window.HOINet = { fetch: wakeFetch, text: TEXT };
+  window.HOINet = { fetch: wakeFetch, text: TEXT, key, settled };
 })();

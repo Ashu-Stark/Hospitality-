@@ -6,7 +6,7 @@ ids. The chat proposes actions only; /actions runs one after the guest taps Conf
 
 from fastapi import APIRouter, File, Form, Request, Response, UploadFile
 
-from .. import config, ratelimit
+from .. import config, idempotency, ratelimit
 from ..schemas import ExpressCheckoutIn, FeedbackIn, GuestActionIn, GuestChatIn, GuestRequestIn, LateCheckoutIn, TtsIn
 from ..services import concierge, guest, rooms, tts
 from . import audio
@@ -36,9 +36,16 @@ def guest_requests(token: str, request: Request) -> dict:
 
 
 @router.post("/guest/{token}/requests", status_code=201)
-def guest_request(token: str, body: GuestRequestIn, request: Request) -> dict:
+def guest_request(token: str, body: GuestRequestIn, request: Request, response: Response, idem: str | None = idempotency.KeyHeader) -> dict:
+    """A retry with the same Idempotency-Key (double tap, lost answer) replays the first answer: one job, not two."""
     ratelimit.hit(f"guest-req:{ratelimit.client_ip(request)}", 10)
-    return guest.with_local_times(rooms.guest_request(token, body.key, body.note))
+    return idempotency.run(
+        f"guest:{token[:40]}:requests",
+        idem,
+        body,
+        response,
+        lambda: guest.with_local_times(rooms.guest_request(token, body.key, body.note)),
+    )
 
 
 @router.post("/guest/{token}/transcribe")
@@ -78,10 +85,16 @@ def chat(token: str, body: GuestChatIn, request: Request) -> dict:
 
 
 @router.post("/guest/{token}/actions")
-def actions(token: str, body: GuestActionIn, request: Request) -> dict:
-    """Runs one proposed action. Only the guest's Confirm tap calls this; the chat never does."""
+def actions(token: str, body: GuestActionIn, request: Request, response: Response, idem: str | None = idempotency.KeyHeader) -> dict:
+    """Runs one proposed action. Only the guest's Confirm tap calls this; the chat never does. Retry-safe with a key."""
     _limit(request, token, "act", config.settings.guest_action_rate_per_minute)
-    return guest.with_local_times(concierge.execute(token, body.action, body.params))
+    return idempotency.run(
+        f"guest:{token[:40]}:actions",
+        idem,
+        body,
+        response,
+        lambda: guest.with_local_times(concierge.execute(token, body.action, body.params)),
+    )
 
 
 @router.post("/guest/{token}/checkout", status_code=201)

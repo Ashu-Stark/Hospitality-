@@ -2,9 +2,10 @@
 
 import html
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Response
 from fastapi.responses import HTMLResponse
 
+from .. import idempotency
 from ..deps import INVENTORY_MANAGERS, Principal, roles, tenant_of
 from ..schemas import (
     CountPostIn,
@@ -112,9 +113,14 @@ def requests_(status: str | None = None, p: Principal = Depends(roles(*VIEW, "wo
 
 
 @router.post("/requests", status_code=201)
-def create_request(body: RequestIn, p: Principal = Depends(roles(*VIEW, "worker"))) -> dict:
-    rid = inv.request(tenant_of(p), _by(p), body.department, body.lines, body.location_id, body.room, body.note, body.job_id)
-    return {"id": rid}
+def create_request(
+    body: RequestIn, response: Response, idem: str | None = idempotency.KeyHeader, p: Principal = Depends(roles(*VIEW, "worker"))
+) -> dict:
+    def create() -> dict:
+        rid = inv.request(tenant_of(p), _by(p), body.department, body.lines, body.location_id, body.room, body.note, body.job_id)
+        return {"id": rid}
+
+    return idempotency.run(f"user:{p.user_id}:inventory-request", idem, body, response, create)
 
 
 @router.post("/requests/{rid}/fulfil")
