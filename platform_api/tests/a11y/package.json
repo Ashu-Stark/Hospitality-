@@ -1,0 +1,9 @@
+{
+  "name": "hoi-platform-a11y",
+  "private": true,
+  "description": "Accessibility audit of the guest QR page and the staff app (axe-core in headless Chrome/Edge). Run by tests/test_accessibility.py.",
+  "type": "module",
+  "dependencies": {
+    "axe-core": "4.10.2"
+  }
+}

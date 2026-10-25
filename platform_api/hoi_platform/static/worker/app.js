@@ -80,8 +80,10 @@
   }
 
   function toast(msg) {
-    const el = document.createElement("div"); el.className = "toast"; el.textContent = msg; document.body.appendChild(el);
+    const el = document.createElement("div"); el.className = "toast"; el.setAttribute("aria-hidden", "true"); el.textContent = msg; document.body.appendChild(el);
     setTimeout(() => el.remove(), 2600);
+    // screen readers: the text goes to #live (role=status), cleared first so a repeated message is read again
+    const live = $("#live"); if (live) { live.textContent = ""; setTimeout(() => { live.textContent = msg; }, 60); }
   }
 
   // ---------------------------------------------------------------- i18n

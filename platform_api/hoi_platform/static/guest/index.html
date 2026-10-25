@@ -12,11 +12,12 @@
 <link rel="stylesheet" href="guest.css">
 </head>
 <body>
+<div id="live" class="sr" role="status" aria-live="polite" aria-atomic="true"></div>  <!-- toasts are read out here (WCAG 4.1.3) -->
 <div id="offline" class="offline hidden" data-t="offline">You are offline. We'll reconnect automatically.</div>
 <header class="ghero" id="hero">
   <div class="toprow">
     <div class="hotelid"><span class="logoplate hidden" id="logoPlate"><img id="hotelLogo" alt="" width="186" height="48"></span><div class="eyebrow" id="hotel">&nbsp;</div></div>
-    <div class="langs" role="group" aria-label="Language"><button type="button" data-lang="en" class="on">English</button><button type="button" data-lang="hi">हिंदी</button></div>
+    <div class="langs" role="group" aria-label="Language"><button type="button" data-lang="en" lang="en" class="on">English</button><button type="button" data-lang="hi" lang="hi">हिंदी</button></div>
   </div>
   <h1><span data-t="room">Room</span> <span id="roomNo">…</span></h1>
   <p id="welcome" class="welcome"></p>

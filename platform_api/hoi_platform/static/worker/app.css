@@ -6,7 +6,7 @@
 .logo{width:64px;height:64px;border-radius:20px;margin:0 auto;display:block;box-shadow:0 10px 24px rgba(91,110,245,.35)}
 .lang .btn{min-height:48px;padding:8px 12px;font-size:.9rem}
 .lang .btn.on,.btn[data-lang].on{background:var(--ink);color:#fff;border-color:var(--ink)}
-.check{display:flex;gap:10px;align-items:center;font-size:.9rem;color:var(--ink2);margin-top:12px}
+.check{display:flex;gap:10px;align-items:center;font-size:.9rem;color:var(--ink2);margin-top:12px;min-height:44px;cursor:pointer}
 .check input{width:20px;height:20px}
 .offline{position:sticky;top:0;z-index:60;background:#5c3c00;color:#fff;text-align:center;padding:8px;font-size:.85rem}
 

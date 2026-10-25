@@ -173,7 +173,9 @@
   }
   const KEEP_KEY = [409, 502, 503, 504];  // 409 here = "still being processed": keep the key so the next tap replays
   function fail(msg) { $("#err").textContent = msg; $("#err").classList.remove("hidden"); setTimeout(() => $("#err").classList.add("hidden"), 6000); }
-  function toast(msg) { const el = document.createElement("div"); el.className = "toast"; el.textContent = msg; document.body.appendChild(el); setTimeout(() => el.remove(), 2800); }
+  function toast(msg) { const el = document.createElement("div"); el.className = "toast"; el.setAttribute("aria-hidden", "true"); el.textContent = msg; document.body.appendChild(el); setTimeout(() => el.remove(), 2800); announce(msg); }
+  // #live (role=status): cleared first, so the same message twice in a row is still read out
+  function announce(msg) { const live = $("#live"); if (!live) return; live.textContent = ""; setTimeout(() => { live.textContent = msg; }, 60); }
 
   // ---------------------------------------------------------------- paint
   function paint() {
@@ -256,7 +258,7 @@
   }
 
   function paintMenu() {
-    const opt = (m) => `<button type="button" class="opt${m.urgent ? " urgent" : ""}" data-key="${esc(m.key)}">${esc(S.lang === "hi" ? m.label_hi : m.label)}<small>${esc(S.lang === "hi" ? m.label : m.label_hi)}</small></button>`;
+    const opt = (m) => `<button type="button" class="opt${m.urgent ? " urgent" : ""}" data-key="${esc(m.key)}">${esc(S.lang === "hi" ? m.label_hi : m.label)}<small lang="${S.lang === "hi" ? "en" : "hi"}">${esc(S.lang === "hi" ? m.label : m.label_hi)}</small></button>`;  // second language: read with its own voice
     const reqs = S.data.menu.filter((m) => m.group !== "problem"), probs = S.data.menu.filter((m) => m.group === "problem");
     $("#menu").innerHTML = `<h3 class="mgroup">${esc(tr("requests_h"))}</h3><div class="grid">${reqs.map(opt).join("")}</div>` +
       (probs.length ? `<h3 class="mgroup">${esc(tr("problems"))}</h3><div class="grid">${probs.map(opt).join("")}</div>` : "");
@@ -299,7 +301,7 @@
     h += section(tr("times"), `<div class="kv"><span>${esc(tr("checkin"))}</span><span>${esc(p.checkin_time)}</span></div><div class="kv"><span>${esc(tr("checkout_t"))}</span><span>${esc(p.checkout_time)}</span></div>` +
       (lc.allowed ? `<div class="kv"><span>${esc(tr("late"))}</span><span>${esc(fmt("late_hint", { t: lc.latest }))}</span></div>` : ""));
     h += section(tr("amenities"), (p.amenities || []).map((a) => `<div class="kv"><span><b>${esc(a.name)}</b>${a.where ? `<br><span class="muted">${esc(a.where)}</span>` : ""}${a.note ? `<br><span class="muted">${esc(a.note)}</span>` : ""}</span><span>${esc(a.hours)}</span></div>`).join(""));
-    h += section(tr("dining"), (p.dining || []).map((x) => `<div class="dish"><span>${x.veg === true ? '<i class="veg" aria-label="veg"></i>' : x.veg === false ? '<i class="veg nonveg" aria-label="non-veg"></i>' : ""}${esc(x.item)}${x.hours ? `<br><span class="muted">${esc(x.hours)}</span>` : ""}</span><span>${x.price_inr != null ? "₹" + esc(x.price_inr) : ""}</span></div>`).join(""));
+    h += section(tr("dining"), (p.dining || []).map((x) => `<div class="dish"><span>${x.veg === true ? '<i class="veg" role="img" aria-label="veg"></i>' : x.veg === false ? '<i class="veg nonveg" role="img" aria-label="non-veg"></i>' : ""}${esc(x.item)}${x.hours ? `<br><span class="muted">${esc(x.hours)}</span>` : ""}</span><span>${x.price_inr != null ? "₹" + esc(x.price_inr) : ""}</span></div>`).join(""));
     h += section(tr("policies"), (p.policies || []).map((x) => `<details><summary>${esc(x.title)}</summary><p>${esc(x.text)}</p></details>`).join(""));
     h += section(tr("nearby"), (p.nearby || []).map((x) => `<div class="kv"><span><b>${esc(x.name)}</b>${x.tip ? `<br><span class="muted">${esc(x.tip)}</span>` : ""}</span><span>${esc(x.distance_note)}</span></div>`).join(""));
     h += section(tr("faq"), (p.faq || []).map((x) => `<details><summary>${esc(x.q)}</summary><p>${esc(x.a)}</p></details>`).join(""));

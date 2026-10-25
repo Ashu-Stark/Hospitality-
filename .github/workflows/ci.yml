@@ -36,7 +36,12 @@ jobs:
       - name: ML / ops API tests
         working-directory: backend
         run: python -m pytest -q -m "not slow"
-      - name: Platform API tests
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Accessibility audit tools (axe-core; Chrome is preinstalled on the runner)
+        run: npm ci --prefix platform_api/tests/a11y
+      - name: Platform API tests (incl. the accessibility gate, tests/test_accessibility.py)
         working-directory: platform_api
         run: python -m pytest -q
       - name: Portal tests
